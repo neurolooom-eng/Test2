@@ -82,3 +82,9 @@
 .backlog-table th{color:var(--text-2)}.backlog-table td{color:var(--text)}.backlog-table a{color:var(--link)}
 input,select,textarea{background:var(--surface);color:var(--text)}
 @media(max-width:1000px){.clock{display:none}}
+/* Surfaces that stay dark in both themes (sidebar, accent buttons) and headings that must flip with the text colour */
+:root{--heading:var(--brand);--on-brand:#fff;--on-accent:#fff;--navy:var(--heading)}
+:root[data-theme="dark"]{--heading:var(--text);--on-accent:#06213a}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--heading:var(--text);--on-accent:#06213a}}
+.sidebar,.sidebar nav button:hover,.sidebar nav .nav-active,.brand-mark,.brand strong{color:var(--on-brand)}
+.primary{color:var(--on-accent)}.topbar h1,.panel-heading h2,.section-heading h2,.panel h2,.panel h3,.metric-grid strong,.modal-heading h2{color:var(--heading)}
