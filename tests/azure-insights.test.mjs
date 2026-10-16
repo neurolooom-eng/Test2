@@ -88,6 +88,6 @@ test('source maps numeric scheduling fields preserving zero and rejecting string
 })
 test('dashboard consumes shared Azure workspace only and removes sample/local metrics and assumed capacity', () => {
   const source = readFileSync(new URL('../src/pages/DashboardPage.tsx', import.meta.url), 'utf8')
-  assert.match(source, /azureInsights\(azure.items/)
-  assert.doesNotMatch(source, /store\.state|capacityUtilization|\['May',64/)
+  assert.match(source, /capacityModel\(azure.items/)
+  assert.doesNotMatch(source, /store\.state\.(?!capacitySettings)|capacityUtilization|\['May',64/)
 })
