@@ -1,14 +1,25 @@
 import { useState } from 'react'
-import { Heading, Panel, Pill } from '../components/ui'
-import type { AzureWorkspace } from '../useAzureWorkspace'
+import { Metric, Metrics, Page, Pill, TablePanel } from '../components/ui'
+import { AzureSourceBar } from '../components/AzureSourceBar'
 import { azureInsights, indiaMonth } from '../azureInsights'
+import { formatDate, monthName, todayIso } from '../format'
+import type { AzureWorkspace } from '../useAzureWorkspace'
 
-export function ReleasesPage({ azure, month }: { azure: AzureWorkspace; month: string }) {
-  const [today] = useState(() => new Date().toISOString().slice(0, 10))
+export function ReleasesPage({ azure, month, onOpenConnection }: { azure: AzureWorkspace; month: string; onOpenConnection: () => void }) {
+  const [today] = useState(todayIso)
   const data = azureInsights(azure.items, month, today)
   const features = data.features.filter(item => indiaMonth(item.closedDate) === month || item.targetDate?.startsWith(month))
-  return <section className="content"><Heading eyebrow="AZURE DEVOPS" title="Feature milestones" detail="Feature dates and states from the same Azure backlog source." />
-    <div className="metric-grid compact"><article><span>Features</span><strong>{features.length}</strong><small>Targeted or closed in {month}</small></article><article><span>Closed</span><strong>{data.closures.length}</strong><small>Closed/Done/Completed</small></article><article><span>Overdue</span><strong>{data.overdue.filter(item => item.workItemType === 'Feature').length}</strong><small>Open with elapsed target</small></article></div>
-    <Panel className="table-panel"><table><thead><tr><th>Feature</th><th>State</th><th>Assigned to</th><th>Target date</th><th>Closed date</th><th>Iteration</th></tr></thead><tbody>{features.map(item => <tr key={item.key}><td><a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a></td><td><Pill tone="info">{item.state}</Pill></td><td>{item.assignedTo || 'Unassigned'}</td><td>{item.targetDate?.slice(0,10) ?? '—'}</td><td>{item.closedDate?.slice(0,10) ?? '—'}</td><td>{item.iterationPath || '—'}</td></tr>)}</tbody></table>{!features.length && <p className="empty-state">No Feature dates match {month}.</p>}</Panel>
-  </section>
+  const overdue = data.overdue.filter(item => item.workItemType === 'Feature').length
+  return <Page>
+    <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
+    <Metrics>
+      <Metric label="Features" value={features.length} hint={`Targeted or closed in ${monthName(month)}`} />
+      <Metric label="Closed" value={data.closures.length} hint="Closed/Done/Completed this month" />
+      <Metric label="Overdue" value={overdue} hint="Open Features with an elapsed target date" tone={overdue ? 'negative' : undefined} />
+      <Metric label="Same month last year" value={data.priorClosures} hint="Features closed" />
+    </Metrics>
+    <TablePanel title="Features" count={`${features.length} features`} empty={features.length ? undefined : `No Feature dates match ${monthName(month)}.`}>
+      <table><thead><tr><th>Feature</th><th>State</th><th>Assigned to</th><th>Target date</th><th>Closed date</th><th>Iteration</th></tr></thead><tbody>{features.map(item => <tr key={item.key}><td><a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a></td><td><Pill tone="info">{item.state}</Pill></td><td>{item.assignedTo || 'Unassigned'}</td><td>{formatDate(item.targetDate)}</td><td>{formatDate(item.closedDate)}</td><td>{item.iterationPath || '—'}</td></tr>)}</tbody></table>
+    </TablePanel>
+  </Page>
 }
