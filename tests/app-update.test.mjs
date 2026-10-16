@@ -65,3 +65,11 @@ test('release version check accepts only matching vX.Y.Z tags', () => {
   assert.equal(run(`v${pkg.version}`).status, 0)
   assert.notEqual(run('v99.0.0').status, 0)
 })
+
+test('build number is optional and must be a non-negative integer when present', () => {
+  const base = { app: 'demandplanning', formatVersion: 1, version: '1.2.2', buildId: '1.1', builtAt: '2026-10-16T21:00:00.000Z', revision: 'abcdef1' }
+  assert.equal(validateBuildInfo(base).buildNumber, undefined)
+  assert.equal(validateBuildInfo({ ...base, buildNumber: 42 }).buildNumber, 42)
+  assert.throws(() => validateBuildInfo({ ...base, buildNumber: -1 }))
+  assert.throws(() => validateBuildInfo({ ...base, buildNumber: '42' }))
+})
