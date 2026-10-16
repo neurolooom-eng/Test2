@@ -2,7 +2,7 @@ import type { AzureWorkItem } from './domain'
 
 export interface AzureConfig { organization: string; project: string; team: string }
 export interface AzureRequest extends AzureConfig {
-  operation: 'backlog-epics' | 'identity' | 'areas' | 'iterations' | 'iteration-tree' | 'query' | 'items' | 'create-feature' | 'create-child' | 'update-time-writing-effort'
+  operation: 'backlog-epics' | 'areas' | 'iterations' | 'iteration-tree' | 'query' | 'items' | 'create-feature' | 'create-child' | 'update-time-writing-effort'
   pat: string
   query?: string
   ids?: number[]
@@ -406,13 +406,13 @@ async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (window.azureDevOps) return window.azureDevOps.request(request)
   const base = `https://dev.azure.com/${encodeURIComponent(request.organization)}/${encodeURIComponent(request.project)}`
   const writing = request.operation === 'create-feature' || request.operation === 'create-child' || request.operation === 'update-time-writing-effort'
-  const readingMetadata = request.operation === 'backlog-epics' || request.operation === 'identity' || request.operation === 'areas' || request.operation === 'iterations' || request.operation === 'iteration-tree'
+  const readingMetadata = request.operation === 'backlog-epics' || request.operation === 'areas' || request.operation === 'iterations' || request.operation === 'iteration-tree'
   const create = request.operation === 'create-feature' || request.operation === 'create-child'
   const endpoint = request.operation === 'update-time-writing-effort' ? `_apis/wit/workitems/${request.workItemId}` : create ? `_apis/wit/workitems/$${request.operation === 'create-feature' ? 'Feature' : encodeURIComponent(request.workItemType!)}` : request.operation === 'backlog-epics' ? `${encodeURIComponent(request.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems` : request.operation === 'iteration-tree' ? '_apis/wit/classificationnodes/iterations' : readingMetadata ? `${encodeURIComponent(request.team)}/_apis/work/teamsettings/${request.operation === 'areas' ? 'teamfieldvalues' : 'iterations'}` : request.operation === 'query' ? '_apis/wit/wiql' : '_apis/wit/workitemsbatch'
   const body = request.operation === 'update-time-writing-effort' ? [{ ...(request.planHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate', value: request.planHours }) }, { ...(request.actualHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: request.actualHours }) }, ...(request.tags ? [{ op: 'add', path: '/fields/System.Tags', value: request.tags }] : [])].filter(patch => 'op' in patch) : create ? featurePatch(request, request.feature!) : request.operation === 'query' ? { query: request.query } : { ids: request.ids, errorPolicy: 'Fail', $expand: 'Relations' }
   let response: Response
   try {
-    const url = request.operation === 'identity' ? `https://dev.azure.com/${encodeURIComponent(request.organization)}/_apis/connectionData?api-version=7.1-preview.1` : `${base}/${endpoint}?api-version=7.1${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
+    const url = `${base}/${endpoint}?api-version=7.1${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
     response = await fetch(url, {
       method: readingMetadata ? 'GET' : request.operation === 'update-time-writing-effort' ? 'PATCH' : 'POST', redirect: 'error', credentials: 'omit',
       headers: { Authorization: `Basic ${btoa(`:${request.pat}`)}`, 'Content-Type': writing ? 'application/json-patch+json' : 'application/json', Accept: 'application/json' },
