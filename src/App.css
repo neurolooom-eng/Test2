@@ -69,3 +69,7 @@
 @media(max-width:700px){.source-bar{align-items:flex-start}.page-toolbar{align-items:flex-start}}
 .nav-section{display:grid;gap:5px}.panel-heading .muted{font-size:12px;line-height:1.6;margin:0}.table-panel>p{padding:0 20px 16px;margin:0}
 @media(max-width:1000px){.nav-group{display:none}.topbar .page-detail{display:none}}
+/* Capacity dashboard */
+.load{display:flex;align-items:center;gap:8px;min-width:140px}.load .progress{flex:1}.load span{font-size:11px;color:var(--muted);width:48px;text-align:right}.progress i.over{background:#c23d4f}
+.matrix td,.matrix th{text-align:right;white-space:nowrap}.matrix td:first-child,.matrix th:first-child{text-align:left}.matrix td.muted{color:#b3bec9}.matrix-total td{background:#f7f9fb;font-weight:700;border-top:2px solid var(--line)}
+.metric-grid strong.positive{color:#168456}

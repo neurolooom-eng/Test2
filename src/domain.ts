@@ -139,6 +139,7 @@ export interface AppState {
   masters: MasterValue[]
   azureWorkItems?: AzureWorkItem[]
   azureBacklogScope?: { organization: string; project: string; team: string; itemKeys: string[]; areaPaths: string[]; fetchedAt: string }
+  capacitySettings?: { absenceEpicId?: number; hoursPerDay?: number; overloadedAt?: number; availableBelow?: number }
 }
 
 export interface AzureWorkItem {
