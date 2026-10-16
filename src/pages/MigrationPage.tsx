@@ -3,7 +3,7 @@ import readXlsxFile from 'read-excel-file/browser'
 import { downloadTemplateCsv } from '../download'
 import type { Activity, MonthlyEffort, PersonRef } from '../domain'
 import { isTransformedDataSheet, parseTransformedCsv, parseTransformedMatrix, toNumber, type MigrationPreviewRow } from '../migration'
-import { Heading, Panel, Pill } from '../components/ui'
+import { Notice, Page, Panel, Pill, TablePanel } from '../components/ui'
 import type { PageProps } from './types'
 
 export function MigrationPage({ store }: PageProps) {
@@ -93,10 +93,13 @@ export function MigrationPage({ store }: PageProps) {
 
   const invalidCount = preview.filter((row) => row.errors.length).length
   const warningCount = preview.filter((row) => row.warnings.length).length
-  return <section className="content"><Heading eyebrow="CONTROLLED ONBOARDING" title="Migration" detail="Load the TransformedData tab directly from the current P&S demand-planning Excel workbook or its CSV export." action={<button className="ghost" onClick={downloadTemplateCsv}>Download CSV template</button>} />
+  const failed = message.startsWith('Template mismatch') || message.startsWith('Unable')
+  return <Page intro="The selected file is read locally in the app and is not uploaded anywhere." actions={<button className="ghost" onClick={downloadTemplateCsv}>Download CSV template</button>}>
     <div className="migration-steps"><Panel><span className="step">1</span><h3>Select Excel</h3><p>Choose the shared-drive .xlsx workbook. The app locates TransformedData automatically; CSV is also supported.</p></Panel><Panel><span className="step">2</span><h3>Validate</h3><p>The app checks the 17 required headers, month dates and numeric Expected/Actual values before import.</p></Panel><Panel><span className="step">3</span><h3>Import</h3><p>Rows become activity-resource records plus monthly effort. Re-import updates existing matching records.</p></Panel></div>
     <Panel className="upload-zone"><input id="migration-file" type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" onChange={(event) => read(event.target.files?.[0])} /><label htmlFor="migration-file"><strong>Choose Excel workbook or CSV</strong><span>The selected file is read locally in the app and is not uploaded to GitHub.</span></label></Panel>
-    {message && <div className={message.startsWith('Template mismatch') || message.startsWith('Unable') ? 'notice error' : 'notice success'}>{message}</div>}
-    {preview.length > 0 && <Panel className="table-panel"><div className="panel-heading"><div><h2>Validation preview</h2><p className="muted">{preview.length} source rows · {invalidCount} invalid · {warningCount} warnings · showing first 50</p></div><button className="primary" disabled={invalidCount === preview.length} onClick={importRows}>Import {preview.length - invalidCount} valid rows</button></div><table><thead><tr><th>Source row</th><th>Activity / Resource</th><th>Type</th><th>Month</th><th>Expected</th><th>Actual</th><th>Validation</th></tr></thead><tbody>{preview.slice(0, 50).map((row) => <tr key={row.sourceRow}><td>{row.sourceRow}</td><td><strong>{row.name || 'Missing title'}</strong><small>{row.resourceName || 'Unassigned'}</small></td><td>{row.type}</td><td>{row.month || row.raw['Month(Date)'] || 'Missing'}</td><td>{row.plannedHours ?? '—'}</td><td>{row.actualHours ?? '—'}</td><td><Pill tone={row.errors.length ? 'danger' : row.warnings.length ? 'warning' : 'open'}>{row.errors[0] ?? row.warnings[0] ?? 'Ready'}</Pill></td></tr>)}</tbody></table></Panel>}
-  </section>
+    {message && <Notice tone={failed ? 'error' : 'success'}>{message}</Notice>}
+    {preview.length > 0 && <TablePanel title="Validation preview" detail={`${preview.length} source rows · ${invalidCount} invalid · ${warningCount} warnings · showing first 50`} action={<button className="primary" disabled={invalidCount === preview.length} onClick={importRows}>Import {preview.length - invalidCount} valid rows</button>}>
+      <table><thead><tr><th>Source row</th><th>Activity / Resource</th><th>Type</th><th>Month</th><th>Expected</th><th>Actual</th><th>Validation</th></tr></thead><tbody>{preview.slice(0, 50).map((row) => <tr key={row.sourceRow}><td>{row.sourceRow}</td><td><strong>{row.name || 'Missing title'}</strong><small>{row.resourceName || 'Unassigned'}</small></td><td>{row.type}</td><td>{row.month || row.raw['Month(Date)'] || 'Missing'}</td><td>{row.plannedHours ?? '—'}</td><td>{row.actualHours ?? '—'}</td><td><Pill tone={row.errors.length ? 'danger' : row.warnings.length ? 'warning' : 'open'}>{row.errors[0] ?? row.warnings[0] ?? 'Ready'}</Pill></td></tr>)}</tbody></table>
+    </TablePanel>}
+  </Page>
 }
