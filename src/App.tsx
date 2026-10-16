@@ -3,6 +3,7 @@ import './App.css'
 import { useAppStore } from './store'
 import { effectiveActualsOpen, effectivePlanningOpen } from './rules'
 import { Notice, Pill } from './components/ui'
+import { Clock, ThemeToggle } from './components/Clock'
 import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
 import { ActivitiesPage } from './pages/ActivitiesPage'
@@ -15,15 +16,17 @@ import { AdminPage } from './pages/AdminPage'
 import { AzureDevOpsPage } from './pages/AzureDevOpsPage'
 import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace } from './useAzureWorkspace'
+import { useNow } from './useNow'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
 import { mergeAzureWorkItems } from './azureDevOps'
 import { indiaMonth } from './azureInsights'
-import { monthName } from './format'
+import { monthName, relativeTime } from './format'
 
 export default function App() {
   const store = useAppStore()
   const azure = useAzureWorkspace(store)
+  const now = useNow(30000)
   const [page, setPage] = useState<Page>('overview')
   const [month, setMonth] = useState(() => indiaMonth(new Date().toISOString())!)
   const period = useMemo(() => store.state.periods.find((item) => item.month === month) ?? store.state.periods[0], [month, store.state.periods])
@@ -33,6 +36,8 @@ export default function App() {
   const openConnection = () => setPage('azure')
   const pageProps = { store, month, setMonth }
   const buildStatus = <BuildStatus pending={store.hasPendingSave} failed={store.ready && (store.cache.status === 'error' || (store.connection.mode === 'sharepoint' && ['error', 'conflict'].includes(store.connection.status)))} busy={azure.busy} preview={Boolean(azure.preview)} onBackup={store.ready ? () => exportStateJson({ ...store.state, azureWorkItems: mergeAzureWorkItems(store.state.azureWorkItems ?? [], azure.preview?.items ?? []), ...(azure.preview ? { azureBacklogScope: azure.preview.scope } : {}) }) : undefined} />
+  const storageTone = store.connection.mode === 'sharepoint' ? 'open' : store.cache.status === 'error' || store.connection.status === 'error' || store.connection.status === 'conflict' ? 'danger' : 'neutral'
+  const storageLabel = store.connection.mode === 'sharepoint' ? '● Live SharePoint' : store.cache.status === 'error' ? '⚠ Not saved locally' : store.cache.status === 'saving' ? '◌ Saving locally' : '○ Local IndexedDB'
 
   if (!store.ready) return <main className="content"><h1>Demand Planning</h1>{store.loadError ? <Notice tone="error"><p>{store.loadError}</p><p>Do not clear browser data. If you still have an older tab open with unsaved changes, export its JSON backup first.</p><button className="primary" onClick={store.retryLoad}>Retry loading saved data</button></Notice> : <p role="status">Loading saved browser data…</p>}{buildStatus}</main>
 
@@ -43,7 +48,7 @@ export default function App() {
       <div className="sidebar-footer">{buildStatus}</div>
     </aside>
     <main>
-      <header className="topbar"><div><p className="eyebrow">{(meta.usesMonth ? monthName(month) : meta.group).toUpperCase()}</p><h1>{meta.label}</h1><p className="page-detail">{meta.detail}</p></div><div className="topbar-actions"><Pill tone={store.connection.mode === 'sharepoint' ? 'open' : store.cache.status === 'error' || store.connection.status === 'error' || store.connection.status === 'conflict' ? 'danger' : 'neutral'}>{store.connection.mode === 'sharepoint' ? '● Live SharePoint' : store.cache.status === 'error' ? '⚠ Not saved locally' : store.cache.status === 'saving' ? '◌ Saving locally' : '○ Local IndexedDB'}</Pill><label className="month-picker">Month<input type="month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>{page !== 'overview' && <><Pill tone={planningOpen ? 'open' : 'locked'}>Planning {planningOpen ? 'open' : 'locked'}</Pill><Pill tone={actualsOpen ? 'open' : 'locked'}>Actuals {actualsOpen ? 'open' : 'locked'}</Pill></>}</div></header>
+      <header className="topbar"><div><p className="eyebrow">{(meta.usesMonth ? monthName(month) : meta.group).toUpperCase()}</p><h1>{meta.label}</h1><p className="page-detail">{meta.detail}</p></div><div className="topbar-actions"><Clock /><Pill tone={storageTone}><span title={azure.lastRefreshed ? `Azure data refreshed ${new Date(azure.lastRefreshed).toLocaleString()}` : 'Azure data not refreshed in this session'}>{storageLabel}{azure.lastRefreshed ? ` · Azure ${relativeTime(azure.lastRefreshed, now)}` : ''}</span></Pill><label className="month-picker">Month<input type="month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>{page !== 'overview' && <><Pill tone={planningOpen ? 'open' : 'locked'}>Planning {planningOpen ? 'open' : 'locked'}</Pill><Pill tone={actualsOpen ? 'open' : 'locked'}>Actuals {actualsOpen ? 'open' : 'locked'}</Pill></>}<ThemeToggle /></div></header>
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} />}
