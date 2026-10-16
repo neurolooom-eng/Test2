@@ -46,8 +46,8 @@ jobs:
       - name: Verify release version
         run: node scripts/verify-version.mjs
 
-      - name: Verify Azure DevOps integration
-        run: pnpm test:azure
+      - name: Run unit tests
+        run: pnpm test
 
       - name: Build web application
         run: pnpm build:web
@@ -121,7 +121,7 @@ jobs:
       - name: Verify version and update safety
         run: |
           node scripts/verify-version.mjs
-          pnpm test:azure
+          pnpm test
 
       - name: Build browser application
         run: pnpm build:web
