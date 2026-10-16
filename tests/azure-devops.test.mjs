@@ -357,7 +357,6 @@ function fakeHierarchyServer() {
   let failureTitle = ''
   const writes = []
   const transport = async (request) => {
-    if (request.operation === 'identity') return { authenticatedUser: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', providerDisplayName: 'Synthetic Creator' } }
     if (request.operation === 'items') return { value: request.ids.map((id) => records.get(id)).filter(Boolean) }
     if (request.operation === 'iterations') return { value: [{ name: 'Current PI', path: 'Quality Project\\Current PI' }] }
     if (request.operation === 'query') {
