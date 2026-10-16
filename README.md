@@ -9,6 +9,8 @@ The repository contains a working React/TypeScript application with an Electron 
 Implemented in the MVP UI:
 
 - Separate Board view for the parent/child tree, state filters and release Feature/Story/Task creation; Azure DevOps handles connection settings, saved PAT and data fetch ([setup](docs/azure-devops-connection.md)).
+- Capacity Overview from Azure Time Writing Tasks: who is overloaded or has capacity, hours per stream (Epic), person × stream matrix, absence split into PTO / Sick Leave / Unplanned Leave under a configurable absence Epic
+- Uniform page layout with a shared Azure source bar, light/dark themes, and a local-time clock with data-freshness labels
 
 - Unified dashboard for plan, actuals, variance, ad-hoc work, utilization and milestones
 - Activity register with process owners, resources, bands and measurable complexity
@@ -74,7 +76,15 @@ The selected month Task is the authoritative source: `Microsoft.VSTS.Scheduling.
 
 The six-month table uses Original Estimate and Completed Work only on direct child Tasks under those Time Writing stories, assigned to months by the agreed `October 2026 | Feature title` naming convention. The dashboard and Monthly Time Writing view group these selected stories by traversing Story → Feature → Epic parent links. Items without a resolved Epic appear as `No Epic path`. Undated/unmatched tasks are counted as unmapped, not attributed by Created/Changed Date. Work-field units must be confirmed in the Azure project; Story Points are never treated as hours. Snapshot/revision history is not available, so estimates are not claimed to be frozen monthly plans or time entries.
 
-NPRA Hours remain a separately tracked Feature category (exact tag `NPRA Hours`) and do not adjust utilization. Weekdays only are counted as working days (Monday–Friday). Funded hours are `working days × 8`. For the selected month, Absence Hours are the Completed Work on month Tasks mapped to Epic `#37778`; the dashboard calculates utilization as `funded hours ÷ (all Time Writing Actuals − Absence Hours) × 100`. An empty or zero denominator displays unavailable rather than an infinite or misleading percentage. Public holidays, leave outside Epic #37778, partial availability and multiple-person aggregation are not inferred.
+NPRA Hours remain a separately tracked Feature category (exact tag `NPRA Hours`) and do not adjust utilization. Weekdays only are counted as working days (Monday–Friday). Public holidays, partial availability and leave booked outside the absence Epic are not inferred.
+
+### Capacity, absence and utilization
+
+The Overview is built from a capacity model (`src/capacity.ts`) over the same selected-month Time Writing Tasks. Funded hours per person are `working days × hours per day` (default 8). **Absence** is the Completed Work on month Tasks whose Epic is the configured **absence Epic** (default `#37778`); each person's Feature under that Epic, and the Task title, decide whether the hours are **PTO**, **Sick Leave** or **Unplanned Leave** (anything else is "Other absence"). Available hours = funded − absence. **Utilization = booked hours ÷ available × 100**, where booked hours are the Completed Work on all other month Tasks assigned to the person. A person is **Overloaded** at or above the overloaded threshold (default 100 %) and **Has capacity** below the capacity threshold (default 80 %); in between is Balanced; a person with absence only is "No bookings". Streams are the Epics reached by walking Task → Story → Feature → Epic; the person × stream matrix shows booked hours per Epic. The absence Epic ID, hours per day and both thresholds are edited under **Administration → Capacity and absence** and stored with the shared app data (IndexedDB/SharePoint), not per browser; every change is audited. An empty or zero denominator displays unavailable rather than an infinite percentage.
+
+### Shared layout, themes and clock
+
+Every page uses the same scaffolding: the header shows the page title and purpose from one registry (`src/pages/registry.ts`, which also drives the grouped sidebar), followed by the **Azure source bar** on every page that reads the backlog (scope, item count, freshness, Refresh, preview save/discard, scope warnings, errors and messages), metric tiles, and table panels with a consistent empty state. The app ships a **light and a dark theme**: it follows the operating system by default and the header toggle pins Auto → Light → Dark per browser; `?theme=light` or `?theme=dark` in the URL opens the app in that theme and remembers it. The header **clock** runs from the system clock in the viewer's own time zone, and all freshness labels ("Refreshed 5 min ago", build time) are relative to it, with the absolute local time on hover; the Force Update dialog still shows the build date in IST.
 
 ### Monthly locking and ad-hoc Tasks
 
