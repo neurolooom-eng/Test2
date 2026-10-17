@@ -36,3 +36,17 @@ test('chart geometry helpers', () => {
   assert.equal(columnPath(0, 0, 10, 0), ''); assert.match(columnPath(10, 20, 24, 100), /^M10,120V24Q10,20 14,20H30Q34,20 34,24V120Z$/)
   assert.match(barPath(0, 0, 50, 16), /^M0,0H46Q50,0 50,4V12Q50,16 46,16H0Z$/)
 })
+
+import { paretoSeries, arcPath } from '../src/chartUtils.ts'
+test('Pareto marks the vital few up to the item that first reaches the threshold', () => {
+  const data = paretoSeries([{ key: 'a', title: 'A', work: 10 }, { key: 'b', title: 'B', work: 50 }, { key: 'c', title: 'C', work: 30 }, { key: 'z', title: 'Z', work: 0 }, { key: 'd', title: 'D', work: 10 }])
+  assert.deepEqual(data.map((item) => item.key), ['b', 'c', 'a', 'd'], 'sorted by hours, zero-hour items dropped')
+  assert.deepEqual(data.map((item) => item.cumulative), [50, 80, 90, 100]); assert.deepEqual(data.map((item) => item.vital), [true, true, false, false])
+  assert.deepEqual(paretoSeries([{ key: 'x', title: 'X', work: 5 }]).map((item) => [item.share, item.cumulative, item.vital]), [[100, 100, true]])
+  assert.deepEqual(paretoSeries([]), [])
+})
+test('donut arc geometry', () => {
+  assert.equal(arcPath(0, 0, 5, 10, 0, 0), '')
+  assert.match(arcPath(100, 100, 60, 90, -Math.PI / 2, 0), /^M100\.00,10\.00A90,90 0 0 1 190\.00,100\.00L160\.00,100\.00A60,60 0 0 0 100\.00,40\.00Z$/)
+  assert.match(arcPath(100, 100, 60, 90, 0, Math.PI * 2), /^M100,10A90,90 0 1 1 100,190/, 'a full turn draws a ring')
+})

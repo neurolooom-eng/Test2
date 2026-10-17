@@ -120,3 +120,10 @@ input,select,textarea{background:var(--surface);color:var(--text)}
 .viz-muted{fill:var(--text-3);font-weight:400}
 .viz-plot svg.viz-fixed{max-width:none}
 .viz-grid-2{align-items:stretch}.viz-grid-2>.viz-panel{margin-bottom:18px}
+/* Pareto and donut */
+.viz-pareto-tail{opacity:.4}
+.viz-donut{display:flex;align-items:center;gap:24px;flex-wrap:wrap}.viz-donut svg{flex:0 0 auto;outline:none}.viz-donut svg:focus-visible{outline:2px solid var(--focus);outline-offset:4px;border-radius:50%}
+.viz-slice{stroke:var(--surface);stroke-width:2;transition:opacity .15s}.viz-slice-dim{opacity:.45}
+.viz-donut-value{fill:var(--text);font-size:22px;font-weight:700}.viz-donut-label{fill:var(--text-2);font-size:11px}
+.viz-donut-legend{list-style:none;margin:0;padding:0;display:grid;gap:8px;min-width:180px;flex:1}.viz-donut-legend li{display:grid;grid-template-columns:10px 1fr auto 40px;align-items:center;gap:8px;font-size:13px;color:var(--text);padding:4px 6px;border-radius:6px}.viz-donut-legend li.active{background:var(--surface-2)}
+.viz-donut-legend i{width:10px;height:10px;border-radius:2px}.viz-donut-legend b{font-variant-numeric:tabular-nums}.viz-donut-legend small{color:var(--text-3);text-align:right;font-variant-numeric:tabular-nums}
