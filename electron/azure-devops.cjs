@@ -1,10 +1,23 @@
 // Tokens live in request memory only. Feature creation has a separate, constrained payload builder.
+// Base: Azure DevOps Services (https://dev.azure.com/<org>) or an Azure DevOps Server collection URL (https only).
+function projectBase(input) {
+  if (input.baseUrl == null || input.baseUrl === '') return `https://dev.azure.com/${encodeURIComponent(input.organization)}/${encodeURIComponent(input.project)}`
+  if (typeof input.baseUrl !== 'string' || input.baseUrl.length > 2048) throw new Error('Invalid base URL.')
+  let url
+  try { url = new URL(input.baseUrl) } catch { throw new Error('Invalid base URL.') }
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new Error('The base URL must be an https address without credentials, query or fragment.')
+  const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+  const base = url.hostname === 'dev.azure.com' ? `https://dev.azure.com/${encodeURIComponent(parts[0] ?? input.organization)}` : `${url.origin}${parts.map((part) => `/${encodeURIComponent(part)}`).join('')}`
+  return `${base}/${encodeURIComponent(input.project)}`
+}
+const apiVersion = (input) => typeof input.apiVersion === 'string' && /^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(input.apiVersion) ? input.apiVersion : '7.1'
+
 function azureReadRequest(input) {
   if (!input || typeof input !== 'object') throw new Error('Invalid Azure DevOps request.')
   for (const field of ['organization', 'project', 'team', 'pat']) {
     if (typeof input[field] !== 'string' || !input[field].trim() || input[field].length > 4096) throw new Error('Invalid connection details.')
   }
-  const base = `https://dev.azure.com/${encodeURIComponent(input.organization)}/${encodeURIComponent(input.project)}`
+  const base = projectBase(input)
   let endpoint, body
   if (input.operation === 'areas') endpoint = `${encodeURIComponent(input.team)}/_apis/work/teamsettings/teamfieldvalues`
   else if (input.operation === 'backlog-epics') endpoint = `${encodeURIComponent(input.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems`
@@ -17,7 +30,7 @@ function azureReadRequest(input) {
     if (!Array.isArray(input.ids) || !input.ids.length || input.ids.length > 200 || input.ids.some((id) => !Number.isSafeInteger(id) || id < 1)) throw new Error('Invalid work-item batch.')
     endpoint = '_apis/wit/workitemsbatch'; body = { ids: input.ids, errorPolicy: 'Fail', $expand: 'Relations' }
   } else throw new Error('Only read operations are supported.')
-  return { url: `${base}/${endpoint}?api-version=7.1${input.operation === 'query' ? '&$top=1000' : ''}${input.operation === 'iteration-tree' ? '&$depth=10' : ''}`, options: {
+  return { url: `${base}/${endpoint}?api-version=${apiVersion(input)}${input.operation === 'query' ? '&$top=1000' : ''}${input.operation === 'iteration-tree' ? '&$depth=10' : ''}`, options: {
     method: body ? 'POST' : 'GET', redirect: 'error',
     headers: { Authorization: `Basic ${Buffer.from(`:${input.pat.trim()}`).toString('base64')}`, Accept: 'application/json', 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
@@ -38,7 +51,7 @@ function azureFeatureRequest(input) {
   if (feature.iterationPath != null && (typeof feature.iterationPath !== 'string' || feature.iterationPath.length > 4096)) throw new Error('Invalid iteration path.')
   for (const field of ['taskOriginalEstimate', 'taskCompletedWork']) if (feature[field] != null && (!Number.isFinite(feature[field]) || feature[field] < 0 || feature[field] > 1000000)) throw new Error('Invalid Task effort.')
   const htmlText = (value) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')
-  const base = `https://dev.azure.com/${encodeURIComponent(input.organization)}/${encodeURIComponent(input.project)}`
+  const base = projectBase(input)
   const patch = [
     { op: 'add', path: '/fields/System.Title', value: feature.title },
     { op: 'add', path: '/fields/System.AreaPath', value: feature.areaPath },
@@ -49,7 +62,7 @@ function azureFeatureRequest(input) {
   if (feature.iterationPath) patch.push({ op: 'add', path: '/fields/System.IterationPath', value: feature.iterationPath })
   if (feature.assignedTo?.trim()) patch.push({ op: 'add', path: '/fields/System.AssignedTo', value: feature.assignedTo.trim() })
   if (feature.targetDate) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.TargetDate', value: `${feature.targetDate}T00:00:00Z` })
-  return { url: `${base}/_apis/wit/workitems/$${encodeURIComponent(type)}?api-version=7.1&validateOnly=${input.validateOnly}`, options: {
+  return { url: `${base}/_apis/wit/workitems/$${encodeURIComponent(type)}?api-version=${apiVersion(input)}&validateOnly=${input.validateOnly}`, options: {
     method: 'POST', redirect: 'error', headers: { ...connection.options.headers, 'Content-Type': 'application/json-patch+json' }, body: JSON.stringify(patch),
   } }
 }
@@ -60,13 +73,13 @@ function azureTimeWritingEffortRequest(input) {
   if (!input || input.operation !== 'update-time-writing-effort') throw new Error('Invalid monthly effort request.')
   const connection = azureReadRequest({ ...input, operation: 'areas' })
   if (!Number.isSafeInteger(input.workItemId) || input.workItemId < 1 || (input.planHours == null && input.actualHours == null) || (input.planHours != null && (!Number.isFinite(input.planHours) || input.planHours < 0 || input.planHours > 1000000)) || (input.actualHours != null && (!Number.isFinite(input.actualHours) || input.actualHours < 0 || input.actualHours > 1000000)) || (input.tags != null && (typeof input.tags !== 'string' || input.tags.length > 100000))) throw new Error('Invalid Original Estimate or Completed Work.')
-  const base = `https://dev.azure.com/${encodeURIComponent(input.organization)}/${encodeURIComponent(input.project)}`
+  const base = projectBase(input)
   const patch = [
     ...(input.planHours == null ? [] : [{ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate', value: input.planHours }]),
     ...(input.actualHours == null ? [] : [{ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: input.actualHours }]),
     ...(input.tags ? [{ op: 'add', path: '/fields/System.Tags', value: input.tags }] : []),
   ]
-  return { url: `${base}/_apis/wit/workitems/${input.workItemId}?api-version=7.1`, options: {
+  return { url: `${base}/_apis/wit/workitems/${input.workItemId}?api-version=${apiVersion(input)}`, options: {
     method: 'PATCH', redirect: 'error', headers: { ...connection.options.headers, 'Content-Type': 'application/json-patch+json' }, body: JSON.stringify(patch),
   } }
 }

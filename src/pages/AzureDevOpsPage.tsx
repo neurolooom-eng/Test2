@@ -15,7 +15,7 @@ const roleUse: Record<AzureConnectionRole, string> = {
   reference: 'Any other read-only data: fetched and listed with its count.',
 }
 const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery }
-const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, baseUrl: 'https://dev.azure.com/', project: '', team: '', pat: '', query: '', creatorEmail: '' })
+const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, baseUrl: 'https://dev.azure.com/', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
   const { connectionProfiles, connectionStatus, activeConnectionProfileId, preview, busy } = azure
@@ -26,8 +26,8 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
   const releaseSource = store.state.releaseSource
 
   function edit(profile: AzureConnectionProfileSummary) {
-    const parts = splitAzureUrl(profile.url)
-    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, ...parts, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '' })
+    const parts = splitAzureUrl(profile.url, profile.baseUrl)
+    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, ...parts, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
   }
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -48,18 +48,18 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
     return lastFetch(profile) ? ['open', 'Data saved'] : ['neutral', 'Not fetched']
   }
 
-  return <Page intro="Each connection is one set: base URL, project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git."
+  return <Page intro="Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git."
     actions={<button className="primary" onClick={onOpenBoard}>Open Backlogs →</button>}>
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Time Writing previews before saving; release, document and reference connections are saved as soon as they are fetched. Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {connectionProfiles.length ? <div className="azure-table"><table className="connection-table"><thead><tr><th>Connection</th><th>Used for</th><th>Organization / project</th><th>Query</th><th>Status</th><th /></tr></thead><tbody>{connectionProfiles.map((profile) => {
-        const parts = splitAzureUrl(profile.url), [tone, label] = statusTone(profile), status = connectionStatus[profile.id]
+        const parts = splitAzureUrl(profile.url, profile.baseUrl), [tone, label] = statusTone(profile), status = connectionStatus[profile.id]
         const active = profile.role === 'time-tracking' && profile.id === activeConnectionProfileId
         return <tr key={profile.id}>
           <td><strong>{profile.reason}</strong>{active && <small>Active Time Writing source</small>}</td>
           <td>{roleLabel[profile.role]}</td>
-          <td>{parts.baseUrl.replace('https://', '')}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}</small></td>
+          <td>{parts.baseUrl.replace('https://', '')}{profile.baseUrl && <Pill tone="info">On-prem</Pill>}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}{profile.apiVersion ? ` · API ${profile.apiVersion}` : ''}</small></td>
           <td>{profile.query ? <span className="query-chip" title={profile.query}>Custom query</span> : <small>{profile.role === 'time-tracking' ? 'Team Epic backlog' : 'Default'}</small>}</td>
           <td><Pill tone={tone}>{label}</Pill><small>{status?.message ?? lastFetch(profile)}</small></td>
           <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
@@ -71,9 +71,10 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
         <div className="connection-form">
           <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Time Writing, DHFI releases, Vault" /></label>
           <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
-          <label>Base URL<input required type="url" value={form.baseUrl} onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} placeholder="https://dev.azure.com/your-organization" /></label>
+          <label>Base URL<input required type="url" value={form.baseUrl} onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} placeholder="https://dev.azure.com/org  or  https://tfs.company.com/tfs/Collection" /><small>Cloud: https://dev.azure.com/&lt;organization&gt;. On-prem: the collection URL, e.g. https://tfs.company.com/tfs/DefaultCollection.</small></label>
           <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
           {form.role === 'time-tracking' && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
+          <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="7.1" /><small>Leave empty for 7.1. Older Azure DevOps Server versions may need a lower one, e.g. 6.0 or 5.0.</small></label>
           <label>PAT{form.id ? ' (leave empty to keep the saved one)' : ''}<input type="password" autoComplete="off" required={!form.id || !loadAzureConnectionProfile(form.id)} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
           {form.role === 'time-tracking' && <label>Feature creator email (optional)<input type="email" value={form.creatorEmail} onChange={(event) => setForm({ ...form, creatorEmail: event.target.value })} placeholder="Assigned to Features created from the app" /></label>}
           <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' ? '' : 'Empty uses the default shown.'}</small></label>
