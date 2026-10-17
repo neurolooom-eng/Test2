@@ -141,3 +141,4 @@ input,select,textarea{background:var(--surface);color:var(--text)}
 .matrix td.viz-shade{color:var(--text)}
 .viz-section{margin:10px 0 14px}.viz-section h2{margin:4px 0;font-size:20px;color:var(--heading)}.viz-section p.muted{margin:0;font-size:13px;max-width:90ch}
 .viz-few{display:grid;gap:8px}.viz-few p{margin:0 0 4px;font-size:13px}.viz-few-row{display:grid;grid-template-columns:10px 1fr auto 44px;align-items:center;gap:10px;font-size:13px;color:var(--text)}.viz-few-row i{width:10px;height:10px;border-radius:2px}.viz-few-row span small{display:block;color:var(--text-3);font-size:11px}.viz-few-row b{font-variant-numeric:tabular-nums}.viz-few-row>small{color:var(--text-3);text-align:right}
+.admin-section{margin-bottom:18px}

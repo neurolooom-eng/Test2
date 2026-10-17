@@ -67,7 +67,7 @@ export default function App() {
       {page === 'azure' && <AzureDevOpsPage azure={azure} store={store} onOpenBoard={() => setPage('board')} />}
       {page === 'migration' && <MigrationPage {...pageProps} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} onOpenConnection={openConnection} />}
     </main>
   </div>
 }
