@@ -1,17 +1,22 @@
 import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel, type Tone } from '../components/ui'
 import { HoursTrendChart } from '../components/HoursTrendChart'
-import { DonutChart, EpicBulletChart, EpicMixChart, ParetoChart, UtilizationChart } from '../components/WorkloadCharts'
-import { epicColors } from '../chartUtils'
+import { DonutChart, EpicBulletChart, EpicMixChart, ParetoChart, UtilizationChart, UtilizationHeatmap } from '../components/WorkloadCharts'
+import { epicColors, shortFeatureTitle } from '../chartUtils'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
-import { capacityModel, monthlyHours, normalizeCapacitySettings, absenceKinds, type LoadStatus } from '../capacity'
+import { capacityModel, monthlyHours, normalizeCapacitySettings, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
 import { formatHours, formatPercent, monthName } from '../format'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
 
 const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
 const maxMatrixStreams = 8
+type Level = 'feature' | 'epic'
+
+function LevelToggle({ value, onChange }: { value: Level; onChange: (value: Level) => void }) {
+  return <div className="viz-range" role="group" aria-label="Group by">{(['feature', 'epic'] as const).map((level) => <button key={level} type="button" className={value === level ? 'primary' : 'ghost'} aria-pressed={value === level} onClick={() => onChange(level)}>By {level === 'feature' ? 'Feature' : 'Epic'}</button>)}</div>
+}
 
 export function DashboardPage({ month, azure, navigate, store, setMonth }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void }) {
   const settings = normalizeCapacitySettings(store.state.capacitySettings)
@@ -20,6 +25,10 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
   const trend = monthlyHours(azure.items, month, span, settings)
   const trendTotals = trend.filter((point) => point.actual != null)
   const fundedOver = Math.max(0, model.totals.work + model.totals.absence - model.totals.funded)
+  const problems = problemBreakdown(azure.items, trend.map((point) => point.month), settings)
+  const [overrunLevel, setOverrunLevel] = useState<Level>('feature')
+  const [adhocLevel, setAdhocLevel] = useState<Level>('epic')
+  const matrixMax = Math.max(1, ...model.people.flatMap((person) => person.streams.map((stream) => stream.work)))
   // Epic colours come from a fixed 12-month window so switching 6/12 months never repaints an Epic.
   const colors = epicColors(span === 12 ? trend : monthlyHours(azure.items, month, 12, settings))
   const matrixStreams = model.streams.slice(0, maxMatrixStreams)
@@ -46,17 +55,28 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
           {model.streams.length ? <EpicBulletChart streams={model.streams} colors={colors} /> : <EmptyState title="No booked hours this month." />}
         </Panel>
       </div>
+      <Panel className="viz-panel" title="Utilization by person and month" detail={`Each cell is that person's booked ÷ available hours. Grey is ${settings.overloadedAt}% (the overloaded threshold); deeper blue = more spare capacity, deeper red = more overloaded. Sorted by average; click a month to select it.`}>
+        <UtilizationHeatmap series={trend} selected={month} onSelect={setMonth} midpoint={settings.overloadedAt} />
+      </Panel>
       <Panel className="viz-panel" title="Epic mix by month" detail="Stacked bars: booked hours per Epic (the five largest over the last 12 months keep their colour; the rest are grouped as Other Epics). Line: available hours on the same scale.">
         <EpicMixChart series={trend} selected={month} onSelect={setMonth} colors={colors} />
       </Panel>
       <div className="dashboard-grid viz-grid-2">
-        <Panel className="viz-panel" title={`Pareto of hours by Epic · ${monthName(month)}`} detail="Bars: each Epic's share of the month's booked hours, largest first. Line: cumulative share on the same % scale. The Epics up to the 80% line are the vital few; the rest are muted.">
-          {model.streams.length ? <ParetoChart streams={model.streams} colors={colors} /> : <EmptyState title="No booked hours this month." />}
-        </Panel>
         <Panel className="viz-panel" title={`Funded hours · ${monthName(month)}`} detail={fundedOver > 0 ? `Booked plus absence exceeds funded hours by ${formatHours(fundedOver)}h, so the ring shows booked and absence only.` : 'Where the team’s funded hours went: booked work, absence and unbooked capacity.'}>
           {model.totals.funded > 0 ? <DonutChart label="Funded hours" centerValue={`${formatHours(model.totals.funded)}h`} centerLabel="funded" segments={[{ key: 'booked', label: 'Booked work', value: model.totals.work, color: 'var(--viz-series-1)' }, { key: 'absence', label: 'Absence', value: model.totals.absence, color: 'var(--viz-series-4)' }, { key: 'unbooked', label: 'Unbooked capacity', value: Math.max(0, model.totals.funded - model.totals.work - model.totals.absence), color: 'var(--viz-other)' }]} /> : <EmptyState title="No funded hours this month." />}
         </Panel>
+        <Panel className="viz-panel" title={`Absence · ${monthName(month)}`} detail={`Completed Work under Epic #${settings.absenceEpicId}`}>
+          {model.totals.absence > 0 ? <DonutChart label="Absence" centerValue={`${formatHours(model.totals.absence)}h`} centerLabel="absence" segments={absenceKinds.map((kind, index) => ({ key: kind, label: kind, value: model.totals.absenceByKind[kind], color: index < 3 ? `var(--viz-series-${index + 1})` : 'var(--viz-other)' }))} /> : <EmptyState title="No absence booked." detail="Hours under the absence Epic appear here split by PTO, Sick Leave and Unplanned Leave." />}
+          {model.people.filter((person) => person.absence > 0).length > 0 && <p className="muted">{model.people.filter((person) => person.absence > 0).map((person) => `${person.name} ${formatHours(person.absence)}h`).join(' · ')}</p>}
+        </Panel>
       </div>
+      <div className="viz-section"><p className="eyebrow">PROBLEM ANALYSIS · LAST {span} MONTHS</p><h2>Where overruns and unplanned work concentrate</h2><p className="muted">Pareto charts rank causes: the few Features or Epics up to the 80% line account for most of the problem, so they are where to act first. Scoped by Months shown.</p></div>
+      <Panel className="viz-panel" title="Overrun hours" detail={`${formatHours(problems.overrun.total)}h of Completed Work above Original Estimate on ${problems.overrun.tasks} Task${problems.overrun.tasks === 1 ? '' : 's'}. Tasks without an estimate cannot overrun; unplanned work is counted under Ad-hoc hours.`} action={<LevelToggle value={overrunLevel} onChange={setOverrunLevel} />}>
+        <ParetoChart items={problems.overrun[overrunLevel]} colors={colors} noun={overrunLevel === 'feature' ? 'Feature' : 'Epic'} measure="overrun hours" shortLabel={overrunLevel === 'feature' ? shortFeatureTitle : undefined} />
+      </Panel>
+      <Panel className="viz-panel" title="Ad-hoc hours" detail={`${formatHours(problems.adhoc.total)}h on ${problems.adhoc.tasks} Task${problems.adhoc.tasks === 1 ? '' : 's'} tagged ad-hoc — ${formatPercent(problems.adhoc.share)} of booked hours. Unplanned work that arrived after planning locked.`} action={<LevelToggle value={adhocLevel} onChange={setAdhocLevel} />}>
+        <ParetoChart items={problems.adhoc[adhocLevel]} colors={colors} noun={adhocLevel === 'feature' ? 'Feature' : 'Epic'} measure="ad-hoc hours" shortLabel={adhocLevel === 'feature' ? shortFeatureTitle : undefined} />
+      </Panel>
     </> : <Panel className="viz-panel" title="Hours by month"><EmptyState title="No Time Writing Tasks in this range." detail="Refresh from Azure or load the synthetic sample to see the trend." /></Panel>}
     <div className="dashboard-grid">
       <TablePanel title="Who has capacity" detail={`${monthName(month)} · ${model.workingDays} working days × ${settings.hoursPerDay}h = ${formatHours(model.fundedPerPerson)}h funded per person, less absence.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
@@ -66,21 +86,15 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
         <table><thead><tr><th>Stream (Epic)</th><th>Booked</th><th>Share</th><th>Planned</th><th>People</th></tr></thead><tbody>{model.streams.map((stream) => <tr key={stream.key}><td>{stream.epic ? <a href={stream.epic.url} target="_blank" rel="noreferrer">#{stream.epic.id} {stream.title}</a> : stream.title}<small>{stream.features} feature{stream.features === 1 ? '' : 's'}</small></td><td>{formatHours(stream.work)}</td><td><div className="load"><div className="progress"><i style={{ width: `${stream.share ?? 0}%` }} /></div><span>{formatPercent(stream.share, 0)}</span></div></td><td>{formatHours(stream.planned)}</td><td>{stream.people}</td></tr>)}</tbody></table>
       </TablePanel>
     </div>
-    <TablePanel className="matrix" title="Hours by person and stream" detail={otherStreams.length ? `Top ${maxMatrixStreams} streams by hours; ${otherStreams.length} smaller stream(s) grouped under Other.` : 'Booked hours (Completed Work) per person and Epic.'} empty={model.people.length && model.streams.length ? undefined : 'Nothing to break down yet.'}>
-      {model.people.length > 0 && model.streams.length > 0 && <div className="azure-table"><table><thead><tr><th>Person</th>{matrixStreams.map((stream) => <th key={stream.key} title={stream.title}>{stream.title}</th>)}{otherStreams.length > 0 && <th>Other</th>}<th>Absence</th><th>Total</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong></td>{matrixStreams.map((stream) => { const cell = person.streams.find((item) => item.key === stream.key); return <td key={stream.key} className={cell ? '' : 'muted'}>{cell ? formatHours(cell.work) : '·'}</td> })}{otherStreams.length > 0 && <td>{formatHours(personOther(person.streams)) || '·'}</td>}<td>{person.absence ? formatHours(person.absence) : '·'}</td><td><strong>{formatHours(person.work)}</strong></td></tr>)}<tr className="matrix-total"><td>Total</td>{matrixStreams.map((stream) => <td key={stream.key}>{formatHours(stream.work)}</td>)}{otherStreams.length > 0 && <td>{formatHours(otherStreams.reduce((sum, stream) => sum + stream.work, 0))}</td>}<td>{formatHours(model.totals.absence)}</td><td><strong>{formatHours(model.totals.work)}</strong></td></tr></tbody></table></div>}
+    <TablePanel className="matrix" title="Hours by person and stream" detail={otherStreams.length ? `Top ${maxMatrixStreams} streams by hours; ${otherStreams.length} smaller stream(s) grouped under Other. Darker cells = more hours.` : 'Booked hours (Completed Work) per person and Epic; darker cells = more hours.'} empty={model.people.length && model.streams.length ? undefined : 'Nothing to break down yet.'}>
+      {model.people.length > 0 && model.streams.length > 0 && <div className="azure-table"><table><thead><tr><th>Person</th>{matrixStreams.map((stream) => <th key={stream.key} title={stream.title}>{stream.title}</th>)}{otherStreams.length > 0 && <th>Other</th>}<th>Absence</th><th>Total</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong></td>{matrixStreams.map((stream) => { const cell = person.streams.find((item) => item.key === stream.key); return <td key={stream.key} className={cell ? 'viz-shade' : 'muted'} style={cell ? { background: `color-mix(in srgb, var(--viz-diverge-lo) ${Math.round(cell.work / matrixMax * 40)}%, transparent)` } : undefined}>{cell ? formatHours(cell.work) : '·'}</td> })}{otherStreams.length > 0 && <td>{formatHours(personOther(person.streams)) || '·'}</td>}<td>{person.absence ? formatHours(person.absence) : '·'}</td><td><strong>{formatHours(person.work)}</strong></td></tr>)}<tr className="matrix-total"><td>Total</td>{matrixStreams.map((stream) => <td key={stream.key}>{formatHours(stream.work)}</td>)}{otherStreams.length > 0 && <td>{formatHours(otherStreams.reduce((sum, stream) => sum + stream.work, 0))}</td>}<td>{formatHours(model.totals.absence)}</td><td><strong>{formatHours(model.totals.work)}</strong></td></tr></tbody></table></div>}
     </TablePanel>
-    <div className="dashboard-grid">
-      <Panel title="How utilization is calculated">
-        <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
-        <p>Available = funded − absence hours (Completed Work on Tasks under Epic #{settings.absenceEpicId}; PTO, Sick Leave and Unplanned Leave are read from the Feature and Task titles).</p>
-        <p>Utilization = booked hours (Completed Work on all other {monthName(month)} Time Writing Tasks) ÷ available × 100. Overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
-        <p className="muted">Tasks are matched to the month by the “{monthName(month)} | …” title convention. Thresholds and the absence Epic are set under Administration → Capacity and absence.</p>
-        <div className="button-row"><button className="text-button" onClick={() => navigate('monthly')}>Open monthly detail →</button><button className="text-button" onClick={() => navigate('admin')}>Capacity settings →</button></div>
-      </Panel>
-      <Panel title="Absence this month" detail={`Completed Work under Epic #${settings.absenceEpicId}`}>
-        {model.totals.absence > 0 ? <DonutChart label="Absence" centerValue={`${formatHours(model.totals.absence)}h`} centerLabel="absence" segments={absenceKinds.map((kind, index) => ({ key: kind, label: kind, value: model.totals.absenceByKind[kind], color: index < 3 ? `var(--viz-series-${index + 1})` : 'var(--viz-other)' }))} /> : <EmptyState title="No absence booked." detail="Hours under the absence Epic appear here split by PTO, Sick Leave and Unplanned Leave." />}
-        {model.people.filter((person) => person.absence > 0).length > 0 && <p className="muted">{model.people.filter((person) => person.absence > 0).map((person) => `${person.name} ${formatHours(person.absence)}h`).join(' · ')}</p>}
-      </Panel>
-    </div>
+    <Panel title="How utilization is calculated">
+      <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
+      <p>Available = funded − absence hours (Completed Work on Tasks under Epic #{settings.absenceEpicId}; PTO, Sick Leave and Unplanned Leave are read from the Feature and Task titles).</p>
+      <p>Utilization = booked hours (Completed Work on all other {monthName(month)} Time Writing Tasks) ÷ available × 100. Overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
+      <p className="muted">Tasks are matched to the month by the “{monthName(month)} | …” title convention. Thresholds and the absence Epic are set under Administration → Capacity and absence.</p>
+      <div className="button-row"><button className="text-button" onClick={() => navigate('monthly')}>Open monthly detail →</button><button className="text-button" onClick={() => navigate('admin')}>Capacity settings →</button></div>
+    </Panel>
   </Page>
 }
