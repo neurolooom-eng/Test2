@@ -1,16 +1,23 @@
-import type { AzureWorkItem } from './domain'
+import type { AzureWorkItem, ReleasePlan } from './domain'
 import type { AzureBacklogScope, AzureConfig } from './azureDevOps'
 import type { ReleaseSourceSnapshot } from './releaseSource'
 
 // Deterministic synthetic dataset in the exact shape the app reads from Azure DevOps, so every page can be
 // exercised without a connection. Clearly labelled as sample data wherever it is shown; never written to Azure.
+//
+// Time Writing project: Epics are the streams; each Feature has milestone User Stories, a "… - Time Writing"
+// User Story and one "<Month YYYY> | <Feature>" Task per person per month carrying Original Estimate and Completed Work.
 const people = ['Ana Costa', 'Ben Okafor', 'Chen Wei', 'Diya Sharma', 'Emil Novak', 'Fatima Zahra']
 const streams = [
-  { epic: 'IntelliSpace Platform', features: ['IntelliSpace | Cardio Suite | v4.2', 'IntelliSpace | Image Share | v2.0'], npra: false },
-  { epic: 'DoseWise Portal', features: ['DoseWise | Dose Monitoring | v3.1', 'DoseWise | Reporting | v1.6'], npra: true },
-  { epic: 'Data Migration Services', features: ['Migration | PACS Transfer | v7.0'], npra: false },
-  { epic: 'Regulatory & Compliance', features: ['Compliance | DHF Remediation | v1.0', 'Compliance | MDR Audit | v2.3'], npra: true },
-  { epic: 'Customer Support Fixes', features: ['Support | Hotfix Bundle | v4.2.1'], npra: false },
+  { epic: 'DP', features: ['DP | Dose Planning | v4.2', 'DP | Dose Planning | v4.1'], npra: false },
+  { epic: 'CP', features: ['CP | Care Pathways | v3.1', 'CP | Care Pathways | v2.8'], npra: true },
+  { epic: 'Serviceability', features: ['Serviceability | Remote Diagnostics | v1.6'], npra: false },
+  { epic: 'Content', features: ['Content | Clinical Library | v7.0', 'Content | Clinical Library | v6.4'], npra: false },
+  { epic: 'IOCC', features: ['IOCC | Operations Console | v2.3', 'IOCC | Operations Console | v2.2'], npra: true },
+  { epic: 'ECP 1', features: ['ECP 1 | Complaint Handling | v1.0'], npra: false },
+  { epic: 'ECP 2', features: ['ECP 2 | Field Actions | v1.2'], npra: false },
+  { epic: 'QMS', features: ['QMS | Procedure Updates | 2026-Q4'], npra: true },
+  { epic: 'CAPA', features: ['CAPA | CAPA-2026-031'], npra: false },
 ]
 const absenceEpicId = 37778
 const absenceKinds = ['PTO', 'Sick leave', 'Unplanned leave']
@@ -21,8 +28,9 @@ function random(seed: number) { let state = seed >>> 0; return () => { state = (
 
 function monthLabel(month: string) { const [year, index] = month.split('-').map(Number); return `${months[index - 1]} ${year}` }
 function shiftMonth(month: string, offset: number) { const date = new Date(`${month}-01T00:00:00Z`); date.setUTCMonth(date.getUTCMonth() + offset); return date.toISOString().slice(0, 7) }
+const day = (month: string, dayOfMonth: number) => `${month}-${String(Math.min(28, Math.max(1, dayOfMonth))).padStart(2, '0')}T09:00:00Z`
 
-export function sampleDataset(config: AzureConfig, month: string): { items: AzureWorkItem[]; scope: AzureBacklogScope; releaseSource: ReleaseSourceSnapshot } {
+export function sampleDataset(config: AzureConfig, month: string): { items: AzureWorkItem[]; scope: AzureBacklogScope; releaseSource: ReleaseSourceSnapshot; releasePlans: ReleasePlan[] } {
   const next = random(20261017)
   const team = config.team || 'Sample Team'
   const areaPath = `${config.project}\\${team}`
@@ -34,6 +42,7 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
     const item: AzureWorkItem = {
       key: `${config.organization.toLowerCase()}/${config.project.toLowerCase()}/${itemId}`, id: itemId, organization: config.organization, project: config.project,
       state: 'Active', assignedTo: '', areaPath, iterationPath: `${config.project}\\PI 2026.4`, tags: '', syncedAt: fetchedAt,
+      description: '',
       url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/${encodeURIComponent(config.project)}/_workitems/edit/${itemId}`,
       ...partial,
     }
@@ -43,22 +52,23 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
   const monthKeys = Array.from({ length: 6 }, (_, index) => shiftMonth(month, index - 5))
   let personIndex = 0
   streams.forEach((stream, streamIndex) => {
-    const epic = make({ title: stream.epic, workItemType: 'Epic', state: 'Active' })
+    const epic = make({ title: stream.epic, workItemType: 'Epic', state: 'Active', description: `${stream.epic} stream of work` })
     stream.features.forEach((title, featureIndex) => {
       const owner = people[personIndex++ % people.length]
-      const closed = streamIndex === 4 || (streamIndex === 0 && featureIndex === 1)
-      const feature = make({ title, workItemType: 'Feature', parentId: epic.id, assignedTo: owner, state: closed ? 'Closed' : 'Active', tags: stream.npra && featureIndex === 0 ? 'NPRA Hours' : '', originalEstimate: stream.npra && featureIndex === 0 ? 120 : undefined, targetDate: `${shiftMonth(month, closed ? 0 : 1)}-${String(10 + featureIndex * 7).padStart(2, '0')}T00:00:00Z`, closedDate: closed ? `${month}-${String(6 + streamIndex * 3).padStart(2, '0')}T14:00:00Z` : undefined })
+      const closed = featureIndex === 1 || streamIndex === 8
+      const feature = make({ title, workItemType: 'Feature', parentId: epic.id, assignedTo: owner, state: closed ? 'Closed' : 'Active', description: `Feature DoD: ${closed ? 'IQOQ finished and checklist uploaded' : 'DT finished'}.`, tags: stream.npra && featureIndex === 0 ? 'NPRA Hours' : '', originalEstimate: stream.npra && featureIndex === 0 ? 120 : undefined, targetDate: day(shiftMonth(month, closed ? 0 : 1), 10 + featureIndex * 7), closedDate: closed ? day(month, 6 + streamIndex * 2) : undefined })
       for (const milestone of ['SFV', 'DT']) make({ title: `${title} | ${milestone} review of deliverables`, workItemType: 'User Story', parentId: feature.id, assignedTo: owner, state: milestone === 'SFV' ? 'Closed' : 'Active', iterationPath: `${config.project}\\PI 2026.4\\Sprint 2` })
       const story = make({ title: `${title} - Time Writing`, workItemType: 'User Story', parentId: feature.id, assignedTo: owner, iterationPath: `${config.project}\\PI 2026.4\\Sprint 2` })
       const helpers = [owner, people[(personIndex + 2) % people.length]]
       monthKeys.forEach((key, monthOffset) => {
         helpers.forEach((person, helperIndex) => {
           if (helperIndex === 1 && (streamIndex + monthOffset) % 3 === 0) return
-          const base = helperIndex === 0 ? 48 + streamIndex * 12 : 20 + streamIndex * 4
-          const plan = Math.round((base + next() * 24) * 4) / 4
+          if (streamIndex >= 5 && helperIndex === 1) return
+          const base = helperIndex === 0 ? (streamIndex < 5 ? 36 + streamIndex * 8 : 12 + streamIndex * 2) : 16 + streamIndex * 3
+          const plan = Math.round((base + next() * 20) * 4) / 4
           const ratio = 0.8 + next() * (streamIndex === 1 ? 0.7 : 0.45)
           const actual = key > month ? undefined : Math.round(plan * ratio * 4) / 4
-          make({ title: `${monthLabel(key)} | ${title}`, workItemType: 'Task', parentId: story.id, assignedTo: person, state: key < month ? 'Closed' : 'Active', iterationPath: config.project, originalEstimate: plan, completedWork: actual, tags: streamIndex === 4 && monthOffset === 5 && helperIndex === 1 ? 'ad-hoc' : '' })
+          make({ title: `${monthLabel(key)} | ${title}`, workItemType: 'Task', parentId: story.id, assignedTo: person, state: key < month ? 'Closed' : 'Active', iterationPath: config.project, description: `Time writing for ${monthLabel(key)}`, originalEstimate: plan, completedWork: actual, tags: streamIndex === 8 && monthOffset === 5 && helperIndex === 0 ? 'ad-hoc' : '' })
         })
       })
     })
@@ -78,16 +88,28 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
     })
   })
   const scope: AzureBacklogScope = { organization: config.organization, project: config.project, team, itemKeys: items.map((item) => item.key), areaPaths: [areaPath], fetchedAt }
-  // Read-only release source: approved design-history documents whose Area Path carries the release identifier.
-  const releases = [
-    ['IntelliSpace Platform', ['v4.2', 'v4.1', 'v2.0']], ['DoseWise Portal', ['v3.1', 'v3.0', 'v1.6', 'v1.5']], ['Data Migration Services', ['v7.0']],
-    ['Regulatory & Compliance', ['v1.0', 'v2.3', 'v2.2']], ['Customer Support Fixes', ['v4.2.1', 'v4.1.3']], ['Legacy Viewer', ['v9.8']],
-  ] as const
+
+  // Read-only release source (DHFI): approved documents whose Area Path carries the release identifier; only the
+  // DP, CP, IOCC and Content streams release. Author Approval Date decides the month a release counts as completed.
+  const releases: Array<[string, Array<[string, number]>]> = [
+    ['DP', [['v4.2', 0], ['v4.1', -1], ['v3.9', -3]]], ['CP', [['v3.1', 0], ['v2.8', -2], ['v2.7', -4]]],
+    ['IOCC', [['v2.3', 0], ['v2.2', -1], ['v2.0', -5]]], ['Content', [['v7.0', 0], ['v6.4', -1], ['v6.3', -2], ['v6.0', -4]]],
+  ]
   const docs: AzureWorkItem[] = []
   let docId = 500000
-  for (const [stream, versions] of releases) for (const version of versions) for (let copy = 0; copy < 1 + (version.endsWith('.0') ? 1 : 0); copy++) {
+  for (const [stream, versions] of releases) for (const [version, offset] of versions) for (let copy = 0; copy < (offset === 0 ? 2 : 1); copy++) {
     const itemId = ++docId
-    docs.push({ key: `${config.organization.toLowerCase()}/dhfi/${itemId}`, id: itemId, organization: config.organization, project: 'DHFI', title: `${copy ? 'Verification Summary' : 'Design Review Approval'} — ${stream} ${version}`, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath: `DHFI\\${stream}\\${version}`, iterationPath: 'DHFI', tags: '', syncedAt: fetchedAt, url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/DHFI/_workitems/edit/${itemId}` })
+    const approvalMonth = shiftMonth(month, offset)
+    docs.push({ key: `${config.organization.toLowerCase()}/dhfi/${itemId}`, id: itemId, organization: config.organization, project: 'DHFI', title: `${copy ? 'Verification Summary' : 'Design Review Approval'} — ${stream} ${version}`, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath: `DHFI\\${stream}\\${version}`, iterationPath: `DHFI\\${approvalMonth.slice(0, 4)}`, tags: '', syncedAt: fetchedAt, approvalDate: day(approvalMonth, 4 + docId % 20 + copy * 3), url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/DHFI/_workitems/edit/${itemId}` })
   }
-  return { items, scope, releaseSource: { organization: config.organization, project: 'DHFI', query: "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.State] = 'Approved'", fetchedAt, items: docs } }
+  // Release planning records (Source, Program, Title, Type, milestone dates); kept separate from Azure data.
+  const plans: ReleasePlan[] = [
+    ['TFS', 'DP', 'DP | Dose Planning | v4.2', 'Release', 'DP'], ['TFS', 'DP', 'DP | Dose Planning | v4.3', 'PU', 'DP'], ['Windchill', 'CP', 'CP | Care Pathways | v3.1', 'Release', 'CP'],
+    ['Windchill', 'IOCC', 'IOCC | Operations Console | v2.3', 'PU', 'IOCC'], ['Manual', 'Content', 'Content | Clinical Library | v7.0', 'Release', 'Content'], ['Manual', 'Content', 'Content | Clinical Library | v7.1', 'PU', 'Content'],
+  ].map(([source, program, title, type, stream], index) => ({
+    id: `sample-plan-${index + 1}`, source: source as ReleasePlan['source'], program, title, type: type as ReleasePlan['type'], stream,
+    milestones: { PRD: day(shiftMonth(month, -2), 3 + index), SFV: day(shiftMonth(month, -1), 8 + index), DT: day(month, 2 + index * 3), PR: index % 2 ? undefined : day(month, 18 + index), 'Design Review': index < 3 ? day(month, 20 + index) : undefined },
+    updatedAt: fetchedAt, sample: true,
+  }))
+  return { items, scope, releaseSource: { organization: config.organization, project: 'DHFI', query: "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.State] = 'Approved'", fetchedAt, items: docs }, releasePlans: plans }
 }
