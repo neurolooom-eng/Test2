@@ -49,11 +49,11 @@ test('ADS configurations retain URL, reason and PAT as one selectable browser-lo
   const first = { id: 'quality-read', url: 'https://dev.azure.com/example-org/Quality%20Project/_backlogs/backlog/Team%20A/Epics', reason: 'Quality backlog read', token: 'quality-read-token' }
   const second = { id: 'release-write', url: 'https://dev.azure.com/another-org/Release%20Project/_backlogs/backlog/Release%20Team/Epics', reason: 'Release work-item write', token: 'release-write-token' }
   saveAzureConnectionProfile(first, storage); saveAzureConnectionProfile(second, storage)
-  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: first.id, url: first.url, reason: first.reason }, { id: second.id, url: second.url, reason: second.reason }])
+  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: first.id, url: first.url, reason: first.reason, role: 'time-tracking' }, { id: second.id, url: second.url, reason: second.reason, role: 'time-tracking' }])
   assert.equal(JSON.stringify(listAzureConnectionProfiles(storage)).includes('token'), false)
   assert.deepEqual(loadAzureConnectionProfile(second.id, storage), second)
   forgetAzureConnectionProfile(first.id, storage)
-  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: second.id, url: second.url, reason: second.reason }])
+  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: second.id, url: second.url, reason: second.reason, role: 'time-tracking' }])
 })
 
 test('ADS configuration retains the creator email separately from its PAT', () => {
@@ -61,7 +61,7 @@ test('ADS configuration retains the creator email separately from its PAT', () =
   const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }
   const profile = { id: 'write', url: 'https://dev.azure.com/example-org/Quality%20Project/_backlogs/backlog/Team%20A/Epics', reason: 'Feature write', creatorEmail: 'creator@example.test', token: 'write-token' }
   saveAzureConnectionProfile(profile, storage)
-  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: profile.id, url: profile.url, reason: profile.reason, creatorEmail: profile.creatorEmail }])
+  assert.deepEqual(listAzureConnectionProfiles(storage), [{ id: profile.id, url: profile.url, reason: profile.reason, role: 'time-tracking', creatorEmail: profile.creatorEmail }])
   assert.equal(loadAzureConnectionProfile(profile.id, storage)?.creatorEmail, profile.creatorEmail)
   assert.equal(JSON.stringify(listAzureConnectionProfiles(storage)).includes('token'), false)
 })
