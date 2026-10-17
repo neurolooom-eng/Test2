@@ -97,7 +97,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
 export type CapacityModel = ReturnType<typeof capacityModel>
 
 // Funded, available and actual hours per month for the trend chart; months without any Time Writing Task are gaps.
-export interface MonthlyHours { month: string; funded: number | null; available: number | null; actual: number | null; planned: number | null; absence: number; people: number; workingDays: number }
+export interface MonthlyHours { month: string; funded: number | null; available: number | null; actual: number | null; planned: number | null; utilization: number | null; plannedUtilization: number | null; absence: number; people: number; workingDays: number; streams: { key: string; title: string; work: number; planned: number }[] }
 export function monthlyHours(source: AzureWorkItem[], endMonth: string, span = 12, settings: CapacitySettings = defaultCapacitySettings): MonthlyHours[] {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(endMonth)) throw new Error('Choose a valid month.')
   return Array.from({ length: span }, (_, index) => {
@@ -105,6 +105,11 @@ export function monthlyHours(source: AzureWorkItem[], endMonth: string, span = 1
     const month = date.toISOString().slice(0, 7)
     const model = capacityModel(source, month, settings)
     const booked = model.people.some((person) => person.tasks)
-    return { month, funded: model.people.length ? model.totals.funded : null, available: model.people.length ? model.totals.available : null, actual: booked ? model.totals.work : null, planned: booked ? model.totals.planned : null, absence: model.totals.absence, people: model.people.length, workingDays: model.workingDays }
+    return {
+      month, funded: model.people.length ? model.totals.funded : null, available: model.people.length ? model.totals.available : null, actual: booked ? model.totals.work : null, planned: booked ? model.totals.planned : null,
+      utilization: booked ? model.totals.utilization : null, plannedUtilization: booked ? percent(model.totals.planned, model.totals.available) : null,
+      absence: model.totals.absence, people: model.people.length, workingDays: model.workingDays,
+      streams: model.streams.map((stream) => ({ key: stream.key, title: stream.title, work: stream.work, planned: stream.planned })),
+    }
   })
 }
