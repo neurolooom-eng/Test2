@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel, type Tone } from '../components/ui'
+import { HoursTrendChart } from '../components/HoursTrendChart'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
-import { capacityModel, normalizeCapacitySettings, absenceKinds, type LoadStatus } from '../capacity'
+import { capacityModel, monthlyHours, normalizeCapacitySettings, absenceKinds, type LoadStatus } from '../capacity'
 import { formatHours, formatPercent, monthName } from '../format'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
@@ -9,9 +11,12 @@ import type { PageProps } from './types'
 const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
 const maxMatrixStreams = 8
 
-export function DashboardPage({ month, azure, navigate, store }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store'] }) {
+export function DashboardPage({ month, azure, navigate, store, setMonth }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void }) {
   const settings = normalizeCapacitySettings(store.state.capacitySettings)
   const model = capacityModel(azure.items, month, settings)
+  const [span, setSpan] = useState<6 | 12>(12)
+  const trend = monthlyHours(azure.items, month, span, settings)
+  const trendTotals = trend.filter((point) => point.actual != null)
   const matrixStreams = model.streams.slice(0, maxMatrixStreams)
   const otherStreams = model.streams.slice(maxMatrixStreams)
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
@@ -23,6 +28,9 @@ export function DashboardPage({ month, azure, navigate, store }: { month: string
       <Metric label="Has capacity" value={model.counts.hasCapacity} hint={`< ${settings.availableBelow}% of available hours`} tone={model.counts.hasCapacity ? 'positive' : undefined} />
       <Metric label="Absence" value={formatHours(model.totals.absence)} hint={absenceKinds.filter((kind) => model.totals.absenceByKind[kind]).map((kind) => `${kind} ${formatHours(model.totals.absenceByKind[kind])}h`).join(' · ') || `Under Epic #${settings.absenceEpicId}`} />
     </Metrics>
+    <Panel className="viz-panel" title="Hours by month" detail={`Funded = people × working days × ${settings.hoursPerDay}h; available = funded − absence; actual = booked Completed Work. Click a month to select it.`} action={<div className="viz-range" role="group" aria-label="Months shown">{([6, 12] as const).map((value) => <button key={value} type="button" className={span === value ? 'primary' : 'ghost'} aria-pressed={span === value} onClick={() => setSpan(value)}>{value} months</button>)}{trendTotals.length > 0 && <span className="record-count">{trendTotals.length} month{trendTotals.length === 1 ? '' : 's'} with bookings</span>}</div>}>
+      {trendTotals.length ? <HoursTrendChart series={trend} selected={month} onSelect={setMonth} /> : <EmptyState title="No Time Writing Tasks in this range." detail="Refresh from Azure or load the synthetic sample to see the trend." />}
+    </Panel>
     <div className="dashboard-grid">
       <TablePanel title="Who has capacity" detail={`${monthName(month)} · ${model.workingDays} working days × ${settings.hoursPerDay}h = ${formatHours(model.fundedPerPerson)}h funded per person, less absence.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
         <table><thead><tr><th>Person</th><th>Status</th><th>Available</th><th>Planned</th><th>Booked</th><th>Utilization</th><th>Main stream</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong>{person.absence > 0 && <small>{formatHours(person.absence)}h absence</small>}</td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatHours(person.available)}</td><td>{formatHours(person.planned)}</td><td>{formatHours(person.work)}</td><td><div className="load"><div className="progress"><i className={person.status === 'Overloaded' ? 'over' : ''} style={{ width: `${Math.min(100, person.utilization ?? 0)}%` }} /></div><span>{formatPercent(person.utilization)}</span></div></td><td>{person.streams[0]?.title ?? '—'}{person.streams.length > 1 && <small>+{person.streams.length - 1} more</small>}</td></tr>)}</tbody></table>
