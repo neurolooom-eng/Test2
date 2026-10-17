@@ -1,3 +1,4 @@
+import type { BaselineRule, ReleaseScope } from './baseline'
 export type UserRole = 'Owner' | 'Admin' | 'ProcessOwner' | 'Contributor' | 'Viewer'
 export type ActivityStatus = 'Not Started' | 'In Progress' | 'On Track' | 'At Risk' | 'Completed' | 'On Hold'
 export type ActivityType = 'Project' | 'Release' | 'BAU' | 'Improvement' | 'Learning' | 'Other'
@@ -140,6 +141,8 @@ export interface AppState {
   azureWorkItems?: AzureWorkItem[]
   azureBacklogScope?: { organization: string; project: string; team: string; itemKeys: string[]; areaPaths: string[]; fetchedAt: string; sample?: boolean }
   capacitySettings?: { absenceEpicId?: number; hoursPerDay?: number; overloadedAt?: number; availableBelow?: number }
+  baselineRules?: BaselineRule[]
+  releaseScopes?: ReleaseScope[]
   resourceProfiles?: Record<string, { region?: string; role?: string; reportsTo?: string; peopleManager?: boolean }>
   releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
   releaseSourceSettings?: { streamSegment?: number; releasePattern?: string; approvalDateField?: string }
