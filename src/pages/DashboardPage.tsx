@@ -45,7 +45,7 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
     <div className="viz-filters" role="group" aria-label="Months shown"><span>Months shown</span>{([6, 12] as const).map((value) => <button key={value} type="button" className={span === value ? 'primary' : 'ghost'} aria-pressed={span === value} onClick={() => setSpan(value)}>{value} months</button>)}{trendTotals.length > 0 && <span className="record-count">{trendTotals.length} month{trendTotals.length === 1 ? '' : 's'} with bookings · click a month in any chart to select it</span>}</div>
     {trendTotals.length ? <>
       <Panel className="viz-panel" title="Hours by month" detail={`Funded = people × working days × ${settings.hoursPerDay}h; available = funded − absence; actual = booked Completed Work.`}>
-        <HoursTrendChart series={trend} selected={month} onSelect={setMonth} />
+        <HoursTrendChart series={trend} selected={month} onSelect={setMonth} defaultView="table" />
       </Panel>
       <div className="dashboard-grid viz-grid-2">
         <Panel className="viz-panel" title="Utilization by month" detail="Bars: actual = booked Completed Work ÷ available hours. Line: planned = Original Estimate ÷ available hours. Reference lines are the thresholds set in Administration.">

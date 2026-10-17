@@ -25,9 +25,9 @@ function spreadLabels(positions: number[], gap = 14, min = pad.top, max = height
   return result
 }
 
-export function HoursTrendChart({ series, selected, onSelect }: { series: MonthlyHours[]; selected: string; onSelect?: (month: string) => void }) {
+export function HoursTrendChart({ series, selected, onSelect, defaultView = 'chart' }: { series: MonthlyHours[]; selected: string; onSelect?: (month: string) => void; defaultView?: 'chart' | 'table' }) {
   const [hover, setHover] = useState<number | null>(null)
-  const [table, setTable] = useState(false)
+  const [table, setTable] = useState(defaultView === 'table')
   const svgRef = useRef<SVGSVGElement>(null)
   const id = useId()
   const plotWidth = width - pad.left - pad.right, plotHeight = height - pad.top - pad.bottom
@@ -55,7 +55,7 @@ export function HoursTrendChart({ series, selected, onSelect }: { series: Monthl
   if (!series.length) return null
   return <div className="viz-root hours-trend">
     <div className="viz-toolbar">
-      <ul className="viz-legend" aria-label="Series">{hoursSeries.map((item) => <li key={item.key}><i style={{ background: item.token }} aria-hidden="true" />{item.label}</li>)}</ul>
+      {table ? <span /> : <ul className="viz-legend" aria-label="Series">{hoursSeries.map((item) => <li key={item.key}><i style={{ background: item.token }} aria-hidden="true" />{item.label}</li>)}</ul>}
       <button type="button" className="ghost" aria-pressed={table} onClick={() => setTable((value) => !value)}>{table ? 'Chart' : 'Table'}</button>
     </div>
     {table ? <div className="azure-table"><table className="viz-table"><thead><tr><th>Month</th>{hoursSeries.map((item) => <th key={item.key}>{item.label} (h)</th>)}<th>People</th></tr></thead><tbody>{series.map((point) => <tr key={point.month} className={point.month === selected ? 'matrix-total' : ''}><td>{monthLabel(point.month)}</td>{hoursSeries.map((item) => <td key={item.key}>{formatHours(point[item.key])}</td>)}<td>{point.people}</td></tr>)}</tbody></table></div>
