@@ -1,39 +1,96 @@
 import { useState } from 'react'
-import { Notice, Page, Panel, Pill } from '../components/ui'
+import { EmptyState, Notice, Page, Panel, Pill, type Tone } from '../components/ui'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import { formatDateTime } from '../format'
-import type { AzureConnectionRole } from '../azureCredentials'
-import type { AzureWorkspace } from '../useAzureWorkspace'
+import { loadAzureConnectionProfile, splitAzureUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
+import { defaultReleaseQuery, projectQuery } from '../releaseSource'
+import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import type { PageProps } from './types'
 
-const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time tracking (Read & Write)', 'release-source': 'Release source (Read only)' }
-const defaultReleaseQuery = "SELECT [System.Id], [System.Title], [System.AreaPath], [System.State]\nFROM WorkItems\nWHERE [System.TeamProject] = @project AND [System.State] = 'Approved'\nORDER BY [System.Id]"
+const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)' }
+const roleUse: Record<AzureConnectionRole, string> = {
+  'time-tracking': 'Feeds the Overview, Monthly Time Writing and Baselines. Without a query the team’s Epic backlog is read; with a query its results plus their parents are read. One Time Writing connection is active at a time.',
+  'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
+  documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
+  reference: 'Any other read-only data: fetched and listed with its count.',
+}
+const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery }
+const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, baseUrl: 'https://dev.azure.com/', project: '', team: '', pat: '', query: '', creatorEmail: '' })
 
 export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
-  const { projectUrl, changeProjectUrl, team, setTeam, config, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, setError, preview, setPreview, saved, fetchPreview, rememberPat, forgetPat, releaseProfileId, setReleaseProfileId, releaseBusy, fetchReleases } = azure
-  const [reason, setReason] = useState(() => azure.connectionProfiles[0]?.reason ?? 'Backlog Read')
-  const [releaseQuery, setReleaseQuery] = useState(() => store.state.releaseSource?.query ?? defaultReleaseQuery)
-  const releaseProfiles = connectionProfiles.filter((profile) => profile.role === 'release-source')
+  const { connectionProfiles, connectionStatus, activeConnectionProfileId, preview, busy } = azure
+  const [form, setForm] = useState<ConnectionInput | null>(null)
+  const [formError, setFormError] = useState('')
+  const [fetchingAll, setFetchingAll] = useState(false)
+  const sources = store.state.azureSources ?? []
   const releaseSource = store.state.releaseSource
-  return <Page intro="Each ADS configuration is one set: Azure DevOps URL, PAT, reason, role and (for time tracking) the Feature creator email. The active time-tracking configuration drives Fetch preview, Refresh and Monthly Time Writing; the release-source configuration is read-only and only runs the release query. PATs are browser-local and excluded from app backups, SharePoint sync and GitHub." actions={<button className="primary" onClick={onOpenBoard}>Open Backlogs →</button>}>
+
+  function edit(profile: AzureConnectionProfileSummary) {
+    const parts = splitAzureUrl(profile.url)
+    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, ...parts, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '' })
+  }
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!form) return
+    try { azure.saveConnection(form); setForm(null); setFormError('') } catch (failure) { setFormError(failure instanceof Error ? failure.message : 'Unable to save the connection.') }
+  }
+  const lastFetch = (profile: AzureConnectionProfileSummary) => {
+    if (profile.role === 'release-source') return releaseSource ? `${releaseSource.items.length} documents · ${formatDateTime(releaseSource.fetchedAt)}` : ''
+    if (profile.role === 'time-tracking') return profile.id === activeConnectionProfileId && azure.saved.length ? `${azure.saved.length} saved work items` : ''
+    const source = sources.find((entry) => entry.connectionId === profile.id)
+    return source ? `${source.items.length} work items · ${formatDateTime(source.fetchedAt)}` : ''
+  }
+  const statusTone = (profile: AzureConnectionProfileSummary): [Tone, string] => {
+    const status = connectionStatus[profile.id]
+    if (status?.state === 'busy') return ['info', 'Fetching…']
+    if (status?.state === 'error') return ['danger', 'Failed']
+    if (status?.state === 'ok') return ['open', 'Fetched']
+    return lastFetch(profile) ? ['open', 'Data saved'] : ['neutral', 'Not fetched']
+  }
+
+  return <Page intro="Each connection is one set: base URL, project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git."
+    actions={<button className="primary" onClick={onOpenBoard}>Open Backlogs →</button>}>
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
-    <Panel className="connection-panel" title="Connect work-item data" detail="Fetch the team's configured area paths and work items, including Epics, Features and Bugs. Preview before saving." action={<Pill tone={busy ? 'info' : saved.length ? 'open' : 'neutral'}>{busy ? 'Fetching…' : saved.length ? 'Saved data available' : 'Not connected'}</Pill>}>
-      <form className="azure-form" onSubmit={fetchPreview}>
-        <label>Azure DevOps project or backlog URL<input type="url" required disabled={busy} value={projectUrl} onChange={(event) => changeProjectUrl(event.target.value)} /></label>
-        <div className="form-row"><label>Team (from backlog URL when provided)<input required={role === 'time-tracking'} disabled={busy} readOnly={projectUrl.includes('/_backlogs/backlog/')} value={config?.team || team} onChange={(event) => { setTeam(event.target.value); setPreview(null) }} /></label><label>Active ADS configuration<select disabled={busy} value={activeConnectionProfileId} onChange={event => { const id = event.target.value; selectConnectionProfile(id); setReason(connectionProfiles.find(profile => profile.id === id)?.reason ?? 'Backlog Read') }}><option value="">Unsaved/current session</option>{connectionProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.reason} · {profile.role === 'release-source' ? 'read only' : 'read & write'}</option>)}</select></label></div>
-        <div className="form-row"><label>Reason / purpose<input disabled={busy} value={reason} onChange={event => setReason(event.target.value)} placeholder="Backlog Read, Work Item Write, DHFI releases…" /></label><label>Role<select disabled={busy} value={role} onChange={(event) => setRole(event.target.value as AzureConnectionRole)}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((value) => <option key={value} value={value}>{roleLabel[value]}</option>)}</select></label></div>
-        <div className="form-row"><label>Personal access token<input type="password" required autoComplete="off" disabled={busy} value={pat} onChange={(event) => setPat(event.target.value)} placeholder="Active configuration token" /></label><label>Feature creator email{role === 'release-source' && ' (not used for a release source)'}<input type="email" required={role === 'time-tracking'} disabled={busy} autoComplete="email" value={creatorEmail} onChange={event => setCreatorEmail(event.target.value)} placeholder="your.name@philips.com" /></label></div>
-        <div className="button-row"><button type="button" className="ghost" disabled={busy || !pat.trim()} onClick={() => { try { saveConnectionProfile(reason, creatorEmail, pat, role) } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to save the ADS configuration.') } }}>Save / update configuration</button><button type="button" className="ghost" disabled={busy || !activeConnectionProfileId} onClick={forgetConnectionProfile}>Remove active configuration</button><button type="button" className="ghost" disabled={busy || !pat.trim()} onClick={() => { try { rememberPat() } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to save the legacy PAT.') } }}>Save legacy PAT</button><button type="button" className="ghost" disabled={busy} onClick={forgetPat}>Forget legacy PAT</button></div>
-        <Notice>Scope: {config?.team || team || 'team'} Epic backlog → linked descendants in the team's configured areas. No all-project Epic fetch and no unrelated team-area items. Removed items are excluded.</Notice>
-        <div className="button-row"><button className="primary" disabled={busy || role === 'release-source'}>{busy ? 'Fetching team work items…' : 'Fetch preview'}</button><button type="button" className="ghost" disabled={busy} onClick={() => { if (saved.length && !azure.isSample && !window.confirm('Replace the saved Azure cache with a synthetic sample dataset? Export a JSON backup first if you need the current data.')) return; azure.loadSampleData() }}>Load synthetic sample dataset</button></div>
-      </form>
+    <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Time Writing previews before saving; release, document and reference connections are saved as soon as they are fetched. Nothing is written to Azure DevOps when fetching."
+      action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
+      {connectionProfiles.length ? <div className="azure-table"><table className="connection-table"><thead><tr><th>Connection</th><th>Used for</th><th>Organization / project</th><th>Query</th><th>Status</th><th /></tr></thead><tbody>{connectionProfiles.map((profile) => {
+        const parts = splitAzureUrl(profile.url), [tone, label] = statusTone(profile), status = connectionStatus[profile.id]
+        const active = profile.role === 'time-tracking' && profile.id === activeConnectionProfileId
+        return <tr key={profile.id}>
+          <td><strong>{profile.reason}</strong>{active && <small>Active Time Writing source</small>}</td>
+          <td>{roleLabel[profile.role]}</td>
+          <td>{parts.baseUrl.replace('https://', '')}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}</small></td>
+          <td>{profile.query ? <span className="query-chip" title={profile.query}>Custom query</span> : <small>{profile.role === 'time-tracking' ? 'Team Epic backlog' : 'Default'}</small>}</td>
+          <td><Pill tone={tone}>{label}</Pill><small>{status?.message ?? lastFetch(profile)}</small></td>
+          <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
+        </tr>
+      })}</tbody></table></div>
+        : <EmptyState title="No connections yet." detail="Add your Time Writing project first, then the DHFI release source and any other read-only sources." />}
+      {form && <form className="connection-editor" onSubmit={submit}>
+        <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>
+        <div className="connection-form">
+          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Time Writing, DHFI releases, Vault" /></label>
+          <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
+          <label>Base URL<input required type="url" value={form.baseUrl} onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} placeholder="https://dev.azure.com/your-organization" /></label>
+          <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
+          {form.role === 'time-tracking' && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
+          <label>PAT{form.id ? ' (leave empty to keep the saved one)' : ''}<input type="password" autoComplete="off" required={!form.id || !loadAzureConnectionProfile(form.id)} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
+          {form.role === 'time-tracking' && <label>Feature creator email (optional)<input type="email" value={form.creatorEmail} onChange={(event) => setForm({ ...form, creatorEmail: event.target.value })} placeholder="Assigned to Features created from the app" /></label>}
+          <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' ? '' : 'Empty uses the default shown.'}</small></label>
+        </div>
+        <Notice>{roleUse[form.role]}</Notice>
+        {formError && <Notice tone="error">{formError}</Notice>}
+        <div className="button-row"><button className="primary">Save connection</button><button type="button" className="ghost" onClick={() => setForm(null)}>Cancel</button></div>
+      </form>}
     </Panel>
-    <Panel className="connection-panel" eyebrow="READ ONLY" title="Release source" detail="A second project (for example DHFI) queried read-only. Approved documents carry the release identifier in their Area Path; the Feature milestones page lists them per stream and checks for matching Time Writing items." action={<Pill tone={releaseBusy ? 'info' : releaseSource ? 'open' : 'neutral'}>{releaseBusy ? 'Fetching…' : releaseSource ? `${releaseSource.items.length} documents` : 'Not fetched'}</Pill>}>
-      <form className="azure-form" onSubmit={(event) => { event.preventDefault(); void fetchReleases(releaseQuery) }}>
-        <label>Release-source configuration<select disabled={releaseBusy} value={releaseProfileId} onChange={(event) => setReleaseProfileId(event.target.value)}><option value="">Select a read-only configuration</option>{releaseProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.reason} · {profile.url}</option>)}</select>{!releaseProfiles.length && <small>Save a configuration above with the role “Release source (Read only)” first.</small>}</label>
-        <label>Work-item query (WIQL)<textarea rows={5} disabled={releaseBusy} value={releaseQuery} onChange={(event) => setReleaseQuery(event.target.value)} spellCheck={false} /><small>Paste the saved query from Azure DevOps. Only its WHERE clause is used; results are read in pages and never written back.</small></label>
-        <div className="button-row"><button className="primary" disabled={releaseBusy || !releaseProfileId || !releaseQuery.trim()}>{releaseBusy ? 'Fetching release documents…' : 'Fetch releases (read only)'}</button>{releaseSource && <span className="muted">Last fetched {formatDateTime(releaseSource.fetchedAt)} from {releaseSource.organization}/{releaseSource.project}. Stored with the shared app data.</span>}</div>
-      </form>
+    {sources.length > 0 && <Panel className="connection-panel" eyebrow="READ ONLY" title="Fetched read-only sources" detail="Snapshots from document and reference connections, stored with the app data.">
+      <div className="azure-table"><table><thead><tr><th>Connection</th><th>Project</th><th>Work items</th><th>By type</th><th>Fetched</th></tr></thead><tbody>{sources.map((source) => {
+        const types = Object.entries(source.items.reduce<Record<string, number>>((counts, item) => { counts[item.workItemType] = (counts[item.workItemType] ?? 0) + 1; return counts }, {})).sort((a, b) => b[1] - a[1])
+        return <tr key={source.connectionId}><td><strong>{source.name}</strong><small>{roleLabel[source.role]}</small></td><td>{source.organization} / {source.project}</td><td>{source.items.length}</td><td>{types.slice(0, 4).map(([type, count]) => `${type} ${count}`).join(' · ') || '—'}</td><td>{formatDateTime(source.fetchedAt)}</td></tr>
+      })}</tbody></table></div>
+    </Panel>}
+    <Panel className="connection-panel" eyebrow="DEMO" title="Synthetic sample" detail="Replaces the cached Time Writing data and release source with a generated dataset, without reading from or writing to Azure DevOps.">
+      <div className="button-row"><button type="button" className="ghost" disabled={busy} onClick={() => { if (azure.saved.length && !azure.isSample && !window.confirm('Replace the saved Azure cache with a synthetic sample dataset? Export a JSON backup first if you need the current data.')) return; azure.loadSampleData() }}>Load synthetic sample dataset</button></div>
     </Panel>
   </Page>
 }

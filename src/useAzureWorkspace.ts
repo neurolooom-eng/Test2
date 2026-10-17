@@ -2,13 +2,16 @@ import { useRef, useState } from 'react'
 import { fetchAzureWorkItems, mergeAzureWorkItems, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
-import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
-import { fetchReleaseSource, normalizeReleaseSourceSettings } from './releaseSource'
+import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
+import { defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, releaseQueryWhere, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
 const defaultConfig = parseAzureProjectUrl(defaultUrl)
+
+export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
+export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; baseUrl: string; project: string; team: string; pat: string; query: string; creatorEmail: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 export function useAzureWorkspace(store: PageProps['store']) {
@@ -19,8 +22,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
   const [pat, setPat] = useState(() => { const first = listAzureConnectionProfiles()[0]?.id; return first ? loadAzureConnectionProfile(first)?.token ?? '' : loadAzurePat(defaultConfig) })
   const [creatorEmail, setCreatorEmail] = useState(() => { const first = listAzureConnectionProfiles()[0]?.id; return first ? loadAzureConnectionProfile(first)?.creatorEmail ?? '' : '' })
   const [role, setRole] = useState<AzureConnectionRole>(() => listAzureConnectionProfiles()[0]?.role ?? 'time-tracking')
-  const [releaseProfileId, setReleaseProfileId] = useState(() => listAzureConnectionProfiles().find((profile) => profile.role === 'release-source')?.id ?? '')
-  const [releaseBusy, setReleaseBusy] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, ConnectionStatus>>({})
   const [busy, setBusy] = useState(false)
   const fetching = useRef(false)
   const [lastRefreshed, setLastRefreshed] = useState('')
@@ -64,6 +66,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
   }
 
   async function refresh() {
+    if (activeConnectionProfileId && connectionProfiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking')) { await fetchConnection(activeConnectionProfileId); return }
     if (fetching.current) return
     fetching.current = true; setError(''); setMessage(''); setBusy(true)
     try {
@@ -103,7 +106,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const profile = id ? loadAzureConnectionProfile(id) : null
     if (!profile) { setActiveConnectionProfileId(''); setError(''); return }
     setProjectUrl(profile.url); setPreview(null); setActiveConnectionProfileId(id); setPat(profile.token); setCreatorEmail(profile.creatorEmail?.trim() ?? ''); setRole(profile.role ?? 'time-tracking'); setError('')
-    try { const parsed = parseAzureProjectUrl(profile.url); if (parsed.team) setTeam(parsed.team) } catch { /* saved profile validation already prevents this */ }
+    try { setTeam(parseAzureProjectUrl(profile.url).team) } catch { /* saved profile validation already prevents this */ }
   }
 
   function saveConnectionProfile(reason: string, email = creatorEmail, value = pat, nextRole: AzureConnectionRole = role) {
@@ -116,14 +119,11 @@ export function useAzureWorkspace(store: PageProps['store']) {
     saveAzureConnectionProfile({ id, url: projectUrl, reason: cleanReason, creatorEmail: cleanEmail, role: nextRole, token: value })
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles); setActiveConnectionProfileId(id); setPat(value.trim()); setCreatorEmail(cleanEmail); setRole(nextRole)
-    if (nextRole === 'release-source' && (!releaseProfileId || releaseProfileId === id)) setReleaseProfileId(id)
-    if (nextRole !== 'release-source' && releaseProfileId === id) setReleaseProfileId(profiles.find((profile) => profile.role === 'release-source')?.id ?? '')
     setMessage(`Azure DevOps configuration “${cleanReason}” saved on this browser.`); setError('')
   }
 
   function forgetConnectionProfile() {
-    if (!activeConnectionProfileId) return
-    forgetAzureConnectionProfile(activeConnectionProfileId); const profiles = listAzureConnectionProfiles(); const next = profiles[0]?.id ?? ''; setConnectionProfiles(profiles); setActiveConnectionProfileId(''); if (releaseProfileId === activeConnectionProfileId) setReleaseProfileId(profiles.find((profile) => profile.role === 'release-source')?.id ?? ''); if (next) selectConnectionProfile(next); else { setPat(''); setCreatorEmail('') }; setMessage('Azure DevOps configuration removed from this browser. The token itself was not revoked.'); setError('')
+    if (activeConnectionProfileId) removeConnection(activeConnectionProfileId)
   }
 
   function featureCreated(incoming: AzureWorkItem[]) {
@@ -154,22 +154,99 @@ export function useAzureWorkspace(store: PageProps['store']) {
     return updated
   }
 
-  // Read-only release source: runs the saved query with the selected release-source configuration and stores the result with the shared app data.
-  async function fetchReleases(query: string) {
-    const profile = releaseProfileId ? loadAzureConnectionProfile(releaseProfileId) : null
-    if (!profile) { setError('Select a release-source configuration first.'); return }
-    setReleaseBusy(true); setError(''); setMessage('')
+  // Connection sets: base URL + project (+ team), PAT, optional query and what the data is used for.
+  function saveConnection(input: ConnectionInput) {
+    const name = input.name.trim()
+    if (!name) throw new Error('Give the connection a name, e.g. "Time Writing" or "DHFI releases".')
+    const url = composeAzureUrl(input.baseUrl, input.project, input.team)
+    const existing = input.id ? loadAzureConnectionProfile(input.id) : null
+    const token = input.pat.trim() || existing?.token || ''
+    if (!token) throw new Error('Enter the PAT for this connection.')
+    const query = input.query.trim()
+    if (query) releaseQueryWhere(query)
+    if (input.role === 'time-tracking' && !input.team.trim() && !query) throw new Error('A Time Writing connection needs a team (its Epic backlog is read) or a query.')
+    const email = input.creatorEmail.trim().toLowerCase()
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
+    const id = input.id || crypto.randomUUID().replaceAll('-', '')
+    saveAzureConnectionProfile({ id, url, reason: name, role: input.role, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}) })
+    const profiles = listAzureConnectionProfiles()
+    setConnectionProfiles(profiles)
+    if (input.role === 'time-tracking' && (id === activeConnectionProfileId || !profiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking'))) selectConnectionProfile(id)
+    setMessage(`Connection “${name}” saved in this browser.`); setError('')
+    return id
+  }
+
+  function removeConnection(id: string) {
+    const name = connectionProfiles.find((profile) => profile.id === id)?.reason ?? 'Connection'
+    forgetAzureConnectionProfile(id)
+    const profiles = listAzureConnectionProfiles()
+    setConnectionProfiles(profiles)
+    if (id === activeConnectionProfileId) { const next = profiles.find((profile) => profile.role === 'time-tracking'); if (next) selectConnectionProfile(next.id); else { setActiveConnectionProfileId(''); setPat('') } }
+    store.update((draft) => { if (draft.azureSources?.some((source) => source.connectionId === id)) draft.azureSources = draft.azureSources.filter((source) => source.connectionId !== id); return draft })
+    setMessage(`${name} removed from this browser. Its PAT was not revoked in Azure DevOps.`); setError('')
+  }
+
+  // Fetches one connection read-only. Time Writing goes to the preview (review, then save); the release source,
+  // document and reference connections are stored with the app data straight away. Nothing is written to Azure.
+  async function fetchConnection(id: string): Promise<boolean> {
+    const profile = loadAzureConnectionProfile(id)
+    const summary = connectionProfiles.find((entry) => entry.id === id)
+    if (!profile) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'Saved connection not found in this browser.' } })); return false }
+    const role = profile.role ?? 'time-tracking'
+    setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Fetching…' } }))
     try {
       const parsed = parseAzureProjectUrl(profile.url)
-      const snapshot = await fetchReleaseSource(parsed, profile.token, query, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
-      store.update((draft) => {
-        draft.releaseSource = snapshot
-        draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from ${parsed.project} with configuration “${profile.reason}”.` })
-        return draft
-      })
-      setMessage(`${snapshot.items.length} release documents fetched from ${parsed.project}. Nothing in Azure DevOps was changed.`)
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to fetch the release source.') }
-    finally { setReleaseBusy(false) }
+      const query = profile.query?.trim() ?? ''
+      let done = ''
+      if (role === 'time-tracking') {
+        if (fetching.current) throw new Error('A Time Writing fetch is already running.')
+        fetching.current = true; setBusy(true)
+        try {
+          selectConnectionProfile(id)
+          let result: AzureFetchResult
+          if (query) {
+            const items = (await withAncestors(parsed, profile.token, await runWorkItemQuery(parsed, profile.token, query))).filter((item) => item.state.trim().toLowerCase() !== 'removed')
+            const asOf = new Date().toISOString(), areaPaths = [...new Set(items.map((item) => item.areaPath))].sort()
+            result = { items, areaPaths, asOf, scope: { organization: parsed.organization, project: parsed.project, team: parsed.team, itemKeys: items.map((item) => item.key), areaPaths, fetchedAt: asOf } }
+          } else result = await fetchAzureWorkItems(parsed, profile.token)
+          setPreview(result); setLastRefreshed(new Date().toISOString())
+          done = `${result.items.length} work items — review and save the preview`
+        } finally { fetching.current = false; setBusy(false) }
+      } else if (role === 'release-source') {
+        const snapshot = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
+        store.update((draft) => {
+          draft.releaseSource = snapshot
+          draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from “${profile.reason}”` })
+          return draft
+        })
+        done = `${snapshot.items.length} release documents saved`
+      } else {
+        const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery)
+        const fetchedAt = new Date().toISOString()
+        store.update((draft) => {
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items }]
+          draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only from “${profile.reason}”` })
+          return draft
+        })
+        done = `${items.length} work items saved`
+      }
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'ok', message: done, at: new Date().toISOString() } }))
+      return true
+    } catch (failure) {
+      const text = failure instanceof Error ? failure.message : 'Unable to fetch this connection.'
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: text } }))
+      setError(`${summary?.reason ?? profile.reason}: ${text}`)
+      return false
+    }
+  }
+
+  // Fetches the active Time Writing connection and every read-only connection, one after another.
+  async function fetchAll() {
+    setError(''); setMessage('')
+    const targets = connectionProfiles.filter((profile) => profile.role !== 'time-tracking' || profile.id === (activeConnectionProfileId || connectionProfiles.find((entry) => entry.role === 'time-tracking')?.id))
+    let ok = 0
+    for (const profile of targets) if (await fetchConnection(profile.id)) ok += 1
+    setMessage(`${ok} of ${targets.length} connection${targets.length === 1 ? '' : 's'} fetched.${targets.some((profile) => profile.role === 'time-tracking') ? ' Review and save the Time Writing preview.' : ''}`)
   }
 
   function savePreview() {
@@ -185,7 +262,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPreview(null); setMessage(`${incoming.length} team-backlog records loaded into the app cache. Check browser save status for persistence. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, releaseProfileId, setReleaseProfileId, releaseBusy, fetchReleases, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>
