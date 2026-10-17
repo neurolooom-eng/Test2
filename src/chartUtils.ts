@@ -64,3 +64,28 @@ export function epicColors(series: Pick<MonthlyHours, 'streams'>[]): EpicColors 
   const byKey = new Map(top.map((entry) => [entry.key, entry.color]))
   return { top, other: otherColor, colorOf: (key) => byKey.get(key) ?? otherColor, isTop: (key) => byKey.has(key) }
 }
+
+// Pareto: Epics sorted by booked hours with share and running cumulative %; the "vital few" are every item up to
+// and including the one whose cumulative share first reaches the threshold.
+export function paretoSeries<T extends { key: string; title: string; work: number }>(streams: T[], threshold = 80) {
+  const items = streams.filter((stream) => stream.work > 0).sort((a, b) => b.work - a.work || a.title.localeCompare(b.title))
+  const total = items.reduce((sum, item) => sum + item.work, 0)
+  let running = 0, reached = false
+  return items.map((item) => {
+    running += item.work
+    const share = total ? item.work / total * 100 : 0, cumulative = total ? running / total * 100 : 0
+    const vital = !reached
+    if (cumulative >= threshold - 1e-9) reached = true
+    return { ...item, share, cumulative, vital }
+  })
+}
+
+// Donut segment between two angles (radians, 0 = 3 o'clock); a full turn draws a ring (use fill-rule evenodd).
+export function arcPath(cx: number, cy: number, inner: number, outer: number, start: number, end: number) {
+  const sweep = end - start
+  if (!(sweep > 0)) return ''
+  if (sweep >= Math.PI * 2 - 1e-6) return `M${cx},${cy - outer}A${outer},${outer} 0 1 1 ${cx},${cy + outer}A${outer},${outer} 0 1 1 ${cx},${cy - outer}ZM${cx},${cy - inner}A${inner},${inner} 0 1 0 ${cx},${cy + inner}A${inner},${inner} 0 1 0 ${cx},${cy - inner}Z`
+  const point = (radius: number, angle: number) => `${(cx + radius * Math.cos(angle)).toFixed(2)},${(cy + radius * Math.sin(angle)).toFixed(2)}`
+  const large = sweep > Math.PI ? 1 : 0
+  return `M${point(outer, start)}A${outer},${outer} 0 ${large} 1 ${point(outer, end)}L${point(inner, end)}A${inner},${inner} 0 ${large} 0 ${point(inner, start)}Z`
+}
