@@ -88,3 +88,4 @@ input,select,textarea{background:var(--surface);color:var(--text)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--heading:var(--text);--on-accent:#06213a}}
 .sidebar,.sidebar nav button:hover,.sidebar nav .nav-active,.brand-mark,.brand strong{color:var(--on-brand)}
 .primary{color:var(--on-accent)}.topbar h1,.panel-heading h2,.section-heading h2,.panel h2,.panel h3,.metric-grid strong,.modal-heading h2{color:var(--heading)}
+.release-summary{margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.8}.release-tracked{color:var(--success-text);font-weight:600}.release-untracked{color:var(--warning-text);font-weight:600;text-decoration:underline dotted}

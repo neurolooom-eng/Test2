@@ -402,7 +402,7 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
   }
 }
 
-async function requestAzure(request: AzureRequest): Promise<unknown> {
+export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (window.azureDevOps) return window.azureDevOps.request(request)
   const base = `https://dev.azure.com/${encodeURIComponent(request.organization)}/${encodeURIComponent(request.project)}`
   const writing = request.operation === 'create-feature' || request.operation === 'create-child' || request.operation === 'update-time-writing-effort'
