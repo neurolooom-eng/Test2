@@ -1,7 +1,7 @@
 import { useId, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { formatHours, formatPercent } from '../format'
 import type { MonthlyHours, StreamSummary } from '../capacity'
-import { barPath, columnPath, compactNumber, longMonth, monthTick, niceTicks, useElementWidth, type EpicColors } from '../chartUtils'
+import { arcPath, barPath, columnPath, compactNumber, longMonth, monthTick, niceTicks, paretoSeries, useElementWidth, type EpicColors } from '../chartUtils'
 
 // Combination charts share ONE unit per plot (never a second y-axis): utilization bars + planned-utilization line
 // are both %, Epic stacks + available line are both hours. Marks carry series colour; all text wears text tokens.
@@ -175,4 +175,75 @@ export function EpicBulletChart({ streams, colors }: { streams: StreamSummary[];
       {current && hover != null && <Tooltip left={x(current.work)} top={rowY(hover) + rowHeight} width={width}><strong>{current.title}</strong><TooltipRow color={colors.colorOf(current.key)} value={`${formatHours(current.work)} h`} label="Booked" /><TooltipRow color="var(--text)" value={`${formatHours(current.planned)} h`} label="Planned" /><small>{current.work - current.planned >= 0 ? '+' : ''}{formatHours(current.work - current.planned)}h vs plan · {current.people} people · {current.features} feature{current.features === 1 ? '' : 's'}</small></Tooltip>}
     </div>}
   </div></ChartFrame>
+}
+
+// Pareto on ONE % axis: bars = each Epic's share of booked hours (largest first), line = cumulative share, reference
+// line at the threshold. The "vital few" up to the crossing stay solid; the long tail is muted (emphasis, not colour).
+export function ParetoChart({ streams, colors, threshold = 80 }: { streams: { key: string; title: string; work: number }[]; colors: EpicColors; threshold?: number }) {
+  const [wrap, width] = useElementWidth<HTMLDivElement>()
+  const [hover, setHover] = useState<number | null>(null)
+  const [table, setTable] = useState(false)
+  const id = useId()
+  const data = paretoSeries(streams, threshold)
+  const vitalCount = data.filter((item) => item.vital).length
+  const height = 300, pad = { top: 26, right: 46, bottom: 40, left: 46 }
+  const plotWidth = Math.max(10, width - pad.left - pad.right), plotHeight = height - pad.top - pad.bottom
+  const band = plotWidth / Math.max(1, data.length)
+  const x = (index: number) => pad.left + band * (index + 0.5)
+  const y = (value: number) => pad.top + plotHeight - Math.min(100, value) / 100 * plotHeight
+  const barWidth = Math.min(28, band * 0.6)
+  const line = data.map((item, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(item.cumulative).toFixed(1)}`).join(' ')
+  const crossing = vitalCount - 1
+  const current = hover == null ? undefined : data[hover]
+  const maxLabel = Math.max(4, Math.floor(band / 7))
+  const indexAt = (event: PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); return Math.min(data.length - 1, Math.max(0, Math.floor((event.clientX - rect.left - pad.left) / band))) }
+  const legend = <><LegendBar color="var(--text-3)" label="Share of booked hours (Epic colour)" /><LegendLine color="var(--viz-capacity)" label="Cumulative share" /></>
+  if (!data.length) return null
+  return <ChartFrame legend={legend} table={table} setTable={setTable}><div ref={wrap}>
+    {table ? <div className="azure-table"><table className="viz-table"><thead><tr><th>Epic</th><th>Booked (h)</th><th>Share</th><th>Cumulative</th><th>Vital few</th></tr></thead><tbody>{data.map((item) => <tr key={item.key}><td>{item.title}</td><td>{formatHours(item.work)}</td><td>{formatPercent(item.share)}</td><td>{formatPercent(item.cumulative)}</td><td>{item.vital ? 'Yes' : ''}</td></tr>)}</tbody></table></div>
+    : <div className="viz-plot">
+      <svg className="viz-fixed" width={width} height={height} style={{ width, height }} viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${id}-title`} tabIndex={0} onPointerMove={(event) => setHover(indexAt(event))} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setHover((value) => Math.min(data.length - 1, Math.max(0, (value ?? -1) + (event.key === 'ArrowLeft' ? -1 : 1)))) } else if (event.key === 'Escape') setHover(null) }}>
+        <title id={`${id}-title`}>Pareto of booked hours by Epic: share per Epic and cumulative share</title>
+        {[0, 25, 50, 75, 100].map((tick) => <g key={tick}><line className="viz-grid" x1={pad.left} x2={pad.left + plotWidth} y1={y(tick)} y2={y(tick)} /><text className="viz-tick" x={pad.left - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle">{tick}%</text></g>)}
+        <line className="viz-reference" x1={pad.left} x2={pad.left + plotWidth} y1={y(threshold)} y2={y(threshold)} /><text className="viz-reference-label" x={pad.left + plotWidth + 6} y={y(threshold)} dominantBaseline="middle">{threshold}%</text>
+        {hover != null && <rect className="viz-selected-band" x={x(hover) - band / 2 + 2} y={pad.top} width={Math.max(4, band - 4)} height={plotHeight} rx={4} />}
+        {data.map((item, index) => <path key={item.key} className={item.vital ? 'viz-bar viz-bar-active' : 'viz-bar viz-pareto-tail'} d={columnPath(x(index) - barWidth / 2, y(item.share), barWidth, pad.top + plotHeight - y(item.share))} fill={colors.colorOf(item.key)} />)}
+        <path d={line} fill="none" stroke="var(--viz-capacity)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        {data.map((item, index) => <circle key={item.key} className="viz-marker" cx={x(index)} cy={y(item.cumulative)} r={index === crossing || index === hover ? 5 : 4} fill="var(--viz-capacity)" />)}
+        {crossing >= 0 && <text className="viz-value-label" x={x(crossing)} y={y(data[crossing].cumulative) - 12} textAnchor={crossing === data.length - 1 ? 'end' : 'middle'}>{formatPercent(data[crossing].cumulative, 0)} in {vitalCount} Epic{vitalCount === 1 ? '' : 's'}</text>}
+        {data.map((item, index) => <text key={item.key} className="viz-tick" x={x(index)} y={height - pad.bottom + 18} textAnchor="middle"><title>{item.title}</title>{item.title.length > maxLabel ? `${item.title.slice(0, maxLabel - 1)}…` : item.title}</text>)}
+      </svg>
+      {current && hover != null && <Tooltip left={x(hover)} width={width}><strong>{current.title}</strong><TooltipRow color={colors.colorOf(current.key)} value={formatPercent(current.share)} label={`share · ${formatHours(current.work)} h`} /><TooltipRow color="var(--viz-capacity)" value={formatPercent(current.cumulative)} label="cumulative" /><small>{current.vital ? `Part of the ${vitalCount} Epic${vitalCount === 1 ? '' : 's'} that make up ${threshold}% of booked hours` : 'Long tail'}</small></Tooltip>}
+    </div>}
+  </div></ChartFrame>
+}
+
+// Donut for part-to-whole with a few slices (≤ 6). 2px surface gaps between slices; the centre shows the total, or the
+// hovered/focused slice. Values and shares are also in the legend beside it and in the table view.
+export function DonutChart({ label, segments, centerValue, centerLabel }: { label: string; segments: { key: string; label: string; value: number; color: string }[]; centerValue: string; centerLabel: string }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [table, setTable] = useState(false)
+  const id = useId()
+  const shown = segments.filter((segment) => segment.value > 0)
+  const total = shown.reduce((sum, segment) => sum + segment.value, 0)
+  const size = 196, center = size / 2, outer = 92, inner = 60
+  const arcs = shown.map((segment, index) => {
+    const before = shown.slice(0, index).reduce((sum, item) => sum + item.value, 0)
+    const start = -Math.PI / 2 + before / total * Math.PI * 2
+    return { ...segment, start, end: start + segment.value / total * Math.PI * 2, share: segment.value / total * 100 }
+  })
+  const active = hover == null ? undefined : arcs[hover]
+  if (!total) return null
+  return <ChartFrame legend={null} table={table} setTable={setTable}>
+    {table ? <div className="azure-table"><table className="viz-table"><thead><tr><th>{label}</th><th>Hours</th><th>Share</th></tr></thead><tbody>{arcs.map((arc) => <tr key={arc.key}><td>{arc.label}</td><td>{formatHours(arc.value)}</td><td>{formatPercent(arc.share)}</td></tr>)}<tr className="matrix-total"><td>Total</td><td>{formatHours(total)}</td><td>100%</td></tr></tbody></table></div>
+    : <div className="viz-donut">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-labelledby={`${id}-title`} tabIndex={0} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'ArrowLeft' || event.key === 'ArrowUp') { event.preventDefault(); const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1; setHover((value) => ((value ?? (step > 0 ? -1 : 0)) + step + arcs.length) % arcs.length) } else if (event.key === 'Escape') setHover(null) }}>
+        <title id={`${id}-title`}>{label}: {arcs.map((arc) => `${arc.label} ${formatHours(arc.value)} hours`).join(', ')}</title>
+        {arcs.map((arc, index) => <path key={arc.key} className={hover == null || hover === index ? 'viz-slice' : 'viz-slice viz-slice-dim'} d={arcPath(center, center, inner, hover === index ? outer + 3 : outer, arc.start, arc.end)} fill={arc.color} fillRule="evenodd" onPointerEnter={() => setHover(index)} />)}
+        <text className="viz-donut-value" x={center} y={center - 2} textAnchor="middle">{active ? `${formatHours(active.value)}h` : centerValue}</text>
+        <text className="viz-donut-label" x={center} y={center + 16} textAnchor="middle">{active ? `${active.label} · ${formatPercent(active.share, 0)}` : centerLabel}</text>
+      </svg>
+      <ul className="viz-donut-legend" aria-label={`${label} legend`}>{arcs.map((arc, index) => <li key={arc.key} className={hover === index ? 'active' : ''} onPointerEnter={() => setHover(index)} onPointerLeave={() => setHover(null)}><i style={{ background: arc.color }} aria-hidden="true" /><span>{arc.label}</span><b>{formatHours(arc.value)}h</b><small>{formatPercent(arc.share, 0)}</small></li>)}</ul>
+    </div>}
+  </ChartFrame>
 }
