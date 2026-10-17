@@ -22,8 +22,8 @@ export function Panel({ children, className = '', eyebrow, title, detail, action
 }
 
 // A table inside a panel: optional heading, record count, search box and empty state so every list looks the same.
-export function TablePanel({ children, className = '', title, detail, count, action, empty }: { children: ReactNode; className?: string; title?: string; detail?: ReactNode; count?: string; action?: ReactNode; empty?: string }) {
-  return <Panel className={`table-panel ${className}`} title={title} detail={detail} action={(count || action) && <div className="button-row">{count && <span className="record-count">{count}</span>}{action}</div>}>
+export function TablePanel({ children, className = '', eyebrow, title, detail, count, action, empty }: { children: ReactNode; className?: string; eyebrow?: string; title?: string; detail?: ReactNode; count?: string; action?: ReactNode; empty?: string }) {
+  return <Panel className={`table-panel ${className}`} eyebrow={eyebrow} title={title} detail={detail} action={(count || action) && <div className="button-row">{count && <span className="record-count">{count}</span>}{action}</div>}>
     {children}
     {empty && <EmptyState title={empty} />}
   </Panel>
