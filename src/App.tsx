@@ -16,6 +16,7 @@ import { AdminPage } from './pages/AdminPage'
 import { AzureDevOpsPage } from './pages/AzureDevOpsPage'
 import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace } from './useAzureWorkspace'
+import { useGitStorage } from './useGitStorage'
 import { useNow } from './useNow'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
@@ -26,6 +27,7 @@ import { monthName, relativeTime } from './format'
 export default function App() {
   const store = useAppStore()
   const azure = useAzureWorkspace(store)
+  const git = useGitStorage(store, azure.isSample)
   const now = useNow(30000)
   const [page, setPage] = useState<Page>('overview')
   const [month, setMonth] = useState(() => indiaMonth(new Date().toISOString())!)
@@ -61,13 +63,13 @@ export default function App() {
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} />}
       {page === 'activities' && <ActivitiesPage azure={azure} onOpenConnection={openConnection} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
-      {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
+      {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenConnection={openConnection} onOpenSettings={() => setPage('admin')} />}
       {page === 'releases' && <ReleasesPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
       {page === 'board' && <BoardPage azure={azure} onOpenConnection={openConnection} />}
       {page === 'azure' && <AzureDevOpsPage azure={azure} store={store} onOpenBoard={() => setPage('board')} />}
       {page === 'migration' && <MigrationPage {...pageProps} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} onOpenConnection={openConnection} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenConnection={openConnection} />}
     </main>
   </div>
 }
