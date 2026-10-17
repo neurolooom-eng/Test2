@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel } from '../components/ui'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import { BaselineRulesEditor } from '../components/BaselineRulesEditor'
+import { GitSyncBar } from '../components/GitStorage'
+import type { GitStorage } from '../useGitStorage'
 import { azureInsights } from '../azureInsights'
 import { baselineHours, describeRule, normalizeRules, normalizeScopes, releaseBaselines, ruleDrivers, type BaselineRule, type ReleaseBaselineRow, type ScopeEntry } from '../baseline'
 import { formatDate, formatHours, todayIso } from '../format'
@@ -10,7 +12,7 @@ import type { PageProps } from './types'
 
 const scopeText = (rule: BaselineRule, entry: Pick<ScopeEntry, 'type' | 'drivers'>) => [entry.type, ...ruleDrivers(rule).map((driver) => `${entry.drivers[driver] ?? '?'} ${driver}`)].filter(Boolean).join(' · ') || '—'
 
-export function BaselinesPage({ azure, month, store, onOpenConnection }: { azure: AzureWorkspace; month: string; store: PageProps['store']; onOpenConnection: () => void }) {
+export function BaselinesPage({ azure, month, store, git, onOpenConnection, onOpenSettings }: { azure: AzureWorkspace; month: string; store: PageProps['store']; git: GitStorage; onOpenConnection: () => void; onOpenSettings: () => void }) {
   const [today] = useState(todayIso)
   const [editing, setEditing] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
@@ -50,6 +52,7 @@ export function BaselinesPage({ azure, month, store, onOpenConnection }: { azure
 
   return <Page>
     <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
+    <GitSyncBar git={git} onOpenSettings={onOpenSettings} />
     <Metrics>
       <Metric label="Releases with a baseline" value={`${scoped.length} / ${releases.length}`} hint={`Features under ${rules.length} stream${rules.length === 1 ? '' : 's'} with estimation rules`} />
       <Metric label="Baseline" value={`${formatHours(totals.baseline)}h`} hint="Current scope × estimation rules" />
