@@ -3,7 +3,7 @@ import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
 import { EmptyState, Notice, Page, Panel, Pill, type Tone } from '../components/ui'
 import { formatDate, formatDateTime, formatHours, formatPercent, monthName } from '../format'
-import { azureResources, normalizeCapacitySettings, type LoadStatus } from '../capacity'
+import { azureResources, capacityContext, capacityModel, normalizeCapacitySettings, normalizeProfiles, regions, resourceRoles, type LoadStatus, type ResourceProfile } from '../capacity'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { PageProps } from './types'
 
@@ -15,8 +15,22 @@ export function AdminPage({ store, month, azure, onOpenConnection }: PageProps &
   const [capacityMessage, setCapacityMessage] = useState('')
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
   const period = store.state.periods.find((item) => item.month === month)
-  const capacity = normalizeCapacitySettings(store.state.capacitySettings)
+  const capacity = capacityContext(store.state)
+  const profiles = capacity.profiles ?? {}
   const resources = azureResources(azure.items, month, capacity)
+  const holidays = capacityModel(azure.items, month, capacity).holidays
+  const unmapped = resources.filter((person) => !profiles[person.name]?.region).map((person) => person.name)
+  const names = resources.map((person) => person.name)
+
+  function setProfile(name: string, patch: Partial<ResourceProfile>) {
+    store.update((draft) => {
+      const now = new Date().toISOString()
+      const current = normalizeProfiles(draft.resourceProfiles)
+      draft.resourceProfiles = normalizeProfiles({ ...current, [name]: { ...current[name], ...patch } })
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'Resource', entityId: name, detail: `${name}: ${Object.entries(patch).map(([key, value]) => `${key} = ${value === undefined || value === '' ? 'cleared' : String(value)}`).join(', ')}` })
+      return draft
+    })
+  }
 
   function toggle(kind: 'planning' | 'actuals') {
     const now = new Date().toISOString()
@@ -92,10 +106,25 @@ export function AdminPage({ store, month, azure, onOpenConnection }: PageProps &
         <div className="control-card"><div><strong>Actuals</strong><p>Deadline: {formatDate(period?.actualsDeadline, `${month}-05 (default)`)}</p></div><Pill tone={period?.actualsLocked ? 'locked' : 'open'}>{period?.actualsLocked ? 'Locked' : 'Open'}</Pill><button className="primary" onClick={() => toggle('actuals')}>{period?.actualsLocked ? 'Unlock' : 'Lock'}</button><label>Extend until<input type="date" onChange={(event) => extend('actuals', event.target.value)} /></label></div>
       </Panel>
     </div>
-    <Panel className="admin-section" eyebrow="AZURE DEVOPS" title="Resources" detail="Read from Azure: everyone assigned to a Time Writing Task, including absence. Add or remove people in Azure DevOps; the list follows the next refresh." action={<Pill tone={resources.length ? 'open' : 'neutral'}>{resources.length} {resources.length === 1 ? 'person' : 'people'}</Pill>}>
-      {resources.length ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Status in {shortMonthName(month)}</th><th>Utilization</th><th>Booked (h)</th><th>Absence (h)</th><th>Tasks</th><th>Months booked</th><th>Main streams</th></tr></thead><tbody>{resources.map((person) => <tr key={person.name}><td><strong>{person.name}</strong></td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatPercent(person.utilization)}</td><td>{formatHours(person.work)}</td><td>{formatHours(person.absence)}</td><td>{person.tasks}</td><td>{person.months}<small>{person.firstMonth === person.lastMonth ? shortMonthName(person.firstMonth) : `${shortMonthName(person.firstMonth)} – ${shortMonthName(person.lastMonth)}`}</small></td><td>{person.streams.slice(0, 2).join(', ') || '—'}{person.streams.length > 2 && <small>+{person.streams.length - 2} more</small>}</td></tr>)}</tbody></table></div>
+    <Panel className="admin-section" eyebrow="AZURE DEVOPS" title="Resources" detail="People come from Azure (everyone Assigned To a Time Writing Task, absence included); add or remove them in Azure DevOps. Region, role and reporting line are kept here with the shared app data. Region decides which regional holidays apply." action={<Pill tone={resources.length ? 'open' : 'neutral'}>{resources.length} {resources.length === 1 ? 'person' : 'people'}</Pill>}>
+      {resources.length > 0 && <Notice tone={unmapped.length ? 'warning' : 'info'}>
+        {holidays.length ? `Regional holidays in ${monthName(month)}: ${holidays.map((item) => `${item.region} ${formatHours(item.hours)}h → ${item.people} ${item.people === 1 ? 'person' : 'people'}`).join(' · ')}.` : `No regional holidays in ${monthName(month)}. Add a Feature such as "Public Holidays - India" under absence Epic #${capacity.absenceEpicId} with a "… - Time Writing" story and "<Month YYYY> | <Holiday>" Tasks.`}
+        {unmapped.length > 0 && ` No region yet for ${unmapped.join(', ')}; regional holidays are not applied to them.`}
+      </Notice>}
+      {resources.length ? <div className="azure-table"><table className="resource-table"><thead><tr><th>Person</th><th>Region</th><th>Role</th><th>Reports to</th><th>Status in {shortMonthName(month)}</th><th>Utilization</th><th>Booked (h)</th><th>Absence (h)</th><th>Main streams</th></tr></thead><tbody>{resources.map((person) => {
+        const profile = profiles[person.name] ?? {}
+        return <tr key={person.name}>
+          <td><strong>{person.name}</strong><small>{person.months} {person.months === 1 ? 'month' : 'months'} · {person.firstMonth === person.lastMonth ? shortMonthName(person.firstMonth) : `${shortMonthName(person.firstMonth)} – ${shortMonthName(person.lastMonth)}`}</small></td>
+          <td><select aria-label={`Region for ${person.name}`} value={profile.region ?? ''} onChange={(event) => setProfile(person.name, { region: (event.target.value || undefined) as ResourceProfile['region'] })}><option value="">Not set</option>{regions.map((region) => <option key={region}>{region}</option>)}</select></td>
+          <td><select aria-label={`Role for ${person.name}`} value={profile.role ?? ''} onChange={(event) => setProfile(person.name, { role: (event.target.value || undefined) as ResourceProfile['role'] })}><option value="">Not set</option>{resourceRoles.map((role) => <option key={role}>{role}</option>)}</select><label className="check"><input type="checkbox" checked={Boolean(profile.peopleManager)} onChange={(event) => setProfile(person.name, { peopleManager: event.target.checked || undefined })} />People manager</label></td>
+          <td><select aria-label={`${person.name} reports to`} value={profile.reportsTo ?? ''} onChange={(event) => setProfile(person.name, { reportsTo: event.target.value || undefined })}><option value="">—</option>{names.filter((name) => name !== person.name).map((name) => <option key={name}>{name}</option>)}{profile.reportsTo && !names.includes(profile.reportsTo) && <option>{profile.reportsTo}</option>}</select></td>
+          <td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatPercent(person.utilization)}</td><td>{formatHours(person.work)}</td><td>{formatHours(person.absence)}</td>
+          <td>{person.streams.slice(0, 2).join(', ') || '—'}{person.streams.length > 2 && <small>+{person.streams.length - 2} more</small>}</td>
+        </tr>
+      })}</tbody></table></div>
         : <EmptyState title="No resources from Azure yet." detail="Refresh from Azure DevOps; people appear once they are Assigned To a Time Writing Task." />}
       {!resources.length && <div className="button-row"><button className="primary" onClick={onOpenConnection}>Open Azure connection</button></div>}
+      {resources.some((person) => profiles[person.name]?.reportsTo) && <TeamTree names={names} profiles={profiles} />}
     </Panel>
     <Panel className="admin-section" eyebrow="MASTER DATA" title="Admin-controlled dropdowns">
         <form className="inline-form" onSubmit={addMaster}><select name="type"><option>Release Type</option><option>Activity Type</option><option>Status</option><option>Resource Band</option><option>Complexity</option></select><input name="value" required placeholder="New value" /><button className="primary">Add</button></form>
@@ -107,4 +136,19 @@ export function AdminPage({ store, month, azure, onOpenConnection }: PageProps &
       <button className="danger-button" onClick={store.reset}>Reset synthetic MVP data</button>
     </Panel>
   </Page>
+}
+
+// Reporting lines as a nested list: people whose manager is not in the Azure list (or who have none) are the roots.
+function TeamTree({ names, profiles }: { names: string[]; profiles: Record<string, ResourceProfile> }) {
+  const reports = (manager: string | undefined) => names.filter((name) => manager ? profiles[name]?.reportsTo === manager : !profiles[name]?.reportsTo || !names.includes(profiles[name].reportsTo!))
+  const label = (name: string) => [profiles[name]?.role, profiles[name]?.peopleManager ? 'people manager' : '', profiles[name]?.region].filter(Boolean).join(' · ')
+  const branch = (name: string, seen: Set<string>): React.ReactNode => {
+    const children = reports(name).filter((child) => !seen.has(child))
+    const next = new Set(seen).add(name)
+    return <li key={name}><strong>{name}</strong>{label(name) && <small>{label(name)}</small>}{children.length > 0 && <ul>{children.map((child) => branch(child, next))}</ul>}</li>
+  }
+  const placed = new Set<string>(), walk = (name: string) => { if (placed.has(name)) return; placed.add(name); reports(name).forEach(walk) }
+  reports(undefined).forEach(walk)
+  const circular = names.filter((name) => !placed.has(name))
+  return <div className="team-tree"><h3>Reporting lines</h3><ul>{reports(undefined).map((name) => branch(name, new Set()))}</ul>{circular.length > 0 && <Notice tone="warning">Circular reporting line, not shown above: {circular.join(', ')}.</Notice>}</div>
 }

@@ -140,6 +140,7 @@ export interface AppState {
   azureWorkItems?: AzureWorkItem[]
   azureBacklogScope?: { organization: string; project: string; team: string; itemKeys: string[]; areaPaths: string[]; fetchedAt: string; sample?: boolean }
   capacitySettings?: { absenceEpicId?: number; hoursPerDay?: number; overloadedAt?: number; availableBelow?: number }
+  resourceProfiles?: Record<string, { region?: string; role?: string; reportsTo?: string; peopleManager?: boolean }>
   releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
   releaseSourceSettings?: { streamSegment?: number; releasePattern?: string; approvalDateField?: string }
   releasePlans?: ReleasePlan[]

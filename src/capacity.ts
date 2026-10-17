@@ -4,11 +4,45 @@ import { timeWritingMonth, workingDays } from './azureInsights.ts'
 // Capacity model for the selected month. Source rows are the Time Writing Tasks named
 // "<Month> <Year> | …" under "… - Time Writing" User Stories; absence is everything under the
 // configured absence Epic, where each person has a Feature for PTO / Sick Leave / Unplanned Leave.
-export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number }
+export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; profiles?: Record<string, ResourceProfile> }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80 }
 export type LoadStatus = 'Overloaded' | 'Balanced' | 'Has capacity' | 'No bookings'
-export type AbsenceKind = 'PTO' | 'Sick Leave' | 'Unplanned Leave' | 'Other absence'
-export const absenceKinds: AbsenceKind[] = ['PTO', 'Sick Leave', 'Unplanned Leave', 'Other absence']
+export type AbsenceKind = 'PTO' | 'Sick Leave' | 'Unplanned Leave' | 'Public holiday' | 'Other absence'
+export const absenceKinds: AbsenceKind[] = ['PTO', 'Sick Leave', 'Unplanned Leave', 'Public holiday', 'Other absence']
+
+// Resource profile kept with the shared app data and keyed by the Azure Assigned To display name. Region decides
+// which regional holidays apply; role and reporting line describe the team structure.
+export const regions = ['India', 'Netherlands', 'US'] as const
+export type Region = typeof regions[number]
+export const resourceRoles = ['QE', 'QMS', 'CAPA', 'Lead', 'Manager'] as const
+export type ResourceRole = typeof resourceRoles[number]
+export interface ResourceProfile { region?: Region; role?: ResourceRole; reportsTo?: string; peopleManager?: boolean }
+
+export function normalizeProfiles(value: unknown): Record<string, ResourceProfile> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const result: Record<string, ResourceProfile> = {}
+  for (const [name, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!name.trim() || !raw || typeof raw !== 'object' || Array.isArray(raw)) continue
+    const input = raw as Record<string, unknown>
+    const profile: ResourceProfile = {}
+    if (regions.includes(input.region as Region)) profile.region = input.region as Region
+    if (resourceRoles.includes(input.role as ResourceRole)) profile.role = input.role as ResourceRole
+    if (typeof input.reportsTo === 'string' && input.reportsTo.trim() && input.reportsTo !== name) profile.reportsTo = input.reportsTo
+    if (input.peopleManager === true) profile.peopleManager = true
+    if (Object.keys(profile).length) result[name] = profile
+  }
+  return result
+}
+
+// A Feature under the absence Epic whose title names holidays and a region (e.g. "Public Holidays - India") holds
+// that region's holidays; its month Tasks apply to everyone mapped to the region instead of to the assignee.
+export function holidayRegion(title: string): Region | null {
+  if (!/\bholidays?\b/i.test(title)) return null
+  if (/\bindia\b/i.test(title) || /\bIN\b/.test(title)) return 'India'
+  if (/\b(netherlands|holland|dutch)\b/i.test(title) || /\bNL\b/.test(title)) return 'Netherlands'
+  if (/\b(united states|usa)\b/i.test(title) || /\bUS\b/.test(title)) return 'US'
+  return null
+}
 
 export interface StreamLoad { key: string; epic?: AzureWorkItem; title: string; work: number; planned: number; tasks: number }
 export interface PersonLoad {
@@ -17,11 +51,17 @@ export interface PersonLoad {
 }
 export interface StreamSummary extends StreamLoad { people: number; features: number; share: number | null }
 
+type ThresholdKey = 'absenceEpicId' | 'hoursPerDay' | 'overloadedAt' | 'availableBelow'
 export function normalizeCapacitySettings(value: unknown): CapacitySettings {
-  const input = (value && typeof value === 'object' ? value : {}) as Partial<Record<keyof CapacitySettings, unknown>>
-  const number = (key: keyof CapacitySettings, min: number) => { const candidate = Number(input[key]); return Number.isFinite(candidate) && candidate >= min ? candidate : defaultCapacitySettings[key] }
+  const input = (value && typeof value === 'object' ? value : {}) as Partial<Record<ThresholdKey, unknown>>
+  const number = (key: ThresholdKey, min: number) => { const candidate = Number(input[key]); return Number.isFinite(candidate) && candidate >= min ? candidate : defaultCapacitySettings[key] }
   const settings = { absenceEpicId: Math.trunc(number('absenceEpicId', 1)), hoursPerDay: number('hoursPerDay', 0.25), overloadedAt: number('overloadedAt', 1), availableBelow: number('availableBelow', 0) }
   return settings.availableBelow < settings.overloadedAt ? settings : { ...settings, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
+}
+
+// Settings the capacity model reads from the shared app data: thresholds plus each person's resource profile.
+export function capacityContext(state: { capacitySettings?: unknown; resourceProfiles?: unknown }): CapacitySettings {
+  return { ...normalizeCapacitySettings(state.capacitySettings), profiles: normalizeProfiles(state.resourceProfiles) }
 }
 
 export function absenceKind(titles: string[]): AbsenceKind {
@@ -56,11 +96,14 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const funded = workingDays(month) * settings.hoursPerDay
   const people = new Map<string, PersonLoad & { streamMap: Map<string, StreamLoad> }>()
   const streams = new Map<string, StreamSummary & { names: Set<string>; featureKeys: Set<string> }>()
-  const emptyKinds = (): Record<AbsenceKind, number> => ({ 'PTO': 0, 'Sick Leave': 0, 'Unplanned Leave': 0, 'Other absence': 0 })
+  const emptyKinds = (): Record<AbsenceKind, number> => ({ 'PTO': 0, 'Sick Leave': 0, 'Unplanned Leave': 0, 'Public holiday': 0, 'Other absence': 0 })
+  const holidayHours = new Map<Region, number>()
   for (const task of monthlyTasks) {
     const chain = ancestors(task)
     const epic = chain.find(item => item.workItemType === 'Epic')
     const feature = chain.find(item => item.workItemType === 'Feature')
+    const region = epic?.id === settings.absenceEpicId && feature ? holidayRegion(feature.title) : null
+    if (region) { holidayHours.set(region, (holidayHours.get(region) ?? 0) + (hours(task.completedWork) || hours(task.originalEstimate) || settings.hoursPerDay)); continue }
     const name = task.assignedTo || feature?.assignedTo || 'Unassigned'
     const person = people.get(name) ?? { name, funded, absence: 0, absenceByKind: emptyKinds(), available: funded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], streamMap: new Map() }
     people.set(name, person)
@@ -77,6 +120,12 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const stream = streams.get(key) ?? { key, epic, title, work: 0, planned: 0, tasks: 0, people: 0, features: 0, share: null, names: new Set<string>(), featureKeys: new Set<string>() }
     stream.work += work; stream.planned += planned; stream.tasks += 1; stream.names.add(name); if (feature) stream.featureKeys.add(feature.key); streams.set(key, stream)
   }
+  const profiles = settings.profiles ?? {}
+  for (const person of people.values()) {
+    const region = profiles[person.name]?.region, holiday = region ? holidayHours.get(region) ?? 0 : 0
+    if (holiday) { person.absence += holiday; person.absenceByKind['Public holiday'] += holiday }
+  }
+  const holidays = [...holidayHours].map(([region, total]) => ({ region, hours: total, people: [...people.values()].filter(person => profiles[person.name]?.region === region).length }))
   const totalWork = [...streams.values()].reduce((sum, stream) => sum + stream.work, 0)
   const personList: PersonLoad[] = [...people.values()].map(person => {
     const available = Math.max(0, person.funded - person.absence)
@@ -89,7 +138,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const available = Math.max(0, totals.funded - totals.absence)
   const absenceByKind = personList.reduce((kinds, person) => { for (const kind of absenceKinds) kinds[kind] += person.absenceByKind[kind]; return kinds }, emptyKinds())
   return {
-    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, monthlyTasks, people: personList, streams: streamList,
+    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, monthlyTasks, people: personList, streams: streamList, holidays,
     totals: { ...totals, available, absenceByKind, utilization: personList.some(person => person.tasks) ? percent(totals.work, available) : null },
     counts: { overloaded: personList.filter(person => person.status === 'Overloaded').length, balanced: personList.filter(person => person.status === 'Balanced').length, hasCapacity: personList.filter(person => person.status === 'Has capacity').length, noBookings: personList.filter(person => person.status === 'No bookings').length },
   }
