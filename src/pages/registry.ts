@@ -14,7 +14,7 @@ export const pages: PageMeta[] = [
   { id: 'azure', label: 'Azure DevOps', icon: '⇄', group: 'Azure DevOps', detail: 'Configure the connection, save ADS configurations and fetch data.', usesMonth: false },
   { id: 'migration', label: 'Migration', icon: '⇧', group: 'Data & governance', detail: 'Load the TransformedData tab from the demand-planning Excel workbook or its CSV export.', usesMonth: false },
   { id: 'snapshots', label: 'Snapshots', icon: '▣', group: 'Data & governance', detail: 'Save point-in-time app data to SharePoint for LTE and PI Review; manage browser backups.', usesMonth: true },
-  { id: 'admin', label: 'Administration', icon: '⚙', group: 'Data & governance', detail: 'Periods, roles, masters, SharePoint connection and audit evidence.', usesMonth: true },
+  { id: 'admin', label: 'Administration', icon: '⚙', group: 'Data & governance', detail: 'Periods, capacity settings, resources from Azure, masters, SharePoint connection and audit evidence.', usesMonth: true },
 ]
 
 export const pageGroups: PageGroup[] = ['Overview', 'Time writing', 'Azure DevOps', 'Data & governance']

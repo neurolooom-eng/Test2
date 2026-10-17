@@ -152,3 +152,23 @@ export function problemBreakdown(source: AzureWorkItem[], months: string[], sett
   const finish = (target: Bucket): ProblemSet => ({ feature: sorted(target.feature), epic: sorted(target.epic), total: target.total, tasks: target.tasks })
   return { overrun: finish(overrun), adhoc: { ...finish(adhoc), share: booked > 0 ? percent(adhoc.total, booked) : null }, booked }
 }
+
+// Resource list derived from Azure: everyone who appears as Assigned To on a Time Writing Task (absence included),
+// with the months they booked in, booked and absence hours, their main streams and their load in the selected month.
+export interface AzureResource { name: string; firstMonth: string; lastMonth: string; months: number; tasks: number; work: number; absence: number; streams: string[]; status: LoadStatus; utilization: number | null }
+export function azureResources(source: AzureWorkItem[], month: string, settings: CapacitySettings = defaultCapacitySettings): AzureResource[] {
+  const months = [...new Set(source.filter((item) => item.workItemType === 'Task').map((item) => timeWritingMonth(item.title)).filter((value): value is string => !!value))].sort()
+  const people = new Map<string, Omit<AzureResource, 'streams'> & { streamHours: Map<string, number> }>()
+  for (const key of months) {
+    for (const person of capacityModel(source, key, settings).people) {
+      if (person.name === 'Unassigned') continue
+      const entry = people.get(person.name) ?? { name: person.name, firstMonth: key, lastMonth: key, months: 0, tasks: 0, work: 0, absence: 0, status: 'No bookings' as LoadStatus, utilization: null, streamHours: new Map<string, number>() }
+      entry.lastMonth = key; entry.months += 1; entry.tasks += person.tasks; entry.work += person.work; entry.absence += person.absence
+      for (const stream of person.streams) entry.streamHours.set(stream.title, (entry.streamHours.get(stream.title) ?? 0) + stream.work)
+      if (key === month) { entry.status = person.status; entry.utilization = person.utilization }
+      people.set(person.name, entry)
+    }
+  }
+  return [...people.values()].map(({ streamHours, ...person }) => ({ ...person, streams: [...streamHours].filter(([, work]) => work > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([title]) => title) }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
