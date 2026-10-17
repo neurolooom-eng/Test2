@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { useAppStore } from './store'
 import { effectiveActualsOpen, effectivePlanningOpen } from './rules'
@@ -33,6 +33,13 @@ export default function App() {
   const planningOpen = period ? effectivePlanningOpen(period) : true
   const actualsOpen = period ? effectiveActualsOpen(period) : true
   const meta = pageMeta(page)
+  const sampleRequested = useRef(new URLSearchParams(window.location.search).get('sample') === '1')
+  useEffect(() => {
+    if (!store.ready || !sampleRequested.current) return
+    sampleRequested.current = false
+    if (!(store.state.azureWorkItems?.length)) azure.loadSampleData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.ready])
   const openConnection = () => setPage('azure')
   const pageProps = { store, month, setMonth }
   const buildStatus = <BuildStatus pending={store.hasPendingSave} failed={store.ready && (store.cache.status === 'error' || (store.connection.mode === 'sharepoint' && ['error', 'conflict'].includes(store.connection.status)))} busy={azure.busy} preview={Boolean(azure.preview)} onBackup={store.ready ? () => exportStateJson({ ...store.state, azureWorkItems: mergeAzureWorkItems(store.state.azureWorkItems ?? [], azure.preview?.items ?? []), ...(azure.preview ? { azureBacklogScope: azure.preview.scope } : {}) }) : undefined} />

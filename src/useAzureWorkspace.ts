@@ -4,6 +4,8 @@ import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
 import { fetchReleaseSource } from './releaseSource'
+import { sampleDataset } from './sampleData'
+import { indiaMonth } from './azureInsights'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
 const defaultConfig = parseAzureProjectUrl(defaultUrl)
@@ -30,6 +32,20 @@ export function useAzureWorkspace(store: PageProps['store']) {
   const saved = savedBacklogItems(store.state.azureWorkItems ?? [], store.state.azureBacklogScope, config)
   const items = preview && sameAzureScope(preview.scope, config) ? preview.items : saved
   const needsScopedRefresh = Boolean((store.state.azureWorkItems?.length ?? 0) && !sameAzureScope(store.state.azureBacklogScope, config))
+  const isSample = Boolean(!preview && store.state.azureBacklogScope?.sample && sameAzureScope(store.state.azureBacklogScope, config))
+
+  // Synthetic dataset for demonstrations: replaces the Azure cache and the release source; never touches Azure DevOps.
+  function loadSampleData() {
+    if (!config) { setError('Enter a valid Azure DevOps project URL first.'); return }
+    const sample = sampleDataset(config, indiaMonth(new Date().toISOString())!)
+    setPreview(null); setLastRefreshed('')
+    store.update((draft) => {
+      draft.azureWorkItems = sample.items; draft.azureBacklogScope = { ...sample.scope, sample: true }; draft.releaseSource = sample.releaseSource
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: sample.scope.fetchedAt, actor: 'u-owner', action: 'Load sample', entity: 'AzureDevOps', entityId: 'sample', detail: `${sample.items.length} synthetic work items and ${sample.releaseSource.items.length} sample release documents loaded. Nothing was read from or written to Azure DevOps.` })
+      return draft
+    })
+    setMessage(`Synthetic sample dataset loaded: ${sample.items.length} work items and ${sample.releaseSource.items.length} release documents. Refresh from Azure replaces it with real data.`); setError('')
+  }
 
   function changeProjectUrl(next: string) {
     setProjectUrl(next); setPreview(null)
@@ -163,7 +179,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPreview(null); setMessage(`${incoming.length} team-backlog records loaded into the app cache. Check browser save status for persistence. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, releaseProfileId, setReleaseProfileId, releaseBusy, fetchReleases, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, releaseProfileId, setReleaseProfileId, releaseBusy, fetchReleases, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>
