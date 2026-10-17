@@ -44,9 +44,12 @@ export function approvalDateFrom(fields: Record<string, unknown>, settings: Rele
   return undefined
 }
 
-export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings): Promise<ReleaseSourceSnapshot> {
-  if (!config.organization || !config.project) throw new Error('Select a release-source configuration with an organization and project.')
-  if (!pat.trim()) throw new Error('The release-source configuration needs a Work Items (Read) PAT.')
+// Runs a flat WIQL query read-only: ids are paged by [System.Id] and read in batches of 200.
+export const defaultReleaseQuery = "SELECT [System.Id], [System.Title], [System.AreaPath], [System.State]\nFROM WorkItems\nWHERE [System.TeamProject] = @project AND [System.State] = 'Approved'\nORDER BY [System.Id]"
+export const projectQuery = "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.State] <> 'Removed'"
+export async function runWorkItemQuery(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, map: (item: { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }) => AzureWorkItem = (item) => mapAzureWorkItem(item, config), limit = 20000): Promise<AzureWorkItem[]> {
+  if (!config.organization || !config.project) throw new Error('The connection needs an organization and a project.')
+  if (!pat.trim()) throw new Error('The connection needs a PAT with Work Items (Read).')
   const where = releaseQueryWhere(wiql)
   // The proxy requires a team on every read request; query and batch endpoints are project-scoped and ignore it.
   const scoped = { ...config, team: config.team || config.project }
@@ -55,19 +58,48 @@ export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql:
   let afterId = 0
   while (true) {
     const page = await request('query', { query: pagedReleaseQuery(where, afterId) }) as { workItems?: { id: number }[] }
-    if (!Array.isArray(page.workItems)) throw new Error('The release query returned no work-item list. Check the query in Azure DevOps.')
+    if (!Array.isArray(page.workItems)) throw new Error('The query returned no work-item list. Check the query in Azure DevOps.')
     if (!page.workItems.length) break
     const ids = page.workItems.map((item) => item.id)
     if (ids.some((id) => !Number.isSafeInteger(id) || id <= afterId)) throw new Error('Unexpected query paging response. Nothing was saved.')
-    for (let index = 0; index < ids.length; index += 200) {
-      const batchIds = ids.slice(index, index + 200)
-      const batch = await request('items', { ids: batchIds }) as { value?: { id: number; fields: Record<string, unknown> }[] }
-      if (!Array.isArray(batch.value) || batch.value.length !== batchIds.length) throw new Error('Some release documents could not be read. Nothing was saved.')
-      items.push(...batch.value.map((item) => { const mapped = mapAzureWorkItem(item, config); const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped }))
-    }
+    items.push(...await readWorkItems(request, ids, map))
     afterId = Math.max(...ids)
-    if (items.length > 20000) throw new Error('The release query returned more than 20,000 items. Narrow the query.')
+    if (items.length > limit) throw new Error(`The query returned more than ${limit.toLocaleString()} items. Narrow the query.`)
   }
+  return items
+}
+
+type ItemRequest = (operation: AzureRequest['operation'], extra?: Partial<AzureRequest>) => Promise<unknown>
+async function readWorkItems(request: ItemRequest, ids: number[], map: Parameters<typeof runWorkItemQuery>[4] & object) {
+  const result: AzureWorkItem[] = []
+  for (let index = 0; index < ids.length; index += 200) {
+    const batchIds = ids.slice(index, index + 200)
+    const batch = await request('items', { ids: batchIds }) as { value?: { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }[] }
+    if (!Array.isArray(batch.value) || batch.value.length !== batchIds.length) throw new Error('Some work items could not be read. Nothing was saved.')
+    result.push(...batch.value.map(map))
+  }
+  return result
+}
+
+// Adds the parents of query results (Story → Feature → Epic) that the query itself did not return, so a query-based
+// Time Writing fetch still resolves streams and absence. Stops at the top of the hierarchy or after 10 levels.
+export async function withAncestors(config: AzureConfig, pat: string, items: AzureWorkItem[], transport: Transport = requestAzure) {
+  const scoped = { ...config, team: config.team || config.project }
+  const request: ItemRequest = (operation, extra = {}) => transport({ ...scoped, pat: pat.trim(), operation, ...extra })
+  const all = [...items], known = new Set(items.map((item) => item.id))
+  for (let depth = 0; depth < 10; depth++) {
+    const missing = [...new Set(all.map((item) => item.parentId).filter((id): id is number => id != null && !known.has(id)))]
+    if (!missing.length) break
+    const parents = await readWorkItems(request, missing, (item) => mapAzureWorkItem(item, config))
+    for (const parent of parents) { known.add(parent.id); all.push(parent) }
+  }
+  return all
+}
+
+export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings): Promise<ReleaseSourceSnapshot> {
+  if (!config.organization || !config.project) throw new Error('Select a release-source configuration with an organization and project.')
+  if (!pat.trim()) throw new Error('The release-source configuration needs a Work Items (Read) PAT.')
+  const items = await runWorkItemQuery(config, pat, wiql, transport, (item) => { const mapped = mapAzureWorkItem(item, config); const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped })
   return { organization: config.organization, project: config.project, query: wiql.trim(), fetchedAt: new Date().toISOString(), items }
 }
 
