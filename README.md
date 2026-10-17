@@ -9,7 +9,7 @@ The repository contains a working React/TypeScript application with an Electron 
 Implemented in the MVP UI:
 
 - Separate Board view for the parent/child tree, state filters and release Feature/Story/Task creation; Azure DevOps handles connection settings, saved PAT and data fetch ([setup](docs/azure-devops-connection.md)).
-- Capacity Overview from Azure Time Writing Tasks: who is overloaded or has capacity, hours per stream (Epic), person × stream matrix, absence split into PTO / Sick Leave / Unplanned Leave under a configurable absence Epic
+- Capacity Overview from Azure Time Writing Tasks: who is overloaded or has capacity, hours per stream (Epic), person × stream matrix, absence split into PTO / Sick Leave / Unplanned Leave / regional public holidays under a configurable absence Epic
 - Uniform page layout with a shared Azure source bar, light/dark themes, and a local-time clock with data-freshness labels
 - Read-only release source: a second Azure project queried with a saved WIQL query, releases listed per stream from the Area Path and cross-checked against Time Writing items
 
@@ -23,7 +23,7 @@ Implemented in the MVP UI:
 - Automatic creation of previously unknown team members as Contributors during migration
 - LTE/PI Review snapshots plus CSV/JSON export
 - Owner, Admin, Process Owner, Contributor and Viewer role model
-- Admin-controlled resources, roles and master data
+- Resource list read from Azure (Assigned To), with region, role and reporting line kept in the shared app data; admin-controlled master data
 - SharePoint connection, initialization, pull, autosave and edit-conflict detection
 
 ## Run
@@ -77,11 +77,13 @@ The selected month Task is the authoritative source: `Microsoft.VSTS.Scheduling.
 
 The six-month table uses Original Estimate and Completed Work only on direct child Tasks under those Time Writing stories, assigned to months by the agreed `October 2026 | Feature title` naming convention. The dashboard and Monthly Time Writing view group these selected stories by traversing Story → Feature → Epic parent links. Items without a resolved Epic appear as `No Epic path`. Undated/unmatched tasks are counted as unmapped, not attributed by Created/Changed Date. Work-field units must be confirmed in the Azure project; Story Points are never treated as hours. Snapshot/revision history is not available, so estimates are not claimed to be frozen monthly plans or time entries.
 
-NPRA Hours remain a separately tracked Feature category (exact tag `NPRA Hours`) and do not adjust utilization. Weekdays only are counted as working days (Monday–Friday). Public holidays, partial availability and leave booked outside the absence Epic are not inferred.
+NPRA Hours remain a separately tracked Feature category (exact tag `NPRA Hours`) and do not adjust utilization. Weekdays only are counted as working days (Monday–Friday). Regional public holidays come only from the absence Epic (see below); partial availability and leave booked outside the absence Epic are not inferred.
 
 ### Capacity, absence and utilization
 
 The Overview is built from a capacity model (`src/capacity.ts`) over the same selected-month Time Writing Tasks. Funded hours per person are `working days × hours per day` (default 8). **Absence** is the Completed Work on month Tasks whose Epic is the configured **absence Epic** (default `#37778`); each person's Feature under that Epic, and the Task title, decide whether the hours are **PTO**, **Sick Leave** or **Unplanned Leave** (anything else is "Other absence"). Available hours = funded − absence. **Utilization = booked hours ÷ available × 100**, where booked hours are the Completed Work on all other month Tasks assigned to the person. A person is **Overloaded** at or above the overloaded threshold (default 100 %) and **Has capacity** below the capacity threshold (default 80 %); in between is Balanced; a person with absence only is "No bookings". Streams are the Epics reached by walking Task → Story → Feature → Epic; the person × stream matrix shows booked hours per Epic. The absence Epic ID, hours per day and both thresholds are edited under **Administration → Capacity and absence** and stored with the shared app data (IndexedDB/SharePoint), not per browser; every change is audited. An empty or zero denominator displays unavailable rather than an infinite percentage.
+
+**Regions, roles and regional holidays.** People are read from Azure (Assigned To on Time Writing Tasks); under **Administration → Resources** each person gets a region (India, Netherlands, US), a role (QE, QMS, CAPA, Lead, Manager), an optional people-manager flag and a "reports to" line, shown as a reporting tree. Profiles are keyed by the Azure display name and stored with the shared app data. Regional holidays live in Azure under the absence Epic: a Feature whose title names holidays and a region (for example `Public Holidays - India`; `NL`/`Netherlands`, `US`/`USA` are recognised), with a `… - Time Writing` story and `<Month YYYY> | <Holiday>` Tasks. Each Task's hours (Completed Work, else Original Estimate, else one working day) are added as **Public holiday** absence to every person mapped to that region who has bookings in the month, instead of to the Task's assignee. People without a region are listed as not receiving regional holidays.
 
 ### Read-only release source and connection roles
 
