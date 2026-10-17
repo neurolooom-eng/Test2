@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { formatHours } from '../format'
 import type { MonthlyHours } from '../capacity'
+import { compactNumber as compact, longMonth as monthLabel, niceTicks, shortMonth } from '../chartUtils'
 
 // Multi-line chart: Funded, Available and Actual hours per month. Marks carry the series colour (CSS tokens
 // --viz-series-1..3, validated for light and dark); all text wears text tokens. Crosshair tooltip lists every
@@ -13,16 +14,6 @@ const hoursSeries = [
 type SeriesKey = typeof hoursSeries[number]['key']
 
 const width = 960, height = 300, pad = { top: 18, right: 84, bottom: 34, left: 52 }
-const shortMonth = (month: string) => new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date(`${month}-01T00:00:00`))
-const monthLabel = (month: string) => new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`))
-const compact = (value: number) => value >= 1000 ? `${Number((value / 1000).toFixed(value >= 10000 ? 0 : 1))}K` : String(Math.round(value))
-
-function niceTicks(max: number, count = 4) {
-  if (max <= 0) return [0]
-  const raw = max / count, power = 10 ** Math.floor(Math.log10(raw)), candidates = [1, 2, 2.5, 5, 10].map((step) => step * power)
-  const step = candidates.find((candidate) => candidate >= raw) ?? candidates[candidates.length - 1]
-  return Array.from({ length: Math.ceil(max / step) + 1 }, (_, index) => index * step)
-}
 
 // End labels must not stack onto each other: push apart by a minimum gap, keeping order.
 function spreadLabels(positions: number[], gap = 14, min = pad.top, max = height - pad.bottom) {
