@@ -3,10 +3,10 @@ import { mapAzureWorkItem, requestAzure, type AzureConfig, type AzureRequest } f
 
 // Read-only release source: a second Azure project (e.g. DHFI) queried with a saved WIQL query.
 // Approved documents carry the release identifier in their Area Path; streams group those releases.
-export interface ReleaseSourceSettings { streamSegment: number; releasePattern?: string }
+export interface ReleaseSourceSettings { streamSegment: number; releasePattern?: string; approvalDateField?: string }
 export const defaultReleaseSourceSettings: ReleaseSourceSettings = { streamSegment: 1 }
 export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
-export interface ReleaseEntry { id: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[] }
+export interface ReleaseEntry { id: string; name: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; approvalDate?: string; approvalMonth?: string }
 export interface StreamReleases { stream: string; releases: ReleaseEntry[]; summary: string }
 
 type Transport = (request: AzureRequest) => Promise<unknown>
@@ -15,8 +15,10 @@ export function normalizeReleaseSourceSettings(value: unknown): ReleaseSourceSet
   const input = (value && typeof value === 'object' ? value : {}) as Partial<Record<keyof ReleaseSourceSettings, unknown>>
   const segment = Number(input.streamSegment)
   const pattern = typeof input.releasePattern === 'string' && input.releasePattern.trim() ? input.releasePattern.trim() : undefined
-  if (pattern) { try { new RegExp(pattern, 'i') } catch { return { streamSegment: Number.isInteger(segment) && segment >= 1 ? segment : 1 } } }
-  return { streamSegment: Number.isInteger(segment) && segment >= 1 ? segment : 1, ...(pattern ? { releasePattern: pattern } : {}) }
+  const approvalDateField = typeof input.approvalDateField === 'string' && /^[\w.]{1,120}$/.test(input.approvalDateField.trim()) ? input.approvalDateField.trim() : undefined
+  const base = { streamSegment: Number.isInteger(segment) && segment >= 1 ? segment : 1, ...(approvalDateField ? { approvalDateField } : {}) }
+  if (pattern) { try { new RegExp(pattern, 'i') } catch { return base } }
+  return { ...base, ...(pattern ? { releasePattern: pattern } : {}) }
 }
 
 // Accept a flat work-item query as pasted from Azure DevOps. Only its WHERE clause is kept so paging
@@ -35,7 +37,14 @@ export function pagedReleaseQuery(where: string, afterId: number) {
   return `SELECT [System.Id] FROM WorkItems WHERE (${where}) AND [System.Id] > ${afterId} ORDER BY [System.Id] ASC`
 }
 
-export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure): Promise<ReleaseSourceSnapshot> {
+// "Author Approval Date" is a custom field; read it by the configured reference name, else by the first field whose name mentions an approval date.
+export function approvalDateFrom(fields: Record<string, unknown>, settings: ReleaseSourceSettings = defaultReleaseSourceSettings) {
+  const candidates = settings.approvalDateField ? [settings.approvalDateField] : Object.keys(fields).filter((key) => /approv\w*\.?\s*_?date|date\w*approv/i.test(key.replace(/[._]/g, ' ')))
+  for (const key of candidates) { const value = fields[key]; if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value) && Number.isFinite(Date.parse(value))) return value }
+  return undefined
+}
+
+export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings): Promise<ReleaseSourceSnapshot> {
   if (!config.organization || !config.project) throw new Error('Select a release-source configuration with an organization and project.')
   if (!pat.trim()) throw new Error('The release-source configuration needs a Work Items (Read) PAT.')
   const where = releaseQueryWhere(wiql)
@@ -54,7 +63,7 @@ export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql:
       const batchIds = ids.slice(index, index + 200)
       const batch = await request('items', { ids: batchIds }) as { value?: { id: number; fields: Record<string, unknown> }[] }
       if (!Array.isArray(batch.value) || batch.value.length !== batchIds.length) throw new Error('Some release documents could not be read. Nothing was saved.')
-      items.push(...batch.value.map((item) => mapAzureWorkItem(item, config)))
+      items.push(...batch.value.map((item) => { const mapped = mapAzureWorkItem(item, config); const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped }))
     }
     afterId = Math.max(...ids)
     if (items.length > 20000) throw new Error('The release query returned more than 20,000 items. Narrow the query.')
@@ -79,6 +88,17 @@ export function streamOf(item: Pick<AzureWorkItem, 'areaPath'>, settings: Releas
   return parts.length > settings.streamSegment + 1 ? parts[settings.streamSegment] : 'Unmapped'
 }
 
+export function approvalMonthOf(date: string | undefined) {
+  if (!date || !Number.isFinite(Date.parse(date))) return undefined
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).formatToParts(new Date(date))
+  return `${parts.find((part) => part.type === 'year')!.value}-${parts.find((part) => part.type === 'month')!.value}`
+}
+
+// Releases completed in a month: those whose approval date falls in it, with identifier, name and stream.
+export function completedReleases(register: StreamReleases[], month: string) {
+  return register.flatMap((stream) => stream.releases.filter((release) => release.approvalMonth === month).map((release) => ({ ...release, stream: stream.stream }))).sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.id.localeCompare(b.id, undefined, { numeric: true }))
+}
+
 export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: AzureWorkItem[], settings: ReleaseSourceSettings = defaultReleaseSourceSettings): StreamReleases[] {
   const streams = new Map<string, Map<string, ReleaseEntry>>()
   for (const item of source ?? []) {
@@ -87,8 +107,11 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
     const stream = streamOf(item, settings)
     const byRelease = streams.get(stream) ?? new Map<string, ReleaseEntry>()
     streams.set(stream, byRelease)
-    const entry = byRelease.get(release.toLowerCase()) ?? { id: release, documents: 0, items: [], tracked: false, trackedBy: [] }
-    entry.documents += 1; entry.items.push(item); byRelease.set(release.toLowerCase(), entry)
+    const entry = byRelease.get(release.toLowerCase()) ?? { id: release, name: item.title, documents: 0, items: [], tracked: false, trackedBy: [] }
+    entry.documents += 1; entry.items.push(item)
+    // The release's approval is the latest approved document's Author Approval Date.
+    if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate); entry.name = item.title }
+    byRelease.set(release.toLowerCase(), entry)
   }
   const trackedBy = (release: string) => backlog.filter((item) => ['Feature', 'User Story', 'Task'].includes(item.workItemType) && item.state.trim().toLowerCase() !== 'removed' && item.title.toLowerCase().includes(release.toLowerCase()))
   return [...streams].map(([stream, byRelease]) => {

@@ -57,3 +57,21 @@ test('a release-source configuration keeps its role and needs no creator email',
   assert.equal(loadAzureConnectionProfile('dhfi', storage).role, 'release-source')
   assert.throws(() => saveAzureConnectionProfile({ id: 'x', url: 'https://dev.azure.com/org/P', reason: 'r', role: 'admin', token: 't' }, storage))
 })
+
+import { approvalDateFrom, completedReleases, approvalMonthOf } from '../src/releaseSource.ts'
+test('Author Approval Date is read from the configured field or any approval-date field', () => {
+  assert.equal(approvalDateFrom({ 'Custom.AuthorApprovalDate': '2026-10-09T10:00:00Z', 'System.CreatedDate': '2026-01-01T00:00:00Z' }), '2026-10-09T10:00:00Z')
+  assert.equal(approvalDateFrom({ 'Custom.DateOfApproval': '2026-10-09T10:00:00Z' }), '2026-10-09T10:00:00Z')
+  assert.equal(approvalDateFrom({ 'Custom.Other': '2026-10-09T10:00:00Z' }), undefined)
+  assert.equal(approvalDateFrom({ 'Custom.Other': '2026-10-09T10:00:00Z' }, { streamSegment: 1, approvalDateField: 'Custom.Other' }), '2026-10-09T10:00:00Z')
+  assert.equal(approvalDateFrom({ 'Custom.AuthorApprovalDate': 'not a date' }), undefined)
+  assert.equal(approvalMonthOf('2026-10-31T20:00:00Z'), '2026-11', 'approval month is bucketed in India time')
+})
+test('completed releases are those approved in the selected month, with identifier and name', () => {
+  const source = [doc(1, 'DHFI\\DP\\v4.2', { title: 'Design Review Approval — DP v4.2', approvalDate: '2026-10-12T09:00:00Z' }), doc(2, 'DHFI\\DP\\v4.2', { title: 'Verification Summary — DP v4.2', approvalDate: '2026-10-20T09:00:00Z' }), doc(3, 'DHFI\\CP\\v3.1', { title: 'Design Review Approval — CP v3.1', approvalDate: '2026-09-12T09:00:00Z' }), doc(4, 'DHFI\\Content\\v7.0', { title: 'No approval yet' })]
+  const register = releaseRegister(source, [doc(100, 'X', { project: 'Quality', workItemType: 'Feature', title: 'DP | Dose Planning | v4.2' })])
+  const completed = completedReleases(register, '2026-10')
+  assert.deepEqual(completed.map((release) => [release.stream, release.id, release.name, release.approvalDate, release.tracked]), [['DP', 'v4.2', 'Verification Summary — DP v4.2', '2026-10-20T09:00:00Z', true]])
+  assert.deepEqual(completedReleases(register, '2026-09').map((release) => release.id), ['v3.1'])
+  assert.equal(register.find((stream) => stream.stream === 'Content').releases[0].approvalMonth, undefined)
+})

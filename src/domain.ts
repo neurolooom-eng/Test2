@@ -141,7 +141,8 @@ export interface AppState {
   azureBacklogScope?: { organization: string; project: string; team: string; itemKeys: string[]; areaPaths: string[]; fetchedAt: string; sample?: boolean }
   capacitySettings?: { absenceEpicId?: number; hoursPerDay?: number; overloadedAt?: number; availableBelow?: number }
   releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
-  releaseSourceSettings?: { streamSegment?: number; releasePattern?: string }
+  releaseSourceSettings?: { streamSegment?: number; releasePattern?: string; approvalDateField?: string }
+  releasePlans?: ReleasePlan[]
 }
 
 export interface AzureWorkItem {
@@ -165,7 +166,22 @@ export interface AzureWorkItem {
   targetDate?: string
   closedDate?: string
   changedDate?: string
+  approvalDate?: string
   tags: string
   url: string
   syncedAt: string
+}
+
+// Release planning record (TFS / Windchill / manual): milestone dates per release, kept beside the Azure data.
+export type ReleaseMilestone = 'PRD' | 'SFV' | 'DT' | 'PR' | 'Design Review'
+export interface ReleasePlan {
+  id: string
+  source: 'TFS' | 'Windchill' | 'Manual'
+  program: string
+  title: string
+  type: 'Release' | 'PU'
+  stream?: string
+  milestones: Partial<Record<ReleaseMilestone, string | undefined>>
+  updatedAt: string
+  sample?: boolean
 }
