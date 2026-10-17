@@ -3,7 +3,7 @@ import { fetchAzureWorkItems, mergeAzureWorkItems, parseAzureProjectUrl, savedBa
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
-import { fetchReleaseSource } from './releaseSource'
+import { fetchReleaseSource, normalizeReleaseSourceSettings } from './releaseSource'
 import { sampleDataset } from './sampleData'
 import { indiaMonth } from './azureInsights'
 
@@ -41,6 +41,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPreview(null); setLastRefreshed('')
     store.update((draft) => {
       draft.azureWorkItems = sample.items; draft.azureBacklogScope = { ...sample.scope, sample: true }; draft.releaseSource = sample.releaseSource
+      draft.releasePlans = [...(draft.releasePlans ?? []).filter((plan) => !plan.sample), ...sample.releasePlans]
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: sample.scope.fetchedAt, actor: 'u-owner', action: 'Load sample', entity: 'AzureDevOps', entityId: 'sample', detail: `${sample.items.length} synthetic work items and ${sample.releaseSource.items.length} sample release documents loaded. Nothing was read from or written to Azure DevOps.` })
       return draft
     })
@@ -155,7 +156,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setReleaseBusy(true); setError(''); setMessage('')
     try {
       const parsed = parseAzureProjectUrl(profile.url)
-      const snapshot = await fetchReleaseSource(parsed, profile.token, query)
+      const snapshot = await fetchReleaseSource(parsed, profile.token, query, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
       store.update((draft) => {
         draft.releaseSource = snapshot
         draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from ${parsed.project} with configuration “${profile.reason}”.` })
