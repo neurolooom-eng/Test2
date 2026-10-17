@@ -14,3 +14,25 @@ test('monthly hours series spans the requested months and matches the capacity m
   assert.throws(() => monthlyHours(items, '2026-13'))
   assert.equal(monthlyHours(items, '2026-10', 6).length, 6)
 })
+
+import { epicColors, niceTicks, columnPath, barPath } from '../src/chartUtils.ts'
+test('monthly series carries utilization and per-Epic hours that reconcile with the totals', () => {
+  const { items } = sampleDataset({ organization: 'Org', project: 'Quality', team: 'T' }, '2026-10')
+  const october = monthlyHours(items, '2026-10', 12).at(-1)
+  assert.equal(october.utilization, capacityModel(items, '2026-10').totals.utilization)
+  assert.ok(Math.abs(october.plannedUtilization - october.planned / october.available * 100) < 0.01)
+  assert.ok(Math.abs(october.streams.reduce((sum, stream) => sum + stream.work, 0) - october.actual) < 0.001, 'Epic hours add up to booked hours')
+  assert.equal(monthlyHours(items, '2026-10', 12)[0].utilization, null)
+})
+test('Epic colours: top five by booked hours keep slots 1–5, the rest fold into Other', () => {
+  const series = [{ streams: [{ key: 'a', title: 'A', work: 10, planned: 0 }, { key: 'b', title: 'B', work: 50, planned: 0 }] }, { streams: ['c', 'd', 'e', 'f', 'g'].map((key, index) => ({ key, title: key.toUpperCase(), work: 20 - index, planned: 0 })) }]
+  const colors = epicColors(series)
+  assert.deepEqual(colors.top.map((entry) => entry.key), ['b', 'c', 'd', 'e', 'f'])
+  assert.equal(colors.colorOf('b'), 'var(--viz-series-1)'); assert.equal(colors.colorOf('a'), 'var(--viz-other)'); assert.equal(colors.isTop('g'), false)
+  assert.deepEqual(epicColors([]).top, [])
+})
+test('chart geometry helpers', () => {
+  assert.deepEqual(niceTicks(964), [0, 250, 500, 750, 1000]); assert.deepEqual(niceTicks(117.3), [0, 50, 100, 150]); assert.deepEqual(niceTicks(0), [0, 1])
+  assert.equal(columnPath(0, 0, 10, 0), ''); assert.match(columnPath(10, 20, 24, 100), /^M10,120V24Q10,20 14,20H30Q34,20 34,24V120Z$/)
+  assert.match(barPath(0, 0, 50, 16), /^M0,0H46Q50,0 50,4V12Q50,16 46,16H0Z$/)
+})

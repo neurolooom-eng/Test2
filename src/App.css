@@ -106,3 +106,17 @@ input,select,textarea{background:var(--surface);color:var(--text)}
 .viz-tooltip strong{display:block;margin-bottom:6px}.viz-tooltip div{display:flex;align-items:center;gap:8px;padding:2px 0}.viz-tooltip i{display:inline-block;width:14px;height:2px;border-radius:2px}.viz-tooltip b{font-variant-numeric:tabular-nums}.viz-tooltip span{color:var(--text-2)}.viz-tooltip small{display:block;margin-top:6px;color:var(--text-3)}
 .viz-table td{font-variant-numeric:tabular-nums}
 @media(max-width:700px){.viz-tooltip{min-width:140px}}
+/* Workload charts: Epic slots 4–5, neutral Other, capacity line (validated light on #fff, dark on #161e28) */
+:root{--viz-series-4:#eda100;--viz-series-5:#e87ba4;--viz-other:#a8a7a0;--viz-capacity:var(--text)}
+:root[data-theme="dark"]{--viz-series-4:#c98500;--viz-series-5:#d55181;--viz-other:#5f5e58}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--viz-series-4:#c98500;--viz-series-5:#d55181;--viz-other:#5f5e58}}
+.viz-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12px;color:var(--text-2)}.viz-filters>span:first-child{font-weight:700;margin-right:4px}.viz-filters button{padding:6px 10px}
+.viz-legend{flex-wrap:wrap;row-gap:6px}.viz-legend i.viz-key-bar{width:10px;height:10px;border-radius:2px}.viz-legend i.viz-key-tick{width:2px;height:12px;border-radius:1px;background:var(--text)}
+.viz-bar{opacity:.88}.viz-bar-active{opacity:1}
+.viz-reference{stroke:var(--text-3);stroke-width:1}.viz-reference-label{fill:var(--text-2);font-size:11px}
+.viz-value-label{fill:var(--text);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.viz-row-label{fill:var(--text);font-size:12px}.viz-row-hit{fill:transparent}.viz-row-active{fill:var(--accent);opacity:.07}
+.viz-tick-ring{stroke:var(--surface);stroke-width:6;stroke-linecap:round}.viz-tick-mark{stroke:var(--text);stroke-width:2;stroke-linecap:round}
+.viz-muted{fill:var(--text-3);font-weight:400}
+.viz-plot svg.viz-fixed{max-width:none}
+.viz-grid-2{align-items:stretch}.viz-grid-2>.viz-panel{margin-bottom:18px}
