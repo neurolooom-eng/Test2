@@ -89,7 +89,7 @@ export function futureIterationPairs(iterations: AzureIteration[], date = new Da
   return scheduledIterationPairs(iterations, date, 'future')
 }
 
-export interface AzureBacklogScope extends AzureConfig { itemKeys: string[]; areaPaths: string[]; fetchedAt: string }
+export interface AzureBacklogScope extends AzureConfig { itemKeys: string[]; areaPaths: string[]; fetchedAt: string; sample?: boolean }
 export interface AzureFetchResult { items: AzureWorkItem[]; areaPaths: string[]; asOf: string; scope: AzureBacklogScope }
 interface RawItem { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }
 interface TeamAreas { field: { referenceName: string }; values: { value: string; includeChildren: boolean }[] }
