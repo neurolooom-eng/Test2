@@ -2,6 +2,7 @@ import type { AzureWorkItem, ReleasePlan } from './domain'
 import type { AzureBacklogScope, AzureConfig } from './azureDevOps'
 import type { ReleaseSourceSnapshot } from './releaseSource'
 import type { Region, ResourceProfile } from './capacity'
+import type { ReleaseScope } from './baseline'
 
 // Deterministic synthetic dataset in the exact shape the app reads from Azure DevOps, so every page can be
 // exercised without a connection. Clearly labelled as sample data wherever it is shown; never written to Azure.
@@ -29,6 +30,17 @@ export const sampleProfiles: Record<string, ResourceProfile> = {
   'Chen Wei': { region: 'India', role: 'QE', reportsTo: 'Ben Okafor' },
   'Diya Sharma': { region: 'India', role: 'QMS', reportsTo: 'Ana Costa' },
   'Fatima Zahra': { region: 'US', role: 'CAPA', reportsTo: 'Ana Costa' },
+}
+// Synthetic release scopes for the example estimation rules; CP v3.1 is re-baselined after two assets were scoped in.
+export function sampleReleaseScopes(month: string): ReleaseScope[] {
+  const at = (offset: number, dayOfMonth: number) => day(shiftMonth(month, offset), dayOfMonth).replace('T09:', 'T10:')
+  return [
+    { release: 'DP | Dose Planning | v4.2', stream: 'DP', history: [{ at: at(-3, 3), type: 'Major', drivers: {}, reason: 'Initial scope' }] },
+    { release: 'DP | Dose Planning | v4.1', stream: 'DP', history: [{ at: at(-5, 3), type: 'PU', drivers: {}, reason: 'Initial scope' }, { at: at(-4, 12), type: 'MLD', drivers: {}, reason: 'Upgraded from PU after labeling changes' }] },
+    { release: 'CP | Care Pathways | v3.1', stream: 'CP', history: [{ at: at(-4, 2), drivers: { assets: 8 }, reason: 'Initial scope' }, { at: at(-1, 14), drivers: { assets: 10 }, reason: '2 assets scoped in after SFV' }] },
+    { release: 'CP | Care Pathways | v2.8', stream: 'CP', history: [{ at: at(-5, 2), drivers: { assets: 6 }, reason: 'Initial scope' }] },
+    { release: 'Serviceability | Remote Diagnostics | v1.6', stream: 'Serviceability', history: [{ at: at(-4, 5), drivers: { documents: 22 }, reason: 'Initial scope' }, { at: at(-2, 9), drivers: { documents: 34 }, reason: 'Field-service documents added' }] },
+  ]
 }
 // Synthetic public holidays by region and calendar month (1–12); 8h each. Illustrative only, not a holiday calendar.
 const regionalHolidays: Array<[Region, Record<number, string[]>]> = [
