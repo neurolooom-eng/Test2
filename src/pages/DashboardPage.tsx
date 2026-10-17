@@ -5,7 +5,7 @@ import { DonutChart, EpicBulletChart, EpicMixChart, ParetoChart, UtilizationChar
 import { epicColors, shortFeatureTitle } from '../chartUtils'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
-import { capacityModel, monthlyHours, normalizeCapacitySettings, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
+import { capacityContext, capacityModel, monthlyHours, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
 import { formatHours, formatPercent, monthName } from '../format'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
@@ -19,7 +19,8 @@ function LevelToggle({ value, onChange }: { value: Level; onChange: (value: Leve
 }
 
 export function DashboardPage({ month, azure, navigate, store, setMonth }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void }) {
-  const settings = normalizeCapacitySettings(store.state.capacitySettings)
+  const settings = capacityContext(store.state)
+  const profileLine = (name: string) => [settings.profiles?.[name]?.role, settings.profiles?.[name]?.region].filter(Boolean).join(' · ')
   const model = capacityModel(azure.items, month, settings)
   const [span, setSpan] = useState<6 | 12>(12)
   const trend = monthlyHours(azure.items, month, span, settings)
@@ -65,8 +66,8 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
         <Panel className="viz-panel" title={`Funded hours · ${monthName(month)}`} detail={fundedOver > 0 ? `Booked plus absence exceeds funded hours by ${formatHours(fundedOver)}h, so the ring shows booked and absence only.` : 'Where the team’s funded hours went: booked work, absence and unbooked capacity.'}>
           {model.totals.funded > 0 ? <DonutChart label="Funded hours" centerValue={`${formatHours(model.totals.funded)}h`} centerLabel="funded" segments={[{ key: 'booked', label: 'Booked work', value: model.totals.work, color: 'var(--viz-series-1)' }, { key: 'absence', label: 'Absence', value: model.totals.absence, color: 'var(--viz-series-4)' }, { key: 'unbooked', label: 'Unbooked capacity', value: Math.max(0, model.totals.funded - model.totals.work - model.totals.absence), color: 'var(--viz-other)' }]} /> : <EmptyState title="No funded hours this month." />}
         </Panel>
-        <Panel className="viz-panel" title={`Absence · ${monthName(month)}`} detail={`Completed Work under Epic #${settings.absenceEpicId}`}>
-          {model.totals.absence > 0 ? <DonutChart label="Absence" centerValue={`${formatHours(model.totals.absence)}h`} centerLabel="absence" segments={absenceKinds.map((kind, index) => ({ key: kind, label: kind, value: model.totals.absenceByKind[kind], color: index < 3 ? `var(--viz-series-${index + 1})` : 'var(--viz-other)' }))} /> : <EmptyState title="No absence booked." detail="Hours under the absence Epic appear here split by PTO, Sick Leave and Unplanned Leave." />}
+        <Panel className="viz-panel" title={`Absence · ${monthName(month)}`} detail={`Completed Work under Epic #${settings.absenceEpicId}; regional holidays apply to everyone mapped to that region`}>
+          {model.totals.absence > 0 ? <DonutChart label="Absence" centerValue={`${formatHours(model.totals.absence)}h`} centerLabel="absence" segments={absenceKinds.map((kind, index) => ({ key: kind, label: kind, value: model.totals.absenceByKind[kind], color: index < 4 ? `var(--viz-series-${index + 1})` : 'var(--viz-other)' }))} /> : <EmptyState title="No absence booked." detail="Hours under the absence Epic appear here split by PTO, Sick Leave, Unplanned Leave and regional public holidays." />}
           {model.people.filter((person) => person.absence > 0).length > 0 && <p className="muted">{model.people.filter((person) => person.absence > 0).map((person) => `${person.name} ${formatHours(person.absence)}h`).join(' · ')}</p>}
         </Panel>
       </div>
@@ -80,7 +81,7 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
     </> : <Panel className="viz-panel" title="Hours by month"><EmptyState title="No Time Writing Tasks in this range." detail="Refresh from Azure or load the synthetic sample to see the trend." /></Panel>}
     <div className="dashboard-grid">
       <TablePanel title="Who has capacity" detail={`${monthName(month)} · ${model.workingDays} working days × ${settings.hoursPerDay}h = ${formatHours(model.fundedPerPerson)}h funded per person, less absence.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
-        <table><thead><tr><th>Person</th><th>Status</th><th>Available</th><th>Planned</th><th>Booked</th><th>Utilization</th><th>Main stream</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong>{person.absence > 0 && <small>{formatHours(person.absence)}h absence</small>}</td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatHours(person.available)}</td><td>{formatHours(person.planned)}</td><td>{formatHours(person.work)}</td><td><div className="load"><div className="progress"><i className={person.status === 'Overloaded' ? 'over' : ''} style={{ width: `${Math.min(100, person.utilization ?? 0)}%` }} /></div><span>{formatPercent(person.utilization)}</span></div></td><td>{person.streams[0]?.title ?? '—'}{person.streams.length > 1 && <small>+{person.streams.length - 1} more</small>}</td></tr>)}</tbody></table>
+        <table><thead><tr><th>Person</th><th>Status</th><th>Available</th><th>Planned</th><th>Booked</th><th>Utilization</th><th>Main stream</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong>{profileLine(person.name) && <small>{profileLine(person.name)}</small>}{person.absence > 0 && <small>{formatHours(person.absence)}h absence</small>}</td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatHours(person.available)}</td><td>{formatHours(person.planned)}</td><td>{formatHours(person.work)}</td><td><div className="load"><div className="progress"><i className={person.status === 'Overloaded' ? 'over' : ''} style={{ width: `${Math.min(100, person.utilization ?? 0)}%` }} /></div><span>{formatPercent(person.utilization)}</span></div></td><td>{person.streams[0]?.title ?? '—'}{person.streams.length > 1 && <small>+{person.streams.length - 1} more</small>}</td></tr>)}</tbody></table>
       </TablePanel>
       <TablePanel title="Streams of work" detail="Epics with booked hours this month. Absence is excluded." count={`${model.streams.length} streams`} empty={model.streams.length ? undefined : 'No booked hours this month.'}>
         <table><thead><tr><th>Stream (Epic)</th><th>Booked</th><th>Share</th><th>Planned</th><th>People</th></tr></thead><tbody>{model.streams.map((stream) => <tr key={stream.key}><td>{stream.epic ? <a href={stream.epic.url} target="_blank" rel="noreferrer">#{stream.epic.id} {stream.title}</a> : stream.title}<small>{stream.features} feature{stream.features === 1 ? '' : 's'}</small></td><td>{formatHours(stream.work)}</td><td><div className="load"><div className="progress"><i style={{ width: `${stream.share ?? 0}%` }} /></div><span>{formatPercent(stream.share, 0)}</span></div></td><td>{formatHours(stream.planned)}</td><td>{stream.people}</td></tr>)}</tbody></table>

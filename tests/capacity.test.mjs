@@ -56,3 +56,40 @@ test('people without month tasks are absent from the model and no-bookings only 
   const model = capacityModel([item(900, { workItemType: 'Epic' }), item(40, { workItemType: 'Feature', parentId: 900, title: 'Cy - PTO' }), item(41, { parentId: 40, title: 'Cy - Time Writing' }), item(42, { workItemType: 'Task', parentId: 41, title: 'October 2026 | PTO', assignedTo: 'Cy', completedWork: 8 })], '2026-10', settings)
   assert.equal(model.people.length, 1); assert.equal(model.people[0].status, 'No bookings'); assert.equal(model.people[0].utilization, null); assert.equal(model.totals.utilization, null)
 })
+
+import { capacityContext, holidayRegion, normalizeProfiles } from '../src/capacity.ts'
+import { sampleDataset as regionalSample, sampleProfiles } from '../src/sampleData.ts'
+test('holiday Features are recognised by region name; person absence Features are not', () => {
+  assert.equal(holidayRegion('Public Holidays - India'), 'India')
+  assert.equal(holidayRegion('Regional holiday NL'), 'Netherlands')
+  assert.equal(holidayRegion('Holidays - United States'), 'US')
+  assert.equal(holidayRegion('US Holidays'), 'US')
+  assert.equal(holidayRegion('Ana Costa - Absence'), null)
+  assert.equal(holidayRegion('Holidays for us all'), null, 'lower-case "us" is not the US')
+  assert.equal(holidayRegion('Public Holidays'), null, 'no region, no mapping')
+})
+
+test('resource profiles keep only known regions and roles, never self as manager', () => {
+  assert.deepEqual(normalizeProfiles({ A: { region: 'India', role: 'QE', reportsTo: 'B', peopleManager: true }, B: { region: 'Mars', role: 'Pilot', reportsTo: 'B' }, '': { region: 'US' }, C: 'x' }), { A: { region: 'India', role: 'QE', reportsTo: 'B', peopleManager: true } })
+  assert.deepEqual(normalizeProfiles(null), {})
+  const settings = capacityContext({ capacitySettings: { hoursPerDay: 7 }, resourceProfiles: { A: { region: 'US' } } })
+  assert.equal(settings.hoursPerDay, 7); assert.deepEqual(settings.profiles, { A: { region: 'US' } })
+})
+
+test('regional holidays apply to everyone mapped to the region, not to the assignee', () => {
+  const { items } = regionalSample({ organization: 'Org', project: 'Quality', team: 'T' }, '2026-10')
+  const without = capacityModel(items, '2026-10')
+  const withProfiles = capacityModel(items, '2026-10', capacityContext({ resourceProfiles: sampleProfiles }))
+  // October in the sample has one India holiday (8h); India people are Chen Wei and Diya Sharma.
+  assert.deepEqual(withProfiles.holidays, [{ region: 'India', hours: 8, people: 2 }])
+  assert.equal(without.people.some((person) => person.name === 'Unassigned'), false, 'unassigned holiday Tasks do not create a person')
+  for (const person of withProfiles.people) {
+    const before = without.people.find((entry) => entry.name === person.name)
+    const expected = sampleProfiles[person.name]?.region === 'India' ? 8 : 0
+    assert.equal(person.absence - before.absence, expected, person.name)
+    assert.equal(person.absenceByKind['Public holiday'], expected)
+    assert.equal(person.available, Math.max(0, person.funded - person.absence))
+  }
+  assert.equal(withProfiles.totals.absenceByKind['Public holiday'], 16)
+  assert.equal(without.totals.absenceByKind['Public holiday'], 0, 'no region mapped, nothing applied')
+})

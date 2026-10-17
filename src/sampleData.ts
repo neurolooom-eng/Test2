@@ -1,6 +1,7 @@
 import type { AzureWorkItem, ReleasePlan } from './domain'
 import type { AzureBacklogScope, AzureConfig } from './azureDevOps'
 import type { ReleaseSourceSnapshot } from './releaseSource'
+import type { Region, ResourceProfile } from './capacity'
 
 // Deterministic synthetic dataset in the exact shape the app reads from Azure DevOps, so every page can be
 // exercised without a connection. Clearly labelled as sample data wherever it is shown; never written to Azure.
@@ -20,6 +21,21 @@ const streams = [
   { epic: 'CAPA', features: ['CAPA | CAPA-2026-031'], npra: false },
 ]
 const absenceEpicId = 37778
+// Synthetic team structure: one manager, two leads (one also a people manager), specialists in three regions.
+export const sampleProfiles: Record<string, ResourceProfile> = {
+  'Emil Novak': { region: 'Netherlands', role: 'Manager', peopleManager: true },
+  'Ana Costa': { region: 'Netherlands', role: 'Lead', peopleManager: true, reportsTo: 'Emil Novak' },
+  'Ben Okafor': { region: 'US', role: 'Lead', reportsTo: 'Ana Costa' },
+  'Chen Wei': { region: 'India', role: 'QE', reportsTo: 'Ben Okafor' },
+  'Diya Sharma': { region: 'India', role: 'QMS', reportsTo: 'Ana Costa' },
+  'Fatima Zahra': { region: 'US', role: 'CAPA', reportsTo: 'Ana Costa' },
+}
+// Synthetic public holidays by region and calendar month (1–12); 8h each. Illustrative only, not a holiday calendar.
+const regionalHolidays: Array<[Region, Record<number, string[]>]> = [
+  ['India', { 1: ['Republic Day'], 8: ['Independence Day'], 10: ['Gandhi Jayanti'] }],
+  ['Netherlands', { 4: ["King's Day"], 5: ['Ascension Day', 'Whit Monday'], 12: ['Christmas Day', 'Second Christmas Day'] }],
+  ['US', { 7: ['Independence Day'], 9: ['Labor Day'], 11: ['Thanksgiving Day'] }],
+]
 const absenceKinds = ['PTO', 'Sick leave', 'Unplanned leave']
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -95,6 +111,15 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
       })
     })
   })
+  // Regional holidays: one Feature per region under the absence Epic; each holiday is a month Task that applies to
+  // everyone mapped to that region, not to the assignee.
+  for (const [region, byMonth] of regionalHolidays) {
+    const feature = make({ title: `Public Holidays - ${region}`, workItemType: 'Feature', parentId: absenceEpicId })
+    const story = make({ title: `Public Holidays - ${region} - Time Writing`, workItemType: 'User Story', parentId: feature.id })
+    for (const key of monthKeys) for (const holiday of byMonth[Number(key.slice(5, 7))] ?? []) {
+      make({ title: `${monthLabel(key)} | ${holiday}`, workItemType: 'Task', parentId: story.id, state: key < month ? 'Closed' : 'Active', iterationPath: config.project, originalEstimate: 8, completedWork: key > month ? undefined : 8 })
+    }
+  }
   const scope: AzureBacklogScope = { organization: config.organization, project: config.project, team, itemKeys: items.map((item) => item.key), areaPaths: [areaPath], fetchedAt }
 
   // Read-only release source (DHFI): approved documents whose Area Path carries the release identifier; only the
