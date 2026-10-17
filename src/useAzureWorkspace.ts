@@ -1,17 +1,21 @@
 import { useRef, useState } from 'react'
-import { fetchAzureWorkItems, mergeAzureWorkItems, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
+import { fetchAzureWorkItems, isCloudBase, mergeAzureWorkItems, normalizeBaseUrl, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
-import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
+import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
 import { defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, releaseQueryWhere, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
 const defaultConfig = parseAzureProjectUrl(defaultUrl)
+// A saved connection as an Azure config: its project URL read against its own base URL (cloud or on-prem collection).
+export function connectionConfig(profile: Pick<AzureConnectionProfile, 'url' | 'baseUrl' | 'apiVersion'>): AzureConfig {
+  return { ...parseAzureProjectUrl(profile.url, profile.baseUrl), ...(profile.apiVersion ? { apiVersion: profile.apiVersion } : {}) }
+}
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
-export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; baseUrl: string; project: string; team: string; pat: string; query: string; creatorEmail: string }
+export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; baseUrl: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 export function useAzureWorkspace(store: PageProps['store']) {
@@ -23,6 +27,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
   const [creatorEmail, setCreatorEmail] = useState(() => { const first = listAzureConnectionProfiles()[0]?.id; return first ? loadAzureConnectionProfile(first)?.creatorEmail ?? '' : '' })
   const [role, setRole] = useState<AzureConnectionRole>(() => listAzureConnectionProfiles()[0]?.role ?? 'time-tracking')
   const [connectionStatus, setConnectionStatus] = useState<Record<string, ConnectionStatus>>({})
+  const [server, setServer] = useState<Pick<AzureConfig, 'baseUrl' | 'apiVersion'>>(() => { const first = listAzureConnectionProfiles()[0]; return first ? { baseUrl: first.baseUrl, apiVersion: first.apiVersion } : {} })
   const [busy, setBusy] = useState(false)
   const fetching = useRef(false)
   const [lastRefreshed, setLastRefreshed] = useState('')
@@ -30,7 +35,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
   const [message, setMessage] = useState('')
   const [preview, setPreview] = useState<AzureFetchResult | null>(null)
   let config: AzureConfig | null
-  try { const parsed = parseAzureProjectUrl(projectUrl); config = { ...parsed, team: parsed.team || team.trim() } } catch { config = null }
+  try { const parsed = connectionConfig({ url: projectUrl, ...server }); config = { ...parsed, team: parsed.team || team.trim() } } catch { config = null }
   const saved = savedBacklogItems(store.state.azureWorkItems ?? [], store.state.azureBacklogScope, config)
   const items = preview && sameAzureScope(preview.scope, config) ? preview.items : saved
   const needsScopedRefresh = Boolean((store.state.azureWorkItems?.length ?? 0) && !sameAzureScope(store.state.azureBacklogScope, config))
@@ -56,7 +61,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
   }
 
   function changeProjectUrl(next: string) {
-    setProjectUrl(next); setPreview(null)
+    setProjectUrl(next); setPreview(null); setServer({})
     try { const parsed = parseAzureProjectUrl(next); if (parsed.team) setTeam(parsed.team); setActiveConnectionProfileId(''); setPat(loadAzurePat(parsed)) } catch { setPat(''); setActiveConnectionProfileId('') }
   }
 
@@ -70,11 +75,11 @@ export function useAzureWorkspace(store: PageProps['store']) {
     if (fetching.current) return
     fetching.current = true; setError(''); setMessage(''); setBusy(true)
     try {
-      const parsed = parseAzureProjectUrl(projectUrl)
+      const parsed = connectionConfig({ url: projectUrl, ...server })
       let tokenWarning = ''
       try {
         const reason = connectionProfiles.find((profile) => profile.id === activeConnectionProfileId)?.reason
-        if (activeConnectionProfileId && reason) saveAzureConnectionProfile({ id: activeConnectionProfileId, url: projectUrl, reason, creatorEmail, role, token: pat })
+        if (activeConnectionProfileId && reason) saveAzureConnectionProfile({ ...loadAzureConnectionProfile(activeConnectionProfileId), id: activeConnectionProfileId, url: projectUrl, reason, creatorEmail, role, token: pat, ...server })
         else saveAzurePat(parsed, pat)
       } catch { tokenWarning = ' PAT could not be saved in this browser; the current-session token was used for fetching.' }
       const result = await fetchAzureWorkItems({ ...parsed, team: parsed.team || team.trim() }, pat)
@@ -90,7 +95,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPat(value.trim()); setError('')
     try {
       const reason = connectionProfiles.find((profile) => profile.id === activeConnectionProfileId)?.reason
-      if (activeConnectionProfileId && reason) saveAzureConnectionProfile({ id: activeConnectionProfileId, url: projectUrl, reason, creatorEmail, role, token: value })
+      if (activeConnectionProfileId && reason) saveAzureConnectionProfile({ ...loadAzureConnectionProfile(activeConnectionProfileId), id: activeConnectionProfileId, url: projectUrl, reason, creatorEmail, role, token: value, ...server })
       else saveAzurePat(config, value)
       setMessage(activeConnectionProfileId ? `Azure DevOps configuration “${reason}” updated on this browser.` : 'PAT saved on this browser for this organization and project.')
     }
@@ -106,17 +111,18 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const profile = id ? loadAzureConnectionProfile(id) : null
     if (!profile) { setActiveConnectionProfileId(''); setError(''); return }
     setProjectUrl(profile.url); setPreview(null); setActiveConnectionProfileId(id); setPat(profile.token); setCreatorEmail(profile.creatorEmail?.trim() ?? ''); setRole(profile.role ?? 'time-tracking'); setError('')
-    try { setTeam(parseAzureProjectUrl(profile.url).team) } catch { /* saved profile validation already prevents this */ }
+    setServer({ baseUrl: profile.baseUrl, apiVersion: profile.apiVersion })
+    try { setTeam(connectionConfig(profile).team) } catch { /* saved profile validation already prevents this */ }
   }
 
   function saveConnectionProfile(reason: string, email = creatorEmail, value = pat, nextRole: AzureConnectionRole = role) {
-    parseAzureProjectUrl(projectUrl)
+    connectionConfig({ url: projectUrl, ...server })
     const cleanReason = reason.trim()
     if (!cleanReason) throw new Error('Enter a reason for this Azure DevOps configuration.')
     const cleanEmail = email.trim().toLowerCase()
     if (nextRole === 'time-tracking' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) throw new Error('Enter the Azure DevOps email that should be assigned to newly created Features.')
     const id = activeConnectionProfileId || crypto.randomUUID().replaceAll('-', '')
-    saveAzureConnectionProfile({ id, url: projectUrl, reason: cleanReason, creatorEmail: cleanEmail, role: nextRole, token: value })
+    saveAzureConnectionProfile({ ...(activeConnectionProfileId ? loadAzureConnectionProfile(activeConnectionProfileId) : {}), id, url: projectUrl, reason: cleanReason, creatorEmail: cleanEmail, role: nextRole, token: value, ...server })
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles); setActiveConnectionProfileId(id); setPat(value.trim()); setCreatorEmail(cleanEmail); setRole(nextRole)
     setMessage(`Azure DevOps configuration “${cleanReason}” saved on this browser.`); setError('')
@@ -159,6 +165,8 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const name = input.name.trim()
     if (!name) throw new Error('Give the connection a name, e.g. "Time Writing" or "DHFI releases".')
     const url = composeAzureUrl(input.baseUrl, input.project, input.team)
+    const base = normalizeBaseUrl(input.baseUrl), apiVersion = input.apiVersion.trim()
+    if (apiVersion && !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(apiVersion)) throw new Error('API version looks like 7.1, 6.0 or 5.0.')
     const existing = input.id ? loadAzureConnectionProfile(input.id) : null
     const token = input.pat.trim() || existing?.token || ''
     if (!token) throw new Error('Enter the PAT for this connection.')
@@ -168,7 +176,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const email = input.creatorEmail.trim().toLowerCase()
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
     const id = input.id || crypto.randomUUID().replaceAll('-', '')
-    saveAzureConnectionProfile({ id, url, reason: name, role: input.role, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}) })
+    saveAzureConnectionProfile({ id, url, reason: name, role: input.role, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}), ...(isCloudBase(base) ? {} : { baseUrl: base }), ...(apiVersion ? { apiVersion } : {}) })
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles)
     if (input.role === 'time-tracking' && (id === activeConnectionProfileId || !profiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking'))) selectConnectionProfile(id)
@@ -195,7 +203,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const role = profile.role ?? 'time-tracking'
     setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Fetching…' } }))
     try {
-      const parsed = parseAzureProjectUrl(profile.url)
+      const parsed = connectionConfig(profile)
       const query = profile.query?.trim() ?? ''
       let done = ''
       if (role === 'time-tracking') {
