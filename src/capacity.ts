@@ -97,7 +97,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
 export type CapacityModel = ReturnType<typeof capacityModel>
 
 // Funded, available and actual hours per month for the trend chart; months without any Time Writing Task are gaps.
-export interface MonthlyHours { month: string; funded: number | null; available: number | null; actual: number | null; planned: number | null; utilization: number | null; plannedUtilization: number | null; absence: number; people: number; workingDays: number; streams: { key: string; title: string; work: number; planned: number }[] }
+export interface MonthlyHours { month: string; funded: number | null; available: number | null; actual: number | null; planned: number | null; utilization: number | null; plannedUtilization: number | null; absence: number; people: number; workingDays: number; streams: { key: string; title: string; work: number; planned: number }[]; byPerson: { name: string; utilization: number | null; work: number; available: number; status: LoadStatus }[] }
 export function monthlyHours(source: AzureWorkItem[], endMonth: string, span = 12, settings: CapacitySettings = defaultCapacitySettings): MonthlyHours[] {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(endMonth)) throw new Error('Choose a valid month.')
   return Array.from({ length: span }, (_, index) => {
@@ -110,6 +110,45 @@ export function monthlyHours(source: AzureWorkItem[], endMonth: string, span = 1
       utilization: booked ? model.totals.utilization : null, plannedUtilization: booked ? percent(model.totals.planned, model.totals.available) : null,
       absence: model.totals.absence, people: model.people.length, workingDays: model.workingDays,
       streams: model.streams.map((stream) => ({ key: stream.key, title: stream.title, work: stream.work, planned: stream.planned })),
+      byPerson: model.people.map((person) => ({ name: person.name, utilization: person.utilization, work: person.work, available: person.available, status: person.status })),
     }
   })
+}
+
+// Problem analysis over a window of months: hours of overrun (Completed Work above a positive Original Estimate)
+// and ad-hoc hours (Tasks tagged "ad-hoc"), each grouped by Feature and by Epic, for Pareto charts. Absence is excluded.
+export interface ProblemItem { key: string; title: string; work: number; colorKey: string; group: string; tasks: number }
+export interface ProblemSet { feature: ProblemItem[]; epic: ProblemItem[]; total: number; tasks: number }
+export function problemBreakdown(source: AzureWorkItem[], months: string[], settings: CapacitySettings = defaultCapacitySettings) {
+  const monthSet = new Set(months)
+  const items = [...new Map(source.filter((item) => item.state.trim().toLowerCase() !== 'removed').map((item) => [item.key, item])).values()]
+  const byId = new Map(items.map((item) => [item.id, item]))
+  const storyIds = new Set(items.filter((item) => item.workItemType === 'User Story' && /\s*-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)).map((item) => item.id))
+  const tasks = items.filter((item) => item.workItemType === 'Task' && item.parentId != null && storyIds.has(item.parentId) && monthSet.has(timeWritingMonth(item.title) ?? ''))
+  const chainOf = (item: AzureWorkItem) => {
+    const chain: AzureWorkItem[] = []; const seen = new Set<number>([item.id]); let current = item.parentId == null ? undefined : byId.get(item.parentId)
+    while (current && !seen.has(current.id)) { chain.push(current); seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) }
+    return chain
+  }
+  type Bucket = { feature: Map<string, ProblemItem>; epic: Map<string, ProblemItem>; total: number; tasks: number }
+  const bucket = (): Bucket => ({ feature: new Map(), epic: new Map(), total: 0, tasks: 0 })
+  const overrun = bucket(), adhoc = bucket()
+  let booked = 0
+  const add = (target: Bucket, epic: AzureWorkItem | undefined, feature: AzureWorkItem | undefined, amount: number) => {
+    target.total += amount; target.tasks += 1
+    const epicKey = epic?.key ?? 'unmapped', epicTitle = epic?.title ?? 'No Epic path'
+    const groups: Array<[Map<string, ProblemItem>, string, string]> = [[target.feature, feature?.key ?? `${epicKey}/no-feature`, feature?.title ?? `${epicTitle} (no Feature)`], [target.epic, epicKey, epicTitle]]
+    for (const [map, key, title] of groups) { const entry = map.get(key) ?? { key, title, work: 0, colorKey: epicKey, group: epicTitle, tasks: 0 }; entry.work += amount; entry.tasks += 1; map.set(key, entry) }
+  }
+  for (const task of tasks) {
+    const chain = chainOf(task), epic = chain.find((item) => item.workItemType === 'Epic'), feature = chain.find((item) => item.workItemType === 'Feature')
+    if (epic?.id === settings.absenceEpicId) continue
+    const work = hours(task.completedWork)
+    booked += work
+    if (typeof task.originalEstimate === 'number' && task.originalEstimate > 0 && work > task.originalEstimate) add(overrun, epic, feature, work - task.originalEstimate)
+    if (work > 0 && (task.tags ?? '').split(';').some((tag) => tag.trim().toLowerCase() === 'ad-hoc')) add(adhoc, epic, feature, work)
+  }
+  const sorted = (map: Map<string, ProblemItem>) => [...map.values()].sort((a, b) => b.work - a.work || a.title.localeCompare(b.title))
+  const finish = (target: Bucket): ProblemSet => ({ feature: sorted(target.feature), epic: sorted(target.epic), total: target.total, tasks: target.tasks })
+  return { overrun: finish(overrun), adhoc: { ...finish(adhoc), share: booked > 0 ? percent(adhoc.total, booked) : null }, booked }
 }

@@ -89,3 +89,25 @@ export function arcPath(cx: number, cy: number, inner: number, outer: number, st
   const large = sweep > Math.PI ? 1 : 0
   return `M${point(outer, start)}A${outer},${outer} 0 ${large} 1 ${point(outer, end)}L${point(inner, end)}A${inner},${inner} 0 ${large} 0 ${point(inner, start)}Z`
 }
+
+// "Program | Service | vRelease" → "Service vRelease" (the Epic is already carried by colour and tooltip).
+export function shortFeatureTitle(title: string) {
+  const parts = title.split('|').map((part) => part.trim()).filter(Boolean)
+  return parts.length >= 2 ? parts.slice(1).join(' ') : title
+}
+
+// Wrap an axis label onto at most two lines of maxChars. When it doesn't fit, the last word (usually the release
+// version) keeps line two so sibling releases stay distinguishable, and the rest is shortened with an ellipsis.
+export function wrapLabel(text: string, maxChars: number) {
+  const words = text.split(/\s+/).filter(Boolean)
+  const cut = (line: string) => line.length > maxChars ? line.slice(0, Math.max(1, maxChars - 1)).trimEnd() + '…' : line
+  const lines: string[] = []
+  for (const word of words) {
+    const last = lines[lines.length - 1]
+    if (last != null && (last + ' ' + word).length <= maxChars) lines[lines.length - 1] = last + ' ' + word
+    else lines.push(word)
+  }
+  if (lines.length <= 2 && lines.every((line) => line.length <= maxChars)) return lines
+  if (words.length < 2) return [cut(text)]
+  return [cut(words.slice(0, -1).join(' ')), cut(words[words.length - 1])]
+}

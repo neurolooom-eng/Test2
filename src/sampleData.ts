@@ -32,6 +32,9 @@ const day = (month: string, dayOfMonth: number) => `${month}-${String(Math.min(2
 
 export function sampleDataset(config: AzureConfig, month: string): { items: AzureWorkItem[]; scope: AzureBacklogScope; releaseSource: ReleaseSourceSnapshot; releasePlans: ReleasePlan[] } {
   const next = random(20261017)
+  const nextAdhoc = random(4242)
+  // Likelihood per month that a stream's first Feature receives unplanned (ad-hoc) support work, by stream index.
+  const adhocChance: Record<number, number> = { 0: 0.3, 1: 0.2, 2: 0.85, 5: 0.75, 6: 0.55, 8: 0.9 }
   const team = config.team || 'Sample Team'
   const areaPath = `${config.project}\\${team}`
   const fetchedAt = new Date().toISOString()
@@ -70,6 +73,11 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
           const actual = key > month ? undefined : Math.round(plan * ratio * 4) / 4
           make({ title: `${monthLabel(key)} | ${title}`, workItemType: 'Task', parentId: story.id, assignedTo: person, state: key < month ? 'Closed' : 'Active', iterationPath: config.project, description: `Time writing for ${monthLabel(key)}`, originalEstimate: plan, completedWork: actual, tags: streamIndex === 8 && monthOffset === 5 && helperIndex === 0 ? 'ad-hoc' : '' })
         })
+        // Unplanned support: no Original Estimate, tagged ad-hoc (the app's rule for work that arrives after planning locks).
+        if (featureIndex === 0 && key <= month && nextAdhoc() < (adhocChance[streamIndex] ?? 0)) {
+          const person = helpers[Math.floor(nextAdhoc() * helpers.length)]
+          make({ title: `${monthLabel(key)} | ${title} - unplanned support`, workItemType: 'Task', parentId: story.id, assignedTo: person, state: key < month ? 'Closed' : 'Active', iterationPath: config.project, description: 'Escalation / field support not in the monthly plan', completedWork: Math.round((4 + nextAdhoc() * 20) * 4) / 4, tags: 'ad-hoc' })
+        }
       })
     })
   })

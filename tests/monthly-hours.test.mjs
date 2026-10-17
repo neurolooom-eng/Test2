@@ -50,3 +50,39 @@ test('donut arc geometry', () => {
   assert.match(arcPath(100, 100, 60, 90, -Math.PI / 2, 0), /^M100\.00,10\.00A90,90 0 0 1 190\.00,100\.00L160\.00,100\.00A60,60 0 0 0 100\.00,40\.00Z$/)
   assert.match(arcPath(100, 100, 60, 90, 0, Math.PI * 2), /^M100,10A90,90 0 1 1 100,190/, 'a full turn draws a ring')
 })
+
+import { problemBreakdown } from '../src/capacity.ts'
+import { shortFeatureTitle, wrapLabel } from '../src/chartUtils.ts'
+test('problem breakdown: overrun only above a positive estimate, ad-hoc by tag, absence excluded, grouped by Feature and Epic', () => {
+  const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: 'A', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '' }
+  const item = (id, extra) => ({ ...base, key: `o/p/${id}`, id, title: `Item ${id}`, workItemType: 'User Story', ...extra })
+  const items = [
+    item(1, { workItemType: 'Epic', title: 'CP' }), item(2, { workItemType: 'Feature', parentId: 1, title: 'CP | Care | v1' }), item(3, { parentId: 2, title: 'CP | Care | v1 - Time Writing' }),
+    item(4, { workItemType: 'Task', parentId: 3, title: 'October 2026 | a', originalEstimate: 10, completedWork: 16 }),
+    item(5, { workItemType: 'Task', parentId: 3, title: 'October 2026 | b', originalEstimate: 10, completedWork: 8 }),
+    item(6, { workItemType: 'Task', parentId: 3, title: 'October 2026 | c', completedWork: 5, tags: 'urgent; ad-hoc' }),
+    item(7, { workItemType: 'Task', parentId: 3, title: 'September 2026 | d', originalEstimate: 1, completedWork: 50 }),
+    item(37778, { workItemType: 'Epic', title: 'Absence' }), item(8, { workItemType: 'Feature', parentId: 37778, title: 'A - Absence' }), item(9, { parentId: 8, title: 'A - Time Writing' }),
+    item(10, { workItemType: 'Task', parentId: 9, title: 'October 2026 | PTO', originalEstimate: 1, completedWork: 40, tags: 'ad-hoc' }),
+  ]
+  const result = problemBreakdown(items, ['2026-10'])
+  assert.equal(result.overrun.total, 6); assert.equal(result.overrun.tasks, 1)
+  assert.deepEqual(result.overrun.feature.map((entry) => [entry.title, entry.work, entry.colorKey, entry.group]), [['CP | Care | v1', 6, 'o/p/1', 'CP']])
+  assert.deepEqual(result.adhoc.epic.map((entry) => [entry.title, entry.work]), [['CP', 5]]); assert.equal(result.booked, 29); assert.equal(result.adhoc.share, 17.24)
+  assert.equal(problemBreakdown(items, ['2026-09', '2026-10']).overrun.total, 55, 'the window includes September')
+})
+test('label helpers', () => {
+  assert.equal(shortFeatureTitle('CP | Care Pathways | v3.1'), 'Care Pathways v3.1'); assert.equal(shortFeatureTitle('No pipes'), 'No pipes')
+  assert.deepEqual(wrapLabel('Care Pathways v3.1', 10), ['Care Path…', 'v3.1'])
+  assert.notDeepEqual(wrapLabel('Care Pathways v3.1', 10), wrapLabel('Care Pathways v3.2', 10))
+  assert.deepEqual(wrapLabel('Remote Diagnostics v1.6', 12), ['Remote Diag…', 'v1.6'])
+  assert.deepEqual(wrapLabel('Field Actions', 12), ['Field', 'Actions'])
+  assert.deepEqual(wrapLabel('DP', 12), ['DP'])
+})
+test('sample has unplanned work spread across several streams, enough for a Pareto', () => {
+  const { items } = sampleDataset({ organization: 'Org', project: 'Quality', team: 'T' }, '2026-10')
+  const months = monthlyHours(items, '2026-10', 6).map((point) => point.month)
+  const problems = problemBreakdown(items, months)
+  assert.ok(problems.adhoc.epic.length >= 3, `ad-hoc Epics: ${problems.adhoc.epic.length}`); assert.ok(problems.overrun.feature.length >= 3)
+  assert.ok(problems.adhoc.share > 0 && problems.adhoc.share < 25)
+})
