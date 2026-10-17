@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel, type Tone } from '../components/ui'
 import { HoursTrendChart } from '../components/HoursTrendChart'
+import { EpicBulletChart, EpicMixChart, UtilizationChart } from '../components/WorkloadCharts'
+import { epicColors } from '../chartUtils'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import { capacityModel, monthlyHours, normalizeCapacitySettings, absenceKinds, type LoadStatus } from '../capacity'
@@ -17,6 +19,8 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
   const [span, setSpan] = useState<6 | 12>(12)
   const trend = monthlyHours(azure.items, month, span, settings)
   const trendTotals = trend.filter((point) => point.actual != null)
+  // Epic colours come from a fixed 12-month window so switching 6/12 months never repaints an Epic.
+  const colors = epicColors(span === 12 ? trend : monthlyHours(azure.items, month, 12, settings))
   const matrixStreams = model.streams.slice(0, maxMatrixStreams)
   const otherStreams = model.streams.slice(maxMatrixStreams)
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
@@ -28,9 +32,23 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
       <Metric label="Has capacity" value={model.counts.hasCapacity} hint={`< ${settings.availableBelow}% of available hours`} tone={model.counts.hasCapacity ? 'positive' : undefined} />
       <Metric label="Absence" value={formatHours(model.totals.absence)} hint={absenceKinds.filter((kind) => model.totals.absenceByKind[kind]).map((kind) => `${kind} ${formatHours(model.totals.absenceByKind[kind])}h`).join(' · ') || `Under Epic #${settings.absenceEpicId}`} />
     </Metrics>
-    <Panel className="viz-panel" title="Hours by month" detail={`Funded = people × working days × ${settings.hoursPerDay}h; available = funded − absence; actual = booked Completed Work. Click a month to select it.`} action={<div className="viz-range" role="group" aria-label="Months shown">{([6, 12] as const).map((value) => <button key={value} type="button" className={span === value ? 'primary' : 'ghost'} aria-pressed={span === value} onClick={() => setSpan(value)}>{value} months</button>)}{trendTotals.length > 0 && <span className="record-count">{trendTotals.length} month{trendTotals.length === 1 ? '' : 's'} with bookings</span>}</div>}>
-      {trendTotals.length ? <HoursTrendChart series={trend} selected={month} onSelect={setMonth} /> : <EmptyState title="No Time Writing Tasks in this range." detail="Refresh from Azure or load the synthetic sample to see the trend." />}
-    </Panel>
+    <div className="viz-filters" role="group" aria-label="Months shown"><span>Months shown</span>{([6, 12] as const).map((value) => <button key={value} type="button" className={span === value ? 'primary' : 'ghost'} aria-pressed={span === value} onClick={() => setSpan(value)}>{value} months</button>)}{trendTotals.length > 0 && <span className="record-count">{trendTotals.length} month{trendTotals.length === 1 ? '' : 's'} with bookings · click a month in any chart to select it</span>}</div>
+    {trendTotals.length ? <>
+      <Panel className="viz-panel" title="Hours by month" detail={`Funded = people × working days × ${settings.hoursPerDay}h; available = funded − absence; actual = booked Completed Work.`}>
+        <HoursTrendChart series={trend} selected={month} onSelect={setMonth} />
+      </Panel>
+      <div className="dashboard-grid viz-grid-2">
+        <Panel className="viz-panel" title="Utilization by month" detail="Bars: actual = booked Completed Work ÷ available hours. Line: planned = Original Estimate ÷ available hours. Reference lines are the thresholds set in Administration.">
+          <UtilizationChart series={trend} selected={month} onSelect={setMonth} overloadedAt={settings.overloadedAt} availableBelow={settings.availableBelow} />
+        </Panel>
+        <Panel className="viz-panel" title={`Hours by Epic · ${monthName(month)}`} detail="Bar = booked hours, tick = planned hours; share of the month's booked hours on the right. Absence is excluded.">
+          {model.streams.length ? <EpicBulletChart streams={model.streams} colors={colors} /> : <EmptyState title="No booked hours this month." />}
+        </Panel>
+      </div>
+      <Panel className="viz-panel" title="Epic mix by month" detail="Stacked bars: booked hours per Epic (the five largest over the last 12 months keep their colour; the rest are grouped as Other Epics). Line: available hours on the same scale.">
+        <EpicMixChart series={trend} selected={month} onSelect={setMonth} colors={colors} />
+      </Panel>
+    </> : <Panel className="viz-panel" title="Hours by month"><EmptyState title="No Time Writing Tasks in this range." detail="Refresh from Azure or load the synthetic sample to see the trend." /></Panel>}
     <div className="dashboard-grid">
       <TablePanel title="Who has capacity" detail={`${monthName(month)} · ${model.workingDays} working days × ${settings.hoursPerDay}h = ${formatHours(model.fundedPerPerson)}h funded per person, less absence.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
         <table><thead><tr><th>Person</th><th>Status</th><th>Available</th><th>Planned</th><th>Booked</th><th>Utilization</th><th>Main stream</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong>{person.absence > 0 && <small>{formatHours(person.absence)}h absence</small>}</td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatHours(person.available)}</td><td>{formatHours(person.planned)}</td><td>{formatHours(person.work)}</td><td><div className="load"><div className="progress"><i className={person.status === 'Overloaded' ? 'over' : ''} style={{ width: `${Math.min(100, person.utilization ?? 0)}%` }} /></div><span>{formatPercent(person.utilization)}</span></div></td><td>{person.streams[0]?.title ?? '—'}{person.streams.length > 1 && <small>+{person.streams.length - 1} more</small>}</td></tr>)}</tbody></table>
