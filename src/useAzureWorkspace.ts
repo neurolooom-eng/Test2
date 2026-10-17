@@ -4,7 +4,7 @@ import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
 import { fetchReleaseSource, normalizeReleaseSourceSettings } from './releaseSource'
-import { sampleDataset, sampleProfiles } from './sampleData'
+import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
@@ -37,13 +37,16 @@ export function useAzureWorkspace(store: PageProps['store']) {
   // Synthetic dataset for demonstrations: replaces the Azure cache and the release source; never touches Azure DevOps.
   function loadSampleData() {
     if (!config) { setError('Enter a valid Azure DevOps project URL first.'); return }
-    const sample = sampleDataset(config, indiaMonth(new Date().toISOString())!)
+    const sampleMonth = indiaMonth(new Date().toISOString())!
+    const sample = sampleDataset(config, sampleMonth)
     setPreview(null); setLastRefreshed('')
     store.update((draft) => {
       draft.azureWorkItems = sample.items; draft.azureBacklogScope = { ...sample.scope, sample: true }; draft.releaseSource = sample.releaseSource
       draft.releasePlans = [...(draft.releasePlans ?? []).filter((plan) => !plan.sample), ...sample.releasePlans]
       // Sample team structure fills only people who have no profile yet, so real mappings are never overwritten.
       draft.resourceProfiles = { ...sampleProfiles, ...(draft.resourceProfiles ?? {}) }
+      // Sample release scopes are added only for releases that have none yet.
+      draft.releaseScopes = [...(draft.releaseScopes ?? []), ...sampleReleaseScopes(sampleMonth).filter((scope) => !(draft.releaseScopes ?? []).some((existing) => existing.release === scope.release))]
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: sample.scope.fetchedAt, actor: 'u-owner', action: 'Load sample', entity: 'AzureDevOps', entityId: 'sample', detail: `${sample.items.length} synthetic work items and ${sample.releaseSource.items.length} sample release documents loaded. Nothing was read from or written to Azure DevOps.` })
       return draft
     })

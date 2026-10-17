@@ -7,7 +7,7 @@ export interface PageMeta { id: Page; label: string; icon: string; group: PageGr
 export const pages: PageMeta[] = [
   { id: 'overview', label: 'Overview', icon: '▦', group: 'Overview', detail: 'Plan, actuals, absence and utilization for the selected month from the saved Azure backlog.', usesMonth: true },
   { id: 'monthly', label: 'Monthly Time Writing', icon: '◫', group: 'Time writing', detail: 'Selected-month Tasks are the source for Azure Original Estimate and Completed Work.', usesMonth: true },
-  { id: 'baselines', label: 'Plan comparison', icon: '⌁', group: 'Time writing', detail: 'Original Estimate against Completed Work per Time Writing Task; no separate local baseline is applied.', usesMonth: true },
+  { id: 'baselines', label: 'Baselines', icon: '⌁', group: 'Time writing', detail: 'Release baselines from estimation rules and scope, against booked hours; plus the monthly task plan check.', usesMonth: true },
   { id: 'releases', label: 'Feature milestones', icon: '◆', group: 'Time writing', detail: 'Feature dates and states from the same Azure backlog source.', usesMonth: true },
   { id: 'activities', label: 'Work items', icon: '✓', group: 'Time writing', detail: 'The selected-team backlog used across the application.', usesMonth: false },
   { id: 'board', label: 'Backlogs', icon: '▤', group: 'Azure DevOps', detail: 'Plan and track the team’s work in an expandable Epic → Feature → User Story → Task backlog.', usesMonth: false },
