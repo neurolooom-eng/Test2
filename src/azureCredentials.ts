@@ -1,4 +1,4 @@
-import type { AzureConfig } from './azureDevOps'
+import { normalizeBaseUrl, type AzureConfig } from './azureDevOps.ts'
 
 // Credentials intentionally live outside AppState, exports, sync payloads and audit records.
 const legacyKey = (config: AzureConfig) => `demand-planning-azure-pat:${encodeURIComponent(config.organization.toLowerCase())}:${encodeURIComponent(config.project.toLowerCase())}`
@@ -9,29 +9,35 @@ export interface AzurePatProfileSummary { id: string; purpose: string }
 // a document source such as Vault (read only, for document counts) or reference data that is only fetched and listed.
 export type AzureConnectionRole = 'time-tracking' | 'release-source' | 'documents' | 'reference'
 export const azureConnectionRoles: AzureConnectionRole[] = ['time-tracking', 'release-source', 'documents', 'reference']
-export interface AzureConnectionProfile { id: string; url: string; reason: string; creatorEmail?: string; role?: AzureConnectionRole; query?: string; token: string }
-export interface AzureConnectionProfileSummary { id: string; url: string; reason: string; creatorEmail?: string; role: AzureConnectionRole; query?: string }
+export interface AzureConnectionProfile { id: string; url: string; reason: string; creatorEmail?: string; role?: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string; token: string }
+export interface AzureConnectionProfileSummary { id: string; url: string; reason: string; creatorEmail?: string; role: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string }
 const connectionProfilesKey = 'demand-planning-azure-connection-profiles-v1'
 const valid = (profile: unknown): profile is AzurePatProfile => Boolean(profile && typeof profile === 'object' && typeof (profile as AzurePatProfile).id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test((profile as AzurePatProfile).id) && typeof (profile as AzurePatProfile).purpose === 'string' && (profile as AzurePatProfile).purpose.trim().length > 0 && typeof (profile as AzurePatProfile).token === 'string' && (profile as AzurePatProfile).token.trim().length > 0)
 const validConnection = (profile: unknown): profile is AzureConnectionProfile => {
   if (!profile || typeof profile !== 'object') return false
   const value = profile as AzureConnectionProfile
   if (typeof value.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(value.id) || typeof value.url !== 'string' || typeof value.reason !== 'string' || !value.reason.trim() || typeof value.token !== 'string' || !value.token.trim()) return false
-  try { const url = new URL(value.url); if (url.protocol !== 'https:' || url.hostname !== 'dev.azure.com') return false } catch { return false }
+  try {
+    const url = new URL(value.url)
+    if (url.protocol !== 'https:' || url.username || url.password) return false
+    if (value.baseUrl != null) { const base = normalizeBaseUrl(value.baseUrl); if (!value.url.toLowerCase().startsWith(`${base.toLowerCase()}/`)) return false }
+    else if (url.hostname !== 'dev.azure.com') return false
+  } catch { return false }
+  if (value.apiVersion != null && (typeof value.apiVersion !== 'string' || !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(value.apiVersion))) return false
   if (value.role != null && !azureConnectionRoles.includes(value.role)) return false
   if (value.query != null && (typeof value.query !== 'string' || value.query.length > 50000)) return false
   return value.creatorEmail == null || (typeof value.creatorEmail === 'string' && (!value.creatorEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.creatorEmail.trim())))
 }
 
 export function listAzureConnectionProfiles(storage: Pick<Storage, 'getItem'> = localStorage): AzureConnectionProfileSummary[] {
-  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).map(({ id, url, reason, creatorEmail, role, query }) => ({ id, url, reason, role: role ?? 'time-tracking', ...(creatorEmail?.trim() ? { creatorEmail: creatorEmail.trim() } : {}), ...(query?.trim() ? { query: query.trim() } : {}) })) : [] } catch { return [] }
+  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).map(({ id, url, reason, creatorEmail, role, query, baseUrl, apiVersion }) => ({ id, url, reason, role: role ?? 'time-tracking', ...(creatorEmail?.trim() ? { creatorEmail: creatorEmail.trim() } : {}), ...(query?.trim() ? { query: query.trim() } : {}), ...(baseUrl ? { baseUrl } : {}), ...(apiVersion ? { apiVersion } : {}) })) : [] } catch { return [] }
 }
 export function loadAzureConnectionProfile(id: string, storage: Pick<Storage, 'getItem'> = localStorage) {
   try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).find(profile => profile.id === id) ?? null : null } catch { return null }
 }
 export function saveAzureConnectionProfile(profile: AzureConnectionProfile, storage: Pick<Storage, 'getItem'|'setItem'> = localStorage) {
   if (!validConnection(profile)) throw new Error('Provide a valid Azure DevOps URL, reason, creator email and PAT.')
-  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), token: profile.token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
+  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), ...(profile.baseUrl ? { baseUrl: normalizeBaseUrl(profile.baseUrl) } : {}), ...(profile.apiVersion?.trim() ? { apiVersion: profile.apiVersion.trim() } : {}), token: profile.token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
   catch { throw new Error('This browser could not save the Azure DevOps configuration. Check local storage availability.') }
 }
 export function forgetAzureConnectionProfile(id: string, storage: Pick<Storage, 'getItem'|'setItem'> = localStorage) {
@@ -59,21 +65,19 @@ export function forgetAzurePatProfile(config: AzureConfig, id: string, storage: 
 export function saveAzurePat(config: AzureConfig, pat: string, storage: Pick<Storage, 'setItem'> = localStorage) { if (!pat.trim()) throw new Error('Enter a PAT before saving it.'); try { storage.setItem(legacyKey(config), pat.trim()) } catch { throw new Error('This browser could not save the PAT. Check local storage availability.') } }
 export function forgetAzurePat(config: AzureConfig, storage: Pick<Storage, 'removeItem'> = localStorage) { storage.removeItem(legacyKey(config)) }
 
-// A connection is entered as base URL + project (+ team); it is stored as one Azure DevOps project URL.
+// A connection is entered as base URL + project (+ team); it is stored as one project URL plus the base URL, so an
+// Azure DevOps Server collection (any https host and path) can be told apart from the project that follows it.
 export function composeAzureUrl(baseUrl: string, project: string, team = '') {
-  let url: URL
-  try { url = new URL(baseUrl.trim()) } catch { throw new Error('Enter the base URL, e.g. https://dev.azure.com/your-organization.') }
-  if (url.protocol !== 'https:' || url.hostname !== 'dev.azure.com' || url.username || url.password) throw new Error('The base URL must be an Azure DevOps Services address: https://dev.azure.com/<organization>.')
-  const organization = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)[0]
-  if (!organization) throw new Error('The base URL must include the organization: https://dev.azure.com/<organization>.')
+  const base = normalizeBaseUrl(baseUrl)
   if (!project.trim()) throw new Error('Enter the Azure DevOps project name.')
-  const base = `https://dev.azure.com/${encodeURIComponent(organization)}/${encodeURIComponent(project.trim())}`
-  return team.trim() ? `${base}/_backlogs/backlog/${encodeURIComponent(team.trim())}/Epics` : base
+  const url = `${base}/${encodeURIComponent(project.trim())}`
+  return team.trim() ? `${url}/_backlogs/backlog/${encodeURIComponent(team.trim())}/Epics` : url
 }
-export function splitAzureUrl(value: string) {
+export function splitAzureUrl(value: string, baseUrl?: string) {
   try {
-    const parts = new URL(value).pathname.split('/').filter(Boolean).map(decodeURIComponent)
-    const backlog = parts.indexOf('_backlogs')
-    return { baseUrl: parts[0] ? `https://dev.azure.com/${parts[0]}` : '', project: parts[1] ?? '', team: backlog >= 0 && parts[backlog + 1] === 'backlog' ? parts[backlog + 2] ?? '' : '' }
+    const base = normalizeBaseUrl(baseUrl ?? value)
+    const rest = value.slice(base.length).split(/[?#]/)[0].split('/').filter(Boolean).map(decodeURIComponent)
+    const backlog = rest.indexOf('_backlogs')
+    return { baseUrl: decodeURI(base), project: rest[0] ?? '', team: backlog >= 0 && rest[backlog + 1] === 'backlog' ? rest[backlog + 2] ?? '' : '' }
   } catch { return { baseUrl: '', project: '', team: '' } }
 }

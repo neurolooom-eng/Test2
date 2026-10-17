@@ -1,6 +1,28 @@
 import type { AzureWorkItem } from './domain'
 
-export interface AzureConfig { organization: string; project: string; team: string }
+// baseUrl is the organization (https://dev.azure.com/<org>) or, on premises, the Azure DevOps Server collection
+// (e.g. https://tfs.example.com/tfs/DefaultCollection). Omitted means Azure DevOps Services for organization.
+export interface AzureConfig { organization: string; project: string; team: string; baseUrl?: string; apiVersion?: string }
+
+// Normalises a base URL: https only, no credentials, query or fragment. A dev.azure.com address keeps only the
+// organization segment, so a pasted project URL also works; an on-prem collection URL is kept as given.
+export function normalizeBaseUrl(value: string) {
+  let url: URL
+  try { url = new URL(value.trim()) } catch { throw new Error('Enter the base URL: https://dev.azure.com/<organization>, or your Azure DevOps Server collection URL.') }
+  if (url.protocol !== 'https:' || url.username || url.password) throw new Error('The base URL must use https and must not contain a user name or password.')
+  if (url.search || url.hash) throw new Error('Remove the ? or # part from the base URL.')
+  const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+  if (url.hostname === 'dev.azure.com') {
+    if (!parts[0]) throw new Error('The base URL must include the organization: https://dev.azure.com/<organization>.')
+    return `https://dev.azure.com/${encodeURIComponent(parts[0])}`
+  }
+  return `${url.origin}${parts.map(encodeURIComponent).map((part) => `/${part}`).join('')}`
+}
+export const isCloudBase = (baseUrl: string) => new URL(baseUrl).hostname === 'dev.azure.com'
+export function collectionUrl(config: Pick<AzureConfig, 'organization' | 'baseUrl'>) { return config.baseUrl ? normalizeBaseUrl(config.baseUrl) : `https://dev.azure.com/${encodeURIComponent(config.organization)}` }
+export const projectApiBase = (config: Pick<AzureConfig, 'organization' | 'project' | 'baseUrl'>) => `${collectionUrl(config)}/${encodeURIComponent(config.project)}`
+// Azure DevOps Services accepts 7.1; older Azure DevOps Server versions need a lower version (e.g. 6.0 or 5.0).
+export const apiVersionOf = (config: Pick<AzureConfig, 'apiVersion'>) => config.apiVersion && /^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(config.apiVersion) ? config.apiVersion : '7.1'
 export interface AzureRequest extends AzureConfig {
   operation: 'backlog-epics' | 'areas' | 'iterations' | 'iteration-tree' | 'query' | 'items' | 'create-feature' | 'create-child' | 'update-time-writing-effort'
   pat: string
@@ -99,14 +121,27 @@ declare global {
   interface Window { azureDevOps?: { request: AzureTransport } }
 }
 
-export function parseAzureProjectUrl(input: string): AzureConfig {
+export function parseAzureProjectUrl(input: string, baseUrl?: string): AzureConfig {
   const url = new URL(input)
-  if (url.protocol !== 'https:' || url.hostname !== 'dev.azure.com' || url.username || url.password) throw new Error('Use an https://dev.azure.com organization/project URL.')
-  const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)
-  if (parts.length < 2) throw new Error('The URL must include the organization and project.')
+  if (url.username || url.password || url.protocol !== 'https:') throw new Error('Use an https Azure DevOps project URL.')
+  const base = baseUrl ? normalizeBaseUrl(baseUrl) : ''
+  if (!base || isCloudBase(base)) {
+    if (url.hostname !== 'dev.azure.com') throw new Error('Use an https://dev.azure.com organization/project URL, or set the base URL of your Azure DevOps Server collection.')
+    const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)
+    if (parts.length < 2) throw new Error('The URL must include the organization and project.')
+    const backlog = parts.indexOf('_backlogs')
+    const team = backlog >= 0 && parts[backlog + 1] === 'backlog' ? parts[backlog + 2] ?? '' : ''
+    return { organization: parts[0], project: parts[1], team }
+  }
+  // Azure DevOps Server: <collection URL>/<project>[/_backlogs/backlog/<team>/…]; organization = collection name.
+  const normalized = `${url.origin}${url.pathname.split('/').filter(Boolean).map((part) => `/${encodeURIComponent(decodeURIComponent(part))}`).join('')}`
+  if (!normalized.toLowerCase().startsWith(`${base.toLowerCase()}/`)) throw new Error('The project URL does not belong to the configured base URL.')
+  const parts = normalized.slice(base.length).split('/').filter(Boolean).map(decodeURIComponent)
+  if (!parts[0]) throw new Error('The URL must include the project.')
   const backlog = parts.indexOf('_backlogs')
   const team = backlog >= 0 && parts[backlog + 1] === 'backlog' ? parts[backlog + 2] ?? '' : ''
-  return { organization: parts[0], project: parts[1], team }
+  const collection = new URL(base).pathname.split('/').filter(Boolean).map(decodeURIComponent).at(-1) ?? new URL(base).hostname
+  return { organization: collection, project: parts[0], team, baseUrl: base }
 }
 
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`
@@ -171,7 +206,9 @@ export async function fetchAzureWorkItems(config: AzureConfig, pat: string, tran
 }
 
 export function sameAzureScope(left: AzureConfig | undefined | null, right: AzureConfig | undefined | null) {
-  return Boolean(left && right && ['organization', 'project', 'team'].every((key) => typeof left[key as keyof AzureConfig] === 'string' && typeof right[key as keyof AzureConfig] === 'string' && left[key as keyof AzureConfig].toLowerCase() === right[key as keyof AzureConfig].toLowerCase()))
+  if (!left || !right) return false
+  const same = (key: 'organization' | 'project' | 'team') => typeof left[key] === 'string' && typeof right[key] === 'string' && left[key].toLowerCase() === right[key].toLowerCase()
+  try { return collectionUrl(left).toLowerCase() === collectionUrl(right).toLowerCase() && same('organization') && same('project') && same('team') } catch { return false }
 }
 
 export function savedBacklogItems(items: AzureWorkItem[], scope: AzureBacklogScope | undefined, config: AzureConfig | null) {
@@ -201,7 +238,7 @@ export function mapAzureWorkItem(item: RawItem, config: AzureConfig): AzureWorkI
     parentId: typeof fields['System.Parent'] === 'number' ? fields['System.Parent'] : parentFromRelation(item),
     targetDate: date('Microsoft.VSTS.Scheduling.TargetDate'), closedDate: date('Microsoft.VSTS.Common.ClosedDate'),
     changedDate: date('System.ChangedDate'), tags: text('System.Tags'),
-    url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/${encodeURIComponent(config.project)}/_workitems/edit/${item.id}`,
+    url: `${projectApiBase(config)}/_workitems/edit/${item.id}`,
     syncedAt: new Date().toISOString(),
   }
 }
@@ -283,7 +320,7 @@ export function featurePatch(config: AzureConfig, feature: FeatureInput & { area
     { op: 'add', path: '/fields/System.Title', value: feature.title },
     { op: 'add', path: '/fields/System.AreaPath', value: feature.areaPath },
     { op: 'add', path: '/fields/System.Description', value: htmlText(feature.description) },
-    { op: 'add', path: '/relations/-', value: { rel: 'System.LinkTypes.Hierarchy-Reverse', url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/${encodeURIComponent(config.project)}/_apis/wit/workItems/${feature.parentId}` } },
+    { op: 'add', path: '/relations/-', value: { rel: 'System.LinkTypes.Hierarchy-Reverse', url: `${projectApiBase(config)}/_apis/wit/workItems/${feature.parentId}` } },
   ]
   if (feature.acceptanceCriteria.trim()) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Common.AcceptanceCriteria', value: htmlText(feature.acceptanceCriteria) })
   if (feature.iterationPath) patch.push({ op: 'add', path: '/fields/System.IterationPath', value: feature.iterationPath })
@@ -404,7 +441,7 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
 
 export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (window.azureDevOps) return window.azureDevOps.request(request)
-  const base = `https://dev.azure.com/${encodeURIComponent(request.organization)}/${encodeURIComponent(request.project)}`
+  const base = projectApiBase(request)
   const writing = request.operation === 'create-feature' || request.operation === 'create-child' || request.operation === 'update-time-writing-effort'
   const readingMetadata = request.operation === 'backlog-epics' || request.operation === 'areas' || request.operation === 'iterations' || request.operation === 'iteration-tree'
   const create = request.operation === 'create-feature' || request.operation === 'create-child'
@@ -412,7 +449,7 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   const body = request.operation === 'update-time-writing-effort' ? [{ ...(request.planHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate', value: request.planHours }) }, { ...(request.actualHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: request.actualHours }) }, ...(request.tags ? [{ op: 'add', path: '/fields/System.Tags', value: request.tags }] : [])].filter(patch => 'op' in patch) : create ? featurePatch(request, request.feature!) : request.operation === 'query' ? { query: request.query } : { ids: request.ids, errorPolicy: 'Fail', $expand: 'Relations' }
   let response: Response
   try {
-    const url = `${base}/${endpoint}?api-version=7.1${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
+    const url = `${base}/${endpoint}?api-version=${apiVersionOf(request)}${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
     response = await fetch(url, {
       method: readingMetadata ? 'GET' : request.operation === 'update-time-writing-effort' ? 'PATCH' : 'POST', redirect: 'error', credentials: 'omit',
       headers: { Authorization: `Basic ${btoa(`:${request.pat}`)}`, 'Content-Type': writing ? 'application/json-patch+json' : 'application/json', Accept: 'application/json' },
