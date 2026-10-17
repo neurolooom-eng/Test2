@@ -1,20 +1,22 @@
 import { useState } from 'react'
-import type { MasterValue, UserRole } from '../domain'
+import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
-import { EmptyState, Notice, Page, Panel, Pill } from '../components/ui'
-import { formatDate, formatDateTime, monthName } from '../format'
-import { normalizeCapacitySettings } from '../capacity'
+import { EmptyState, Notice, Page, Panel, Pill, type Tone } from '../components/ui'
+import { formatDate, formatDateTime, formatHours, formatPercent, monthName } from '../format'
+import { azureResources, normalizeCapacitySettings, type LoadStatus } from '../capacity'
+import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { PageProps } from './types'
 
-const roles: UserRole[] = ['Owner', 'Admin', 'ProcessOwner', 'Contributor', 'Viewer']
+const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
+const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`))
 
-export function AdminPage({ store, month }: PageProps) {
+export function AdminPage({ store, month, azure, onOpenConnection }: PageProps & { azure: AzureWorkspace; onOpenConnection: () => void }) {
   const [reason, setReason] = useState('Approved operational extension')
-  const [resourceMessage, setResourceMessage] = useState('')
   const [capacityMessage, setCapacityMessage] = useState('')
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
   const period = store.state.periods.find((item) => item.month === month)
   const capacity = normalizeCapacitySettings(store.state.capacitySettings)
+  const resources = azureResources(azure.items, month, capacity)
 
   function toggle(kind: 'planning' | 'actuals') {
     const now = new Date().toISOString()
@@ -43,29 +45,6 @@ export function AdminPage({ store, month }: PageProps) {
       }
       return draft
     })
-  }
-
-  function setRole(id: string, role: UserRole) {
-    store.update((draft) => { const person = draft.people.find((item) => item.id === id); if (person) person.role = role; return draft })
-  }
-
-  function addResource(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    const data = new FormData(form)
-    const name = String(data.get('name') ?? '').trim()
-    const email = String(data.get('email') ?? '').trim().toLowerCase()
-    const role = data.get('role') as UserRole
-    if (!name || !email) return
-    if (store.state.people.some((person) => person.email.toLowerCase() === email)) { setResourceMessage('A resource with this email already exists.'); return }
-    const now = new Date().toISOString()
-    store.update((draft) => {
-      const id = crypto.randomUUID()
-      draft.people.push({ id, name, email, role, active: true })
-      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Create', entity: 'Resource', entityId: id, detail: `${name} added as ${role}` })
-      return draft
-    })
-    form.reset(); setResourceMessage(`${name} is now available for assignment.`)
   }
 
   function addMaster(event: React.FormEvent<HTMLFormElement>) {
@@ -113,18 +92,15 @@ export function AdminPage({ store, month }: PageProps) {
         <div className="control-card"><div><strong>Actuals</strong><p>Deadline: {formatDate(period?.actualsDeadline, `${month}-05 (default)`)}</p></div><Pill tone={period?.actualsLocked ? 'locked' : 'open'}>{period?.actualsLocked ? 'Locked' : 'Open'}</Pill><button className="primary" onClick={() => toggle('actuals')}>{period?.actualsLocked ? 'Unlock' : 'Lock'}</button><label>Extend until<input type="date" onChange={(event) => extend('actuals', event.target.value)} /></label></div>
       </Panel>
     </div>
-    <div className="admin-grid">
-      <Panel eyebrow="RBAC" title="People and roles">
-        <form className="resource-form" onSubmit={addResource}><div className="form-row"><label>Name<input name="name" required placeholder="Resource name" /></label><label>Work email<input name="email" type="email" required placeholder="name@philips.com" /></label></div><div className="form-row"><label>App role<select name="role" defaultValue="Contributor"><option>Contributor</option><option>ProcessOwner</option><option>Viewer</option><option>Admin</option><option>Owner</option></select></label><button className="primary resource-add-button">＋ Add resource</button></div></form>
-        {resourceMessage && <Notice>{resourceMessage}</Notice>}
-        {store.state.people.map((person) => <div className="people-row" key={person.id}><div><strong>{person.name}</strong><small>{person.email || 'Email not supplied during migration'}</small></div><select value={person.role} onChange={(event) => setRole(person.id, event.target.value as UserRole)}>{roles.map((role) => <option key={role}>{role}</option>)}</select></div>)}
-        {!store.state.people.length && <EmptyState title="No people yet." detail="Add a resource above or import the workbook under Migration." />}
-      </Panel>
-      <Panel eyebrow="MASTER DATA" title="Admin-controlled dropdowns">
+    <Panel className="admin-section" eyebrow="AZURE DEVOPS" title="Resources" detail="Read from Azure: everyone assigned to a Time Writing Task, including absence. Add or remove people in Azure DevOps; the list follows the next refresh." action={<Pill tone={resources.length ? 'open' : 'neutral'}>{resources.length} {resources.length === 1 ? 'person' : 'people'}</Pill>}>
+      {resources.length ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Status in {shortMonthName(month)}</th><th>Utilization</th><th>Booked (h)</th><th>Absence (h)</th><th>Tasks</th><th>Months booked</th><th>Main streams</th></tr></thead><tbody>{resources.map((person) => <tr key={person.name}><td><strong>{person.name}</strong></td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatPercent(person.utilization)}</td><td>{formatHours(person.work)}</td><td>{formatHours(person.absence)}</td><td>{person.tasks}</td><td>{person.months}<small>{person.firstMonth === person.lastMonth ? shortMonthName(person.firstMonth) : `${shortMonthName(person.firstMonth)} – ${shortMonthName(person.lastMonth)}`}</small></td><td>{person.streams.slice(0, 2).join(', ') || '—'}{person.streams.length > 2 && <small>+{person.streams.length - 2} more</small>}</td></tr>)}</tbody></table></div>
+        : <EmptyState title="No resources from Azure yet." detail="Refresh from Azure DevOps; people appear once they are Assigned To a Time Writing Task." />}
+      {!resources.length && <div className="button-row"><button className="primary" onClick={onOpenConnection}>Open Azure connection</button></div>}
+    </Panel>
+    <Panel className="admin-section" eyebrow="MASTER DATA" title="Admin-controlled dropdowns">
         <form className="inline-form" onSubmit={addMaster}><select name="type"><option>Release Type</option><option>Activity Type</option><option>Status</option><option>Resource Band</option><option>Complexity</option></select><input name="value" required placeholder="New value" /><button className="primary">Add</button></form>
         {store.state.masters.map((item) => <div className="master-row" key={item.id}><span>{item.type}</span><strong>{item.value}</strong><Pill tone={item.active ? 'open' : 'neutral'}>{item.active ? 'Active' : 'Inactive'}</Pill></div>)}
-      </Panel>
-    </div>
+    </Panel>
     <Panel eyebrow="AUDIT" title="Recent changes">
       {store.state.audits.slice(0, 8).map((item) => <div className="audit-row" key={item.id}><span>{item.action}</span><div><strong>{item.entity}</strong><small>{item.detail}</small></div><time>{formatDateTime(item.timestamp)}</time></div>)}
       {!store.state.audits.length && <EmptyState title="No changes recorded yet." detail="Changes made in the app will appear here." />}

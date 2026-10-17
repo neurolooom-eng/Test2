@@ -86,3 +86,20 @@ test('sample has unplanned work spread across several streams, enough for a Pare
   assert.ok(problems.adhoc.epic.length >= 3, `ad-hoc Epics: ${problems.adhoc.epic.length}`); assert.ok(problems.overrun.feature.length >= 3)
   assert.ok(problems.adhoc.share > 0 && problems.adhoc.share < 25)
 })
+
+import { azureResources } from '../src/capacity.ts'
+test('resource list comes from Azure assignees and reconciles with the monthly capacity model', () => {
+  const { items } = sampleDataset({ organization: 'Org', project: 'Quality', team: 'T' }, '2026-10')
+  const resources = azureResources(items, '2026-10')
+  const series = monthlyHours(items, '2026-10', 12)
+  const october = capacityModel(items, '2026-10')
+  assert.deepEqual(resources.map((person) => person.name), october.people.map((person) => person.name).sort())
+  assert.equal(resources.reduce((sum, person) => sum + person.work, 0), series.reduce((sum, point) => sum + (point.actual ?? 0), 0))
+  assert.equal(resources.reduce((sum, person) => sum + person.absence, 0), series.reduce((sum, point) => sum + point.absence, 0))
+  for (const person of resources) {
+    const model = october.people.find((entry) => entry.name === person.name)
+    assert.equal(person.status, model.status); assert.equal(person.utilization, model.utilization)
+    assert.ok(person.firstMonth <= person.lastMonth && person.months >= 1 && person.streams.length >= 1)
+  }
+  assert.deepEqual(azureResources([], '2026-10'), [])
+})
