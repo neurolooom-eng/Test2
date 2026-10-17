@@ -1,7 +1,7 @@
 import { useId, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { formatHours, formatPercent } from '../format'
 import type { MonthlyHours, StreamSummary } from '../capacity'
-import { arcPath, barPath, columnPath, compactNumber, longMonth, monthTick, niceTicks, paretoSeries, useElementWidth, type EpicColors } from '../chartUtils'
+import { arcPath, barPath, columnPath, compactNumber, longMonth, monthTick, niceTicks, paretoSeries, useElementWidth, wrapLabel, type EpicColors } from '../chartUtils'
 
 // Combination charts share ONE unit per plot (never a second y-axis): utilization bars + planned-utilization line
 // are both %, Epic stacks + available line are both hours. Marks carry series colour; all text wears text tokens.
@@ -177,45 +177,75 @@ export function EpicBulletChart({ streams, colors }: { streams: StreamSummary[];
   </div></ChartFrame>
 }
 
-// Pareto on ONE % axis: bars = each Epic's share of booked hours (largest first), line = cumulative share, reference
-// line at the threshold. The "vital few" up to the crossing stay solid; the long tail is muted (emphasis, not colour).
-export function ParetoChart({ streams, colors, threshold = 80 }: { streams: { key: string; title: string; work: number }[]; colors: EpicColors; threshold?: number }) {
+// Pareto on ONE % axis: bars = each cause's share of the problem (largest first), line = cumulative share, reference
+// line at the threshold. The vital few up to the crossing stay solid; the long tail is muted (emphasis, not colour).
+// Bars carry the colour of their Epic. Fewer than three causes is not a Pareto: those render as a short ranked list.
+export interface ParetoItem { key: string; title: string; work: number; colorKey?: string; group?: string }
+export function ParetoChart({ items, colors, noun, measure, threshold = 80, shortLabel }: { items: ParetoItem[]; colors: EpicColors; noun: string; measure: string; threshold?: number; shortLabel?: (title: string) => string }) {
   const [wrap, width] = useElementWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
   const [table, setTable] = useState(false)
   const id = useId()
-  const data = paretoSeries(streams, threshold)
+  const data = paretoSeries(items, threshold)
+  const plural = (count: number) => `${count} ${noun}${count === 1 ? '' : 's'}`
+  const colorOf = (item: ParetoItem) => colors.colorOf(item.colorKey ?? item.key)
+  if (data.length < 3) return <div className="viz-few">
+    <p className="muted">{data.length ? `Only ${plural(data.length)} with ${measure} — too few for a Pareto, listed instead.` : `No ${measure} in this range.`}</p>
+    {data.map((item) => <div key={item.key} className="viz-few-row"><i style={{ background: colorOf(item) }} aria-hidden="true" /><span title={item.title}>{item.title}{item.group && item.group !== item.title && <small>{item.group}</small>}</span><b>{formatHours(item.work)}h</b><small>{formatPercent(item.share, 0)}</small></div>)}
+  </div>
   const vitalCount = data.filter((item) => item.vital).length
-  const height = 300, pad = { top: 26, right: 46, bottom: 40, left: 46 }
+  const height = 320, pad = { top: 26, right: 46, bottom: 56, left: 46 }
   const plotWidth = Math.max(10, width - pad.left - pad.right), plotHeight = height - pad.top - pad.bottom
-  const band = plotWidth / Math.max(1, data.length)
+  const band = plotWidth / data.length
   const x = (index: number) => pad.left + band * (index + 0.5)
   const y = (value: number) => pad.top + plotHeight - Math.min(100, value) / 100 * plotHeight
   const barWidth = Math.min(28, band * 0.6)
   const line = data.map((item, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(item.cumulative).toFixed(1)}`).join(' ')
   const crossing = vitalCount - 1
   const current = hover == null ? undefined : data[hover]
-  const maxLabel = Math.max(4, Math.floor(band / 7))
+  const maxChars = Math.max(4, Math.floor(band / 6.6))
   const indexAt = (event: PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); return Math.min(data.length - 1, Math.max(0, Math.floor((event.clientX - rect.left - pad.left) / band))) }
-  const legend = <><LegendBar color="var(--text-3)" label="Share of booked hours (Epic colour)" /><LegendLine color="var(--viz-capacity)" label="Cumulative share" /></>
-  if (!data.length) return null
+  const legend = <><LegendBar color="var(--text-3)" label={`Share of ${measure} (Epic colour)`} /><LegendLine color="var(--viz-capacity)" label="Cumulative share" /></>
   return <ChartFrame legend={legend} table={table} setTable={setTable}><div ref={wrap}>
-    {table ? <div className="azure-table"><table className="viz-table"><thead><tr><th>Epic</th><th>Booked (h)</th><th>Share</th><th>Cumulative</th><th>Vital few</th></tr></thead><tbody>{data.map((item) => <tr key={item.key}><td>{item.title}</td><td>{formatHours(item.work)}</td><td>{formatPercent(item.share)}</td><td>{formatPercent(item.cumulative)}</td><td>{item.vital ? 'Yes' : ''}</td></tr>)}</tbody></table></div>
+    {table ? <div className="azure-table"><table className="viz-table"><thead><tr><th>{noun}</th><th>Epic</th><th>Hours</th><th>Share</th><th>Cumulative</th><th>Vital few</th></tr></thead><tbody>{data.map((item) => <tr key={item.key}><td>{item.title}</td><td>{item.group ?? '—'}</td><td>{formatHours(item.work)}</td><td>{formatPercent(item.share)}</td><td>{formatPercent(item.cumulative)}</td><td>{item.vital ? 'Yes' : ''}</td></tr>)}</tbody></table></div>
     : <div className="viz-plot">
       <svg className="viz-fixed" width={width} height={height} style={{ width, height }} viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${id}-title`} tabIndex={0} onPointerMove={(event) => setHover(indexAt(event))} onPointerLeave={() => setHover(null)} onKeyDown={(event) => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); setHover((value) => Math.min(data.length - 1, Math.max(0, (value ?? -1) + (event.key === 'ArrowLeft' ? -1 : 1)))) } else if (event.key === 'Escape') setHover(null) }}>
-        <title id={`${id}-title`}>Pareto of booked hours by Epic: share per Epic and cumulative share</title>
+        <title id={`${id}-title`}>{`Pareto of ${measure} by ${noun}: share per ${noun} and cumulative share`}</title>
         {[0, 25, 50, 75, 100].map((tick) => <g key={tick}><line className="viz-grid" x1={pad.left} x2={pad.left + plotWidth} y1={y(tick)} y2={y(tick)} /><text className="viz-tick" x={pad.left - 8} y={y(tick)} textAnchor="end" dominantBaseline="middle">{tick}%</text></g>)}
         <line className="viz-reference" x1={pad.left} x2={pad.left + plotWidth} y1={y(threshold)} y2={y(threshold)} /><text className="viz-reference-label" x={pad.left + plotWidth + 6} y={y(threshold)} dominantBaseline="middle">{threshold}%</text>
         {hover != null && <rect className="viz-selected-band" x={x(hover) - band / 2 + 2} y={pad.top} width={Math.max(4, band - 4)} height={plotHeight} rx={4} />}
-        {data.map((item, index) => <path key={item.key} className={item.vital ? 'viz-bar viz-bar-active' : 'viz-bar viz-pareto-tail'} d={columnPath(x(index) - barWidth / 2, y(item.share), barWidth, pad.top + plotHeight - y(item.share))} fill={colors.colorOf(item.key)} />)}
+        {data.map((item, index) => <path key={item.key} className={item.vital ? 'viz-bar viz-bar-active' : 'viz-bar viz-pareto-tail'} d={columnPath(x(index) - barWidth / 2, y(item.share), barWidth, pad.top + plotHeight - y(item.share))} fill={colorOf(item)} />)}
         <path d={line} fill="none" stroke="var(--viz-capacity)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         {data.map((item, index) => <circle key={item.key} className="viz-marker" cx={x(index)} cy={y(item.cumulative)} r={index === crossing || index === hover ? 5 : 4} fill="var(--viz-capacity)" />)}
-        {crossing >= 0 && <text className="viz-value-label" x={x(crossing)} y={y(data[crossing].cumulative) - 12} textAnchor={crossing === data.length - 1 ? 'end' : 'middle'}>{formatPercent(data[crossing].cumulative, 0)} in {vitalCount} Epic{vitalCount === 1 ? '' : 's'}</text>}
-        {data.map((item, index) => <text key={item.key} className="viz-tick" x={x(index)} y={height - pad.bottom + 18} textAnchor="middle"><title>{item.title}</title>{item.title.length > maxLabel ? `${item.title.slice(0, maxLabel - 1)}…` : item.title}</text>)}
+        {crossing >= 0 && <text className="viz-value-label" x={x(crossing)} y={y(data[crossing].cumulative) - 12} textAnchor={crossing === data.length - 1 ? 'end' : crossing === 0 ? 'start' : 'middle'}>{`${formatPercent(data[crossing].cumulative, 0)} from ${plural(vitalCount)}`}</text>}
+        {data.map((item, index) => <text key={item.key} className="viz-tick" x={x(index)} y={height - pad.bottom + 16} textAnchor="middle"><title>{item.title}</title>{wrapLabel(shortLabel ? shortLabel(item.title) : item.title, maxChars).map((lineText, lineIndex) => <tspan key={lineIndex} x={x(index)} dy={lineIndex ? 13 : 0}>{lineText}</tspan>)}</text>)}
       </svg>
-      {current && hover != null && <Tooltip left={x(hover)} width={width}><strong>{current.title}</strong><TooltipRow color={colors.colorOf(current.key)} value={formatPercent(current.share)} label={`share · ${formatHours(current.work)} h`} /><TooltipRow color="var(--viz-capacity)" value={formatPercent(current.cumulative)} label="cumulative" /><small>{current.vital ? `Part of the ${vitalCount} Epic${vitalCount === 1 ? '' : 's'} that make up ${threshold}% of booked hours` : 'Long tail'}</small></Tooltip>}
+      {current && hover != null && <Tooltip left={x(hover)} width={width}><strong>{current.title}</strong><TooltipRow color={colorOf(current)} value={`${formatHours(current.work)} h`} label={`${formatPercent(current.share, 0)} of ${measure}`} /><TooltipRow color="var(--viz-capacity)" value={formatPercent(current.cumulative, 0)} label="cumulative" /><small>{current.group && current.group !== current.title ? `${current.group} · ` : ''}{current.vital ? `one of the ${plural(vitalCount)} behind ${threshold}%` : 'long tail'}</small></Tooltip>}
     </div>}
   </div></ChartFrame>
+}
+
+// Diverging heatmap: people × months, each cell = utilization (booked ÷ available). Neutral grey at the midpoint
+// (the overloaded threshold), blue below = spare capacity, red above = overloaded. It is an HTML table, so the
+// numbers are always readable without hovering and it doubles as the table view.
+export function UtilizationHeatmap({ series, selected, onSelect, midpoint }: { series: MonthlyHours[]; selected: string; onSelect?: (month: string) => void; midpoint: number }) {
+  const months = series.filter((point) => point.byPerson.some((person) => person.utilization != null))
+  const cellOf = (point: MonthlyHours, name: string) => point.byPerson.find((person) => person.name === name)
+  const average = (name: string) => { const values = months.map((point) => cellOf(point, name)?.utilization).filter((value): value is number => value != null); return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null }
+  const overloadedMonths = (name: string) => months.filter((point) => (cellOf(point, name)?.utilization ?? -1) >= midpoint).length
+  const names = [...new Set(months.flatMap((point) => point.byPerson.map((person) => person.name)))].sort((a, b) => (average(b) ?? -1) - (average(a) ?? -1) || a.localeCompare(b))
+  const fill = (value: number | null | undefined) => {
+    if (value == null) return undefined
+    const strength = Math.round(Math.min(1, Math.abs(value - midpoint) / 40) * 62)
+    return `color-mix(in srgb, ${value >= midpoint ? 'var(--viz-diverge-hi)' : 'var(--viz-diverge-lo)'} ${strength}%, var(--viz-diverge-mid))`
+  }
+  if (!months.length) return null
+  return <div className="viz-root">
+    <div className="viz-toolbar"><div className="viz-scale" aria-hidden="true"><span>Spare capacity</span><i className="viz-scale-bar" /><span>Overloaded</span><small>grey = {midpoint}%</small></div></div>
+    <div className="azure-table"><table className="viz-heatmap"><thead><tr><th>Person</th>{months.map((point, index) => <th key={point.month} className={point.month === selected ? 'viz-heat-selected' : ''}><button type="button" className="viz-heat-month" aria-pressed={point.month === selected} onClick={() => onSelect?.(point.month)}>{monthTick(point.month, index)}</button></th>)}<th>Average</th><th>Months ≥ {midpoint}%</th></tr></thead>
+      <tbody>{names.map((name) => <tr key={name}><td><strong>{name}</strong></td>{months.map((point) => { const cell = cellOf(point, name); return <td key={point.month} className={`viz-heat ${point.month === selected ? 'viz-heat-selected' : ''}`} style={{ background: fill(cell?.utilization) }} title={cell?.utilization != null ? `${name} · ${longMonth(point.month)}: ${formatPercent(cell.utilization)} (${formatHours(cell.work)}h of ${formatHours(cell.available)}h available) · ${cell.status}` : `${name} · ${longMonth(point.month)}: no bookings`}>{cell?.utilization != null ? formatPercent(cell.utilization, 0) : '·'}</td> })}<td className="viz-heat-avg" style={{ background: fill(average(name)) }}>{formatPercent(average(name), 0)}</td><td className="viz-heat-count">{overloadedMonths(name)} of {months.length}</td></tr>)}</tbody>
+    </table></div>
+  </div>
 }
 
 // Donut for part-to-whole with a few slices (≤ 6). 2px surface gaps between slices; the centre shows the total, or the
