@@ -535,15 +535,15 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Open Overview, Monthly and Assigned to Me.
 - Expected: that Task appears on none of them.
 
-**TC-QV-05 Releases register** — Req QV-12…14 — L1 `release-source.test.mjs`.
+**TC-QV-05 Releases and Name/Release columns** — Req QV-12…15 — L1 `release-source.test.mjs`, `query-view.test.mjs`.
 - L3 steps:
   1. Open the release-source view (TD-01).
-  2. Switch to Documents, then reload.
+  2. Open another read-only view whose items have "…\Name\Release x.y.z" in their Area or Iteration Path.
 - Expected:
-  - The Register is grouped by stream and shows the release, name, approved date, documents, and "Tracked · n" or "Not tracked".
+  - The release-source view is one page with no tabs. The Releases list is flat (no stream grouping), with Name, Release, approved date, documents, and "Tracked · n" or "Not tracked". The documents table is below it.
   - Expanding a release lists its documents.
-  - The selected section survives the reload.
-  - Documents shows the query table.
+  - DP | Dose Planning | v4.2 in the sample backlog tracks Dose Planning · 4.2, and v4.2 does not track 4.20.
+  - Both views show the Name and Release columns after the ID. QMS-0025 shows neither.
 
 ### 6.9 Overview and capacity
 
@@ -920,7 +920,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-04 | TC-FET-07 |
 | QV-06…10 | TC-QV-03 |
 | QV-11 | TC-QV-04 |
-| QV-12…14 | TC-QV-05 |
+| QV-12…15 | TC-QV-05 |
 | OVR-01…04 | TC-OVR-01 |
 | OVR-05 | TC-OVR-02 |
 | OVR-06…08 | TC-OVR-03 |

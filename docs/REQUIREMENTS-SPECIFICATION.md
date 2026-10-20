@@ -295,9 +295,10 @@ Stakeholders:
 | QV-09 | "Export CSV" shall download the filtered rows with the shown columns. Values containing `"`, `,`, CR or LF shall be quoted. | T | S | UC-08 |
 | QV-10 | The table shall show at most 500 rows, with a note when more match. | D | C | UC-08 |
 | QV-11 | Read-only view items shall not count in Overview, Monthly Time Writing or Assigned to Me. | T | M | UC-08 |
-| QV-12 | A release-source view shall offer the sections "Register · {n} releases" and "Documents · {n}", remembering the selected one in localStorage `demand-planning-release-tab-v1`. | D | M | UC-08 |
-| QV-13 | The Register shall group releases by stream. The release is taken from the Area Path (last segment, or the configured release pattern), and the stream from the segment above it. Each release shall show its approval date and document count, and "Tracked · {n}" or "Not tracked" depending on whether a Feature, User Story or Task in the Time Writing backlog names it. | T | M | UC-08 |
-| QV-14 | The Documents section shall show the release documents as a query view (QV-03 to QV-10). | D | M | UC-08 |
+| QV-12 | Every read-only Azure DevOps view shall be its own sidebar page with no tabs inside it. A release-source view shall show, on one page, the Releases list (QV-13) above the documents (QV-14). | D | M | UC-08 |
+| QV-13 | The Releases list shall be one flat list with no grouping by stream: one row per Name + Release, read from the documents' Area Path, else their Iteration Path, where a segment "Release x.y.z" gives the release and the segment above it the name. Each row shall show the approval date, the document count, and "Tracked · {n}" or "Not tracked" depending on whether a Feature, User Story or Task in the Time Writing backlog has a title naming both the name and the exact release number. | T | M | UC-08 |
+| QV-14 | The documents shall be shown as a query view (QV-03 to QV-10). |  D | M | UC-08 |
+| QV-15 | When any item of a read-only view has a release in its paths (QV-13), the view shall show the columns Name and Release after the ID. The QMS-0025 Time Writing backlog shall not use this. | T | S | UC-08 |
 
 ### 3.9 Overview (OVR) — UC-09, UC-10
 
@@ -526,7 +527,7 @@ These describe as-built behaviour that is ambiguous, inconsistent, or may not ma
 | UC-05 | TWN-08, MON-18, MON-19 |
 | UC-06 | TWN-09, ATM-01…14 |
 | UC-07 | BKL-01…12 |
-| UC-08 | QV-01…14, FET-07, FET-08, FET-18, FET-19 |
+| UC-08 | QV-01…15, FET-07, FET-08, FET-18, FET-19 |
 | UC-09 | OVR-01…05, CAP-01…09 |
 | UC-10 | OVR-06…09 |
 | UC-11 | BAS-01…11 |

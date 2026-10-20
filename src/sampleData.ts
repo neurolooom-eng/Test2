@@ -134,8 +134,9 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
   }
   const scope: AzureBacklogScope = { organization: config.organization, project: config.project, team, itemKeys: items.map((item) => item.key), areaPaths: [areaPath], fetchedAt }
 
-  // Read-only release source (DHFI): approved documents whose Area Path carries the release identifier; only the
-  // DP, CP, IOCC and Content streams release. Author Approval Date decides the month a release counts as completed.
+  // Read-only release source (DHFI): approved documents whose Area Path carries the release ("DHFI\<Name>\Release x.y");
+  // only the DP, CP, IOCC and Content products release. Author Approval Date decides the month a release counts as completed.
+  const productNames: Record<string, string> = { DP: 'Dose Planning', CP: 'Care Pathways', IOCC: 'Operations Console', Content: 'Clinical Library' }
   const releases: Array<[string, Array<[string, number]>]> = [
     ['DP', [['v4.2', 0], ['v4.1', -1], ['v3.9', -3]]], ['CP', [['v3.1', 0], ['v2.8', -2], ['v2.7', -4]]],
     ['IOCC', [['v2.3', 0], ['v2.2', -1], ['v2.0', -5]]], ['Content', [['v7.0', 0], ['v6.4', -1], ['v6.3', -2], ['v6.0', -4]]],
@@ -145,7 +146,7 @@ export function sampleDataset(config: AzureConfig, month: string): { items: Azur
   for (const [stream, versions] of releases) for (const [version, offset] of versions) for (let copy = 0; copy < (offset === 0 ? 2 : 1); copy++) {
     const itemId = ++docId
     const approvalMonth = shiftMonth(month, offset)
-    docs.push({ key: `${config.organization.toLowerCase()}/dhfi/${itemId}`, id: itemId, organization: config.organization, project: 'DHFI', title: `${copy ? 'Verification Summary' : 'Design Review Approval'} — ${stream} ${version}`, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath: `DHFI\\${stream}\\${version}`, iterationPath: `DHFI\\${approvalMonth.slice(0, 4)}`, tags: '', syncedAt: fetchedAt, approvalDate: day(approvalMonth, 4 + docId % 20 + copy * 3), url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/DHFI/_workitems/edit/${itemId}` })
+    docs.push({ key: `${config.organization.toLowerCase()}/dhfi/${itemId}`, id: itemId, organization: config.organization, project: 'DHFI', title: `${copy ? 'Verification Summary' : 'Design Review Approval'} — ${stream} ${version}`, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath: `DHFI\\${productNames[stream]}\\Release ${version.replace(/^v/, '')}`, iterationPath: `DHFI\\${approvalMonth.slice(0, 4)}`, tags: '', syncedAt: fetchedAt, approvalDate: day(approvalMonth, 4 + docId % 20 + copy * 3), url: `https://dev.azure.com/${encodeURIComponent(config.organization)}/DHFI/_workitems/edit/${itemId}` })
   }
   // Release planning records (Source, Program, Title, Type, milestone dates); kept separate from Azure data.
   const plans: ReleasePlan[] = [

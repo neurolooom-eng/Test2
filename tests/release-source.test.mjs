@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { releaseQueryWhere, pagedReleaseQuery, fetchReleaseSource, releaseIdentifier, streamOf, releaseRegister, normalizeReleaseSourceSettings } from '../src/releaseSource.ts'
+import { releaseQueryWhere, pagedReleaseQuery, fetchReleaseSource, releaseRegister, normalizeReleaseSourceSettings } from '../src/releaseSource.ts'
+import { releaseFromPath, releaseOf } from '../src/releasePath.ts'
 
 const config = { organization: 'org', project: 'DHFI', team: '' }
 const doc = (id, areaPath, extra = {}) => ({ key: `org/dhfi/${id}`, id, title: `Doc ${id}`, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath, iterationPath: '', tags: '', url: '', organization: 'org', project: 'DHFI', syncedAt: '', ...extra })
@@ -27,24 +28,28 @@ test('fetchReleaseSource pages the query, reads items in batches and keeps the q
   assert.deepEqual(calls.map((call) => call.operation), ['query', 'items', 'query'])
   await assert.rejects(fetchReleaseSource(config, '', 'SELECT [System.Id] FROM WorkItems WHERE 1=1', transport), /PAT/)
 })
-test('release identifier is the last area segment (or a capture pattern) and the stream is the configured segment', () => {
-  const item = doc(1, 'DHFI\\Stream A\\Rel 12.3')
-  assert.equal(releaseIdentifier(item), 'Rel 12.3'); assert.equal(streamOf(item), 'Stream A')
-  assert.equal(releaseIdentifier(doc(2, 'DHFI')), '', 'project-only area path has no release')
-  assert.equal(streamOf(doc(3, 'DHFI\\Rel 1')), 'Unmapped', 'release directly below the project has no stream')
-  assert.equal(releaseIdentifier(item, { streamSegment: 1, releasePattern: 'Rel\\s*([\\d.]+)' }), '12.3')
-  assert.equal(releaseIdentifier(item, { streamSegment: 1, releasePattern: '(' }), 'Rel 12.3', 'invalid pattern falls back')
-  assert.deepEqual(normalizeReleaseSourceSettings({ streamSegment: '2', releasePattern: ' Rel(\\d+) ' }), { streamSegment: 2, releasePattern: 'Rel(\\d+)' })
-  assert.deepEqual(normalizeReleaseSourceSettings({ streamSegment: 0, releasePattern: '(' }), { streamSegment: 1 })
+test('name and release are read from a "Release x.y.z" path segment, Area Path first, then Iteration Path', () => {
+  assert.deepEqual(releaseFromPath('DHP\\DoseNav\\Release 2.1.0'), { name: 'DoseNav', release: '2.1.0' })
+  assert.deepEqual(releaseFromPath('DHP\\DoseNav\\Release 2.1.0\\Sprint 4'), { name: 'DoseNav', release: '2.1.0' })
+  assert.deepEqual(releaseFromPath('DHP\\Clinical Library\\release v7.0'), { name: 'Clinical Library', release: '7.0' })
+  assert.deepEqual(releaseFromPath('DHP\\Release 3'), { name: 'DHP', release: '3' })
+  assert.equal(releaseFromPath('DHP\\DoseNav\\Sprint 4'), undefined)
+  assert.equal(releaseFromPath('Release 1.0'), undefined, 'a release segment needs a name above it')
+  assert.equal(releaseFromPath(''), undefined)
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\DoseNav\\Release 2.1.0', iterationPath: 'DHP\\Other\\Release 9.9' }), { name: 'DoseNav', release: '2.1.0' })
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\Team A', iterationPath: 'DHP\\DoseNav\\Release 2.2\\Sprint 1' }), { name: 'DoseNav', release: '2.2' })
+  assert.deepEqual(normalizeReleaseSourceSettings({ streamSegment: 2, releasePattern: 'x', approvalDateField: 'Custom.Approved' }), { approvalDateField: 'Custom.Approved' })
+  assert.deepEqual(normalizeReleaseSourceSettings(undefined), {})
 })
-test('the register lists releases per stream, counts documents, and cross-checks the time-writing backlog', () => {
-  const source = [doc(1, 'DHFI\\Stream A\\Rel2'), doc(2, 'DHFI\\Stream A\\Rel2'), doc(3, 'DHFI\\Stream A\\Rel10'), doc(4, 'DHFI\\Stream B\\Rel1'), doc(5, 'DHFI\\Rel9'), doc(6, 'DHFI')]
-  const backlog = [doc(100, 'X', { project: 'Quality', workItemType: 'Feature', title: 'Program | Service | Rel2' }), doc(101, 'X', { project: 'Quality', workItemType: 'Task', title: 'October 2026 | rel10 work', state: 'Removed' })]
+test('the register is one flat list of name + release, counts documents and cross-checks the time-writing backlog', () => {
+  const source = [doc(1, 'DHFI\\DoseNav\\Release 2.1'), doc(2, 'DHFI\\DoseNav\\Release 2.1'), doc(3, 'DHFI\\DoseNav\\Release 2.10'), doc(4, 'DHFI\\Team', { iterationPath: 'DHFI\\Viewer\\Release 1.0\\Sprint 2' }), doc(5, 'DHFI\\Misc')]
+  const backlog = [doc(100, 'X', { project: 'Quality', workItemType: 'Feature', title: 'DP | DoseNav | v2.1' }), doc(101, 'X', { project: 'Quality', workItemType: 'Task', title: 'October 2026 | DoseNav 2.10', state: 'Removed' })]
   const register = releaseRegister(source, backlog)
-  assert.deepEqual(register.map((stream) => stream.summary), ['Stream A (2): Rel2, Rel10', 'Stream B (1): Rel1', 'Unmapped (1): Rel9'])
-  const streamA = register[0]
-  assert.equal(streamA.releases[0].documents, 2); assert.equal(streamA.releases[0].tracked, true); assert.equal(streamA.releases[0].trackedBy[0].id, 100)
-  assert.equal(streamA.releases[1].tracked, false, 'removed backlog items do not count as tracking')
+  assert.deepEqual(register.map((entry) => [entry.name, entry.release, entry.documents]), [['DoseNav', '2.10', 1], ['DoseNav', '2.1', 2], ['Viewer', '1.0', 1]])
+  const r21 = register.find((entry) => entry.release === '2.1')
+  assert.equal(r21.tracked, true); assert.equal(r21.trackedBy[0].id, 100)
+  assert.equal(register.find((entry) => entry.release === '2.10').tracked, false, 'v2.1 does not track 2.10, and removed items do not count')
+  assert.equal('stream' in register[0], false, 'no stream grouping')
   assert.deepEqual(releaseRegister(undefined, backlog), [])
 })
 
@@ -63,15 +68,14 @@ test('Author Approval Date is read from the configured field or any approval-dat
   assert.equal(approvalDateFrom({ 'Custom.AuthorApprovalDate': '2026-10-09T10:00:00Z', 'System.CreatedDate': '2026-01-01T00:00:00Z' }), '2026-10-09T10:00:00Z')
   assert.equal(approvalDateFrom({ 'Custom.DateOfApproval': '2026-10-09T10:00:00Z' }), '2026-10-09T10:00:00Z')
   assert.equal(approvalDateFrom({ 'Custom.Other': '2026-10-09T10:00:00Z' }), undefined)
-  assert.equal(approvalDateFrom({ 'Custom.Other': '2026-10-09T10:00:00Z' }, { streamSegment: 1, approvalDateField: 'Custom.Other' }), '2026-10-09T10:00:00Z')
+  assert.equal(approvalDateFrom({ 'Custom.Other': '2026-10-09T10:00:00Z' }, { approvalDateField: 'Custom.Other' }), '2026-10-09T10:00:00Z')
   assert.equal(approvalDateFrom({ 'Custom.AuthorApprovalDate': 'not a date' }), undefined)
   assert.equal(approvalMonthOf('2026-10-31T20:00:00Z'), '2026-11', 'approval month is bucketed in India time')
 })
-test('completed releases are those approved in the selected month, with identifier and name', () => {
-  const source = [doc(1, 'DHFI\\DP\\v4.2', { title: 'Design Review Approval — DP v4.2', approvalDate: '2026-10-12T09:00:00Z' }), doc(2, 'DHFI\\DP\\v4.2', { title: 'Verification Summary — DP v4.2', approvalDate: '2026-10-20T09:00:00Z' }), doc(3, 'DHFI\\CP\\v3.1', { title: 'Design Review Approval — CP v3.1', approvalDate: '2026-09-12T09:00:00Z' }), doc(4, 'DHFI\\Content\\v7.0', { title: 'No approval yet' })]
+test('completed releases are those approved in the selected month', () => {
+  const source = [doc(1, 'DHFI\\Dose Planning\\Release 4.2', { title: 'Design Review Approval', approvalDate: '2026-10-12T09:00:00Z' }), doc(2, 'DHFI\\Dose Planning\\Release 4.2', { title: 'Verification Summary', approvalDate: '2026-10-20T09:00:00Z' }), doc(3, 'DHFI\\Care Pathways\\Release 3.1', { approvalDate: '2026-09-12T09:00:00Z' }), doc(4, 'DHFI\\Clinical Library\\Release 7.0', { title: 'No approval yet' })]
   const register = releaseRegister(source, [doc(100, 'X', { project: 'Quality', workItemType: 'Feature', title: 'DP | Dose Planning | v4.2' })])
-  const completed = completedReleases(register, '2026-10')
-  assert.deepEqual(completed.map((release) => [release.stream, release.id, release.name, release.approvalDate, release.tracked]), [['DP', 'v4.2', 'Verification Summary — DP v4.2', '2026-10-20T09:00:00Z', true]])
-  assert.deepEqual(completedReleases(register, '2026-09').map((release) => release.id), ['v3.1'])
-  assert.equal(register.find((stream) => stream.stream === 'Content').releases[0].approvalMonth, undefined)
+  assert.deepEqual(completedReleases(register, '2026-10').map((release) => [release.name, release.release, release.approvalDate, release.tracked]), [['Dose Planning', '4.2', '2026-10-20T09:00:00Z', true]])
+  assert.deepEqual(completedReleases(register, '2026-09').map((release) => release.release), ['3.1'])
+  assert.equal(register.find((release) => release.name === 'Clinical Library').approvalMonth, undefined)
 })
