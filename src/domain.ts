@@ -166,6 +166,7 @@ export interface AzureWorkItem {
   workItemType: string
   state: string
   assignedTo: string
+  assignedToEmail?: string
   areaPath: string
   iterationPath: string
   parentId?: number

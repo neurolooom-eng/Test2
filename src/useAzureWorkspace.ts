@@ -147,6 +147,18 @@ export function useAzureWorkspace(store: PageProps['store']) {
     })
   }
 
+  // Merges work items that were changed or created in Azure (and verified) into the preview and the saved cache.
+  function applyWorkItems(incoming: AzureWorkItem[], action: string, detail: string) {
+    if (!incoming.length) return
+    setPreview((current) => current ? { ...current, items: mergeAzureWorkItems(current.items, incoming), scope: { ...current.scope, itemKeys: [...new Set([...current.scope.itemKeys, ...incoming.map((item) => item.key)])] } } : current)
+    store.update((draft) => {
+      draft.azureWorkItems = mergeAzureWorkItems(draft.azureWorkItems ?? [], incoming)
+      if (draft.azureBacklogScope && sameAzureScope(draft.azureBacklogScope, config)) draft.azureBacklogScope.itemKeys = [...new Set([...draft.azureBacklogScope.itemKeys, ...incoming.map((item) => item.key)])]
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action, entity: 'AzureDevOps work item', entityId: incoming.map((item) => `#${item.id}`).join(', ').slice(0, 200), detail })
+      return draft
+    })
+  }
+
   async function saveTimeWritingEffort(workItemId: number, planHours: number | undefined, actualHours: number | undefined, markAdhoc = false) {
     if (!config) throw new Error('Configure a valid Azure DevOps project first.')
     const updated = await updateAzureTimeWritingEffort(config, pat, workItemId, planHours, actualHours, markAdhoc)
@@ -270,7 +282,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPreview(null); setMessage(`${incoming.length} team-backlog records loaded into the app cache. Check browser save status for persistence. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>
