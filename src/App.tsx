@@ -66,7 +66,7 @@ export default function App() {
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} />}
-      {page === 'board' && <BoardPage azure={azure} store={store} views={views} current={view} onSelect={openView} onOpenConnection={openConnection} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} current={view} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
     </main>

@@ -27,3 +27,7 @@ export function exportStateJson(state: AppState) {
   saveBlob(JSON.stringify(state, null, 2), 'application/json', `demand-planning-backup-${new Date().toISOString().slice(0, 10)}.json`)
 }
 
+
+export function downloadCsv(contents: string, filename: string) {
+  saveBlob(`﻿${contents}`, 'text/csv;charset=utf-8', filename)
+}
