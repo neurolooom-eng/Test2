@@ -1,11 +1,14 @@
 import type { AzureConnectionProfileSummary } from './azureCredentials.ts'
 
-// Tabs on the Backlogs page: the active Time Writing backlog first (read & write), then every "Backlog view"
-// connection in the order they were added (read only). Tab names are the connection names.
+// The Azure DevOps views, shown in the sidebar and as tabs on the backlog page. The first is the active Time Writing
+// backlog (read & write), named QMS-0025 unless renamed in Settings. Then every connection saved as "Backlog view"
+// (read only), in the order added: a view appears only once it is configured.
+export const defaultTimeWritingViewName = 'QMS-0025'
 export interface BacklogView { id: string; name: string; readOnly: boolean }
-export function backlogViews(profiles: Pick<AzureConnectionProfileSummary, 'id' | 'reason' | 'role'>[], activeId: string): BacklogView[] {
+
+export function backlogViews(profiles: Pick<AzureConnectionProfileSummary, 'id' | 'reason' | 'role'>[], activeId: string, timeWritingName?: string): BacklogView[] {
   const timeWriting = profiles.find((profile) => profile.id === activeId && profile.role === 'time-tracking') ?? profiles.find((profile) => profile.role === 'time-tracking')
-  return [{ id: timeWriting?.id ?? 'time-writing', name: timeWriting?.reason || 'Backlog', readOnly: false }, ...profiles.filter((profile) => profile.role === 'backlog-view').map((profile) => ({ id: profile.id, name: profile.reason, readOnly: true }))]
+  return [{ id: timeWriting?.id ?? 'time-writing', name: timeWritingName?.trim() || defaultTimeWritingViewName, readOnly: false }, ...profiles.filter((profile) => profile.role === 'backlog-view').map((profile) => ({ id: profile.id, name: profile.reason, readOnly: true }))]
 }
 
 const tabKey = 'demand-planning-backlog-tab-v1'

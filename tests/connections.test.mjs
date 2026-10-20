@@ -170,12 +170,14 @@ test('desktop download: fixed links to the rolling release, OS detection', () =>
 })
 
 import { backlogViews } from '../src/backlogViews.ts'
-test('Backlog tabs: active Time Writing backlog first, then read-only views in saved order', () => {
+test('Azure DevOps views: QMS-0025 first, then only configured backlog views in saved order', () => {
   const profiles = [
     { id: 'tw1', reason: 'Old TW', role: 'time-tracking' }, { id: 'dp', reason: 'Digital Platform', role: 'backlog-view' },
-    { id: 'tw2', reason: 'QMS-0025', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view' },
+    { id: 'tw2', reason: 'Time Writing', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view' },
   ]
   assert.deepEqual(backlogViews(profiles, 'tw2'), [{ id: 'tw2', name: 'QMS-0025', readOnly: false }, { id: 'dp', name: 'Digital Platform', readOnly: true }, { id: 'cp', name: 'Clinical Platform', readOnly: true }])
   assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
-  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'Backlog', readOnly: false }])
+  assert.equal(backlogViews(profiles, 'tw2', 'My Backlog')[0].name, 'My Backlog', 'the Time Writing view can be renamed in Settings')
+  assert.equal(backlogViews(profiles, 'tw2', '  ')[0].name, 'QMS-0025')
+  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false }], 'unconfigured views are not listed')
 })

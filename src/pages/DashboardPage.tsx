@@ -23,7 +23,7 @@ function LevelToggle({ value, onChange }: { value: Level; onChange: (value: Leve
 type View = 'team' | 'individual'
 const viewKey = 'demand-planning-overview-view-v1'
 
-export function DashboardPage({ month, azure, navigate, store, setMonth, my }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
+export function DashboardPage({ month, azure, navigate, store, setMonth, my, backlogName = 'Backlog' }: { backlogName?: string; month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
   const settings = capacityContext(store.state)
   const [view, setViewState] = useState<View>(() => { try { return localStorage.getItem(viewKey) === 'individual' ? 'individual' : 'team' } catch { return 'team' } })
   const [person, setPerson] = useState('')
@@ -48,7 +48,7 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my }: {
   const otherStreams = model.streams.slice(maxMatrixStreams)
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
   return <Page>
-    <AzureSourceBar azure={azure} onOpenConnection={() => navigate('admin')}><button className="ghost" onClick={() => navigate('board')}>Open Backlogs</button></AzureSourceBar>
+    <AzureSourceBar azure={azure} onOpenConnection={() => navigate('admin')}><button className="ghost" onClick={() => navigate('board')}>Open {backlogName}</button></AzureSourceBar>
     <div className="view-switch" role="group" aria-label="Overview for">
       <span>Overview for</span>
       {(['team', 'individual'] as const).map((value) => <button key={value} type="button" className={view === value ? 'primary' : 'ghost'} aria-pressed={view === value} onClick={() => setView(value)}>{value === 'team' ? 'Team' : 'Individual'}</button>)}
