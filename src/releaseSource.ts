@@ -1,25 +1,23 @@
 import type { AzureWorkItem } from './domain'
 import { mapAzureWorkItem, requestAzure, type AzureConfig, type AzureRequest } from './azureDevOps.ts'
 import { pickFields, queryLayout } from './queryView.ts'
+import { releaseOf } from './releasePath.ts'
+import { isMonthTask, timeWritingStoryIds } from './azureInsights.ts'
 
 // Read-only release source: a second Azure project (e.g. DHFI) queried with a saved WIQL query.
-// Approved documents carry the release identifier in their Area Path; streams group those releases.
-export interface ReleaseSourceSettings { streamSegment: number; releasePattern?: string; approvalDateField?: string }
-export const defaultReleaseSourceSettings: ReleaseSourceSettings = { streamSegment: 1 }
+// Approved documents carry their release in the Area or Iteration Path ("…\Name\Release x.y.z", see releasePath).
+export interface ReleaseSourceSettings { approvalDateField?: string }
+export const defaultReleaseSourceSettings: ReleaseSourceSettings = {}
 export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
-export interface ReleaseEntry { id: string; name: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; approvalDate?: string; approvalMonth?: string }
-export interface StreamReleases { stream: string; releases: ReleaseEntry[]; summary: string }
+export interface ReleaseEntry { key: string; name: string; release: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; planned: number; booked: number; hourTasks: number; approvalDate?: string; approvalMonth?: string }
 
 type Transport = (request: AzureRequest) => Promise<unknown>
 
+// Earlier settings (stream segment, release pattern) are no longer used and are dropped.
 export function normalizeReleaseSourceSettings(value: unknown): ReleaseSourceSettings {
   const input = (value && typeof value === 'object' ? value : {}) as Partial<Record<keyof ReleaseSourceSettings, unknown>>
-  const segment = Number(input.streamSegment)
-  const pattern = typeof input.releasePattern === 'string' && input.releasePattern.trim() ? input.releasePattern.trim() : undefined
   const approvalDateField = typeof input.approvalDateField === 'string' && /^[\w.]{1,120}$/.test(input.approvalDateField.trim()) ? input.approvalDateField.trim() : undefined
-  const base = { streamSegment: Number.isInteger(segment) && segment >= 1 ? segment : 1, ...(approvalDateField ? { approvalDateField } : {}) }
-  if (pattern) { try { new RegExp(pattern, 'i') } catch { return base } }
-  return { ...base, ...(pattern ? { releasePattern: pattern } : {}) }
+  return approvalDateField ? { approvalDateField } : {}
 }
 
 // Accept a flat work-item query as pasted from Azure DevOps. Only its WHERE clause is kept so paging
@@ -105,21 +103,10 @@ export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql:
   return { organization: config.organization, project: config.project, query: wiql.trim(), fetchedAt: new Date().toISOString(), items }
 }
 
-const segments = (areaPath: string) => areaPath.split('\\').map((part) => part.trim()).filter(Boolean)
-
-// Release identifier: the configured capture pattern over the Area Path, else its last segment below the project.
-export function releaseIdentifier(item: Pick<AzureWorkItem, 'areaPath'>, settings: ReleaseSourceSettings = defaultReleaseSourceSettings) {
-  if (settings.releasePattern) {
-    try { const match = new RegExp(settings.releasePattern, 'i').exec(item.areaPath); if (match) return (match[1] ?? match[0]).trim() } catch { /* invalid pattern: fall back to the last segment */ }
-  }
-  const parts = segments(item.areaPath)
-  return parts.length > 1 ? parts[parts.length - 1] : ''
-}
-
-// Stream: the Area Path segment at the configured depth (1 = first level below the project), only when the release sits deeper.
-export function streamOf(item: Pick<AzureWorkItem, 'areaPath'>, settings: ReleaseSourceSettings = defaultReleaseSourceSettings) {
-  const parts = segments(item.areaPath)
-  return parts.length > settings.streamSegment + 1 ? parts[settings.streamSegment] : 'Unmapped'
+// Month of an item in the read-only ADS views (India time): its approval date (Author Approval Date or any approval-date
+// field), else its Changed Date.
+export function viewMonthOf(item: Pick<AzureWorkItem, 'approvalDate' | 'changedDate' | 'fields'>) {
+  return approvalMonthOf(item.approvalDate ?? approvalDateFrom(item.fields ?? {}) ?? item.changedDate)
 }
 
 export function approvalMonthOf(date: string | undefined) {
@@ -128,28 +115,41 @@ export function approvalMonthOf(date: string | undefined) {
   return `${parts.find((part) => part.type === 'year')!.value}-${parts.find((part) => part.type === 'month')!.value}`
 }
 
-// Releases completed in a month: those whose approval date falls in it, with identifier, name and stream.
-export function completedReleases(register: StreamReleases[], month: string) {
-  return register.flatMap((stream) => stream.releases.filter((release) => release.approvalMonth === month).map((release) => ({ ...release, stream: stream.stream }))).sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.id.localeCompare(b.id, undefined, { numeric: true }))
+// Releases completed in a month: those whose approval date falls in it.
+export function completedReleases(register: ReleaseEntry[], month: string) {
+  return register.filter((release) => release.approvalMonth === month).sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.key.localeCompare(b.key, undefined, { numeric: true }))
 }
 
-export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: AzureWorkItem[], settings: ReleaseSourceSettings = defaultReleaseSourceSettings): StreamReleases[] {
-  const streams = new Map<string, Map<string, ReleaseEntry>>()
+// One row per release (name + release from the documents' paths), no grouping by stream: document count, the latest
+// approval date, and whether the Time Writing backlog tracks it (a Feature, User Story or Task whose title names
+// both the name and the release number, e.g. "DP | DoseNav | v2.1.0").
+// Planned and booked hours: Original Estimate and Completed Work, all months, on the Time Writing Tasks (month Tasks
+// or Tasks under a Time Writing story) under the Features that track the release, plus tracking Tasks themselves;
+// each Task is counted once.
+export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: AzureWorkItem[]): ReleaseEntry[] {
+  const entries = new Map<string, ReleaseEntry>()
   for (const item of source ?? []) {
-    const release = releaseIdentifier(item, settings)
-    if (!release) continue
-    const stream = streamOf(item, settings)
-    const byRelease = streams.get(stream) ?? new Map<string, ReleaseEntry>()
-    streams.set(stream, byRelease)
-    const entry = byRelease.get(release.toLowerCase()) ?? { id: release, name: item.title, documents: 0, items: [], tracked: false, trackedBy: [] }
+    const found = releaseOf(item)
+    if (!found) continue
+    const key = `${found.name}\u0000${found.release}`.toLowerCase()
+    const entry = entries.get(key) ?? { key: `${found.name} ${found.release}`, name: found.name, release: found.release, documents: 0, items: [], tracked: false, trackedBy: [], planned: 0, booked: 0, hourTasks: 0 }
     entry.documents += 1; entry.items.push(item)
-    // The release's approval is the latest approved document's Author Approval Date.
-    if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate); entry.name = item.title }
-    byRelease.set(release.toLowerCase(), entry)
+    if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate) }
+    entries.set(key, entry)
   }
-  const trackedBy = (release: string) => backlog.filter((item) => ['Feature', 'User Story', 'Task'].includes(item.workItemType) && item.state.trim().toLowerCase() !== 'removed' && item.title.toLowerCase().includes(release.toLowerCase()))
-  return [...streams].map(([stream, byRelease]) => {
-    const releases = [...byRelease.values()].map((entry) => { const matches = trackedBy(entry.id); return { ...entry, tracked: matches.length > 0, trackedBy: matches } }).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    return { stream, releases, summary: `${stream} (${releases.length}): ${releases.map((release) => release.id).join(', ')}` }
-  }).sort((a, b) => (a.stream === 'Unmapped' ? 1 : 0) - (b.stream === 'Unmapped' ? 1 : 0) || b.releases.length - a.releases.length || a.stream.localeCompare(b.stream))
+  const names = (text: string, entry: ReleaseEntry) => { const title = text.toLowerCase(); return title.includes(entry.name.toLowerCase()) && new RegExp(`(^|[^\\d.])v?${entry.release.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\d.]*\\d)`, 'i').test(title) }
+  const live = backlog.filter((item) => item.state.trim().toLowerCase() !== 'removed')
+  const byId = new Map(live.map((item) => [item.id, item]))
+  const featureOf = (item: AzureWorkItem) => { let current: AzureWorkItem | undefined = item; for (let depth = 0; current && depth < 8; depth += 1) { if (current.workItemType === 'Feature') return current; current = current.parentId == null ? undefined : byId.get(current.parentId) } return undefined }
+  const storyIds = timeWritingStoryIds(live)
+  const timeWritingTasks = live.filter((item) => item.workItemType === 'Task' && (isMonthTask(item) || (item.parentId != null && storyIds.has(item.parentId))))
+  const hours = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0
+  return [...entries.values()].map((entry) => {
+    const trackedBy = live.filter((item) => ['Feature', 'User Story', 'Task'].includes(item.workItemType) && names(item.title, entry))
+    const features = new Set(trackedBy.map(featureOf).filter((feature): feature is AzureWorkItem => Boolean(feature)).map((feature) => feature.id))
+    const tasks = new Map(timeWritingTasks.filter((task) => features.has(featureOf(task)?.id ?? -1) || trackedBy.some((item) => item.id === task.id)).map((task) => [task.id, task]))
+    const planned = [...tasks.values()].reduce((sum, task) => sum + hours(task.originalEstimate), 0)
+    const booked = [...tasks.values()].reduce((sum, task) => sum + hours(task.completedWork), 0)
+    return { ...entry, tracked: trackedBy.length > 0, trackedBy, planned, booked, hourTasks: tasks.size }
+  }).sort((a, b) => a.name.localeCompare(b.name) || b.release.localeCompare(a.release, undefined, { numeric: true }))
 }

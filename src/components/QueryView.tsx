@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { cellValue, columnName, defaultViewColumns, formatCell, sortItems, viewCsv, viewSummary, type QueryColumn, type QueryOrder } from '../queryView'
+import { cellValue, columnName, defaultViewColumns, formatCell, sortItems, viewCsv, viewSummary, withReleaseColumns, type QueryColumn, type QueryOrder } from '../queryView'
 import { downloadCsv } from '../download'
 import { todayIso } from '../format'
 import { EmptyState } from './ui'
@@ -9,7 +9,7 @@ import { EmptyState } from './ui'
 // week), then the query's own columns. Click a heading to sort; search, state and type filters; CSV export.
 // unresolved: SELECT entries of the query that are not fields of the project (named in a notice instead of dropped silently).
 export function QueryView({ name, items, columns, orderBy = [], unresolved = [] }: { name: string; items: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[] }) {
-  const cols = columns?.length ? columns : defaultViewColumns.map((ref) => ({ ref, name: columnName(ref) }))
+  const cols = withReleaseColumns(columns?.length ? columns : defaultViewColumns.map((ref) => ({ ref, name: columnName(ref) })), items, (ref) => ({ ref, name: columnName(ref) }))
   const [search, setSearch] = useState('')
   const [state, setState] = useState('')
   const [type, setType] = useState('')

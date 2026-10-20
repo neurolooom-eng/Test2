@@ -119,7 +119,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Read the sidebar top to bottom.
 - Expected:
   - The groups read "Overview", "My Work", "Azure DevOps", "Data & governance", in that order.
-  - "My Work" holds "Assigned to Me" then "Monthly Time Writing".
+  - "My Work" holds "Assigned to Me", "Bulk actions", then "Monthly Time Writing".
   - "Data & governance" holds "Baselines", "Snapshots", "Settings", "Documentation".
   - No "Work items", "Feature milestones" or "Migration" entry exists.
   - Azure DevOps views are separate entries, with no tab row on their pages.
@@ -433,8 +433,9 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-ATM-02 Pending list** — Req ATM-04, ATM-05
 - Expected:
   - Closed, Resolved and Done items, Epics and absence items are absent.
-  - The order is Feature, Story, Bug, Task, then by ID.
+  - The list opens on the Feature chip and is always in ascending ID order, on every chip.
   - The type chips filter the list and show counts.
+  - The bulk panels are not on this page. "Bulk actions →" on the month-tasks metric opens the Bulk actions page, whose lists are also in ascending ID order.
 
 **TC-ATM-03 Finish an item** — Req ATM-06 — **UAT**
 - Steps:
@@ -535,15 +536,15 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Open Overview, Monthly and Assigned to Me.
 - Expected: that Task appears on none of them.
 
-**TC-QV-05 Releases register** — Req QV-12…14 — L1 `release-source.test.mjs`.
+**TC-QV-05 Releases, Name/Release columns and month filter** — Req QV-12…16 — month: `viewMonthOf` (approval date in India time, else approval-date field, else Changed Date); browser check: picker shown on read-only views and not on QMS-0025, “All months” shows every item — L1 `release-source.test.mjs` (incl. planned/booked hours per release: month Tasks only, Removed excluded, no double counting), `query-view.test.mjs`.
 - L3 steps:
   1. Open the release-source view (TD-01).
-  2. Switch to Documents, then reload.
+  2. Open another read-only view whose items have "…\Name\Release x.y.z" in their Area or Iteration Path.
 - Expected:
-  - The Register is grouped by stream and shows the release, name, approved date, documents, and "Tracked · n" or "Not tracked".
+  - The release-source view is one page with no tabs. The Releases list is flat (no stream grouping), with Name, Release, approved date, documents, and "Tracked · n" or "Not tracked". The documents table is below it.
   - Expanding a release lists its documents.
-  - The selected section survives the reload.
-  - Documents shows the query table.
+  - DP | Dose Planning | v4.2 in the sample backlog tracks Dose Planning · 4.2, and v4.2 does not track 4.20.
+  - Both views show the Name and Release columns after the ID. QMS-0025 shows neither.
 
 ### 6.9 Overview and capacity
 
@@ -920,7 +921,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-04 | TC-FET-07 |
 | QV-06…10 | TC-QV-03 |
 | QV-11 | TC-QV-04 |
-| QV-12…14 | TC-QV-05 |
+| QV-12…16 | TC-QV-05 |
 | OVR-01…04 | TC-OVR-01 |
 | OVR-05 | TC-OVR-02 |
 | OVR-06…08 | TC-OVR-03 |
