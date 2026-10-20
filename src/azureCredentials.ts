@@ -10,8 +10,8 @@ export interface AzurePatProfileSummary { id: string; purpose: string }
 // read-only backlog view shown as its own tab on the Backlogs page.
 export type AzureConnectionRole = 'time-tracking' | 'release-source' | 'documents' | 'reference' | 'backlog-view'
 export const azureConnectionRoles: AzureConnectionRole[] = ['time-tracking', 'backlog-view', 'release-source', 'documents', 'reference']
-export interface AzureConnectionProfile { id: string; url: string; reason: string; creatorEmail?: string; role?: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string; token: string }
-export interface AzureConnectionProfileSummary { id: string; url: string; reason: string; creatorEmail?: string; role: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string }
+export interface AzureConnectionProfile { id: string; url: string; reason: string; creatorEmail?: string; role?: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string; viewName?: string; showInMenu?: boolean; token: string }
+export interface AzureConnectionProfileSummary { id: string; url: string; reason: string; creatorEmail?: string; role: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string; viewName?: string; showInMenu?: boolean }
 const connectionProfilesKey = 'demand-planning-azure-connection-profiles-v1'
 const valid = (profile: unknown): profile is AzurePatProfile => Boolean(profile && typeof profile === 'object' && typeof (profile as AzurePatProfile).id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test((profile as AzurePatProfile).id) && typeof (profile as AzurePatProfile).purpose === 'string' && (profile as AzurePatProfile).purpose.trim().length > 0 && typeof (profile as AzurePatProfile).token === 'string' && (profile as AzurePatProfile).token.trim().length > 0)
 const validConnection = (profile: unknown): profile is AzureConnectionProfile => {
@@ -27,20 +27,26 @@ const validConnection = (profile: unknown): profile is AzureConnectionProfile =>
   if (value.apiVersion != null && (typeof value.apiVersion !== 'string' || !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(value.apiVersion))) return false
   if (value.role != null && !azureConnectionRoles.includes(value.role)) return false
   if (value.query != null && (typeof value.query !== 'string' || value.query.length > 50000)) return false
+  if ((value.viewName != null && (typeof value.viewName !== 'string' || value.viewName.length > 80)) || (value.showInMenu != null && typeof value.showInMenu !== 'boolean')) return false
   return value.creatorEmail == null || (typeof value.creatorEmail === 'string' && (!value.creatorEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.creatorEmail.trim())))
 }
 
 export function listAzureConnectionProfiles(storage: Pick<Storage, 'getItem'> = localStorage): AzureConnectionProfileSummary[] {
-  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).map(({ id, url, reason, creatorEmail, role, query, baseUrl, apiVersion }) => ({ id, url, reason, role: role ?? 'time-tracking', ...(creatorEmail?.trim() ? { creatorEmail: creatorEmail.trim() } : {}), ...(query?.trim() ? { query: query.trim() } : {}), ...(baseUrl ? { baseUrl } : {}), ...(apiVersion ? { apiVersion } : {}) })) : [] } catch { return [] }
+  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).map(({ id, url, reason, creatorEmail, role, query, baseUrl, apiVersion, viewName, showInMenu }) => ({ id, url, reason, role: role ?? 'time-tracking', ...(viewName?.trim() ? { viewName: viewName.trim() } : {}), ...(showInMenu != null ? { showInMenu } : {}), ...(creatorEmail?.trim() ? { creatorEmail: creatorEmail.trim() } : {}), ...(query?.trim() ? { query: query.trim() } : {}), ...(baseUrl ? { baseUrl } : {}), ...(apiVersion ? { apiVersion } : {}) })) : [] } catch { return [] }
 }
 export function loadAzureConnectionProfile(id: string, storage: Pick<Storage, 'getItem'> = localStorage) {
   try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); return Array.isArray(raw) ? raw.filter(validConnection).find(profile => profile.id === id) ?? null : null } catch { return null }
 }
 export function saveAzureConnectionProfile(profile: AzureConnectionProfile, storage: Pick<Storage, 'getItem'|'setItem'> = localStorage) {
   if (!validConnection(profile)) throw new Error('Provide a valid Azure DevOps URL, reason, creator email and PAT.')
-  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), ...(profile.baseUrl ? { baseUrl: normalizeBaseUrl(profile.baseUrl) } : {}), ...(profile.apiVersion?.trim() ? { apiVersion: profile.apiVersion.trim() } : {}), token: profile.token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
+  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), ...(profile.baseUrl ? { baseUrl: normalizeBaseUrl(profile.baseUrl) } : {}), ...(profile.apiVersion?.trim() ? { apiVersion: profile.apiVersion.trim() } : {}), viewName: profile.viewName?.trim() || undefined, token: profile.token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
   catch { throw new Error('This browser could not save the Azure DevOps configuration. Check local storage availability.') }
 }
+// Shown in the Azure DevOps menu: the explicit choice, else on for Time Writing and backlog views, off for backend-only
+// sources (releases, documents, reference). The view is named by its View name, else the connection name.
+export const defaultShowInMenu = (role: AzureConnectionRole) => role === 'time-tracking' || role === 'backlog-view'
+export const showsInMenu = (profile: Pick<AzureConnectionProfileSummary, 'role' | 'showInMenu'>) => profile.showInMenu ?? defaultShowInMenu(profile.role)
+export const viewNameOf = (profile: Pick<AzureConnectionProfileSummary, 'reason' | 'viewName'>) => profile.viewName?.trim() || profile.reason
 export function forgetAzureConnectionProfile(id: string, storage: Pick<Storage, 'getItem'|'setItem'> = localStorage) {
   try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== id) : []; storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
   catch { throw new Error('This browser could not remove the Azure DevOps configuration.') }
