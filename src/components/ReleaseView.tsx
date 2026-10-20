@@ -5,15 +5,18 @@ import { formatDate, formatHours } from '../format'
 import { QueryView } from './QueryView'
 import { EmptyState, Pill, TablePanel } from './ui'
 import type { QueryColumn, QueryOrder } from '../queryView'
+import { useColumnWidths } from './columnWidths'
 
 // Release source view, one page: the releases found in the documents' paths ("…\Name\Release x.y.z", Area Path first,
 // then Iteration Path) as a flat list — no grouping by stream — and below it the documents with the query's columns.
 export function ReleaseView({ name, items, backlog, columns, orderBy, unresolved }: { name: string; items: AzureWorkItem[]; backlog: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[] }) {
   const [open, setOpen] = useState('')
   const register = releaseRegister(items, backlog)
+  const widths = useColumnWidths(`releases:${name}`)
+  const headings = ['Name', 'Release', 'Approved', 'Documents', 'Time Writing', 'Planned (h)', 'Booked (h)']
   return <>
     <TablePanel title="Releases" detail="Name and release from each document's Area Path (else its Iteration Path): the segment “Release x.y.z” and the one above it. Tracked = a Feature, User Story or Task in the Time Writing backlog names both. Planned and booked = Original Estimate and Completed Work, all months, on the Time Writing Tasks under those Features." count={`${register.length} releases`}>
-      {register.length ? <table className="release-register"><thead><tr><th>Name</th><th>Release</th><th>Approved</th><th>Documents</th><th>Time Writing</th><th>Planned (h)</th><th>Booked (h)</th></tr></thead><tbody>
+      {register.length ? <table className="release-register resizable"><thead><tr>{headings.map((heading) => <th key={heading} style={widths.style(heading)}>{heading}{widths.handle(heading)}</th>)}</tr></thead><tbody>
         {register.flatMap((release) => [
           <tr key={release.key}>
             <td><button type="button" className="text-button" aria-expanded={open === release.key} onClick={() => setOpen(open === release.key ? '' : release.key)}>{open === release.key ? '▾' : '▸'} {release.name}</button></td>

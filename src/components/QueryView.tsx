@@ -4,6 +4,7 @@ import { cellValue, columnName, defaultViewColumns, formatCell, sortItems, viewC
 import { downloadCsv } from '../download'
 import { todayIso } from '../format'
 import { EmptyState } from './ui'
+import { useColumnWidths } from './columnWidths'
 
 // Read-only view of a connection's query results: a summary strip (by state, type and person; overdue; changed this
 // week), then the query's own columns. Click a heading to sort; search, state and type filters; CSV export.
@@ -15,6 +16,7 @@ export function QueryView({ name, items, columns, orderBy = [], unresolved = [] 
   const [type, setType] = useState('')
   const [sort, setSort] = useState<QueryOrder[]>(orderBy)
   const [today] = useState(todayIso)
+  const widths = useColumnWidths(`query:${name}`)
   const summary = useMemo(() => viewSummary(items, today), [items, today])
   const shown = useMemo(() => {
     const text = search.trim().toLowerCase()
@@ -31,9 +33,9 @@ export function QueryView({ name, items, columns, orderBy = [], unresolved = [] 
       <div className="summary-row"><span className="summary-label">Type</span>{chips(summary.byType, type, setType)}</div>
       <div className="summary-row"><span className="summary-label">People</span>{summary.byPerson.slice(0, 8).map(([person, count]) => <span key={person} className="summary-person">{person} <b>{count}</b></span>)}{summary.byPerson.length > 8 && <span className="muted">+{summary.byPerson.length - 8} more</span>}</div>
     </div>
-    <div className="query-toolbar"><input className="search" aria-label={`Search ${name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{shown.length} of {items.length} items{state || type ? ' · filtered' : ''}</span><button type="button" className="ghost" onClick={() => downloadCsv(viewCsv(shown, cols), `${name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
-    <div className="azure-table query-table"><table><thead><tr>{cols.map((column) => { const active = sort[0]?.ref === column.ref; return <th key={column.ref} aria-sort={active ? (sort[0].desc ? 'descending' : 'ascending') : 'none'}><button type="button" className="sort-button" title={column.ref} onClick={() => toggleSort(column.ref)}>{column.name}{active ? (sort[0].desc ? ' ↓' : ' ↑') : ''}</button></th> })}</tr></thead>
-      <tbody>{shown.slice(0, 500).map((item) => <tr key={item.key}>{cols.map((column) => <td key={column.ref}>{column.ref === 'System.Id' ? <a href={item.url} target="_blank" rel="noreferrer">{item.id}</a> : column.ref === 'System.Title' ? <a href={item.url} target="_blank" rel="noreferrer">{formatCell(cellValue(item, column.ref))}</a> : formatCell(cellValue(item, column.ref))}</td>)}</tr>)}</tbody></table></div>
+    <div className="query-toolbar"><input className="search" aria-label={`Search ${name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{shown.length} of {items.length} items{state || type ? ' · filtered' : ''}</span>{widths.resized && <button type="button" className="ghost" onClick={widths.reset}>Reset widths</button>}<button type="button" className="ghost" onClick={() => downloadCsv(viewCsv(shown, cols), `${name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
+    <div className="azure-table query-table"><table className="resizable"><thead><tr>{cols.map((column) => { const active = sort[0]?.ref === column.ref; return <th key={column.ref} style={widths.style(column.ref)} aria-sort={active ? (sort[0].desc ? 'descending' : 'ascending') : 'none'}><button type="button" className="sort-button" title={column.ref} onClick={() => toggleSort(column.ref)}>{column.name}{active ? (sort[0].desc ? ' ↓' : ' ↑') : ''}</button>{widths.handle(column.ref, column.name)}</th> })}</tr></thead>
+      <tbody>{shown.slice(0, 500).map((item) => <tr key={item.key}>{cols.map((column) => <td key={column.ref} style={widths.style(column.ref)}>{column.ref === 'System.Id' ? <a href={item.url} target="_blank" rel="noreferrer">{item.id}</a> : column.ref === 'System.Title' ? <a href={item.url} target="_blank" rel="noreferrer">{formatCell(cellValue(item, column.ref))}</a> : formatCell(cellValue(item, column.ref))}</td>)}</tr>)}</tbody></table></div>
     {shown.length > 500 && <p className="muted">Showing the first 500 of {shown.length} rows; search or filter to narrow, or export CSV for all.</p>}
   </div>
 }
