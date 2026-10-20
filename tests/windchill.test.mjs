@@ -27,6 +27,9 @@ test('desktop connection test: one GET to the service root; clear messages for r
   assert.deepEqual(calls, [['https://plm.example.com/Windchill/servlet/odata', 'GET']])
   assert.deepEqual([ok.ok, ok.services], [true, ['ProdMgmt', 'DocMgmt']])
   assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => new Response('', { status: 401 }))).message, /single sign-on/)
-  assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => new Response(null, { status: 302 }))).message, /sign-in page/)
+  const followed = []
+  const sameHost = await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async (url, options) => { followed.push(options.redirect); return { ok: true, status: 200, url: 'https://plm.example.com/Windchill/servlet/odata/', json: async () => ({ value: [{ name: 'DocMgmt' }] }) } })
+  assert.deepEqual([followed, sameHost.ok, sameHost.services], [['follow'], true, ['DocMgmt']], 'a redirect on the same host is followed, as in a browser')
+  assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => ({ ok: true, status: 200, url: 'https://login.example.com/sso', json: async () => ({}) }))).message, /sign-in page on login\.example\.com/)
   assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => { throw new Error('ENOTFOUND') })).message, /Could not reach/)
 })
