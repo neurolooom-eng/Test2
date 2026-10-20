@@ -60,7 +60,18 @@ export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
   })
 }
 
-// My pending items not yet in the target iteration (the current Sprint under the current PI).
-export function moveCandidates(items: AzureWorkItem[], me: Me, target: string, absenceEpicId?: number) {
-  return myPendingWork(items, me, absenceEpicId).filter(({ item }) => item.iterationPath.trim().toLowerCase() !== target.trim().toLowerCase())
+// Dated iterations from Azure (path + start/finish), as read for the Sprint picker.
+export interface DatedIteration { path: string; attributes?: { startDate?: string; finishDate?: string } }
+const indiaToday = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
+// A Sprint is past when its finish date is before today (India time). Undated or unknown iterations are not past.
+export function isPastSprint(path: string, iterations: DatedIteration[], date = new Date()) {
+  const sprint = iterations.find((item) => item.path.trim().toLowerCase() === path.trim().toLowerCase())
+  const finish = sprint?.attributes?.finishDate?.slice(0, 10)
+  return Boolean(finish && /^\d{4}-\d{2}-\d{2}$/.test(finish) && finish < indiaToday(date))
+}
+
+// Move to the current Sprint applies only to my pending User Stories sitting in a past Sprint. Stories already in the
+// current or a future Sprint, in an undated iteration (e.g. only the PI) and all other work item types are left alone.
+export function moveCandidates(items: AzureWorkItem[], me: Me, target: string, iterations: DatedIteration[], absenceEpicId?: number, date = new Date()) {
+  return myPendingWork(items, me, absenceEpicId).filter(({ item }) => item.workItemType === 'User Story' && item.iterationPath.trim().toLowerCase() !== target.trim().toLowerCase() && isPastSprint(item.iterationPath, iterations, date))
 }
