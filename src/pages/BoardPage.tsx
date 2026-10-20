@@ -5,17 +5,16 @@ import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
 import { formatDate, formatDateTime } from '../format'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
 import { loadAzureConnectionProfile } from '../azureCredentials'
-import { backlogViews, loadBacklogTab, saveBacklogTab } from '../backlogViews'
+import type { BacklogView } from '../backlogViews'
 import type { AzureConfig } from '../azureDevOps'
 import type { PageProps } from './types'
 
-export function BoardPage({ azure, store, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; onOpenConnection: () => void }) {
+// One page for all configured Azure DevOps views (listed in the sidebar and as tabs): the Time Writing backlog
+// (QMS-0025) and the read-only backlog-view connections.
+export function BoardPage({ azure, store, views, current, onSelect, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; views: BacklogView[]; current: BacklogView; onSelect: (id: string) => void; onOpenConnection: () => void }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
-  const views = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId)
-  const [tab, setTab] = useState(loadBacklogTab)
-  const current = views.find((view) => view.id === tab) ?? views[0]
-  const choose = (id: string) => { setTab(id); saveBacklogTab(id) }
+  const choose = onSelect
   const tabs = views.length > 1 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
   if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
@@ -25,7 +24,7 @@ export function BoardPage({ azure, store, onOpenConnection }: { azure: AzureWork
 
   return <Page className="backlog-page">
     <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
-    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} title={tabs ? current.name : undefined} tabs={tabs} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
+    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} title={current.name} tabs={tabs} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
     <details className="source-details"><summary>Source details and dates ({items.length} items)</summary>
       <Panel className="connection-panel" title={preview ? 'Work-item preview' : 'Saved work items'} detail={`${items.length} items · ${preview ? `Scope: ${preview.areaPaths.join(', ')}` : 'Refresh source data from connection settings.'}`} action={<input aria-label="Search work-item details" className="search" placeholder="Search ID, title, type or state" value={filter} onChange={(event) => setFilter(event.target.value)} />}>
         <div className="button-row">{[...counts].map(([type, count]) => <Pill key={type} tone="info">{type}: {count}</Pill>)}</div>
