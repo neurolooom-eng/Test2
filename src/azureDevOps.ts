@@ -302,7 +302,7 @@ export async function updateAzureTimeWritingEffort(config: AzureConfig, pat: str
   if (!Number.isSafeInteger(workItemId) || workItemId < 1 || (planHours == null && actualHours == null) || (planHours != null && !validHours(planHours)) || (actualHours != null && !validHours(actualHours))) throw new Error('Original Estimate and Completed Work must be numbers from 0 to 1,000,000 hours.')
   const source = await transport({ ...config, pat, operation: 'items', ids: [workItemId] }) as { value?: RawItem[] }
   const raw = source.value?.find((item) => item.id === workItemId)
-  // Only a Task whose title starts with a month and year (any delimiter, any parent story name) can be edited here.
+  // Only a Task whose title starts or ends with a month and year (any delimiter, any parent story name) can be edited here.
   if (!raw || raw.fields['System.WorkItemType'] !== 'Task' || !timeWritingMonth(String(raw.fields['System.Title'] ?? ''))) throw new Error('Only a month-named Time Writing Task can be updated from Monthly effort.')
   const existingTags = typeof raw.fields['System.Tags'] === 'string' ? raw.fields['System.Tags'] : ''
   const tags = markAdhoc && !existingTags.split(';').some(tag => tag.trim().toLowerCase() === 'ad-hoc') ? [...existingTags.split(';').map(tag => tag.trim()).filter(Boolean), 'ad-hoc'].join('; ') : undefined

@@ -108,6 +108,9 @@ import { timeWritingMonth, isTimeWritingStory, timeWritingGaps } from '../src/az
 test('Time Writing naming: month prefixes and story titles are matched tolerantly', () => {
   for (const title of ['October 2026 | DP', 'Oct 2026 - DP', 'october-2026: DP', 'OCT 2026 – DP', '2026-10 | DP', '2026/10 - DP', 'Oct, 2026 | DP', 'October 2026 / DP', 'October 2026 > DP', 'Oct. 2026 DP', 'October 2026', '[October 2026'.slice(1)]) assert.equal(timeWritingMonth(title), '2026-10', title)
   assert.equal(timeWritingMonth('Sept 2026 | x'), '2026-09')
+  for (const title of ['DP | October 2026', 'DP - Oct 2026', 'DP Oct. 2026', 'DP v4 (October 2026)', 'DP 2026-10', 'DP | Oct, 2026', 'DP v4 - october-2026']) assert.equal(timeWritingMonth(title), '2026-10', title)
+  assert.equal(timeWritingMonth('November 2026 | DP | Oct 2026'), '2026-11', 'a leading month wins')
+  for (const title of ['Release Octopus 2026', 'DP Mayday 2026', 'DP October 20261', 'DP 2026-13', 'Review October 2026 plan']) assert.equal(timeWritingMonth(title), undefined, title)
   for (const title of ['DP | Dose Planning | v4.2', 'Review October 2026 | x', '2026 | x', 'October 26 | x', 'Octopus 2026 | x', 'October 20261 | x', '2026-13 | x']) assert.equal(timeWritingMonth(title), undefined, title)
   for (const title of ['DP | Dose Planning | v4.2 - Time Writing', 'Time Writing - DP', 'DP Time writing', 'TimeWriting Q4', 'Time-Writing']) assert.equal(isTimeWritingStory({ workItemType: 'User Story', title }), true, title)
   assert.equal(isTimeWritingStory({ workItemType: 'User Story', title: 'Writing time estimates' }), false)

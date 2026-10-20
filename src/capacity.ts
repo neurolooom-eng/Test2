@@ -2,7 +2,7 @@ import type { AzureWorkItem } from './domain'
 import { isMonthTask, timeWritingMonth, workingDays } from './azureInsights.ts'
 import { isMine, type Me } from './myWork.ts'
 
-// Capacity model for the selected month. Source rows are the Tasks whose title starts with the month and year
+// Capacity model for the selected month. Source rows are the Tasks whose title starts or ends with the month and year
 // ("October 2026 | …", any delimiter), under any story; absence is everything under the
 // configured absence Epic, where each person has a Feature for PTO / Sick Leave / Unplanned Leave.
 export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; profiles?: Record<string, ResourceProfile> }
