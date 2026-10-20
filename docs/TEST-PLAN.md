@@ -119,7 +119,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Read the sidebar top to bottom.
 - Expected:
   - The groups read "Overview", "My Work", "Azure DevOps", "Data & governance", in that order.
-  - "My Work" holds "Assigned to Me" then "Monthly Time Writing".
+  - "My Work" holds "Assigned to Me", "Bulk actions", then "Monthly Time Writing".
   - "Data & governance" holds "Baselines", "Snapshots", "Settings", "Documentation".
   - No "Work items", "Feature milestones" or "Migration" entry exists.
   - Azure DevOps views are separate entries, with no tab row on their pages.
@@ -433,8 +433,9 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-ATM-02 Pending list** — Req ATM-04, ATM-05
 - Expected:
   - Closed, Resolved and Done items, Epics and absence items are absent.
-  - The order is Feature, Story, Bug, Task, then by ID.
+  - The list opens on the Feature chip and is always in ascending ID order, on every chip.
   - The type chips filter the list and show counts.
+  - The bulk panels are not on this page. "Bulk actions →" on the month-tasks metric opens the Bulk actions page, whose lists are also in ascending ID order.
 
 **TC-ATM-03 Finish an item** — Req ATM-06 — **UAT**
 - Steps:

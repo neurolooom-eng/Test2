@@ -136,7 +136,7 @@ Stakeholders:
 |---|---|---|---|---|
 | NAV-01 | The app shall show a sidebar with the groups, in this order: "Overview", "My Work", "Azure DevOps", "Data & governance". | D | M | UC-01 |
 | NAV-02 | The app shall list "Overview" under the group "Overview". | D | M | UC-01 |
-| NAV-03 | The app shall list "Assigned to Me" and "Monthly Time Writing", in that order, under the group "My Work". | D | M | UC-01 |
+| NAV-03 | The app shall list "Assigned to Me", "Bulk actions" and "Monthly Time Writing", in that order, under the group "My Work". | D | M | UC-01 |
 | NAV-04 | The app shall list "Baselines", "Snapshots", "Settings" and "Documentation", in that order, under the group "Data & governance". | D | M | UC-01 |
 | NAV-05 | The app shall list one entry under "Azure DevOps" for each view returned by the view rules in CON-10 to CON-12. | T | M | UC-01, UC-02 |
 | NAV-06 | When no Azure DevOps view exists, the app shall hide the "Azure DevOps" group. | D | S | UC-01 |
@@ -251,10 +251,10 @@ Stakeholders:
 | ATM-01 | The page shall show whose work is shown, plus a "Show work for" selector offering Me (connection email) and each known person. The choice shall be remembered in this browser. | D | M | UC-06 |
 | ATM-02 | When neither Me nor a chosen person is known, the page shall show "Who are you in Azure DevOps?" and no actions. | D | M | UC-06 |
 | ATM-03 | An item shall count as mine when its assigned-to email equals Me's email (case-insensitive), or, when either email is missing, its assigned-to name equals Me's name (case-insensitive). | T | M | UC-06 |
-| ATM-04 | The page shall list my pending items, excluding Epics and items under the Absence Epic, sorted by type (Feature, User Story, Bug, Task, other) and then by ID. | T | M | UC-06 |
-| ATM-05 | The page shall filter the pending list by type, with the chips All, Feature, User Story, Bug, Task, Other. | D | S | UC-06 |
+| ATM-04 | The page shall list my pending items, excluding Epics and items under the Absence Epic, always in ascending ID order. | T | M | UC-06 |
+| ATM-05 | The page shall filter the pending list by type, with the chips All, Feature, User Story, Bug, Task, Other, opening on Feature. | D | S | UC-06 |
 | ATM-06 | The page shall offer finishing states per type (Feature, User Story and Bug: Resolved or Closed; Task: Closed). After confirmation it shall write only the State field, verify the result, and then refresh. | T | M | UC-06 |
-| ATM-07 | "Find current Sprint" shall read the team's iterations and offer each PI → Sprint pair whose Sprint dates cover today. When none exists it shall show "No current Sprint found: no team iteration with start and finish dates covering today under a PI." | T | M | UC-06 |
+| ATM-07 | The bulk actions (ATM-07 to ATM-12) shall be on their own page, "Bulk actions", with the same person selector; both of its lists shall be in ascending ID order. "Find current Sprint" shall read the team's iterations and offer each PI → Sprint pair whose Sprint dates cover today. When none exists it shall show "No current Sprint found: no team iteration with start and finish dates covering today under a PI." | T | M | UC-06 |
 | ATM-08 | Move to current Sprint shall offer only my pending User Stories whose iteration is a Sprint with a finish date before today (India time) and that differ from the target. Stories in the current Sprint, a future Sprint or an undated iteration shall be left untouched, as shall Features, Bugs and Tasks. See OI-08. | T | M | UC-06 |
 | ATM-09 | The move shall write only the Iteration Path, after confirmation. It shall report the moved and failed counts, then refresh. | T | M | UC-06 |
 | ATM-10 | The month-tasks panel shall list each pending Feature that is mine, or that holds my pending work, outside the Absence Epic. Each shall carry one status: "Has task", "Task missing", "Story + task missing" or "Choose story". | T | M | UC-06 |

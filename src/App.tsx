@@ -17,6 +17,7 @@ import { useAzureWorkspace } from './useAzureWorkspace'
 import { useGitStorage } from './useGitStorage'
 import { useMyWork } from './useMyWork'
 import { MyWorkPage } from './pages/MyWorkPage'
+import { BulkActionsPage } from './pages/BulkActionsPage'
 import { DesktopDownload } from './components/DesktopDownload'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
@@ -67,7 +68,8 @@ export default function App() {
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} />}
-      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} />}
+      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} />}
+      {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} onOpenConnection={openConnection} />}
