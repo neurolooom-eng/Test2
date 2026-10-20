@@ -38,7 +38,10 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form) return
-    try { azure.saveConnection(form); setForm(null); setFormError('') } catch (failure) { setFormError(failure instanceof Error ? failure.message : 'Unable to save the connection.') }
+    // Save also refreshes: the connection is fetched right away and its data saved locally.
+    let id: string
+    try { id = azure.saveConnection(form); setForm(null); setFormError('') } catch (failure) { setFormError(failure instanceof Error ? failure.message : 'Unable to save the connection.'); return }
+    void azure.fetchConnection(id)
   }
   const lastFetch = (profile: AzureConnectionProfileSummary) => {
     if (profile.role === 'release-source') return releaseSource ? `${releaseSource.items.length} documents · ${formatDateTime(releaseSource.fetchedAt)}` : ''
@@ -93,7 +96,7 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
         </div>
         <Notice>{roleUse[form.role]}</Notice>
         {formError && <Notice tone="error">{formError}</Notice>}
-        <div className="button-row"><button className="primary">Save connection</button><button type="button" className="ghost" onClick={() => setForm(null)}>Cancel</button></div>
+        <div className="button-row"><button className="primary">Save and refresh data</button><button type="button" className="ghost" onClick={() => setForm(null)}>Cancel</button></div>
       </form>}
     </Panel>
     {sources.length > 0 && <Panel className="connection-panel" eyebrow="READ ONLY" title="Fetched read-only sources" detail="Snapshots from document and reference connections, stored with the app data.">
