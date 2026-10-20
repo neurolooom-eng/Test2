@@ -49,6 +49,17 @@ pnpm build:web
 pnpm build
 ```
 
+macOS disk image (on a Mac): `pnpm build:mac` (universal: Intel + Apple silicon).
+
+### Desktop downloads
+
+CI packages a Windows installer (`Demand-Planning-Hub-Setup.exe`, on `windows-latest`) and a universal macOS disk image (`Demand-Planning-Hub-mac.dmg`, on `macos-latest`) for every pull request and push. On each push to `main`, the **Publish desktop installers** job uploads both, with SHA-256 checksums, to one rolling GitHub pre-release tagged `desktop-latest`, replacing the previous files. The fixed file names give stable links, which the app's **⬇ Desktop app** button (sidebar) offers, highlighting the one for the visitor's operating system:
+
+- Windows: `https://github.com/neurolooom-eng/Test2/releases/download/desktop-latest/Demand-Planning-Hub-Setup.exe`
+- macOS: `https://github.com/neurolooom-eng/Test2/releases/download/desktop-latest/Demand-Planning-Hub-mac.dmg`
+
+The installers are not code-signed or notarised (no certificates are configured): Windows SmartScreen asks for *More info → Run anyway*, and macOS needs *right-click → Open* the first time (or `xattr -cr "/Applications/Demand Planning Hub.app"` if it reports the app as damaged). Signing needs a Windows code-signing certificate and an Apple Developer ID, added as repository secrets. Version tags `v*` still create a versioned release as before.
+
 ## GitHub Actions deployment
 
 ### Versions, build identity and Force Update
