@@ -119,7 +119,14 @@ test('tracking is an exact match of name and release segments in a Feature title
   assert.equal(tracksRelease('DP | Dose Planning | v1.1.0.1', 'Dose Planning', '1.1.0.2'), false)
   assert.equal(tracksRelease('DP | Dose Planning | Release 1.1.0.2', 'Dose Planning', '1.1.0.2'), true)
   assert.equal(tracksRelease('DP | Dose Planning | v1.1.0', 'Dose Planning', '1.1.0.1'), false)
-  assert.equal(tracksRelease('DP | Dose Planning Lite | v1.1.0.1', 'Dose Planning', '1.1.0.1'), false, 'the name must be a whole segment')
+  assert.equal(tracksRelease('Art-A, Dose Planning, v.1.1.0.1', 'Dose Planning', '1.1.0.1'), true, 'any order and format, extra words allowed, "v." prefix')
+  assert.equal(tracksRelease('v.1.1.0.1 - Art-A - Dose Planning', 'Dose Planning', '1.1.0.1'), true)
+  assert.equal(tracksRelease('Dose Planning Release 1.1.0.1', 'Dose Planning', '1.1.0.1'), true)
+  assert.equal(tracksRelease('Art-A Dose Planning 1.1.0.1', 'Dose Planning', '1.1.0.1'), true, 'the v is optional')
+  assert.equal(tracksRelease('Art-A, Dose Planning, v.1.1.0.1', 'Dose Planning', '1.1.0.2'), false, 'the version must be exact')
+  assert.equal(tracksRelease('Dose Planning v1.1.0.10', 'Dose Planning', '1.1.0.1'), false)
+  assert.equal(tracksRelease('Dose Planning v11.1.0.1', 'Dose Planning', '1.1.0.1'), false)
+  assert.equal(tracksRelease('DosePlanning v1.1.0.1', 'Dose Planning', '1.1.0.1'), false, 'the name as whole words')
   assert.equal(tracksRelease(releaseFeatureTitle('DP', 'Dose Planning', '1.1.0.2'), 'Dose Planning', '1.1.0.2'), true, 'a Feature the app creates maps back')
   const source = [doc(1, 'DHFI\\Dose Planning\\Release 1.1.0.1'), doc(2, 'DHFI\\Dose Planning\\Release 1.1.0.2')]
   const backlog = [
@@ -128,4 +135,6 @@ test('tracking is an exact match of name and release segments in a Feature title
   ]
   const register = releaseRegister(source, backlog)
   assert.deepEqual(register.map((entry) => [entry.release, entry.features.map((feature) => feature.id)]), [['1.1.0.2', []], ['1.1.0.1', [100]]], 'a story naming 1.1.0.2 under the 1.1.0.1 Feature no longer maps 1.1.0.2 to it')
+  const lite = releaseRegister([doc(3, 'DHFI\\Dose Planning\\Release 2.0'), doc(4, 'DHFI\\Dose Planning Lite\\Release 2.0')], [doc(200, 'X', { workItemType: 'Feature', title: 'Art-A, Dose Planning Lite, v.2.0' }), doc(201, 'X', { workItemType: 'Feature', title: 'Art-A, Dose Planning, v.2.0' })])
+  assert.deepEqual(lite.map((entry) => [entry.name, entry.features.map((feature) => feature.id)]), [['Dose Planning', [201]], ['Dose Planning Lite', [200]]], 'a Feature goes to the release with the longest name it matches')
 })

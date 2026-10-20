@@ -122,14 +122,20 @@ export function completedReleases(register: ReleaseEntry[], month: string) {
 }
 
 // One row per release (name + release from the documents' paths), no grouping by stream: document count, the latest
-// approval date, and whether the Time Writing backlog tracks it: a Feature whose title has the name and the release as
-// "|"-separated segments, e.g. "DP | DoseNav | v2.1.0" (see tracksRelease).
+// approval date, and whether the Time Writing backlog tracks it: a Feature whose title names it (see tracksRelease).
+// A Feature whose title matches several releases goes to the one with the longest name ("Dose Planning Lite 1.0"
+// tracks Dose Planning Lite, not Dose Planning); stories and tasks do not attach releases to Features.
 // Planned and booked hours: Original Estimate and Completed Work, all months, on the Time Writing Tasks (month Tasks
 // or Tasks under a Time Writing story) under the Features that track the release; each Task is counted once.
-const releaseToken = (segment: string) => segment.trim().toLowerCase().replace(/^(release|rel)\b\s*[-_:]?\s*/, '').replace(/^v(?=\d)/, '')
+// A Feature tracks a release when its title, in any order and format, names the release's name as whole words and its
+// exact version: "Art-A, Dose Planning, v.1.1.0.1", "DP | Dose Planning | v1.1.0.1" or "Dose Planning Release 1.1.0.1".
+// The version may carry "v", "v." or "Rel"/"Release" in front but no other digits around it, so 1.1.0.1 never matches
+// 1.1.0.2, 1.1.0.10 or 11.1.0.1. Extra words (an Art, a program) are allowed.
+const words = (text: string) => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 export function tracksRelease(title: string, name: string, release: string) {
-  const segments = title.split('|').map((segment) => segment.trim().toLowerCase())
-  return segments.includes(name.trim().toLowerCase()) && segments.some((segment) => releaseToken(segment) === release.trim().toLowerCase())
+  if (!name.trim() || !release.trim() || !words(title).includes(words(name))) return false
+  return new RegExp(`(^|[^\\d.])(?:v\\.?\\s*|rel(?:ease)?\\s*[-_:.]?\\s*)?${escapeRegExp(release.trim())}(?![\\d.]*\\d)`, 'i').test(title)
 }
 // The Feature title the app creates for a release, in the exact form tracksRelease maps back.
 export const releaseFeatureTitle = (stream: string, name: string, release: string) => `${stream.trim()} | ${name.trim()} | v${release.trim()}`
@@ -155,11 +161,15 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
   const storyIds = timeWritingStoryIds(live)
   const timeWritingTasks = live.filter((item) => item.workItemType === 'Task' && (isMonthTask(item) || (item.parentId != null && storyIds.has(item.parentId))))
   const hours = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0
+  // Each Feature counts for the release(s) with the longest name its title matches.
+  const features = live.filter((item) => item.workItemType === 'Feature')
+  const bestNameLength = new Map<number, number>()
+  for (const feature of features) for (const entry of entries.values()) if (names(feature.title, entry)) bestNameLength.set(feature.id, Math.max(bestNameLength.get(feature.id) ?? 0, entry.name.trim().length))
   return [...entries.values()].map((entry) => {
-    const tracking = live.filter((item) => item.workItemType === 'Feature' && names(item.title, entry)).sort((a, b) => a.id - b.id)
+    const tracking = features.filter((feature) => names(feature.title, entry) && bestNameLength.get(feature.id) === entry.name.trim().length).sort((a, b) => a.id - b.id)
     const trackedBy = tracking
-    const features = new Set(tracking.map((feature) => feature.id))
-    const tasks = new Map(timeWritingTasks.filter((task) => features.has(featureOf(task)?.id ?? -1)).map((task) => [task.id, task]))
+    const featureIds = new Set(tracking.map((feature) => feature.id))
+    const tasks = new Map(timeWritingTasks.filter((task) => featureIds.has(featureOf(task)?.id ?? -1)).map((task) => [task.id, task]))
     const planned = [...tasks.values()].reduce((sum, task) => sum + hours(task.originalEstimate), 0)
     const booked = [...tasks.values()].reduce((sum, task) => sum + hours(task.completedWork), 0)
     return { ...entry, tracked: trackedBy.length > 0, trackedBy, features: tracking, planned, booked, hourTasks: tasks.size }
