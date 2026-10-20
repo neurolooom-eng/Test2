@@ -341,7 +341,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setMessage(`${preview.items.length} team-backlog records saved. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { reloadConnectionProfiles: () => setConnectionProfiles(listAzureConnectionProfiles()), projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>

@@ -251,6 +251,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-08 Windchill host setup and connection test** — Req CON-21, CON-22 — L1 `windchill.test.mjs` (host/path rules, one GET, messages for 401, 3xx and network errors); browser check: http host rejected, page address saved as its origin and kept after reload, Test connection disabled on the web.
 
+**TC-CON-09 Views in Git** — Req CON-23, CON-24 — L1 `view-definitions.test.mjs` (no PAT in the file, stable order, wrong files rejected, PAT order on restore, others untouched, file next to the data file); browser check with a mocked GitHub: Save writes azure-views.json without the PAT.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -891,6 +893,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-18 | TC-INS-01 |
 | CON-20 | TC-CON-07 |
 | CON-21, CON-22 | TC-CON-08 |
+| CON-23, CON-24 | TC-CON-09 |
 | FET-01, FET-04 | TC-CON-03 |
 | FET-02, FET-03 | TC-FET-01 |
 | FET-05, FET-06, FET-13 | TC-FET-02 |
