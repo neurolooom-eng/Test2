@@ -28,4 +28,37 @@ async function testWindchill(request, fetch) {
   return { ok: true, status: response.status, message: services.length ? `Connected: ${services.length} services listed.` : 'Connected, but no services were listed.', services }
 }
 
-module.exports = { windchillUrl, testWindchill }
+// Runs one Windchill view read-only: GET <service root>/<Domain/Set>?$filter=…&$select=…, following the server's
+// next-page links on the same host and service root (at most 100 pages / 20,000 rows). Nothing is written.
+const queryPattern = /^[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*(\?[^#\s]*)?$/
+async function queryWindchill(request, fetch) {
+  const root = windchillUrl(request)
+  if (typeof request.path !== 'string' || !queryPattern.test(request.path) || request.path.includes('..')) throw new Error('The Windchill view has no valid object type.')
+  const base = root.href.replace(/\/+$/, '')
+  let next = `${base}/${request.path}`
+  const rows = []
+  for (let page = 0; next && page < 100; page += 1) {
+    const url = new URL(next)
+    if (url.origin !== root.origin || !url.pathname.toLowerCase().startsWith(root.pathname.replace(/\/+$/, '').toLowerCase() + '/')) throw new Error('Windchill returned a next page outside the service; stopped.')
+    let response
+    try { response = await fetch(url.href, { method: 'GET', headers: { Accept: 'application/json' }, redirect: 'follow' }) }
+    catch (error) { throw new Error(`Could not reach ${root.host}: ${error instanceof Error ? error.message : 'network error'}. Check the host name, VPN and proxy.`) }
+    let finalHost = root.host
+    try { if (response.url) finalHost = new URL(response.url).host } catch { /* keep the requested host */ }
+    if (finalHost.toLowerCase() !== root.host.toLowerCase()) throw new Error(`Windchill sent the app to a sign-in page on ${finalHost}; single sign-on from the app may not be supported.`)
+    if (response.status === 401 || response.status === 403) throw new Error(`Windchill refused the single sign-on (status ${response.status}).`)
+    if (!response.ok) {
+      let detail = ''
+      try { const body = await response.json(); detail = String(body?.error?.message ?? '') } catch { /* no JSON body */ }
+      throw new Error(`Windchill answered with status ${response.status}${detail ? `: ${detail}` : ''}. Check the object type, field names and values.`)
+    }
+    const body = await response.json()
+    if (!Array.isArray(body?.value)) throw new Error('Windchill answered without a list of results; check the object type.')
+    rows.push(...body.value)
+    if (rows.length > 20000) throw new Error('The search returned more than 20,000 results. Narrow the filters.')
+    next = typeof body['@odata.nextLink'] === 'string' ? new URL(body['@odata.nextLink'], url).href : ''
+  }
+  return { rows }
+}
+
+module.exports = { windchillUrl, testWindchill, queryWindchill }

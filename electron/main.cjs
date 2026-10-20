@@ -4,7 +4,7 @@ const { pathToFileURL } = require('url')
 const { spawn } = require('child_process')
 const { requestAzureDevOps } = require('./azure-devops.cjs')
 const { checkForUpdate, downloadUpdate } = require('./desktop-update.cjs')
-const { windchillUrl, testWindchill } = require('./windchill.cjs')
+const { windchillUrl, testWindchill, queryWindchill } = require('./windchill.cjs')
 const distDir = path.join(__dirname, '..', 'dist')
 const bundledUrl = pathToFileURL(path.join(distDir, 'index.html')).href
 const trustedSender = (event) => {
@@ -61,6 +61,12 @@ ipcMain.handle('windchill:test', async (event, request) => {
   // Windows single sign-on (Negotiate/NTLM) is offered only to the configured Windchill host.
   session.defaultSession.allowNTLMCredentialsForDomains(windchillUrl(request).hostname)
   return testWindchill(request, (url, options) => net.fetch(url, options))
+})
+
+ipcMain.handle('windchill:query', async (event, request) => {
+  if (!trustedSender(event)) throw new Error('Untrusted request source.')
+  session.defaultSession.allowNTLMCredentialsForDomains(windchillUrl(request).hostname)
+  return queryWindchill(request, (url, options) => net.fetch(url, options))
 })
 
 function createWindow() {

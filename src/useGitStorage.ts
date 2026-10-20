@@ -3,6 +3,8 @@ import type { useAppStore } from './store'
 import { fileSha, forgetGitStorage, GitConflictError, historyUrl, listFolder, loadGitConfig, loadGitToken, planningData, readPlanningFile, readRawFile, readTextFile, saveGitConfig, saveGitToken, serializePlanning, siblingConfig, validateGitConfig, writePlanningFile, writeTextFile, type GitConfig } from './gitStorage'
 import { applySnapshots, parseSnapshot, serializeSnapshot, snapshotDigest, snapshotFile, snapshotFileName, snapshotFolder, type SnapshotFile, type ViewSnapshot } from './gitSnapshots'
 import { formatDateTime } from './format'
+import { applyWindchillSnapshots, parseWindchillSnapshot, windchillDigest, windchillFolder, windchillSnapshotFile, type WindchillSnapshotFile, type WindchillSource } from './windchillSnapshots'
+import { loadWindchillViews, saveWindchillViews, type WindchillView } from './windchillViews'
 import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
@@ -116,11 +118,42 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     return { files: files.length, applied, added, failed }
   }
 
+  // Windchill views: the same, in windchill-data/<view>.json.
+  async function pushWindchill(view: WindchillView, source: WindchillSource) {
+    const id = `wc:${view.id}`
+    if (!config || !token || isSample) return
+    const target = siblingConfig(config, `${windchillFolder}/${view.id}.json`)
+    try {
+      const digest = await windchillDigest(source)
+      let digests: Record<string, string> = {}
+      try { digests = JSON.parse(localStorage.getItem(digestKey) ?? '{}') as Record<string, string> } catch { digests = {} }
+      if (digests[id] === digest) { note(id, 'info', 'Unchanged since the last save to Git.'); return }
+      note(id, 'info', 'Saving to Git…')
+      const sha = await fileSha(target, token)
+      await writeTextFile(target, token, `${JSON.stringify(windchillSnapshotFile(view, source))}\n`, sha, `Windchill ${view.name}: ${source.rows.length} results fetched ${formatDateTime(source.fetchedAt)}`)
+      try { localStorage.setItem(digestKey, JSON.stringify({ ...digests, [id]: digest })) } catch { /* next fetch commits again */ }
+      note(id, 'success', `Saved to Git (${target.path}).`)
+    } catch (error) { note(id, 'error', `Not saved to Git: ${error instanceof Error ? error.message : String(error)}`) }
+  }
+  async function pullWindchill() {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    const entries = (await listFolder(siblingConfig(config, windchillFolder), token)).filter((entry) => entry.name.endsWith('.json'))
+    const files: WindchillSnapshotFile[] = [], failed: string[] = []
+    for (const entry of entries) { try { const text = await readRawFile({ ...config, path: entry.path }, token); if (text) files.push(parseWindchillSnapshot(text)) } catch { failed.push(entry.name) } }
+    // Views not set up in this browser are added, to show their results.
+    const views = loadWindchillViews(), known = new Set(views.map((view) => view.id))
+    const added = files.filter((file) => !known.has(file.view.id)).map((file) => file.view)
+    if (added.length) { try { saveWindchillViews([...views, ...added]) } catch { /* shown for this session only */ } }
+    const { applied } = applyWindchillSnapshots(store.state.windchillSources, files)
+    store.update((draft) => { draft.windchillSources = applyWindchillSnapshots(draft.windchillSources, files).sources; return draft })
+    return { files: files.length, applied, added: added.length, failed }
+  }
+
   function disconnect() {
     try { forgetGitStorage() } catch { /* nothing stored */ }
     setConfig(null); setToken(''); setSynced(null); setStatus('off'); setMessage('Git storage disconnected in this browser. The data stays in the app and in the repository.'); sha.current = null
   }
 
-  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, snapshotNotes, pushSnapshot, pullSnapshots, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
+  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, snapshotNotes, pushSnapshot, pullSnapshots, pushWindchill, pullWindchill, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
 }
 export type GitStorage = ReturnType<typeof useGitStorage>
