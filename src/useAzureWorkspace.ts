@@ -16,15 +16,16 @@ export function connectionConfig(profile: Pick<AzureConnectionProfile, 'url' | '
 }
 
 // Query views keep the query's selected columns (named as Azure DevOps names them) and its sort order.
+// Columns of a query view: the query's SELECT list resolved against the project's field list (display names for
+// headings), its ORDER BY, and any SELECT entries that are not fields of this project.
 async function viewLayout(config: AzureConfig, pat: string, query: string) {
-  const { columns, orderBy } = queryLayout(query)
   const names = await readFieldNames(config, pat)
-  return { columns: columns.map((ref) => ({ ref, name: columnName(ref, names) })), orderBy }
+  const { columns, orderBy, unresolved } = queryLayout(query, names)
+  return { columns: columns.map((ref) => ({ ref, name: columnName(ref, names) })), orderBy, ...(unresolved.length ? { unresolved } : {}) }
 }
-const withQueryFields = (config: AzureConfig, query: string) => {
-  const { columns } = queryLayout(query)
-  return (item: { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }) => ({ ...mapAzureWorkItem(item, config), fields: pickFields(item.fields, columns) })
-}
+const withQueryFields = (config: AzureConfig, refs: string[]) =>
+  (item: { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }) => ({ ...mapAzureWorkItem(item, config), fields: pickFields(item.fields, refs) })
+const refsOf = (layout: { columns: { ref: string }[] }) => layout.columns.map((column) => column.ref)
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
 export interface ConnectionInput { id?: string; name: string; viewName: string; showInMenu: boolean; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
@@ -246,8 +247,9 @@ export function useAzureWorkspace(store: PageProps['store']) {
           done = kept || `${result.items.length} work items fetched and saved`
         } finally { fetching.current = false; setBusy(false) }
       } else if (role === 'release-source') {
-        const fetched = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
-        const snapshot = { ...fetched, ...await viewLayout(parsed, profile.token, query || defaultReleaseQuery) }
+        const layout = await viewLayout(parsed, profile.token, query || defaultReleaseQuery)
+        const fetched = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings), refsOf(layout))
+        const snapshot = { ...fetched, ...layout }
         store.update((draft) => {
           draft.releaseSource = snapshot
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from “${profile.reason}”` })
@@ -257,7 +259,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
       } else if (role === 'backlog-view') {
         // Read-only backlog view: the query's results with its selected columns, or the team's Epic backlog.
         const layout = await viewLayout(parsed, profile.token, query)
-        const items = query ? await runWorkItemQuery(parsed, profile.token, query, undefined, withQueryFields(parsed, query)) : (await fetchAzureWorkItems(parsed, profile.token)).items
+        const items = query ? await runWorkItemQuery(parsed, profile.token, query, undefined, withQueryFields(parsed, refsOf(layout))) : (await fetchAzureWorkItems(parsed, profile.token)).items
         const fetchedAt = new Date().toISOString()
         store.update((draft) => {
           draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items, ...layout }]
@@ -266,8 +268,8 @@ export function useAzureWorkspace(store: PageProps['store']) {
         })
         done = `${items.length} work items saved`
       } else {
-        const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery, undefined, withQueryFields(parsed, query || projectQuery))
         const layout = await viewLayout(parsed, profile.token, query || projectQuery)
+        const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery, undefined, withQueryFields(parsed, refsOf(layout)))
         const fetchedAt = new Date().toISOString()
         store.update((draft) => {
           draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' : 'reference', organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items, ...layout }]
