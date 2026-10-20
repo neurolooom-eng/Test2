@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { releaseFeatureTitle, releaseRegister, type ReleaseEntry } from '../releaseSource'
+import { releaseFeatureTitle, releaseRegister, tracksRelease, type ReleaseEntry } from '../releaseSource'
 import { createAzureFeature } from '../azureDevOps'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import { formatDate, formatHours } from '../format'
@@ -36,8 +36,8 @@ export function ReleaseView({ name, items, backlog, columns, orderBy, unresolved
   </>
 }
 
-// Creates the QMS-0025 Feature for a release, titled "<Stream> | <Name> | v<release>" so the release maps back to it
-// exactly. Parent: the Epic named like the stream (DP, CP, IOCC, …) unless another is chosen; assigned to the Time
+// Creates the QMS-0025 Feature for a release. The title is pre-filled as "<Stream> | <Name> | v<release>" and can be
+// edited; it must still name the release (tracksRelease) so the release maps back to it. Parent: the Epic named like the stream (DP, CP, IOCC, …) unless another is chosen; assigned to the Time
 // Writing connection's creator email. Azure DevOps validates the Feature before it is saved.
 function CreateReleaseFeature({ stream, release, azure, onDone }: { stream: string; release: ReleaseEntry; azure: AzureWorkspace; onDone: () => void }) {
   const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.state.trim().toLowerCase() !== 'removed').sort((a, b) => a.title.localeCompare(b.title))
@@ -46,24 +46,26 @@ function CreateReleaseFeature({ stream, release, azure, onDone }: { stream: stri
   const [epicId, setEpicId] = useState(suggested?.id ?? 0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const title = releaseFeatureTitle(stream, release.name, release.release)
+  const [title, setTitle] = useState(() => releaseFeatureTitle(stream, release.name, release.release))
+  const mapsBack = tracksRelease(title, release.name, release.release)
   const blocked = azure.isSample ? 'Synthetic sample data is loaded: creating in Azure DevOps is disabled.' : !azure.config || !azure.pat.trim() ? 'Connect the QMS-0025 Time Writing connection (with its PAT) to create Features.' : !azure.creatorEmail ? 'Set the Feature creator email on the Time Writing connection: new Features are assigned to it.' : ''
   async function create() {
-    if (blocked || !azure.config || !epicId) return
+    if (blocked || !azure.config || !epicId || !mapsBack || !title.trim()) return
     if (!window.confirm(`Create Feature “${title}” under Epic #${epicId} in Azure DevOps?`)) return
     setBusy(true); setError('')
     try {
-      const created = await createAzureFeature(azure.config, azure.pat, { parentId: epicId, title, description: `Release ${release.name} ${release.release} (${stream}); created from the ${stream} release view. ${release.documents} document(s).`, acceptanceCriteria: '', assignedTo: azure.creatorEmail })
+      const created = await createAzureFeature(azure.config, azure.pat, { parentId: epicId, title: title.trim(), description: `Release ${release.name} ${release.release} (${stream}); created from the ${stream} release view. ${release.documents} document(s).`, acceptanceCriteria: '', assignedTo: azure.creatorEmail })
       azure.featureCreated([created])
       onDone()
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'The Feature could not be created.') }
     finally { setBusy(false) }
   }
   return <div className="create-release-feature">
-    <p><strong>New Feature:</strong> {title}<small className="muted"> — this exact title maps the release to it.</small></p>
+    <label>Feature title<input value={title} maxLength={255} onChange={(event) => setTitle(event.target.value)} /></label>
+    <small className={mapsBack ? 'muted' : 'negative'}>{mapsBack ? `Maps back to ${release.name} ${release.release}: the title names the release and its version.` : `This title does not name “${release.name}” and version ${release.release}; the release would not map to the Feature. Keep both in the title.`}</small>
     {blocked ? <p className="notice warning">{blocked}</p> : <div className="button-row">
       <label>Parent Epic<select value={epicId || ''} onChange={(event) => setEpicId(Number(event.target.value))}><option value="">Choose an Epic…</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select></label>
-      <button type="button" className="primary" disabled={busy || !epicId} onClick={() => void create()}>{busy ? 'Creating…' : 'Create Feature'}</button>
+      <button type="button" className="primary" disabled={busy || !epicId || !mapsBack} onClick={() => void create()}>{busy ? 'Creating…' : 'Create Feature'}</button>
       <button type="button" className="ghost" disabled={busy} onClick={onDone}>Cancel</button>
     </div>}
     {error && <p className="notice error">{error}</p>}
