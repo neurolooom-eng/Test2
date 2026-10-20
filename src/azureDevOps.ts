@@ -505,6 +505,16 @@ export async function updateAzureWorkItem(config: AzureConfig, pat: string, work
   return item
 }
 
+// api-version negotiation: an explicit version is used as is; otherwise 7.1, then 6.0 and 5.0 for older Azure DevOps
+// Server releases. The version that worked is remembered per collection for the rest of the session.
+const detectedVersions = new Map<string, string>()
+export function versionsToTry(config: Pick<AzureConfig, 'apiVersion' | 'organization' | 'baseUrl'>) {
+  if (config.apiVersion && apiVersionOf(config) === config.apiVersion) return [config.apiVersion]
+  const known = detectedVersions.get(collectionUrl(config).toLowerCase())
+  return known ? [known] : ['7.1', '6.0', '5.0']
+}
+export const isApiVersionError = (text: string) => /api[- ]?version|version of the api|VssVersionOutOfRange|out of range/i.test(text) && /version/i.test(text)
+
 export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (window.azureDevOps) return window.azureDevOps.request(request)
   const base = projectApiBase(request)
@@ -514,22 +524,42 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   const create = request.operation === 'create-feature' || request.operation === 'create-child'
   const endpoint = updating ? `_apis/wit/workitems/${request.workItemId}` : create ? `_apis/wit/workitems/$${request.operation === 'create-feature' ? 'Feature' : encodeURIComponent(request.workItemType!)}` : request.operation === 'backlog-epics' ? `${encodeURIComponent(request.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems` : request.operation === 'iteration-tree' ? '_apis/wit/classificationnodes/iterations' : readingMetadata ? `${encodeURIComponent(request.team)}/_apis/work/teamsettings/${request.operation === 'areas' ? 'teamfieldvalues' : 'iterations'}` : request.operation === 'query' ? '_apis/wit/wiql' : '_apis/wit/workitemsbatch'
   const body = request.operation === 'update-work-item' ? workItemUpdatePatch(request) : request.operation === 'update-time-writing-effort' ? [{ ...(request.planHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate', value: request.planHours }) }, { ...(request.actualHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: request.actualHours }) }, ...(request.tags ? [{ op: 'add', path: '/fields/System.Tags', value: request.tags }] : [])].filter(patch => 'op' in patch) : create ? featurePatch(request, request.feature!) : request.operation === 'query' ? { query: request.query } : { ids: request.ids, errorPolicy: 'Fail', $expand: 'Relations' }
-  let response: Response
-  try {
-    const url = `${base}/${endpoint}?api-version=${apiVersionOf(request)}${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
-    response = await fetch(url, {
-      method: readingMetadata ? 'GET' : updating ? 'PATCH' : 'POST', redirect: 'error', credentials: 'omit',
-      headers: { Authorization: `Basic ${btoa(`:${request.pat}`)}`, 'Content-Type': writing ? 'application/json-patch+json' : 'application/json', Accept: 'application/json' },
-      body: readingMetadata ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(45000),
-    })
-  } catch { throw new Error(updating ? `The update of #${request.workItemId} could not be confirmed. Check it in Azure DevOps before retrying.` : writing && !request.validateOnly ? 'The create request could not be confirmed. Check the Azure DevOps backlog before retrying; a Feature may have been created.' : 'Azure DevOps could not be reached. Check your network/VPN. If browser cross-origin access is blocked, use the desktop package with the same PAT.') }
+  const versions = versionsToTry(request)
+  let response: Response | undefined
+  for (const [attempt, version] of versions.entries()) {
+    try {
+      const url = `${base}/${endpoint}?api-version=${version}${request.operation === 'query' ? '&$top=1000' : ''}${request.operation === 'iteration-tree' ? '&$depth=10' : ''}${create ? `&validateOnly=${request.validateOnly === true}` : ''}`
+      response = await fetch(url, {
+        method: readingMetadata ? 'GET' : updating ? 'PATCH' : 'POST', redirect: 'error', credentials: 'omit',
+        headers: { Authorization: `Basic ${btoa(`:${request.pat}`)}`, 'Content-Type': writing ? 'application/json-patch+json' : 'application/json', Accept: 'application/json' },
+        body: readingMetadata ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(45000),
+      })
+    } catch {
+      const host = new URL(base).hostname
+      throw new Error(updating ? `The update of #${request.workItemId} could not be confirmed. Check it in Azure DevOps before retrying.` : writing && !request.validateOnly ? 'The create request could not be confirmed. Check the Azure DevOps backlog before retrying; a Feature may have been created.'
+        : host === 'dev.azure.com' ? 'Azure DevOps could not be reached. Check your network/VPN. If browser cross-origin access is blocked, use the desktop package with the same PAT.'
+          : `The browser could not reach ${host}. On-premises servers usually block requests from other websites (CORS) or use a company certificate the browser page cannot use. Use the Windows app for on-prem connections (on VPN); it sends requests itself.`)
+    }
+    // An older Azure DevOps Server rejects a newer api-version with HTTP 400; try the next lower version once.
+    if (response.status === 400 && attempt < versions.length - 1) {
+      const text = await response.clone().text().catch(() => '')
+      if (isApiVersionError(text)) continue
+    }
+    if (response.ok && attempt > 0) detectedVersions.set(collectionUrl(request).toLowerCase(), version)
+    break
+  }
+  if (!response) throw new Error('Azure DevOps could not be reached.')
   if (response.status === 401) throw new Error('The PAT was rejected or has expired. Check your PAT.')
   if (response.status === 403) throw new Error(`Access denied. Check project access and PAT Work Items (${writing ? 'Read & Write' : 'Read'}) scope.`)
   if (writing && (response.status === 400 || response.status === 422)) {
     const detail = await response.json().catch(() => ({})) as { message?: string }
     throw new Error(`Azure DevOps rejected the work item: ${(detail.message ?? 'Check required fields and project rules.').replaceAll(request.pat, '[redacted]').slice(0, 1200)}`)
   }
-  if (response.status === 404) throw new Error('Project or team not found. Check the project URL and team name.')
+  if (response.status === 404) throw new Error(`Not found at ${projectApiBase(request).replace(/^https:\/\//, '')}. Check the organization / collection, project and team names.`)
+  if (!response.ok && response.status === 400) {
+    const detail = await response.json().catch(() => ({})) as { message?: string }
+    if (detail.message) throw new Error(`Azure DevOps refused the request: ${detail.message.replaceAll(request.pat, '[redacted]').slice(0, 600)}`)
+  }
   if (!response.ok) throw new Error(updating ? `Update of #${request.workItemId} returned ${response.status}. Check it in Azure DevOps.` : writing && !request.validateOnly ? `Create request returned ${response.status}. Check the backlog before retrying to avoid duplicates.` : `Azure DevOps request failed (${response.status}). No data was imported.`)
   if (!(response.headers.get('content-type') ?? '').includes('application/json')) throw new Error('Azure DevOps returned a sign-in page. Check the PAT and organization access.')
   return response.json()

@@ -98,3 +98,55 @@ test('Windows app proxy: on-prem collection base URL and API version; plain http
   assert.throws(() => azureReadRequest({ ...onPrem, operation: 'areas', baseUrl: 'http://tfs.example.com/tfs/DefaultCollection' }), /https/)
   assert.equal(azureReadRequest({ ...onPrem, operation: 'areas', apiVersion: '7.1&evil=1' }).url.endsWith('api-version=7.1'), true)
 })
+
+import { collectionUrlFrom, splitCollectionUrl } from '../src/azureCredentials.ts'
+test('server URL + organization/collection + project, as in other Azure DevOps tools', () => {
+  const collection = collectionUrlFrom('https://tfsapac04.ta.philips.com/tfs', 'DHPCollection')
+  assert.equal(collection, 'https://tfsapac04.ta.philips.com/tfs/DHPCollection')
+  assert.equal(composeAzureUrl(collection, 'DHP'), 'https://tfsapac04.ta.philips.com/tfs/DHPCollection/DHP')
+  assert.deepEqual(parseAzureProjectUrl(composeAzureUrl(collection, 'DHP'), collection), { organization: 'DHPCollection', project: 'DHP', team: '', baseUrl: collection })
+  assert.equal(collectionUrlFrom('https://tfsapac04.ta.philips.com/tfs/DHPCollection/', 'DHPCollection'), collection, 'collection pasted into the server URL is not doubled')
+  assert.equal(collectionUrlFrom('', 'ALMP-ORG-MSTP01'), 'https://dev.azure.com/ALMP-ORG-MSTP01', 'empty server URL = Azure DevOps Services')
+  assert.equal(collectionUrlFrom('https://dev.azure.com/whatever', 'org'), 'https://dev.azure.com/org')
+  assert.throws(() => collectionUrlFrom('https://tfs.example.com/tfs', ''), /collection/)
+  assert.throws(() => collectionUrlFrom('https://tfs.example.com/tfs', 'a/b'), /collection/)
+  assert.deepEqual(splitCollectionUrl(collection), { serverUrl: 'https://tfsapac04.ta.philips.com/tfs', organization: 'DHPCollection' })
+  assert.deepEqual(splitCollectionUrl('https://dev.azure.com/org'), { serverUrl: '', organization: 'org' })
+})
+
+import { versionsToTry } from '../src/azureDevOps.ts'
+test('older Azure DevOps Server: api-version falls back 7.1 → 6.0 and is remembered', async () => {
+  globalThis.window ??= {}
+  const seen = []
+  globalThis.fetch = async (url) => {
+    seen.push(new URL(url).searchParams.get('api-version'))
+    const version = new URL(url).searchParams.get('api-version')
+    if (version === '7.1') return new Response(JSON.stringify({ message: 'The requested REST API version of 7.1 is out of range for this server.' }), { status: 400, headers: { 'content-type': 'application/json' } })
+    return new Response(JSON.stringify({ workItems: [] }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  const config = { organization: 'OldCollection', project: 'P', team: 'P', baseUrl: 'https://tfs-old.example.com/tfs/OldCollection' }
+  await requestAzure({ ...config, pat: 'p', operation: 'query', query: 'SELECT [System.Id] FROM WorkItems WHERE [System.Id] < 1' })
+  assert.deepEqual(seen, ['7.1', '6.0'])
+  assert.deepEqual(versionsToTry(config), ['6.0'], 'the working version is reused for this collection')
+  assert.deepEqual(versionsToTry({ ...config, apiVersion: '5.0' }), ['5.0'], 'an explicit version is never overridden')
+  globalThis.fetch = async () => new Response(JSON.stringify({ message: 'TF401232: Work item 5 does not exist.' }), { status: 400, headers: { 'content-type': 'application/json' } })
+  await assert.rejects(requestAzure({ ...config, pat: 'p', operation: 'query', query: 'SELECT [System.Id] FROM WorkItems WHERE [System.Id] < 1' }), /TF401232/, 'other 400s are reported with the server message')
+  globalThis.fetch = async () => new Response('{}', { status: 404, headers: { 'content-type': 'application/json' } })
+  await assert.rejects(requestAzure({ ...config, pat: 'p', operation: 'query', query: 'SELECT [System.Id] FROM WorkItems WHERE [System.Id] < 1' }), /tfs-old\.example\.com\/tfs\/OldCollection\/P/)
+  globalThis.fetch = async () => { throw new TypeError('Failed to fetch') }
+  await assert.rejects(requestAzure({ ...config, pat: 'p', operation: 'query', query: 'SELECT [System.Id] FROM WorkItems WHERE [System.Id] < 1' }), /Windows app/)
+})
+
+test('Windows app proxy: version fallback, redirects refused, certificate errors explained', async () => {
+  const { requestAzureDevOps } = createRequire(import.meta.url)('../electron/azure-devops.cjs')
+  const input = { organization: 'DHPCollection', project: 'DHP', team: 'DHP', pat: 'p', operation: 'query', query: 'SELECT [System.Id] FROM WorkItems WHERE [System.Id] < 1', baseUrl: 'https://tfsapac04.ta.philips.com/tfs/DHPCollection' }
+  const urls = []
+  const result = await requestAzureDevOps(input, async (url, options) => {
+    urls.push(url); assert.equal(options.redirect, 'manual')
+    return url.includes('api-version=7.1') ? new Response('{"message":"VssVersionOutOfRangeException: The requested REST API version 7.1 is out of range"}', { status: 400 }) : new Response('{"workItems":[]}', { status: 200, headers: { 'content-type': 'application/json' } })
+  })
+  assert.deepEqual(result, { workItems: [] })
+  assert.deepEqual(urls.map((url) => new URL(url).pathname + '?' + new URL(url).searchParams.get('api-version')), ['/tfs/DHPCollection/DHP/_apis/wit/wiql?7.1', '/tfs/DHPCollection/DHP/_apis/wit/wiql?6.0'])
+  await assert.rejects(requestAzureDevOps({ ...input, project: 'Other' }, async () => new Response('', { status: 302, headers: { location: 'https://login' } })), /redirected/)
+  await assert.rejects(requestAzureDevOps({ ...input, project: 'Other2' }, async () => { const error = new TypeError('fetch failed'); error.cause = { code: 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY' }; throw error }), /certificate/)
+})
