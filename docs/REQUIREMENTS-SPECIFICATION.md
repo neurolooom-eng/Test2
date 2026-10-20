@@ -141,7 +141,7 @@ Stakeholders:
 | NAV-05 | The app shall list one entry under "Azure DevOps" for each view returned by the view rules in CON-10 to CON-12. | T | M | UC-01, UC-02 |
 | NAV-06 | When no Azure DevOps view exists, the app shall hide the "Azure DevOps" group. | D | S | UC-01 |
 | NAV-07 | The app shall show Azure DevOps views as separate sidebar entries, not as tabs within one page. | D | M | UC-01 |
-| NAV-08 | The header shall contain only: the page title, the data-status chip with its refresh button (FET-10), the month picker on pages that use a month, and the theme toggle. | I | M | UC-01 |
+| NAV-08 | The header shall contain only: the page title, the page's Team/Individual switch (Overview and Monthly Time Writing), the data-status chip with its refresh button (FET-10), the month picker on pages that use a month, and the theme toggle. | I | M | UC-01 |
 | NAV-09 | The header shall show the month picker on Overview, Monthly Time Writing, Baselines, Snapshots and Settings. It shall hide the picker on Assigned to Me, the Azure DevOps views and Documentation. | D | M | UC-01 |
 | NAV-10 | The month picker shall accept only values of the form `YYYY-MM`. | T | M | UC-01 |
 | NAV-11 | The month picker shall default to the current month in the Asia/Kolkata time zone. | T | S | UC-01 |
@@ -223,11 +223,11 @@ Stakeholders:
 
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
-| MON-01 | The page shall provide a Team/Individual switch labelled "Time writing for", defaulting to Individual. The choice shall be remembered in localStorage `demand-planning-monthly-view-v1`. | D | M | UC-04 |
+| MON-01 | The page shall provide, in the page header, a Team/Individual switch labelled "Time writing for", defaulting to Individual. The choice shall be remembered in localStorage `demand-planning-monthly-view-v1`. | D | M | UC-04 |
 | MON-02 | In Individual mode the page shall show only the chosen person's Tasks. In Team mode it shall show every person's Tasks. | T | M | UC-04 |
 | MON-03 | In Individual mode with no person chosen and no Me, the page shall show "Choose whose time writing to show, or set your Azure email on the Time Writing connection to make "Me" the default." and list no Tasks. | D | M | UC-04 |
 | MON-04 | The page shall show the metrics "Tasks", "Original Estimate", "Completed Work" and "Staged changes" for the selected month. | D | M | UC-04 |
-| MON-05 | The page shall list each Month Task of the selected month with: Epic, Time Writing User Story, Month Task, State, Original Estimate, Completed Work, Tags. Epic, story and Task shall link to Azure DevOps. | D | M | UC-04 |
+| MON-05 | The page shall list each Month Task of the selected month with: Epic, Feature (the nearest Feature above the Task), Month Task, State, Original Estimate, Completed Work, Tags. Epic, Feature and Task shall link to Azure DevOps. | D | M | UC-04 |
 | MON-06 | Planning for month M shall be locked when the period record of M is explicitly locked, or when the current time is at or after its planning extension (if set), otherwise its planning deadline (default `M-05T23:59:59` local). See OI-03. | T | M | UC-04 |
 | MON-07 | Actuals for month M shall be locked when the period record of M+1 is explicitly locked for actuals, or when the current time is at or after its actuals extension (if set), otherwise its actuals deadline (default `(M+1)-05T23:59:59` local). See OI-02. | T | M | UC-04 |
 | MON-08 | The page shall show the pills "Planning open"/"Planning locked" and "Actuals open"/"Actuals locked". | D | M | UC-04 |
@@ -302,7 +302,7 @@ Stakeholders:
 
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
-| OVR-01 | The Overview shall provide a Team/Individual switch labelled "Overview for", defaulting to Team. The choice shall be remembered in localStorage `demand-planning-overview-view-v1`. | D | M | UC-09 |
+| OVR-01 | The Overview shall provide, in the page header, a Team/Individual switch labelled "Overview for", defaulting to Team. The choice shall be remembered in localStorage `demand-planning-overview-view-v1`. | D | M | UC-09 |
 | OVR-02 | In Individual mode the Overview shall use only the chosen person's Tasks, while still applying regional holidays by region. With no person chosen it shall show "Choose whose overview to show." | T | M | UC-09 |
 | OVR-03 | The Overview shall show the metrics: utilization (team, or "{person} · utilization"), "Overloaded", "Has capacity" and "Absence". | D | M | UC-09 |
 | OVR-04 | The Overview shall provide the tabs "This month · {Month YYYY}" and "Trends", remembering the selection in localStorage `demand-planning-overview-tab-v1`. | D | M | UC-09, UC-10 |
