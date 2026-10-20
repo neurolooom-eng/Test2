@@ -7,7 +7,8 @@ import { EmptyState } from './ui'
 
 // Read-only view of a connection's query results: a summary strip (by state, type and person; overdue; changed this
 // week), then the query's own columns. Click a heading to sort; search, state and type filters; CSV export.
-export function QueryView({ name, items, columns, orderBy = [] }: { name: string; items: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[] }) {
+// unresolved: SELECT entries of the query that are not fields of the project (named in a notice instead of dropped silently).
+export function QueryView({ name, items, columns, orderBy = [], unresolved = [] }: { name: string; items: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[] }) {
   const cols = columns?.length ? columns : defaultViewColumns.map((ref) => ({ ref, name: columnName(ref) }))
   const [search, setSearch] = useState('')
   const [state, setState] = useState('')
@@ -24,6 +25,7 @@ export function QueryView({ name, items, columns, orderBy = [] }: { name: string
   const chips = (rows: [string, number][], active: string, pick: (value: string) => void, limit = 8) => rows.slice(0, limit).map(([label, count]) => <button key={label} type="button" className={`summary-chip ${active === label ? 'summary-chip-active' : ''}`} aria-pressed={active === label} onClick={() => pick(active === label ? '' : label)}><strong>{count}</strong> {label}</button>)
   if (!items.length) return <EmptyState title={`“${name}” returned no work items.`} detail="Check the connection's query in Settings → Azure DevOps." />
   return <div className="query-view">
+    {unresolved.length > 0 && <div className="notice warning" role="status">{columns?.length ? "Not shown" : "Showing the default columns"}: {unresolved.map((entry) => `“${entry}”`).join(", ")} {unresolved.length === 1 ? "is" : "are"} not a field of this project. Check the spelling in the query (reference name such as System.Title, or the field name such as Assigned To), then refresh.</div>}
     <div className="view-summary">
       <div className="summary-row"><span className="summary-label">State</span>{chips(summary.byState, state, setState)}<span className="summary-facts"><b>{summary.overdue}</b> overdue · <b>{summary.changedThisWeek}</b> changed in 7 days</span></div>
       <div className="summary-row"><span className="summary-label">Type</span>{chips(summary.byType, type, setType)}</div>

@@ -97,10 +97,10 @@ export async function withAncestors(config: AzureConfig, pat: string, items: Azu
   return all
 }
 
-export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings): Promise<ReleaseSourceSnapshot> {
+// columns: the field reference names to keep per item (the query's resolved SELECT list); read from the query text when not given.
+export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings, columns: string[] = queryLayout(wiql).columns): Promise<ReleaseSourceSnapshot> {
   if (!config.organization || !config.project) throw new Error('Select a release-source configuration with an organization and project.')
   if (!pat.trim()) throw new Error('The release-source configuration needs a Work Items (Read) PAT.')
-  const { columns } = queryLayout(wiql)
   const items = await runWorkItemQuery(config, pat, wiql, transport, (item) => { const mapped = { ...mapAzureWorkItem(item, config), fields: pickFields(item.fields, columns) }; const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped })
   return { organization: config.organization, project: config.project, query: wiql.trim(), fetchedAt: new Date().toISOString(), items }
 }
