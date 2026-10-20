@@ -103,6 +103,30 @@ export async function writeTextFile(config: GitConfig, token: string, text: stri
   return { sha: body.content.sha, commitUrl: body.commit?.html_url ?? historyUrl(config) }
 }
 
+// Folder listing (files only); a missing folder is empty.
+export async function listFolder(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<{ name: string; path: string; sha: string }[]> {
+  const response = await fetchImpl(`${fileUrl(config)}?ref=${encodeURIComponent(config.branch)}`, { headers: headers(token), cache: 'no-store' })
+  if (response.status === 404) return []
+  if (!response.ok) throw await failure(response, config, `list ${config.path}`)
+  const body = await response.json() as unknown
+  return Array.isArray(body) ? body.filter((entry) => entry?.type === 'file' && typeof entry.name === 'string' && typeof entry.path === 'string' && typeof entry.sha === 'string').map(({ name, path, sha }) => ({ name, path, sha })) : []
+}
+// Raw file text (works for files above 1 MB, which the JSON form returns without content); null when missing.
+export async function readRawFile(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<string | null> {
+  const response = await fetchImpl(`${fileUrl(config)}?ref=${encodeURIComponent(config.branch)}`, { headers: { ...headers(token), Accept: 'application/vnd.github.raw+json' }, cache: 'no-store' })
+  if (response.status === 404) return null
+  if (!response.ok) throw await failure(response, config, `read ${config.path}`)
+  return response.text()
+}
+// Version id of a file (needed to replace it), whatever its size; null when it does not exist yet.
+export async function fileSha(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<string | null> {
+  const response = await fetchImpl(`${fileUrl(config)}?ref=${encodeURIComponent(config.branch)}`, { headers: headers(token), cache: 'no-store' })
+  if (response.status === 404) return null
+  if (!response.ok) throw await failure(response, config, `read ${config.path}`)
+  const body = await response.json() as { sha?: unknown }
+  return typeof body.sha === 'string' ? body.sha : null
+}
+
 // Writes the data file as one commit. The sha of the version that was loaded is required, so a concurrent change
 // is refused (GitConflictError) instead of being overwritten.
 export async function writePlanningFile(config: GitConfig, token: string, data: PlanningData, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {
