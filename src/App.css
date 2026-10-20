@@ -319,3 +319,5 @@ body:has(.modal-backdrop){overflow:hidden}
 .quadrant-counts{display:flex;gap:32px}.quadrant-counts strong{display:block;font-size:30px;color:var(--text)}.quadrant-counts span{color:var(--muted);font-size:12px}
 @media (max-width:900px){.release-quadrants{grid-template-columns:1fr}}
 .feature-link{display:block}
+.quadrant-titles{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;font-size:13px}.quadrant-titles small{display:block;color:var(--muted);font-size:11px}
+.create-release-feature{display:grid;gap:10px}.create-release-feature .button-row{align-items:flex-end}
