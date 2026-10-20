@@ -122,11 +122,18 @@ export function completedReleases(register: ReleaseEntry[], month: string) {
 }
 
 // One row per release (name + release from the documents' paths), no grouping by stream: document count, the latest
-// approval date, and whether the Time Writing backlog tracks it (a Feature, User Story or Task whose title names
-// both the name and the release number, e.g. "DP | DoseNav | v2.1.0").
+// approval date, and whether the Time Writing backlog tracks it: a Feature whose title has the name and the release as
+// "|"-separated segments, e.g. "DP | DoseNav | v2.1.0" (see tracksRelease).
 // Planned and booked hours: Original Estimate and Completed Work, all months, on the Time Writing Tasks (month Tasks
-// or Tasks under a Time Writing story) under the Features that track the release, plus tracking Tasks themselves;
-// each Task is counted once.
+// or Tasks under a Time Writing story) under the Features that track the release; each Task is counted once.
+const releaseToken = (segment: string) => segment.trim().toLowerCase().replace(/^(release|rel)\b\s*[-_:]?\s*/, '').replace(/^v(?=\d)/, '')
+export function tracksRelease(title: string, name: string, release: string) {
+  const segments = title.split('|').map((segment) => segment.trim().toLowerCase())
+  return segments.includes(name.trim().toLowerCase()) && segments.some((segment) => releaseToken(segment) === release.trim().toLowerCase())
+}
+// The Feature title the app creates for a release, in the exact form tracksRelease maps back.
+export const releaseFeatureTitle = (stream: string, name: string, release: string) => `${stream.trim()} | ${name.trim()} | v${release.trim()}`
+
 export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: AzureWorkItem[]): ReleaseEntry[] {
   const entries = new Map<string, ReleaseEntry>()
   for (const item of source ?? []) {
@@ -138,7 +145,10 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
     if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate) }
     entries.set(key, entry)
   }
-  const names = (text: string, entry: ReleaseEntry) => { const title = text.toLowerCase(); return title.includes(entry.name.toLowerCase()) && new RegExp(`(^|[^\\d.])v?${entry.release.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\d.]*\\d)`, 'i').test(title) }
+  // Exact match: a Feature title in segments split by "|" with one segment equal to the name and one equal to the
+  // release ("v", "Release" or "Rel" in front allowed), e.g. "DP | Dose Planning | v1.1.0.1". No partial or nearby
+  // numbers, and stories or tasks naming a release do not attach it to whatever Feature they sit under.
+  const names = (text: string, entry: ReleaseEntry) => tracksRelease(text, entry.name, entry.release)
   const live = backlog.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const byId = new Map(live.map((item) => [item.id, item]))
   const featureOf = (item: AzureWorkItem) => { let current: AzureWorkItem | undefined = item; for (let depth = 0; current && depth < 8; depth += 1) { if (current.workItemType === 'Feature') return current; current = current.parentId == null ? undefined : byId.get(current.parentId) } return undefined }
@@ -146,11 +156,10 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
   const timeWritingTasks = live.filter((item) => item.workItemType === 'Task' && (isMonthTask(item) || (item.parentId != null && storyIds.has(item.parentId))))
   const hours = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0
   return [...entries.values()].map((entry) => {
-    const trackedBy = live.filter((item) => ['Feature', 'User Story', 'Task'].includes(item.workItemType) && names(item.title, entry))
-    // The Features tracking the release: those naming it, and the Features above stories or tasks that name it.
-    const tracking = [...new Map(trackedBy.map(featureOf).filter((feature): feature is AzureWorkItem => Boolean(feature)).map((feature) => [feature.id, feature])).values()].sort((a, b) => a.id - b.id)
+    const tracking = live.filter((item) => item.workItemType === 'Feature' && names(item.title, entry)).sort((a, b) => a.id - b.id)
+    const trackedBy = tracking
     const features = new Set(tracking.map((feature) => feature.id))
-    const tasks = new Map(timeWritingTasks.filter((task) => features.has(featureOf(task)?.id ?? -1) || trackedBy.some((item) => item.id === task.id)).map((task) => [task.id, task]))
+    const tasks = new Map(timeWritingTasks.filter((task) => features.has(featureOf(task)?.id ?? -1)).map((task) => [task.id, task]))
     const planned = [...tasks.values()].reduce((sum, task) => sum + hours(task.originalEstimate), 0)
     const booked = [...tasks.values()].reduce((sum, task) => sum + hours(task.completedWork), 0)
     return { ...entry, tracked: trackedBy.length > 0, trackedBy, features: tracking, planned, booked, hourTasks: tasks.size }
