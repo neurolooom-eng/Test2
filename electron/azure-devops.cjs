@@ -23,6 +23,7 @@ function azureReadRequest(input) {
   else if (input.operation === 'backlog-epics') endpoint = `${encodeURIComponent(input.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems`
   else if (input.operation === 'iterations') endpoint = `${encodeURIComponent(input.team)}/_apis/work/teamsettings/iterations`
   else if (input.operation === 'iteration-tree') endpoint = '_apis/wit/classificationnodes/iterations'
+  else if (input.operation === 'fields') endpoint = '_apis/wit/fields'
   else if (input.operation === 'query') {
     if (typeof input.query !== 'string' || !/^SELECT \[System.Id\] FROM WorkItems WHERE /i.test(input.query) || input.query.length > 100000) throw new Error('Invalid read query.')
     endpoint = '_apis/wit/wiql'; body = { query: input.query }

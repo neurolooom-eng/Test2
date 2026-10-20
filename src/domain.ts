@@ -144,11 +144,11 @@ export interface AppState {
   baselineRules?: BaselineRule[]
   releaseScopes?: ReleaseScope[]
   resourceProfiles?: Record<string, { region?: string; role?: string; reportsTo?: string; peopleManager?: boolean }>
-  releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
+  releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
   releaseSourceSettings?: { streamSegment?: number; releasePattern?: string; approvalDateField?: string }
   releasePlans?: ReleasePlan[]
   // Read-only snapshots from additional Azure connections (backlog views, document sources such as Vault, reference data).
-  azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference' | 'backlog-view'; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }[]
+  azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference' | 'backlog-view'; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }[]
 }
 
 export interface AzureWorkItem {
@@ -174,6 +174,8 @@ export interface AzureWorkItem {
   closedDate?: string
   changedDate?: string
   approvalDate?: string
+  // Values of the connection query's selected columns (read-only views), keyed by field reference name.
+  fields?: Record<string, string | number | boolean | null>
   tags: string
   url: string
   syncedAt: string

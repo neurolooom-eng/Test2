@@ -8,16 +8,18 @@ type ViewProfile = Pick<AzureConnectionProfileSummary, 'id' | 'reason' | 'role' 
 
 const activeTimeWriting = (profiles: ViewProfile[], activeId: string) => profiles.find((profile) => profile.id === activeId && profile.role === 'time-tracking') ?? profiles.find((profile) => profile.role === 'time-tracking')
 
-// The Time Writing backlog, listed or not; pages that link to it use this name.
+// The Time Writing backlog, listed or not; pages that link to it use this name. Its default name is QMS-0025 (the
+// team backlog); a View name on the connection overrides it.
+export const defaultBacklogName = 'QMS-0025'
 export function timeWritingView(profiles: ViewProfile[], activeId: string): BacklogView {
   const profile = activeTimeWriting(profiles, activeId)
-  return { id: profile?.id ?? 'time-writing', name: profile ? viewNameOf(profile) : 'Backlog', readOnly: false, role: 'time-tracking' }
+  return { id: profile?.id ?? 'time-writing', name: profile?.viewName?.trim() || defaultBacklogName, readOnly: false, role: 'time-tracking' }
 }
 
 export function backlogViews(profiles: ViewProfile[], activeId: string): BacklogView[] {
   const timeWriting = activeTimeWriting(profiles, activeId)
   return [
-    // Without any Time Writing connection (sample data, first start) the backlog is still listed, as "Backlog".
+    // Without any Time Writing connection (sample data, first start) the backlog is still listed, as QMS-0025.
     ...(!timeWriting || showsInMenu(timeWriting) ? [timeWritingView(profiles, activeId)] : []),
     ...profiles.filter((profile) => profile.role !== 'time-tracking' && showsInMenu(profile)).map((profile) => ({ id: profile.id, name: viewNameOf(profile), readOnly: true, role: profile.role })),
   ]

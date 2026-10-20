@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { EmptyState, Page, Panel, Pill } from '../components/ui'
 import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
+import { QueryView } from '../components/QueryView'
+import { ReleaseView } from '../components/ReleaseView'
+import { normalizeReleaseSourceSettings } from '../releaseSource'
 import { formatDate, formatDateTime } from '../format'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
 import { loadAzureConnectionProfile } from '../azureCredentials'
@@ -8,21 +11,19 @@ import type { BacklogView } from '../backlogViews'
 import type { AzureConfig } from '../azureDevOps'
 import type { PageProps } from './types'
 
-// One page for all configured Azure DevOps views (listed in the sidebar and as tabs): the Time Writing backlog
-// (QMS-0025) and the read-only backlog-view connections.
-export function BoardPage({ azure, store, views, current, onSelect, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; views: BacklogView[]; current: BacklogView; onSelect: (id: string) => void; onOpenConnection: () => void }) {
+// One page for all configured Azure DevOps views (each its own entry in the sidebar): the Time Writing backlog
+// (QMS-0025) as an editable tree, and every other shown connection as a read-only query view.
+export function BoardPage({ azure, store, current, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; onOpenConnection: () => void }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
-  const choose = onSelect
-  const tabs = views.length > 1 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
-  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
+  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))
   const counts = new Map<string, number>()
   for (const item of activeItems) counts.set(item.workItemType || 'Unknown', (counts.get(item.workItemType || 'Unknown') ?? 0) + 1)
 
   return <Page className="backlog-page">
-    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} tabs={tabs} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
+    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} tabs={<div className="backlog-tab">{current.name}</div>} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
     <details className="source-details"><summary>Source details and dates ({items.length} items)</summary>
       <Panel className="connection-panel" title={preview ? 'Work-item preview' : 'Saved work items'} detail={`${items.length} items · ${preview ? `Scope: ${preview.areaPaths.join(', ')}` : 'Refresh source data from connection settings.'}`} action={<input aria-label="Search work-item details" className="search" placeholder="Search ID, title, type or state" value={filter} onChange={(event) => setFilter(event.target.value)} />}>
         <div className="button-row">{[...counts].map(([type, count]) => <Pill key={type} tone="info">{type}: {count}</Pill>)}</div>
@@ -34,7 +35,7 @@ export function BoardPage({ azure, store, views, current, onSelect, onOpenConnec
 }
 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
-function ReadOnlyView({ id, name, role, azure, store, tabs, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; tabs: React.ReactNode; onOpenConnection: () => void }) {
+function ReadOnlyView({ id, name, role, azure, store, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; onOpenConnection: () => void }) {
   // Release sources keep one snapshot; backlog views, documents and reference data are stored per connection.
   const source = role === 'release-source' ? store.state.releaseSource : (store.state.azureSources ?? []).find((entry) => entry.connectionId === id)
   const status = azure.connectionStatus[id]
@@ -47,8 +48,8 @@ function ReadOnlyView({ id, name, role, azure, store, tabs, onOpenConnection }: 
     <Panel className="connection-panel backlog-panel">
       <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${source.items.length} items · fetched ${formatDateTime(source.fetchedAt)}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
-      {source && config ? <AzureWorkItemTree items={source.items} config={config} readOnly tabs={tabs} />
-        : <>{tabs && <div className="backlog-toolbar">{tabs}</div>}<EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or Assigned to Me.' : 'Add it again in Settings → Azure DevOps.'} /></>}
+      {source && config ? role === 'release-source' ? <ReleaseView name={name} items={source.items} backlog={azure.items} settings={normalizeReleaseSourceSettings(store.state.releaseSourceSettings)} columns={source.columns} orderBy={source.orderBy} /> : <QueryView name={name} items={source.items} columns={source.columns} orderBy={source.orderBy} />
+        : <><EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or Assigned to Me.' : 'Add it again in Settings → Azure DevOps.'} /></>}
     </Panel>
   </Page>
 }
