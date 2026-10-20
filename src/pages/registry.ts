@@ -1,6 +1,6 @@
 // Single source for navigation labels, header text and grouping so the sidebar and page header always agree.
-export type Page = 'overview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'snapshots' | 'admin' | 'docs'
-export type PageGroup = 'Overview' | 'My Work' | 'Azure DevOps' | 'Data & governance'
+export type Page = 'overview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'windchill' | 'snapshots' | 'admin' | 'docs'
+export type PageGroup = 'Overview' | 'My Work' | 'Azure DevOps' | 'Windchill' | 'Data & governance'
 
 export interface PageMeta { id: Page; label: string; icon: string; group: PageGroup; detail: string; usesMonth: boolean }
 
@@ -11,10 +11,11 @@ export const pages: PageMeta[] = [
   { id: 'monthly', label: 'Monthly Time Writing', icon: '◫', group: 'My Work', detail: 'Selected-month Tasks are the source for Azure Original Estimate and Completed Work.', usesMonth: true },
   { id: 'baselines', label: 'Baselines', icon: '⌁', group: 'Data & governance', detail: 'Release baselines from estimation rules and scope, against booked hours; plus the monthly task plan check.', usesMonth: true },
   { id: 'board', label: 'Backlogs', icon: '▤', group: 'Azure DevOps', detail: 'Plan and track the team’s work in an expandable Epic → Feature → User Story → Task backlog.', usesMonth: false },
+  { id: 'windchill', label: 'Windchill', icon: '◇', group: 'Windchill', detail: 'A Windchill search (Settings → Windchill views): its last results, fetched read-only from the desktop app.', usesMonth: false },
   { id: 'snapshots', label: 'Snapshots', icon: '▣', group: 'Data & governance', detail: 'Save point-in-time app data to SharePoint for LTE and PI Review; manage browser backups.', usesMonth: true },
   { id: 'admin', label: 'Settings', icon: '⚙', group: 'Data & governance', detail: 'Azure DevOps connections, Git and SharePoint storage, capacity, periods, resources, master data and audit.', usesMonth: true },
   { id: 'docs', label: 'Documentation', icon: '☰', group: 'Data & governance', detail: 'Requirements, test plan and the other project documents of this build.', usesMonth: false },
 ]
 
-export const pageGroups: PageGroup[] = ['Overview', 'My Work', 'Azure DevOps', 'Data & governance']
+export const pageGroups: PageGroup[] = ['Overview', 'My Work', 'Azure DevOps', 'Windchill', 'Data & governance']
 export const pageMeta = (id: Page) => pages.find((page) => page.id === id)!

@@ -31,15 +31,12 @@ export function WindchillSettingsPanel() {
     finally { setBusy(false) }
   }
 
-  return <Panel className="connection-panel" eyebrow="WINDCHILL" title="Windchill host" detail="Where Windchill is and the search to run. Saved in this browser only; no password is stored. The connection test, and later the search, run from the desktop app with your Windows single sign-on — the web version cannot reach Windchill on the company network."
+  return <Panel className="connection-panel" eyebrow="WINDCHILL" title="Windchill host" detail="Where Windchill is; the searches are the Windchill views below. Saved in this browser only; no password is stored. The connection test, and later the search, run from the desktop app with your Windows single sign-on — the web version cannot reach Windchill on the company network."
     action={<Pill tone={saved.host ? test?.ok ? 'open' : test ? 'danger' : 'info' : 'neutral'}>{saved.host ? test?.ok ? 'Connected' : test ? 'Test failed' : 'Saved' : 'Not set'}</Pill>}>
     <form className="connection-form" onSubmit={save}>
       <label>Host<input required value={draft.host} onChange={(event) => set({ host: event.target.value })} placeholder="plm.example.com" /></label>
       <label>Service path<input required value={draft.servicePath} onChange={(event) => set({ servicePath: event.target.value })} placeholder="/Windchill/servlet/odata" /></label>
       <label>Login<select value={draft.login} onChange={() => set({ login: 'sso' })}><option value="sso">Windows single sign-on (desktop app)</option></select></label>
-      <label>Object type<input value={draft.objectType} onChange={(event) => set({ objectType: event.target.value })} placeholder="e.g. DocMgmt/Documents" /></label>
-      <label className="wide-field">Search parameters<textarea rows={3} value={draft.filter} onChange={(event) => set({ filter: event.target.value })} placeholder="e.g. Number, Name, State, Context, Modified date and their values" /></label>
-      <label className="wide-field">Columns to return<input value={draft.fields} onChange={(event) => set({ fields: event.target.value })} placeholder="e.g. Number, Name, Version, State, Modified" /></label>
       <div className="connection-actions"><button className="primary" disabled={!dirty}>Save</button><button type="button" className="ghost" disabled={!desktop || !saved.host || dirty || busy} title={desktop ? undefined : 'Available in the desktop app'} onClick={() => void runTest()}>{busy ? 'Testing…' : 'Test connection'}</button></div>
     </form>
     {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}

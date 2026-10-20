@@ -41,4 +41,4 @@ export function saveWindchillSettings(settings: WindchillSettings) {
 }
 
 export interface WindchillTestResult { ok: boolean; status: number; message: string; services: string[] }
-declare global { interface Window { windchill?: { test: (request: { host: string; servicePath: string }) => Promise<WindchillTestResult> } } }
+declare global { interface Window { windchill?: { test: (request: { host: string; servicePath: string }) => Promise<WindchillTestResult>; query?: (request: { host: string; servicePath: string; path: string }) => Promise<{ rows: Record<string, unknown>[] }> } } }
