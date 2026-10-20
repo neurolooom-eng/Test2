@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { appBuild } from '../buildInfo'
 import { formatBuildDate, prepareWebReload, readLatestBuild, reloadBlockReason, type BuildInfo } from '../appUpdate'
+import { formatDateTime } from '../format'
 import { Modal } from './ui'
 
 // Desktop app only: check the published desktop build and download, verify and start its installer.
@@ -72,7 +73,7 @@ export function BuildStatus({ pending, failed, busy, preview, onBackup }: { pend
       }
     } catch (failure) { setError(failure instanceof Error ? failure.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : 'Update failed. Nothing was cleared.'); setReloading(false); setProgress(null) }
   }
-  return <div className="build-status">{notice}<strong>v{appBuild.version}</strong><small>Build {appBuild.buildNumber || "—"} · ID {appBuild.buildId}</small><small title={formatBuildDate(appBuild.builtAt)}>Built {new Date(appBuild.builtAt).toLocaleString()}</small><button className="force-update-button" onClick={show}>{updater ? '↻ Check for updates' : '↻ Force Update'}</button>
+  return <div className="build-status">{notice}<strong>v{appBuild.version}</strong><small>Build {appBuild.buildNumber || "—"} · ID {appBuild.buildId}</small><small title={formatBuildDate(appBuild.builtAt)}>Built {formatDateTime(appBuild.builtAt)}</small><button className="force-update-button" onClick={show}>{updater ? '↻ Check for updates' : '↻ Force Update'}</button>
     {open && <Modal title={updater ? 'Update the desktop app' : 'Force Update'} eyebrow="APP VERSION & BUILD" onClose={() => { if (!reloading) setOpen(false) }}><div className="build-update-body"><dl><dt>Running version</dt><dd>v{appBuild.version}</dd><dt>Build number</dt><dd>{appBuild.buildNumber || "—"}</dd><dt>Build ID</dt><dd>{appBuild.buildId}</dd><dt>Built</dt><dd>{formatBuildDate(appBuild.builtAt)}</dd><dt>Source revision</dt><dd>{appBuild.revision.slice(0, 12)}</dd></dl>
       <p>{updater ? 'Checks the latest published desktop build. Updating downloads its installer, verifies the SHA-256 checksum and starts it; the installer replaces the app files.' : desktop ? 'Reloads the installed application without its HTTP cache. It does not download or install a newer desktop executable.' : 'Checks deployment metadata and fetches fresh app HTML with cache bypass, then reloads using a unique URL. This is the supported web equivalent—not a literal browser Ctrl+Shift+R command.'}</p><p>Saved IndexedDB data, PAT settings and column preferences are not cleared. Unfinished forms are not included in a JSON backup; save or cancel them before continuing.</p>
       {!desktop && <div className="notice" role="status">{checking ? 'Checking deployed build…' : latest ? latest.buildId === appBuild.buildId ? `Already running the latest deployed build: v${latest.version} (${latest.buildId}). You can still force a fresh reload.` : `Deployed: v${latest.version} · Build ${latest.buildNumber ?? "—"} · ID ${latest.buildId} · ${formatBuildDate(latest.builtAt)}` : 'No deployed build confirmed yet.'}</div>}

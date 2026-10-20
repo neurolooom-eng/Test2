@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { useAppStore } from './store'
 import { fileSha, forgetGitStorage, GitConflictError, historyUrl, listFolder, loadGitConfig, loadGitToken, planningData, readPlanningFile, readRawFile, readTextFile, saveGitConfig, saveGitToken, serializePlanning, siblingConfig, validateGitConfig, writePlanningFile, writeTextFile, type GitConfig } from './gitStorage'
 import { applySnapshots, parseSnapshot, serializeSnapshot, snapshotDigest, snapshotFile, snapshotFileName, snapshotFolder, type SnapshotFile, type ViewSnapshot } from './gitSnapshots'
+import { formatDateTime } from './format'
 import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
@@ -93,7 +94,7 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
       if (digests[profile.id] === digest) { note(profile.id, 'info', 'Unchanged since the last save to Git.'); return }
       note(profile.id, 'info', 'Saving to Git…')
       const sha = await fileSha(target, token)
-      await writeTextFile(target, token, serializeSnapshot(snapshotFile(profile, source)), sha, `${profile.viewName || profile.reason}: ${source.items.length} items fetched ${source.fetchedAt.slice(0, 16).replace('T', ' ')} UTC`)
+      await writeTextFile(target, token, serializeSnapshot(snapshotFile(profile, source)), sha, `${profile.viewName || profile.reason}: ${source.items.length} items fetched ${formatDateTime(source.fetchedAt)}`)
       try { localStorage.setItem(digestKey, JSON.stringify({ ...digests, [profile.id]: digest })) } catch { /* next fetch commits again */ }
       note(profile.id, 'success', `Saved to Git (${target.path}).`)
     } catch (error) { note(profile.id, 'error', `Not saved to Git: ${error instanceof Error ? error.message : String(error)}`) }
