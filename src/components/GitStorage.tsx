@@ -6,7 +6,7 @@ import { Notice, Panel, Pill, type Tone } from './ui'
 const tone: Record<GitStorage['status'], Tone> = { off: 'neutral', loading: 'info', synced: 'open', empty: 'warning', saving: 'info', error: 'danger', conflict: 'danger' }
 const label: Record<GitStorage['status'], string> = { off: 'Not connected', loading: 'Loading', synced: 'Synced', empty: 'File not created', saving: 'Saving', error: 'Error', conflict: 'Conflict' }
 
-// Administration: where the planning data file lives and the token that reads and writes it.
+// Settings: where the planning data file lives and the token that reads and writes it.
 export function GitStoragePanel({ git }: { git: GitStorage }) {
   const [form, setForm] = useState({ owner: git.config?.owner ?? '', repo: git.config?.repo ?? '', branch: git.config?.branch ?? 'main', path: git.config?.path ?? defaultGitPath })
   const [token, setToken] = useState('')

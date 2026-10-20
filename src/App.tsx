@@ -10,10 +10,8 @@ import { ActivitiesPage } from './pages/ActivitiesPage'
 import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { ReleasesPage } from './pages/ReleasesPage'
-import { MigrationPage } from './pages/MigrationPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
-import { AzureDevOpsPage } from './pages/AzureDevOpsPage'
 import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace } from './useAzureWorkspace'
 import { useGitStorage } from './useGitStorage'
@@ -46,7 +44,8 @@ export default function App() {
     if (!(store.state.azureWorkItems?.length)) azure.loadSampleData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.ready])
-  const openConnection = () => setPage('azure')
+  // Azure DevOps connections live at the top of Settings.
+  const openConnection = () => setPage('admin')
   const pageProps = { store, month, setMonth }
   const buildStatus = <BuildStatus pending={store.hasPendingSave} failed={store.ready && (store.cache.status === 'error' || (store.connection.mode === 'sharepoint' && ['error', 'conflict'].includes(store.connection.status)))} busy={azure.busy} preview={Boolean(azure.preview)} onBackup={store.ready ? () => exportStateJson({ ...store.state, azureWorkItems: mergeAzureWorkItems(store.state.azureWorkItems ?? [], azure.preview?.items ?? []), ...(azure.preview ? { azureBacklogScope: azure.preview.scope } : {}) }) : undefined} />
   const storageTone = store.connection.mode === 'sharepoint' ? 'open' : store.cache.status === 'error' || store.connection.status === 'error' || store.connection.status === 'conflict' ? 'danger' : 'neutral'
@@ -70,11 +69,9 @@ export default function App() {
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenConnection={openConnection} onOpenSettings={() => setPage('admin')} />}
       {page === 'releases' && <ReleasesPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
-      {page === 'board' && <BoardPage azure={azure} onOpenConnection={openConnection} />}
-      {page === 'azure' && <AzureDevOpsPage azure={azure} store={store} onOpenBoard={() => setPage('board')} />}
-      {page === 'migration' && <MigrationPage {...pageProps} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenConnection={openConnection} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
     </main>
   </div>
 }

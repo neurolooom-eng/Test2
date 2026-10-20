@@ -41,7 +41,8 @@ export function MyWorkPage({ azure, store, my, onOpenConnection }: { azure: Azur
     if (blocked || !config) return
     if (!window.confirm(`Set #${item.id} “${item.title}” to ${state} in Azure DevOps?`)) return
     setBusy(`state-${item.id}`)
-    try { const updated = await updateAzureWorkItem(config, pat, item.id, { state }); azure.applyWorkItems([updated], 'Set state', `#${item.id} ${item.state} → ${updated.state}`); note({ tone: 'success', text: `#${item.id} is now ${updated.state}.` }) }
+    // After every save the whole backlog is refreshed from Azure (and saved locally), so all pages show current data.
+    try { const updated = await updateAzureWorkItem(config, pat, item.id, { state }); azure.applyWorkItems([updated], 'Set state', `#${item.id} ${item.state} → ${updated.state}`); note({ tone: 'success', text: `#${item.id} is now ${updated.state}. Refreshing data…` }); await azure.refresh() }
     catch (failure) { note({ tone: 'error', text: `#${item.id}: ${failure instanceof Error ? failure.message : 'update failed'}` }) }
     finally { setBusy('') }
   }
@@ -68,6 +69,7 @@ export function MyWorkPage({ azure, store, my, onOpenConnection }: { azure: Azur
     }
     azure.applyWorkItems(updated, 'Move to current sprint', `${updated.length} item(s) moved to ${target}`)
     note({ tone: failed.length ? 'error' : 'success', text: `${updated.length} moved to ${shortPath(target)}.${failed.length ? ` ${failed.length} failed — ${failed.join(' · ')}` : ''}` })
+    if (updated.length) await azure.refresh()
     setBusy('')
   }
 
@@ -88,6 +90,7 @@ export function MyWorkPage({ azure, store, my, onOpenConnection }: { azure: Azur
     }
     azure.applyWorkItems(changed, 'Create month tasks', `${created} ${month} Time Writing task(s) created, ${existed} already existed`)
     note({ tone: failed.length ? 'error' : 'success', text: `${created} task${created === 1 ? '' : 's'} created${existed ? `, ${existed} already existed (not duplicated)` : ''}.${failed.length ? ` ${failed.length} failed — ${failed.join(' · ')}` : ''}` })
+    if (changed.length) await azure.refresh()
     setBusy('')
   }
 

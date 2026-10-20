@@ -4,7 +4,7 @@ import type { ConnectionInput } from './useAzureWorkspace'
 // Connections the team uses, pre-filled so only the PAT has to be entered. A preset disappears from the list once a
 // saved connection points at the same collection and project, or when it is dismissed in this browser.
 export const connectionPresets: Array<Omit<ConnectionInput, 'pat'> & { key: string }> = [
-  { key: 'time-writing-cloud', name: 'Time Writing', role: 'time-tracking', serverUrl: '', organization: 'ALMP-ORG-MSTP01', project: 'Patient Safety and Quality', team: 'InD Quality', query: '', creatorEmail: '', apiVersion: '' },
+  { key: 'time-writing-cloud', name: 'QMS-0025', role: 'time-tracking', serverUrl: '', organization: 'ALMP-ORG-MSTP01', project: 'Patient Safety and Quality', team: 'InD Quality', query: '', creatorEmail: '', apiVersion: '' },
   { key: 'dhp-on-prem', name: 'DHP (on-prem)', role: 'reference', serverUrl: 'https://tfsapac04.ta.philips.com/tfs', organization: 'DHPCollection', project: 'DHP', team: '', query: '', creatorEmail: '', apiVersion: '' },
 ]
 

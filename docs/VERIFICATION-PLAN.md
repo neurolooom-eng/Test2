@@ -33,4 +33,4 @@
 
 ## Evidence
 
-Store build log, checksums, screenshots, test results, migration reconciliation and UAT sign-off under the controlled project evidence location.
+Store build log, checksums, screenshots, test results and UAT sign-off under the controlled project evidence location.

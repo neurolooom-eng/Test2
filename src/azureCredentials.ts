@@ -6,9 +6,10 @@ const profileKey = (config: AzureConfig) => `${legacyKey(config)}:profiles-v1`
 export interface AzurePatProfile { id: string; purpose: string; token: string }
 export interface AzurePatProfileSummary { id: string; purpose: string }
 // What a connection's data is used for: the Time Writing backlog (read & write), the DHFI release documents,
-// a document source such as Vault (read only, for document counts) or reference data that is only fetched and listed.
-export type AzureConnectionRole = 'time-tracking' | 'release-source' | 'documents' | 'reference'
-export const azureConnectionRoles: AzureConnectionRole[] = ['time-tracking', 'release-source', 'documents', 'reference']
+// a document source such as Vault (read only, for document counts), reference data that is only fetched and listed, or a
+// read-only backlog view shown as its own tab on the Backlogs page.
+export type AzureConnectionRole = 'time-tracking' | 'release-source' | 'documents' | 'reference' | 'backlog-view'
+export const azureConnectionRoles: AzureConnectionRole[] = ['time-tracking', 'backlog-view', 'release-source', 'documents', 'reference']
 export interface AzureConnectionProfile { id: string; url: string; reason: string; creatorEmail?: string; role?: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string; token: string }
 export interface AzureConnectionProfileSummary { id: string; url: string; reason: string; creatorEmail?: string; role: AzureConnectionRole; query?: string; baseUrl?: string; apiVersion?: string }
 const connectionProfilesKey = 'demand-planning-azure-connection-profiles-v1'
