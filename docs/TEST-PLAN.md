@@ -457,7 +457,7 @@ Cases marked **UAT** are also run in acceptance testing.
 - Expected:
   - Step 1 creates one Task "{Month YYYY} | {F1 title}" assigned to Me, under the story chosen by TWN-09 (S2 here), and creates no new story.
   - Step 2 shows status "Has task", and the button creates nothing.
-  - Two exact stories show "Duplicate stories", with the checkbox disabled.
+  - Two exact stories show "Choose story", with the checkbox disabled.
   - Step 3 shows the ATM-12 message.
 
 **TC-ATM-06 Blocked writes** — Req ATM-13, ATM-14
