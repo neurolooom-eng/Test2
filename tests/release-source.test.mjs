@@ -28,7 +28,7 @@ test('fetchReleaseSource pages the query, reads items in batches and keeps the q
   assert.deepEqual(calls.map((call) => call.operation), ['query', 'items', 'query'])
   await assert.rejects(fetchReleaseSource(config, '', 'SELECT [System.Id] FROM WorkItems WHERE 1=1', transport), /PAT/)
 })
-test('name and release are read from a "Release x.y.z" path segment, Area Path first, then Iteration Path', () => {
+test('name and release are read from a "Release x.y.z" path segment, release from the Iteration Path with the name from the Area Path, else the Area Path', () => {
   assert.deepEqual(releaseFromPath('DHP\\DoseNav\\Release 2.1.0'), { name: 'DoseNav', release: '2.1.0' })
   assert.deepEqual(releaseFromPath('DHP\\DoseNav\\Release 2.1.0\\Sprint 4'), { name: 'DoseNav', release: '2.1.0' })
   assert.deepEqual(releaseFromPath('DHP\\Clinical Library\\release v7.0'), { name: 'Clinical Library', release: '7.0' })
@@ -36,8 +36,14 @@ test('name and release are read from a "Release x.y.z" path segment, Area Path f
   assert.equal(releaseFromPath('DHP\\DoseNav\\Sprint 4'), undefined)
   assert.equal(releaseFromPath('Release 1.0'), undefined, 'a release segment needs a name above it')
   assert.equal(releaseFromPath(''), undefined)
-  assert.deepEqual(releaseOf({ areaPath: 'DHP\\DoseNav\\Release 2.1.0', iterationPath: 'DHP\\Other\\Release 9.9' }), { name: 'DoseNav', release: '2.1.0' })
-  assert.deepEqual(releaseOf({ areaPath: 'DHP\\Team A', iterationPath: 'DHP\\DoseNav\\Release 2.2\\Sprint 1' }), { name: 'DoseNav', release: '2.2' })
+  // Release in the Iteration Path: release from it, name from the Area Path.
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\Dose Planning', iterationPath: 'DHP\\Release 2.1.0\\Sprint 4' }), { name: 'Dose Planning', release: '2.1.0' })
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\Team A', iterationPath: 'DHP\\DoseNav\\Release 2.2\\Sprint 1' }), { name: 'Team A', release: '2.2' })
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\DoseNav\\Release 2.1.0', iterationPath: 'DHP\\Other\\Release 9.9' }), { name: 'DoseNav', release: '9.9' }, 'the Iteration Path gives the release')
+  assert.deepEqual(releaseOf({ areaPath: 'DHP', iterationPath: 'DHP\\DoseNav\\Release 2.2' }), { name: 'DoseNav', release: '2.2' }, 'project-only Area Path: name from the Iteration Path')
+  // No release in the Iteration Path: the Area Path alone, as before.
+  assert.deepEqual(releaseOf({ areaPath: 'DHP\\DoseNav\\Release 2.1.0', iterationPath: 'DHP\\Sprint 4' }), { name: 'DoseNav', release: '2.1.0' })
+  assert.equal(releaseOf({ areaPath: 'DHP\\DoseNav', iterationPath: 'DHP\\Sprint 4' }), undefined)
   assert.deepEqual(normalizeReleaseSourceSettings({ streamSegment: 2, releasePattern: 'x', approvalDateField: 'Custom.Approved' }), { approvalDateField: 'Custom.Approved' })
   assert.deepEqual(normalizeReleaseSourceSettings(undefined), {})
 })
@@ -45,7 +51,7 @@ test('the register is one flat list of name + release, counts documents and cros
   const source = [doc(1, 'DHFI\\DoseNav\\Release 2.1'), doc(2, 'DHFI\\DoseNav\\Release 2.1'), doc(3, 'DHFI\\DoseNav\\Release 2.10'), doc(4, 'DHFI\\Team', { iterationPath: 'DHFI\\Viewer\\Release 1.0\\Sprint 2' }), doc(5, 'DHFI\\Misc')]
   const backlog = [doc(100, 'X', { project: 'Quality', workItemType: 'Feature', title: 'DP | DoseNav | v2.1' }), doc(101, 'X', { project: 'Quality', workItemType: 'Task', title: 'October 2026 | DoseNav 2.10', state: 'Removed' })]
   const register = releaseRegister(source, backlog)
-  assert.deepEqual(register.map((entry) => [entry.name, entry.release, entry.documents]), [['DoseNav', '2.10', 1], ['DoseNav', '2.1', 2], ['Viewer', '1.0', 1]])
+  assert.deepEqual(register.map((entry) => [entry.name, entry.release, entry.documents]), [['DoseNav', '2.10', 1], ['DoseNav', '2.1', 2], ['Team', '1.0', 1]])
   const r21 = register.find((entry) => entry.release === '2.1')
   assert.equal(r21.tracked, true); assert.equal(r21.trackedBy[0].id, 100)
   assert.equal(register.find((entry) => entry.release === '2.10').tracked, false, 'v2.1 does not track 2.10, and removed items do not count')
