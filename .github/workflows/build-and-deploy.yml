@@ -170,7 +170,16 @@ jobs:
           else
             gh release create desktop-latest --repo "$REPO" --target "$GITHUB_SHA" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
           fi
-          gh release upload desktop-latest installers/*.exe installers/*.dmg installers/SHA256SUMS*.txt --repo "$REPO" --clobber
+          # Update information for the in-app updater: build number (= this run, the same number the app shows),
+          # revision, and each installer's size and SHA-256, which the app verifies before installing.
+          node -e '
+            const fs = require("fs"), crypto = require("crypto")
+            const file = (name) => { const data = fs.readFileSync(`installers/${name}`); return { name, size: data.length, sha256: crypto.createHash("sha256").update(data).digest("hex") } }
+            const manifest = { app: "demandplanning", formatVersion: 1, buildNumber: Number(process.env.GITHUB_RUN_NUMBER), revision: process.env.GITHUB_SHA, builtAt: new Date().toISOString(), files: { win32: file("Demand-Planning-Hub-Setup.exe"), darwin: file("Demand-Planning-Hub-mac.dmg") } }
+            fs.writeFileSync("installers/latest.json", JSON.stringify(manifest, null, 2))
+          '
+          cat installers/latest.json
+          gh release upload desktop-latest installers/*.exe installers/*.dmg installers/SHA256SUMS*.txt installers/latest.json --repo "$REPO" --clobber
 
   build-web-site:
     name: Build browser application

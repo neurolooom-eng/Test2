@@ -225,3 +225,7 @@ input,select,textarea{border-radius:var(--radius-sm);transition:border-color .15
 .settings-section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
 .settings-section-heading h2{margin:3px 0 4px;font-size:22px;color:var(--navy)}
 .settings-section-heading .muted{margin:0;font-size:13px;max-width:900px}
+/* Desktop update download progress. */
+.update-progress{position:relative;height:22px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin:8px 0}
+.update-progress i{position:absolute;inset:0 auto 0 0;background:var(--accent-soft)}
+.update-progress span{position:relative;display:block;text-align:center;font-size:11px;line-height:22px;color:var(--text-2)}
