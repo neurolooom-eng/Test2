@@ -9,7 +9,7 @@ import type { QueryColumn, QueryOrder } from '../queryView'
 // Release source view: Register (stream → release, from the Area Path; approval date, documents, whether the release
 // has Time Writing items) and Documents (the query's own columns). The selected tab is remembered in this browser.
 const tabKey = 'demand-planning-release-tab-v1'
-export function ReleaseView({ name, items, backlog, settings, columns, orderBy }: { name: string; items: AzureWorkItem[]; backlog: AzureWorkItem[]; settings: ReleaseSourceSettings; columns?: QueryColumn[]; orderBy?: QueryOrder[] }) {
+export function ReleaseView({ name, items, backlog, settings, columns, orderBy, unresolved }: { name: string; items: AzureWorkItem[]; backlog: AzureWorkItem[]; settings: ReleaseSourceSettings; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[] }) {
   const [tab, setTabState] = useState<'register' | 'documents'>(() => { try { return localStorage.getItem(tabKey) === 'documents' ? 'documents' : 'register' } catch { return 'register' } })
   const setTab = (next: 'register' | 'documents') => { setTabState(next); try { localStorage.setItem(tabKey, next) } catch { /* convenience only */ } }
   const [open, setOpen] = useState('')
@@ -17,7 +17,7 @@ export function ReleaseView({ name, items, backlog, settings, columns, orderBy }
   const releases = register.reduce((sum, stream) => sum + stream.releases.length, 0)
   return <>
     <div className="overview-tabs" role="tablist" aria-label={`${name} sections`}>{([['register', `Register · ${releases} releases`], ['documents', `Documents · ${items.length}`]] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
-    {tab === 'documents' ? <QueryView name={name} items={items} columns={columns} orderBy={orderBy} />
+    {tab === 'documents' ? <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={unresolved} />
       : register.length ? <div className="azure-table release-register"><table><thead><tr><th>Stream</th><th>Release</th><th>Name</th><th>Approved</th><th>Documents</th><th>Time Writing</th></tr></thead><tbody>
         {register.flatMap((stream) => stream.releases.map((release, index) => { const key = `${stream.stream}/${release.id}`; return [
           <tr key={key}><td>{index === 0 && <><strong>{stream.stream}</strong><small>{stream.releases.length} releases</small></>}</td>

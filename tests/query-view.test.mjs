@@ -7,9 +7,9 @@ const item = (id, extra = {}) => ({ ...base, key: `o/p/${id}`, id, workItemType:
 
 test('query layout: SELECT columns in order, ORDER BY with direction; ID-only or no query uses defaults', () => {
   const wiql = 'SELECT [System.Id], [System.Title], [Custom.AuthorApprovalDate], [System.State]\nFROM WorkItems WHERE [System.TeamProject] = @project ORDER BY [Custom.AuthorApprovalDate] DESC, [System.Id]'
-  assert.deepEqual(queryLayout(wiql), { columns: ['System.Id', 'System.Title', 'Custom.AuthorApprovalDate', 'System.State'], orderBy: [{ ref: 'Custom.AuthorApprovalDate', desc: true }, { ref: 'System.Id', desc: false }] })
+  assert.deepEqual(queryLayout(wiql), { columns: ['System.Id', 'System.Title', 'Custom.AuthorApprovalDate', 'System.State'], orderBy: [{ ref: 'Custom.AuthorApprovalDate', desc: true }, { ref: 'System.Id', desc: false }], unresolved: [] })
   assert.deepEqual(queryLayout('SELECT [System.Id] FROM WorkItems WHERE [System.State] <> \'Removed\'').columns, defaultViewColumns)
-  assert.deepEqual(queryLayout(undefined), { columns: defaultViewColumns, orderBy: [] })
+  assert.deepEqual(queryLayout(undefined), { columns: defaultViewColumns, orderBy: [], unresolved: [] })
 })
 
 test('fields: identities become display names; standard columns fall back to the mapped item; names readable', () => {
@@ -41,6 +41,19 @@ test('summary: counts by state, type and person; overdue open items; changed thi
 
 test('query columns are read with or without square brackets, in any mix', () => {
   assert.deepEqual(queryLayout('SELECT System.Id, System.Title, Microsoft.VSTS.Common.Priority FROM WorkItems WHERE System.TeamProject = @project').columns, ['System.Id', 'System.Title', 'Microsoft.VSTS.Common.Priority'])
-  assert.deepEqual(queryLayout('﻿select [System.Id],\r\n\tSystem.Title from workitems where [System.State] <> \'Closed\' ORDER BY System.State DESC, [System.Id] asc'), { columns: ['System.Id', 'System.Title'], orderBy: [{ ref: 'System.State', desc: true }, { ref: 'System.Id', desc: false }] })
+  assert.deepEqual(queryLayout('﻿select [System.Id],\r\n\tSystem.Title from workitems where [System.State] <> \'Closed\' ORDER BY System.State DESC, [System.Id] asc'), { columns: ['System.Id', 'System.Title'], orderBy: [{ ref: 'System.State', desc: true }, { ref: 'System.Id', desc: false }], unresolved: [] })
   assert.deepEqual(queryLayout('SELECT System.Id FROM WorkItems WHERE System.TeamProject = @project').columns, defaultViewColumns)
+})
+
+test('SELECT entries mix reference names and field names, in any letter case, and resolve to the server spelling', () => {
+  const names = { 'System.Id': 'ID', 'System.Title': 'Title', 'System.AssignedTo': 'Assigned To', 'System.State': 'State', 'Custom.ReleaseDate': 'Release Date' }
+  const wiql = 'SELECT [System.Id], Title, [Assigned To], [system.state], [Release Date], [custom.releasedate]​ FROM WorkItems WHERE [System.TeamProject] = @project ORDER BY [Release Date] DESC, ID'
+  assert.deepEqual(queryLayout(wiql, names), { columns: ['System.Id', 'System.Title', 'System.AssignedTo', 'System.State', 'Custom.ReleaseDate'], orderBy: [{ ref: 'Custom.ReleaseDate', desc: true }, { ref: 'System.Id', desc: false }], unresolved: [] })
+  // Without the project's field list, common field names still resolve; unknown names are reported, not guessed.
+  assert.deepEqual(queryLayout('SELECT ID, Title, [Assigned To], [Work Item Type], [Release Date] FROM WorkItems WHERE x = 1'), { columns: ['System.Id', 'System.Title', 'System.AssignedTo', 'System.WorkItemType'], orderBy: [], unresolved: ['Release Date'] })
+})
+
+test('values are found whatever the letter case of the reference', () => {
+  assert.deepEqual(pickFields({ 'System.Title': 'A', 'Custom.ReleaseDate': '2026-10-01T00:00:00Z' }, ['system.title', 'CUSTOM.RELEASEDATE']), { 'system.title': 'A', 'CUSTOM.RELEASEDATE': '2026-10-01T00:00:00Z' })
+  assert.equal(cellValue({ id: 1, title: 'T', state: 'Active' }, 'system.state'), 'Active')
 })
