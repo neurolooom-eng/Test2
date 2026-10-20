@@ -23,6 +23,7 @@ import { BuildStatus } from './components/BuildStatus'
 import { backlogViews, loadBacklogTab, saveBacklogTab, timeWritingView } from './backlogViews'
 import { mergeAzureWorkItems } from './azureDevOps'
 import { indiaMonth } from './azureInsights'
+import { HeaderSlot } from './headerSlot'
 
 export default function App() {
   const store = useAppStore()
@@ -30,6 +31,7 @@ export default function App() {
   const git = useGitStorage(store, azure.isSample)
   const my = useMyWork(azure, store)
   const [page, setPage] = useState<Page>('overview')
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   const [month, setMonth] = useState(() => indiaMonth(new Date().toISOString())!)
   const meta = pageMeta(page)
   const sampleRequested = useRef(new URLSearchParams(window.location.search).get('sample') === '1')
@@ -53,14 +55,14 @@ export default function App() {
 
   if (!store.ready) return <main className="content"><h1>Demand Planning</h1>{store.loadError ? <Notice tone="error"><p>{store.loadError}</p><p>Do not clear browser data. If you still have an older tab open with unsaved changes, export its JSON backup first.</p><button className="primary" onClick={store.retryLoad}>Retry loading saved data</button></Notice> : <p role="status">Loading saved browser data…</p>}{buildStatus}</main>
 
-  return <div className="app-shell">
+  return <HeaderSlot.Provider value={headerSlot}><div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">DP</div><div><strong>Demand Planning</strong><span>Quality Engineering</span></div></div>
       <nav aria-label="Primary navigation">{pageGroups.filter((group) => group !== 'Azure DevOps' || views.length > 0).map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? views.map((entry) => <button key={entry.id} className={page === 'board' && view.id === entry.id ? 'nav-active' : ''} aria-current={page === 'board' && view.id === entry.id ? 'page' : undefined} onClick={() => openView(entry.id)}><span className="nav-icon">{item.icon}</span>{entry.name}</button>) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
       <div className="sidebar-footer"><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
     </aside>
     <main>
-      <header className="topbar"><h1 title={meta.detail}>{page === 'board' ? view.name : meta.label}</h1><div className="topbar-actions"><DataStatus azure={azure} />{meta.usesMonth && <label className="month-picker"><span className="sr-only">Month</span><input type="month" aria-label="Month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>}<ThemeToggle /></div></header>
+      <header className="topbar"><h1 title={meta.detail}>{page === 'board' ? view.name : meta.label}</h1><div className="topbar-slot" ref={setHeaderSlot} /><div className="topbar-actions"><DataStatus azure={azure} />{meta.usesMonth && <label className="month-picker"><span className="sr-only">Month</span><input type="month" aria-label="Month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>}<ThemeToggle /></div></header>
       <DataNotices azure={azure} onOpenConnection={openConnection} />
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
@@ -73,5 +75,5 @@ export default function App() {
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
-  </div>
+  </div></HeaderSlot.Provider>
 }
