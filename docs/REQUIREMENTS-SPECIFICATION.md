@@ -170,12 +170,13 @@ Stakeholders:
 | CON-11 | The Time Writing view shall be named by its connection's View name, otherwise "QMS-0025". | T | M | UC-02 |
 | CON-12 | The view list shall contain, after the Time Writing view, every other connection with Show in menu on. Each is read only and named by its View name, otherwise its connection name. | T | M | UC-02 |
 | CON-13 | The connection table shall show, for each connection, "In menu as "{view name}"" or "Hidden from menu (backend only)". | D | S | UC-02 |
-| CON-14 | The connection table shall provide the actions Fetch, Test, Edit and Remove for each connection. | D | M | UC-02 |
+| CON-14 | The connection table shall provide the actions Fetch, Test, Edit, Clone and Remove for each connection. | D | M | UC-02 |
 | CON-15 | Remove shall ask "Remove "{name}" from this browser? Its PAT is not revoked in Azure DevOps." before deleting the connection. | D | M | UC-02 |
 | CON-16 | Test shall run a read-only WIQL query that returns no items. On success it shall report "Connection works: {project} is reachable with this PAT." | T | S | UC-02 |
 | CON-17 | The app shall offer the built-in presets (QMS-0025 as Time Writing, view name "QMS-0025", in menu; DHP on-prem as reference, hidden from menu) until each is set up or dismissed. Dismissals shall be remembered in this browser. | D | C | UC-02 |
 | CON-18 | The app shall store connections and their PATs only in localStorage key `demand-planning-azure-connection-profiles-v1`, never in the app state. | I, T | M | UC-02 |
 | CON-19 | The app shall mark a connection with a base URL as "On-prem" in the connection table. | D | C | UC-02 |
+| CON-20 | "Clone" shall open the connection form as a new connection with every setting of the chosen one (name and view name suffixed "(copy)"). Saving it without a PAT shall use the chosen connection's saved PAT. The chosen connection shall not change. | T | S | UC-02 |
 
 ### 3.3 Fetching and saving Azure DevOps data (FET) — UC-03
 
@@ -519,7 +520,7 @@ These describe as-built behaviour that is ambiguous, inconsistent, or may not ma
 | Use case | Requirements |
 |---|---|
 | UC-01 | NAV-01…16, FET-10, FET-12, UI-01…03 |
-| UC-02 | CON-01…19, NAV-05 |
+| UC-02 | CON-01…20, NAV-05 |
 | UC-03 | FET-01…17, CON-09 |
 | UC-04 | TWN-01…07, MON-01…17 |
 | UC-05 | TWN-08, MON-18, MON-19 |

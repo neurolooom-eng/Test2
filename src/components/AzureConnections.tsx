@@ -30,11 +30,19 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   const sources = store.state.azureSources ?? []
   const releaseSource = store.state.releaseSource
 
-  function edit(profile: AzureConnectionProfileSummary) {
+  const formFrom = (profile: AzureConnectionProfileSummary): ConnectionInput => {
     const parts = splitAzureUrl(profile.url, profile.baseUrl)
     const { serverUrl, organization } = splitCollectionUrl(parts.baseUrl)
-    setFormError(''); setForm({ id: profile.id, name: profile.reason, viewName: profile.viewName ?? '', showInMenu: showsInMenu(profile), role: profile.role, serverUrl, organization, project: parts.project, team: parts.team, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
+    return { id: profile.id, name: profile.reason, viewName: profile.viewName ?? '', showInMenu: showsInMenu(profile), role: profile.role, serverUrl, organization, project: parts.project, team: parts.team, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' }
   }
+  function edit(profile: AzureConnectionProfileSummary) { setFormError(''); setForm(formFrom(profile)) }
+  // Clone: a new connection with every setting of this one (server, project, team, query, role, menu) and its saved
+  // PAT, so only what differs (query, project, …) needs changing. Saving creates it; the original is unchanged.
+  function clone(profile: AzureConnectionProfileSummary) {
+    const copy = formFrom(profile)
+    setFormError(''); setForm({ ...copy, id: undefined, cloneOf: profile.id, name: `${profile.reason} (copy)`, viewName: profile.viewName ? `${profile.viewName} (copy)` : '' })
+  }
+  const clonedFrom = form?.cloneOf ? connectionProfiles.find((profile) => profile.id === form.cloneOf)?.reason : undefined
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form) return
@@ -75,12 +83,12 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
           <td>{parts.baseUrl.replace('https://', '')}{profile.baseUrl && <Pill tone="info">On-prem</Pill>}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}{profile.apiVersion ? ` · API ${profile.apiVersion}` : ''}</small></td>
           <td>{profile.query ? <span className="query-chip" title={profile.query}>Custom query</span> : <small>{profile.role === 'time-tracking' || profile.role === 'backlog-view' ? 'Team Epic backlog' : 'Default'}</small>}</td>
           <td><Pill tone={tone}>{label}</Pill><small>{status?.message ?? lastFetch(profile)}</small></td>
-          <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.testConnection(profile.id)}>Test</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
+          <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.testConnection(profile.id)}>Test</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="ghost" title="New connection with the same settings and PAT" onClick={() => clone(profile)}>Clone</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
         </tr>
       })}</tbody></table></div>
         : presets.length ? null : <EmptyState title="No connections yet." detail="Add your Time Writing project first, then the DHFI release source and any other read-only sources." />}
       {form && <form className="connection-editor" onSubmit={submit}>
-        <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>{!form.id && form.organization && <Notice>Pre-filled settings: enter your PAT, change anything else if needed, then Save and Test.</Notice>}
+        <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : clonedFrom ? `Clone of “${clonedFrom}”` : 'New connection'}</h3>{clonedFrom ? <Notice>All settings and the PAT of “{clonedFrom}” are copied. Change the name and what differs (query, project, team, …), then Save and refresh data. “{clonedFrom}” itself is not changed.</Notice> : !form.id && form.organization && <Notice>Pre-filled settings: enter your PAT, change anything else if needed, then Save and Test.</Notice>}
         <div className="connection-form">
           <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. QMS-0025, Digital Platform, DHFI releases" /></label>
           <label>View name (optional)<input value={form.viewName} maxLength={80} onChange={(event) => setForm({ ...form, viewName: event.target.value })} placeholder={form.name.trim() || 'Same as the connection name'} /><small>Name in the Azure DevOps menu and on its tab, e.g. QMS-0025.</small></label>
@@ -91,7 +99,7 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
           <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
           {(form.role === 'time-tracking' || form.role === 'backlog-view') && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
           <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="Automatic" /><small>Leave empty to detect it: 7.1, then 6.0 and 5.0 for older Azure DevOps Server.</small></label>
-          <label>PAT{form.id ? ' (leave empty to keep the saved one)' : ''}<input type="password" autoComplete="off" required={!form.id || !loadAzureConnectionProfile(form.id)} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
+          <label>PAT{form.id ? ' (leave empty to keep the saved one)' : clonedFrom ? ` (leave empty to use the PAT of “${clonedFrom}”)` : ''}<input type="password" autoComplete="off" required={form.id ? !loadAzureConnectionProfile(form.id) : !(form.cloneOf && loadAzureConnectionProfile(form.cloneOf))} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
           {form.role === 'time-tracking' && <label>Feature creator email (optional)<input type="email" value={form.creatorEmail} onChange={(event) => setForm({ ...form, creatorEmail: event.target.value })} placeholder="Assigned to Features created from the app" /></label>}
           <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' || form.role === 'backlog-view' ? '' : 'Empty uses the default shown.'}</small></label>
         </div>
