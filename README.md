@@ -24,6 +24,13 @@ Implemented in the MVP UI:
 - Resource list read from Azure (Assigned To), with region, role and reporting line kept in the shared app data; admin-controlled master data
 - SharePoint connection, initialization, pull, autosave and edit-conflict detection
 
+## Documentation
+
+- [Requirements specification](docs/REQUIREMENTS-SPECIFICATION.md): "shall" requirements with rationale, verification method, priority and use-case trace, plus open issues.
+- [Test plan](docs/TEST-PLAN.md): test cases with steps and acceptance criteria for every requirement, and the coverage matrix.
+- [Verification plan](docs/VERIFICATION-PLAN.md) and [UAT plan](docs/UAT-PLAN.md).
+- [Azure DevOps connection setup](docs/azure-devops-connection.md).
+
 ## Run
 
 Requires Node.js and pnpm.
