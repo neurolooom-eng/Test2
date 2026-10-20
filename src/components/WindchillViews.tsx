@@ -1,0 +1,67 @@
+import { useState } from 'react'
+import { windchillOps, windchillCell, type WindchillFilter, type WindchillView } from '../windchillViews'
+import { formatDateTime } from '../format'
+import { downloadCsv } from '../download'
+import type { WindchillWorkspace } from '../useWindchill'
+import { EmptyState, Notice, Panel, Pill } from './ui'
+
+const blank = (): WindchillView => ({ id: crypto.randomUUID().replaceAll('-', ''), name: '', entitySet: '', filters: [{ field: '', op: 'eq', value: '' }], columns: [], showInMenu: true })
+
+// Settings: the Windchill views — object type, filter rows and columns — with Fetch (desktop app).
+export function WindchillViewsPanel({ windchill }: { windchill: WindchillWorkspace }) {
+  const [form, setForm] = useState<(WindchillView & { columnsText: string }) | null>(null)
+  const [error, setError] = useState('')
+  const edit = (view: WindchillView) => { setError(''); setForm({ ...view, filters: view.filters.length ? view.filters : [{ field: '', op: 'eq', value: '' }], columnsText: view.columns.join(', ') }) }
+  const setFilter = (index: number, patch: Partial<WindchillFilter>) => setForm((current) => current && { ...current, filters: current.filters.map((filter, position) => position === index ? { ...filter, ...patch } : filter) })
+  function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!form) return
+    try { windchill.saveView({ ...form, columns: form.columnsText.split(',') }); setForm(null); setError('') } catch (failure) { setError(failure instanceof Error ? failure.message : 'The view could not be saved.') }
+  }
+  return <Panel className="connection-panel" eyebrow="WINDCHILL" title="Windchill views" detail="Each view is one search: an object type, filter rows and the columns to show. The desktop app runs it read-only with your Windows sign-on; with Git storage connected the results are also saved to Git for the web app." action={<button type="button" className="primary" onClick={() => edit(blank())}>＋ New view</button>}>
+    {windchill.views.length ? <div className="azure-table"><table><thead><tr><th>View</th><th>Object type</th><th>Filters</th><th>Results</th><th /></tr></thead><tbody>{windchill.views.map((view) => {
+      const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
+      return <tr key={view.id}><td><strong>{view.name}</strong>{!view.showInMenu && <small>not in menu</small>}</td><td>{view.entitySet}</td><td>{view.filters.map((filter) => `${filter.field} ${windchillOps.find((entry) => entry.op === filter.op)?.label} ${filter.value}`).join(' · ') || '—'}</td>
+        <td>{source ? `${source.rows.length} · ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (via Git)' : ''}` : '—'}{status && <small className={status.state === 'error' ? 'negative' : ''}>{status.message}</small>}</td>
+        <td><div className="button-row"><button type="button" className="ghost" disabled={!windchill.desktop || status?.state === 'busy'} title={windchill.desktop ? undefined : 'Runs in the desktop app'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : 'Fetch'}</button><button type="button" className="ghost" onClick={() => edit(view)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove the Windchill view “${view.name}” and its saved results from this app?`)) windchill.removeView(view.id) }}>Remove</button></div></td></tr>
+    })}</tbody></table></div> : !form && <EmptyState title="No Windchill views yet." detail="Add one: e.g. Documents (DocMgmt/Documents) where Number starts with DHF and State/Value equals RELEASED, showing Number, Name, Version, State/Value." />}
+    {form && <form className="connection-form windchill-form" onSubmit={save}>
+      <label>View name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Released DHF documents" /></label>
+      <label>Object type<input required value={form.entitySet} onChange={(event) => setForm({ ...form, entitySet: event.target.value })} placeholder="e.g. DocMgmt/Documents or ProdMgmt/Parts" /></label>
+      <div className="wide-field windchill-filters"><span className="field-label">Filters (all must match)</span>
+        {form.filters.map((filter, index) => <div key={index} className="windchill-filter">
+          <input aria-label={`Field ${index + 1}`} value={filter.field} onChange={(event) => setFilter(index, { field: event.target.value })} placeholder="Field, e.g. Number" />
+          <select aria-label={`Condition ${index + 1}`} value={filter.op} onChange={(event) => setFilter(index, { op: event.target.value as WindchillFilter['op'] })}>{windchillOps.map((entry) => <option key={entry.op} value={entry.op}>{entry.label}</option>)}</select>
+          <input aria-label={`Value ${index + 1}`} value={filter.value} onChange={(event) => setFilter(index, { value: event.target.value })} placeholder="Value; dates as YYYY-MM-DD" />
+          <button type="button" className="text-button" aria-label={`Remove filter ${index + 1}`} onClick={() => setForm({ ...form, filters: form.filters.filter((_, position) => position !== index) })}>✕</button>
+        </div>)}
+        <button type="button" className="ghost" onClick={() => setForm({ ...form, filters: [...form.filters, { field: '', op: 'eq', value: '' }] })}>＋ Add filter</button>
+      </div>
+      <label className="wide-field">Columns (comma-separated)<input required value={form.columnsText} onChange={(event) => setForm({ ...form, columnsText: event.target.value })} placeholder="e.g. Number, Name, Version, State/Value, LastModified" /></label>
+      <label className="check"><input type="checkbox" checked={form.showInMenu} onChange={(event) => setForm({ ...form, showInMenu: event.target.checked })} />Show in the menu</label>
+      <div className="connection-actions"><button className="primary">Save view</button><button type="button" className="ghost" onClick={() => { setForm(null); setError('') }}>Cancel</button></div>
+    </form>}
+    {error && <Notice tone="error">{error}</Notice>}
+  </Panel>
+}
+
+// A Windchill view page: its last results with the chosen columns; search and CSV export; Fetch in the desktop app.
+export function WindchillPage({ view, windchill, gitNote }: { view: WindchillView; windchill: WindchillWorkspace; gitNote?: { tone: string; text: string } }) {
+  const [search, setSearch] = useState('')
+  const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
+  const columns = source?.columns.length ? source.columns : view.columns
+  const rows = (source?.rows ?? []).filter((row) => !search.trim() || columns.some((column) => windchillCell(row, column).toLowerCase().includes(search.trim().toLowerCase())))
+  const csv = () => [columns.join(','), ...rows.map((row) => columns.map((column) => { const value = windchillCell(row, column); return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value }).join(','))].join('\r\n')
+  return <Panel className="connection-panel backlog-panel">
+    <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.entitySet}{source ? ` · ${source.rows.length} results · fetched ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
+      <div className="button-row"><button className="primary" disabled={!windchill.desktop || status?.state === 'busy'} title={windchill.desktop ? undefined : 'Runs in the desktop app'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button></div></div>
+    {status?.state === 'error' && <Notice tone="error">{status.message}</Notice>}
+    {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
+    {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail={windchill.desktop ? 'Fetch it from Windchill (read-only).' : 'Fetch it in the desktop app; with Git storage connected the results then appear here.'} />
+      : <div className="query-view">
+        <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span><Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill><button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
+        <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
+        {rows.length > 1000 && <p className="muted">Showing the first 1000 of {rows.length}; search to narrow, or export CSV for all.</p>}
+      </div>}
+  </Panel>
+}

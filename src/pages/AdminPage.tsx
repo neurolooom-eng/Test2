@@ -8,6 +8,8 @@ import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
 import { WindchillSettingsPanel } from '../components/WindchillSettingsPanel'
+import { WindchillViewsPanel } from '../components/WindchillViews'
+import type { WindchillWorkspace } from '../useWindchill'
 import { AzureViewsGitPanel } from '../components/AzureViewsGit'
 import { AzureConnections } from '../components/AzureConnections'
 import type { PageProps } from './types'
@@ -15,7 +17,7 @@ import type { PageProps } from './types'
 const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
 const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`))
 
-export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, windchill, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; windchill?: WindchillWorkspace; onOpenBoard: () => void }) {
   const [reason, setReason] = useState('Approved operational extension')
   const [capacityMessage, setCapacityMessage] = useState('')
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
@@ -97,6 +99,7 @@ export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps &
     <AzureConnections azure={azure} store={store} onOpenBoard={onOpenBoard} />
     <div id="settings-windchill" className="settings-anchor" />
     <WindchillSettingsPanel />
+    {windchill && <WindchillViewsPanel windchill={windchill} />}
     <div id="settings-storage" className="settings-anchor" />
     <GitStoragePanel git={git} />
     <AzureViewsGitPanel git={git} azure={azure} />
