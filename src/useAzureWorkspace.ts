@@ -32,7 +32,9 @@ export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: str
 export interface ConnectionInput { id?: string; cloneOf?: string; name: string; viewName: string; showInMenu: boolean; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
-export function useAzureWorkspace(store: PageProps['store']) {
+// onFetched: told about every saved read-only fetch (the app saves on-prem ones to Git from the desktop app).
+export type FetchListener = (profile: AzureConnectionProfileSummary, source: NonNullable<PageProps['store']['state']['azureSources']>[number]) => void
+export function useAzureWorkspace(store: PageProps['store'], onFetched?: { current: FetchListener | undefined }) {
   const [projectUrl, setProjectUrl] = useState(defaultUrl)
   const [team, setTeam] = useState('InD Quality')
   const [connectionProfiles, setConnectionProfiles] = useState<AzureConnectionProfileSummary[]>(() => listAzureConnectionProfiles())
@@ -228,11 +230,13 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const summary = connectionProfiles.find((entry) => entry.id === id)
     if (!profile) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'Saved connection not found in this browser.' } })); return false }
     const role = profile.role ?? 'time-tracking'
+    if (!profile.token.trim()) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'No PAT in this browser: this view shows the data the desktop app saved to Git. Add the PAT in Settings to fetch here.' } })); return false }
     setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Fetching…' } }))
     try {
       const parsed = connectionConfig(profile)
       const query = profile.query?.trim() ?? ''
       let done = ''
+      const notify = (source: Parameters<FetchListener>[1]) => { const listed = listAzureConnectionProfiles().find((entry) => entry.id === id); if (listed) onFetched?.current?.(listed, source) }
       if (role === 'time-tracking') {
         if (fetching.current) throw new Error('A Time Writing fetch is already running.')
         fetching.current = true; setBusy(true)
@@ -252,34 +256,40 @@ export function useAzureWorkspace(store: PageProps['store']) {
         const fetched = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings), refsOf(layout))
         const snapshot = { ...fetched, ...layout }
         // Each release source keeps its own snapshot; the old shared one is dropped so it is never shown for another view.
+        const entry = { connectionId: id, name: profile.reason, role: 'release-source' as const, ...snapshot }
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: 'release-source', ...snapshot }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), entry]
           delete draft.releaseSource
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from “${profile.reason}”` })
           return draft
         })
         done = `${snapshot.items.length} release documents saved`
+        notify(entry)
       } else if (role === 'backlog-view') {
         // Read-only backlog view: the query's results with its selected columns, or the team's Epic backlog.
         const layout = await viewLayout(parsed, profile.token, query)
         const items = query ? await runWorkItemQuery(parsed, profile.token, query, undefined, withQueryFields(parsed, refsOf(layout))) : (await fetchAzureWorkItems(parsed, profile.token)).items
         const fetchedAt = new Date().toISOString()
+        const entry = { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items, ...layout }
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items, ...layout }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), entry]
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only for backlog view “${profile.reason}”` })
           return draft
         })
         done = `${items.length} work items saved`
+        notify(entry)
       } else {
         const layout = await viewLayout(parsed, profile.token, query || projectQuery)
         const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery, undefined, withQueryFields(parsed, refsOf(layout)))
         const fetchedAt = new Date().toISOString()
+        const entry = { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' as const : 'reference' as const, organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items, ...layout }
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' : 'reference', organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items, ...layout }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), entry]
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only from “${profile.reason}”` })
           return draft
         })
         done = `${items.length} work items saved`
+        notify(entry)
       }
       setConnectionStatus((current) => ({ ...current, [id]: { state: 'ok', message: done, at: new Date().toISOString() } }))
       return true

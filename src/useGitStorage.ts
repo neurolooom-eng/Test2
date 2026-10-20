@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { useAppStore } from './store'
-import { forgetGitStorage, GitConflictError, historyUrl, loadGitConfig, loadGitToken, planningData, readPlanningFile, readTextFile, saveGitConfig, saveGitToken, serializePlanning, siblingConfig, validateGitConfig, writePlanningFile, writeTextFile, type GitConfig } from './gitStorage'
+import { fileSha, forgetGitStorage, GitConflictError, historyUrl, listFolder, loadGitConfig, loadGitToken, planningData, readPlanningFile, readRawFile, readTextFile, saveGitConfig, saveGitToken, serializePlanning, siblingConfig, validateGitConfig, writePlanningFile, writeTextFile, type GitConfig } from './gitStorage'
+import { applySnapshots, parseSnapshot, serializeSnapshot, snapshotDigest, snapshotFile, snapshotFileName, snapshotFolder, type SnapshotFile, type ViewSnapshot } from './gitSnapshots'
+import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
 
@@ -76,11 +78,48 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     return { changed: true, ...(await writeTextFile(viewsConfig, token, text, current.sha, commitMessage)) }
   }
 
+  // On-prem view snapshots (azure-data/<connection>.json): the desktop app commits each fetch whose data changed;
+  // the web app loads them. Per view, the last result is kept so the next fetch can say what happened.
+  const [snapshotNotes, setSnapshotNotes] = useState<Record<string, { tone: 'success' | 'error' | 'info'; text: string }>>({})
+  const digestKey = 'demand-planning-git-snapshot-digests-v1'
+  const note = (id: string, tone: 'success' | 'error' | 'info', text: string) => setSnapshotNotes((current) => ({ ...current, [id]: { tone, text } }))
+  async function pushSnapshot(profile: AzureConnectionProfileSummary, source: ViewSnapshot) {
+    if (!config || !token || isSample) return
+    const target = siblingConfig(config, `${snapshotFolder}/${snapshotFileName(profile.id)}`)
+    try {
+      const digest = await snapshotDigest(source)
+      let digests: Record<string, string> = {}
+      try { digests = JSON.parse(localStorage.getItem(digestKey) ?? '{}') as Record<string, string> } catch { digests = {} }
+      if (digests[profile.id] === digest) { note(profile.id, 'info', 'Unchanged since the last save to Git.'); return }
+      note(profile.id, 'info', 'Saving to Git…')
+      const sha = await fileSha(target, token)
+      await writeTextFile(target, token, serializeSnapshot(snapshotFile(profile, source)), sha, `${profile.viewName || profile.reason}: ${source.items.length} items fetched ${source.fetchedAt.slice(0, 16).replace('T', ' ')} UTC`)
+      try { localStorage.setItem(digestKey, JSON.stringify({ ...digests, [profile.id]: digest })) } catch { /* next fetch commits again */ }
+      note(profile.id, 'success', `Saved to Git (${target.path}).`)
+    } catch (error) { note(profile.id, 'error', `Not saved to Git: ${error instanceof Error ? error.message : String(error)}`) }
+  }
+  async function pullSnapshots() {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    const folder = siblingConfig(config, snapshotFolder)
+    const entries = (await listFolder(folder, token)).filter((entry) => entry.name.endsWith('.json'))
+    const files: SnapshotFile[] = []
+    const failed: string[] = []
+    for (const entry of entries) {
+      try { const text = await readRawFile({ ...config, path: entry.path }, token); if (text) files.push(parseSnapshot(text)) } catch { failed.push(entry.name) }
+    }
+    // Connections not set up in this browser are added without a PAT, to show the data (fetching needs a PAT).
+    let added = 0
+    for (const file of files) if (!loadAzureConnectionProfile(file.connection.id)) { try { saveAzureConnectionProfile({ ...file.connection, token: '' }); added += 1 } catch { failed.push(snapshotFileName(file.connection.id)) } }
+    const { applied } = applySnapshots(store.state.azureSources, files)
+    store.update((draft) => { draft.azureSources = applySnapshots(draft.azureSources, files).sources; return draft })
+    return { files: files.length, applied, added, failed }
+  }
+
   function disconnect() {
     try { forgetGitStorage() } catch { /* nothing stored */ }
     setConfig(null); setToken(''); setSynced(null); setStatus('off'); setMessage('Git storage disconnected in this browser. The data stays in the app and in the repository.'); sha.current = null
   }
 
-  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews }
+  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, snapshotNotes, pushSnapshot, pullSnapshots, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
 }
 export type GitStorage = ReturnType<typeof useGitStorage>

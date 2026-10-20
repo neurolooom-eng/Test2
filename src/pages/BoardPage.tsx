@@ -12,14 +12,15 @@ import { loadAzureConnectionProfile } from '../azureCredentials'
 import type { BacklogView } from '../backlogViews'
 import type { AzureConfig } from '../azureDevOps'
 import type { PageProps } from './types'
+import type { GitStorage } from '../useGitStorage'
 import { columnName, queryLayout, type QueryColumn, type QueryOrder } from '../queryView'
 
 // One page for all configured Azure DevOps views (each its own entry in the sidebar): the Time Writing backlog
 // (QMS-0025) as an editable tree, and every other shown connection as a read-only query view.
-export function BoardPage({ azure, store, current, month, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; month: string; onOpenConnection: () => void }) {
+export function BoardPage({ azure, store, current, month, git, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; month: string; git?: GitStorage; onOpenConnection: () => void }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
-  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} month={month} onOpenConnection={onOpenConnection} />
+  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} month={month} gitNote={git?.snapshotNotes[current.id]} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))
   const counts = new Map<string, number>()
@@ -38,7 +39,7 @@ export function BoardPage({ azure, store, current, month, onOpenConnection }: { 
 }
 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
-function ReadOnlyView({ id, name, role, azure, store, month, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; onOpenConnection: () => void }) {
+function ReadOnlyView({ id, name, role, azure, store, month, gitNote, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; gitNote?: { tone: string; text: string }; onOpenConnection: () => void }) {
   const [allMonths, setAllMonths] = useState(false)
   // Every connection's fetch is stored on its own (by connection ID).
   const status = azure.connectionStatus[id]
@@ -58,8 +59,9 @@ function ReadOnlyView({ id, name, role, azure, store, month, onOpenConnection }:
   const refresh = <button className="primary" disabled={busy} onClick={() => void azure.fetchConnection(id)}>{busy ? 'Fetching…' : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>
   return <Page className="backlog-page">
     <Panel className="connection-panel backlog-panel">
-      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
+      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}${'fromGit' in source && source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
+      {azure.isSample ? null : gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
       {stale && !busy && <div className="notice warning" role="status">The saved data was fetched with different columns than the connection's query now has. Refresh from Azure to load every column's values.</div>}
       {source && config && !items.length && source.items.length ? <EmptyState title={`No items in ${monthName(month)}.`} detail={`${source.items.length} items have an approval date (else a changed date) in other months. Pick another month in the header, or tick “All months”.`} />
         : source && config ? role === 'release-source' ? <ReleaseView name={name} items={items} backlog={azure.items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
