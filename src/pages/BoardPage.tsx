@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { EmptyState, Page, Panel, Pill } from '../components/ui'
-import { AzureSourceBar } from '../components/AzureSourceBar'
 import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
 import { formatDate, formatDateTime } from '../format'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
@@ -23,8 +22,7 @@ export function BoardPage({ azure, store, views, current, onSelect, onOpenConnec
   for (const item of activeItems) counts.set(item.workItemType || 'Unknown', (counts.get(item.workItemType || 'Unknown') ?? 0) + 1)
 
   return <Page className="backlog-page">
-    <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
-    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} title={current.name} tabs={tabs} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
+    {config ? <Panel className="connection-panel backlog-panel"><AzureWorkItemTree items={items} config={config} tabs={tabs} onCreated={featureCreated} savedPat={pat} creatorEmail={azure.creatorEmail} onSavePat={rememberPat} /></Panel> : <Panel><EmptyState title="Configure a valid Azure DevOps project to use Backlogs." /><button className="primary" onClick={onOpenConnection}>Open connection settings</button></Panel>}
     <details className="source-details"><summary>Source details and dates ({items.length} items)</summary>
       <Panel className="connection-panel" title={preview ? 'Work-item preview' : 'Saved work items'} detail={`${items.length} items · ${preview ? `Scope: ${preview.areaPaths.join(', ')}` : 'Refresh source data from connection settings.'}`} action={<input aria-label="Search work-item details" className="search" placeholder="Search ID, title, type or state" value={filter} onChange={(event) => setFilter(event.target.value)} />}>
         <div className="button-row">{[...counts].map(([type, count]) => <Pill key={type} tone="info">{type}: {count}</Pill>)}</div>
@@ -49,8 +47,8 @@ function ReadOnlyView({ id, name, role, azure, store, tabs, onOpenConnection }: 
     <Panel className="connection-panel backlog-panel">
       <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${source.items.length} items · fetched ${formatDateTime(source.fetchedAt)}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
-      {source && config ? <AzureWorkItemTree items={source.items} config={config} readOnly title={name} tabs={tabs} />
-        : <>{tabs && <div className="backlog-toolbar">{tabs}</div>}<EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or My work.' : 'Add it again in Settings → Azure DevOps.'} /></>}
+      {source && config ? <AzureWorkItemTree items={source.items} config={config} readOnly tabs={tabs} />
+        : <>{tabs && <div className="backlog-toolbar">{tabs}</div>}<EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or Assigned to Me.' : 'Add it again in Settings → Azure DevOps.'} /></>}
     </Panel>
   </Page>
 }

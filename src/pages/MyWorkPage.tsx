@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Notice, Page, Panel, Pill, TablePanel, type Tone } from '../components/ui'
-import { AzureSourceBar } from '../components/AzureSourceBar'
 import { currentIndiaMonth, currentIterationPairs, ensureMonthTask, readAzureIterations, updateAzureWorkItem, type AzureIteration } from '../azureDevOps'
 import { capacityContext } from '../capacity'
 import { finishStates, monthTaskCandidates, moveCandidates, workTypes } from '../myWork'
@@ -16,7 +15,7 @@ const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || p
 const statusLabel = { exists: 'Has task', 'needs-task': 'Task missing', 'needs-story': 'Story + task missing', conflict: 'Duplicate stories' } as const
 const statusTone = { exists: 'open', 'needs-task': 'warning', 'needs-story': 'warning', conflict: 'danger' } as const
 
-export function MyWorkPage({ azure, store, my, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenConnection: () => void }) {
+export function MyWorkPage({ azure, store, my }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork }) {
   const [busy, setBusy] = useState('')
   const [log, setLog] = useState<Log[]>([])
   const [typeFilter, setTypeFilter] = useState('All')
@@ -95,7 +94,6 @@ export function MyWorkPage({ azure, store, my, onOpenConnection }: { azure: Azur
   }
 
   return <Page>
-    <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
     <section className="me-bar">
       <div><span className="eyebrow">WORK ASSIGNED TO</span><strong>{my.me.name ?? my.me.email ?? 'Not set'}</strong>{my.me.email && <small>{my.me.email}</small>}</div>
       <label>Show work for<select value={my.chosenName} onChange={(event) => my.setName(event.target.value)}><option value="">{my.me.email ? 'Me (connection email)' : 'Choose a person…'}</option>{my.people.map((person) => <option key={person}>{person}</option>)}</select></label>
