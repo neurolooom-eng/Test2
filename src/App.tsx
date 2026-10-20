@@ -19,6 +19,7 @@ import { useAzureWorkspace } from './useAzureWorkspace'
 import { useGitStorage } from './useGitStorage'
 import { useMyWork } from './useMyWork'
 import { MyWorkPage } from './pages/MyWorkPage'
+import { DesktopDownload } from './components/DesktopDownload'
 import { useNow } from './useNow'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
@@ -57,7 +58,7 @@ export default function App() {
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">DP</div><div><strong>Demand Planning</strong><span>Quality Engineering</span></div></div>
       <nav aria-label="Primary navigation">{pageGroups.map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).map((item) => <button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>)}</div>)}</nav>
-      <div className="sidebar-footer">{buildStatus}</div>
+      <div className="sidebar-footer"><DesktopDownload />{buildStatus}</div>
     </aside>
     <main>
       <header className="topbar"><div><p className="eyebrow">{(meta.usesMonth ? monthName(month) : meta.group).toUpperCase()}</p><h1>{meta.label}</h1><p className="page-detail">{meta.detail}</p></div><div className="topbar-actions"><Clock />{my.known && page !== 'mywork' && <button type="button" className="pending-pill" onClick={() => setPage('mywork')} title="Your pending Azure DevOps work"><b>{my.pending.length}</b> pending</button>}<Pill tone={storageTone}><span title={azure.lastRefreshed ? `Azure data refreshed ${new Date(azure.lastRefreshed).toLocaleString()}` : 'Azure data not refreshed in this session'}>{storageLabel}{azure.lastRefreshed ? ` · Azure ${relativeTime(azure.lastRefreshed, now)}` : ''}</span></Pill><label className="month-picker">Month<input type="month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>{page !== 'overview' && <><Pill tone={planningOpen ? 'open' : 'locked'}>Planning {planningOpen ? 'open' : 'locked'}</Pill><Pill tone={actualsOpen ? 'open' : 'locked'}>Actuals {actualsOpen ? 'open' : 'locked'}</Pill></>}<ThemeToggle /></div></header>

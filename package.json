@@ -16,7 +16,8 @@
     "build:web": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start:desktop": "electron ."
+    "start:desktop": "electron .",
+    "build:mac": "pnpm build:web && electron-builder --mac dmg --universal"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.24.0",
@@ -53,11 +54,22 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "Demand-Planning-Hub-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "Demand-Planning-Hub-mac.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Demand-Planning-Hub-mac.${ext}"
     }
   }
 }
