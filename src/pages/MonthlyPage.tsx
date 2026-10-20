@@ -1,23 +1,32 @@
 import { useState } from 'react'
-import { Metric, Metrics, Page, Panel, Pill, TablePanel } from '../components/ui'
-import { AzureSourceBar } from '../components/AzureSourceBar'
+import { Metric, Metrics, Notice, Page, Panel, Pill, TablePanel } from '../components/ui'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import { azureInsights, timeWritingGaps } from '../azureInsights'
 import { formatHours, monthName, todayIso } from '../format'
 import type { PageProps } from './types'
+import type { MyWork } from '../useMyWork'
+import { isMine } from '../myWork'
+import { usePersonScope } from '../usePersonScope'
+import { ScopeSwitch } from '../components/ScopeSwitch'
 
 type Edit = { originalEstimate?: string; completedWork?: string }
 const nextMonth = (month: string) => { const date = new Date(`${month}-01T00:00:00Z`); date.setUTCMonth(date.getUTCMonth() + 1); return date.toISOString().slice(0, 7) }
 const locked = (deadline: string | undefined, explicit: boolean | undefined, extension: string | undefined, now: Date) => Boolean(explicit || (deadline && now >= new Date(extension || deadline)))
 const adhoc = (tags: string) => tags.split(';').some(tag => tag.trim().toLowerCase() === 'ad-hoc')
 
-export function MonthlyPage({ azure, month, store, onOpenConnection }: { azure: AzureWorkspace; month: string; store: PageProps['store']; onOpenConnection: () => void }) {
+export function MonthlyPage({ azure, month, store, my }: { azure: AzureWorkspace; month: string; store: PageProps['store']; my: MyWork }) {
   const [today] = useState(todayIso)
   const [now] = useState(() => new Date())
   const [edits, setEdits] = useState<Record<number, Edit>>({})
   const [saving, setSaving] = useState(false)
-  const data = azureInsights(azure.items, month, today)
-  const gaps = timeWritingGaps(azure.items, month)
+  // Individual (default: me) shows only that person's Tasks; Team shows everyone's.
+  const personScope = usePersonScope('demand-planning-monthly-view-v1', 'individual', my)
+  const { scope } = personScope
+  const items = scope ? azure.items.filter((item) => item.workItemType !== 'Task' || isMine(item, scope)) : personScope.individual ? [] : azure.items
+  const data = azureInsights(items, month, today)
+  const allGaps = timeWritingGaps(items, month)
+  // For one person, a story counts as theirs when it holds one of their Tasks or is assigned to them.
+  const gaps = scope ? { ...allGaps, storiesWithoutTask: allGaps.storiesWithoutTask.filter((story) => isMine(story, scope) || items.some((item) => item.parentId === story.id && item.workItemType === 'Task')) } : allGaps
   const planningPeriod = store.state.periods.find(item => item.month === month)
   const actualPeriod = store.state.periods.find(item => item.month === nextMonth(month))
   const planningLocked = locked(planningPeriod?.planningDeadline ?? `${month}-05T23:59:59`, planningPeriod?.planningLocked, planningPeriod?.planningExtendedUntil, now)
@@ -49,7 +58,8 @@ export function MonthlyPage({ azure, month, store, onOpenConnection }: { azure: 
     } catch (failure) { azure.setError(failure instanceof Error ? failure.message : 'Unable to save staged Azure fields.') } finally { setSaving(false) }
   }
   return <Page>
-    <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
+    <ScopeSwitch scope={personScope} label="Time writing for" />
+    {personScope.individual && !scope && <Notice>Choose whose time writing to show, or set your Azure email on the Time Writing connection to make “Me” the default.</Notice>}
     <Metrics>
       <Metric label="Tasks" value={data.monthlyTasks.length} hint="Matched to the selected month" />
       <Metric label="Original Estimate" value={formatHours(data.plan.value)} hint="Azure DevOps Task field" />
@@ -71,7 +81,7 @@ function GapsPanel({ gaps, month }: { gaps: ReturnType<typeof timeWritingGaps>; 
   const link = (item: { id: number; title: string; url: string }) => <a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a>
   return <Panel className="admin-section gaps-panel" eyebrow="CHECK" title={total ? `Not picked up for ${label} (${total})` : `Everything picked up for ${label}`}
     detail={<>A Task is counted for the month when its title starts or ends with the month and year, with any delimiter (“{label} | …”, “… - {label.slice(0, 3)} {month.slice(0, 4)}”, …). The story above it can have any name; the Feature and Epic come from the parent links. Only items in the saved backlog are checked — the team’s Epic backlog and area paths, or a Time Writing connection’s query — so refresh from Azure and save the preview after adding items.</>}>
-    {gaps.storiesWithoutTask.length > 0 && <details open><summary><Pill tone="warning">{gaps.storiesWithoutTask.length}</Pill> Time Writing stories with no {label} Task</summary><p className="muted">Open stories that held month Tasks before (or say “Time Writing”) but none for {label}. Add the month Task (My work can create them for your Features), or close the story if it is finished.</p><ul>{gaps.storiesWithoutTask.slice(0, 60).map((story) => <li key={story.key}>{link(story)}{story.assignedTo && <small> · {story.assignedTo}</small>}</li>)}</ul></details>}
+    {gaps.storiesWithoutTask.length > 0 && <details open><summary><Pill tone="warning">{gaps.storiesWithoutTask.length}</Pill> Time Writing stories with no {label} Task</summary><p className="muted">Open stories that held month Tasks before (or say “Time Writing”) but none for {label}. Add the month Task (Assigned to Me can create them for your Features), or close the story if it is finished.</p><ul>{gaps.storiesWithoutTask.slice(0, 60).map((story) => <li key={story.key}>{link(story)}{story.assignedTo && <small> · {story.assignedTo}</small>}</li>)}</ul></details>}
     {gaps.tasksWithoutMonth.length > 0 && <details open><summary><Pill tone="warning">{gaps.tasksWithoutMonth.length}</Pill> Tasks under a Time Writing story without a month in the title</summary><p className="muted">Not counted for any month. Start or end the title with the month and year, e.g. “{label} | …” or “… | {label}”.</p><ul>{gaps.tasksWithoutMonth.slice(0, 60).map((task) => <li key={task.key}>{link(task)}</li>)}</ul></details>}
     {gaps.tasksWithoutFeature.length > 0 && <details open><summary><Pill tone="warning">{gaps.tasksWithoutFeature.length}</Pill> {label} Tasks with no Feature above them</summary><p className="muted">Counted, but not attributed to a stream. Link them under a story or Feature of the right Epic.</p><ul>{gaps.tasksWithoutFeature.slice(0, 60).map(({ task, parent }) => <li key={task.key}>{link(task)}<small> · parent: {parent ? `#${parent.id} ${parent.title} (${parent.workItemType})` : task.parentId ? `#${task.parentId} (not in the saved data)` : 'none'}</small></li>)}</ul></details>}
   </Panel>
