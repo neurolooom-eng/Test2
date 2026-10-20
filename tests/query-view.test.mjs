@@ -57,3 +57,13 @@ test('values are found whatever the letter case of the reference', () => {
   assert.deepEqual(pickFields({ 'System.Title': 'A', 'Custom.ReleaseDate': '2026-10-01T00:00:00Z' }, ['system.title', 'CUSTOM.RELEASEDATE']), { 'system.title': 'A', 'CUSTOM.RELEASEDATE': '2026-10-01T00:00:00Z' })
   assert.equal(cellValue({ id: 1, title: 'T', state: 'Active' }, 'system.state'), 'Active')
 })
+
+import { withReleaseColumns, releaseRef, releaseNameRef } from '../src/queryView.ts'
+test('read-only views get Name and Release columns from the paths, after the ID', () => {
+  const item = { id: 1, title: 'T', state: 'Active', workItemType: 'Document', areaPath: 'DHP\\DoseNav\\Release 2.1.0', iterationPath: '' }
+  const columns = [{ ref: 'System.Id', name: 'ID' }, { ref: 'System.Title', name: 'Title' }]
+  const make = (ref) => ({ ref, name: columnName(ref) })
+  assert.deepEqual(withReleaseColumns(columns, [item], make).map((column) => column.name), ['ID', 'Name', 'Release', 'Title'])
+  assert.deepEqual([cellValue(item, releaseNameRef), cellValue(item, releaseRef)], ['DoseNav', '2.1.0'])
+  assert.equal(withReleaseColumns(columns, [{ ...item, areaPath: 'DHP\\Team' }], make), columns, 'no release in any path: columns unchanged')
+})

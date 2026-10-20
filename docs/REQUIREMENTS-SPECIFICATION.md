@@ -136,7 +136,7 @@ Stakeholders:
 |---|---|---|---|---|
 | NAV-01 | The app shall show a sidebar with the groups, in this order: "Overview", "My Work", "Azure DevOps", "Data & governance". | D | M | UC-01 |
 | NAV-02 | The app shall list "Overview" under the group "Overview". | D | M | UC-01 |
-| NAV-03 | The app shall list "Assigned to Me" and "Monthly Time Writing", in that order, under the group "My Work". | D | M | UC-01 |
+| NAV-03 | The app shall list "Assigned to Me", "Bulk actions" and "Monthly Time Writing", in that order, under the group "My Work". | D | M | UC-01 |
 | NAV-04 | The app shall list "Baselines", "Snapshots", "Settings" and "Documentation", in that order, under the group "Data & governance". | D | M | UC-01 |
 | NAV-05 | The app shall list one entry under "Azure DevOps" for each view returned by the view rules in CON-10 to CON-12. | T | M | UC-01, UC-02 |
 | NAV-06 | When no Azure DevOps view exists, the app shall hide the "Azure DevOps" group. | D | S | UC-01 |
@@ -251,10 +251,10 @@ Stakeholders:
 | ATM-01 | The page shall show whose work is shown, plus a "Show work for" selector offering Me (connection email) and each known person. The choice shall be remembered in this browser. | D | M | UC-06 |
 | ATM-02 | When neither Me nor a chosen person is known, the page shall show "Who are you in Azure DevOps?" and no actions. | D | M | UC-06 |
 | ATM-03 | An item shall count as mine when its assigned-to email equals Me's email (case-insensitive), or, when either email is missing, its assigned-to name equals Me's name (case-insensitive). | T | M | UC-06 |
-| ATM-04 | The page shall list my pending items, excluding Epics and items under the Absence Epic, sorted by type (Feature, User Story, Bug, Task, other) and then by ID. | T | M | UC-06 |
-| ATM-05 | The page shall filter the pending list by type, with the chips All, Feature, User Story, Bug, Task, Other. | D | S | UC-06 |
+| ATM-04 | The page shall list my pending items, excluding Epics and items under the Absence Epic, always in ascending ID order. | T | M | UC-06 |
+| ATM-05 | The page shall filter the pending list by type, with the chips All, Feature, User Story, Bug, Task, Other, opening on Feature. | D | S | UC-06 |
 | ATM-06 | The page shall offer finishing states per type (Feature, User Story and Bug: Resolved or Closed; Task: Closed). After confirmation it shall write only the State field, verify the result, and then refresh. | T | M | UC-06 |
-| ATM-07 | "Find current Sprint" shall read the team's iterations and offer each PI → Sprint pair whose Sprint dates cover today. When none exists it shall show "No current Sprint found: no team iteration with start and finish dates covering today under a PI." | T | M | UC-06 |
+| ATM-07 | The bulk actions (ATM-07 to ATM-12) shall be on their own page, "Bulk actions", with the same person selector; both of its lists shall be in ascending ID order. "Find current Sprint" shall read the team's iterations and offer each PI → Sprint pair whose Sprint dates cover today. When none exists it shall show "No current Sprint found: no team iteration with start and finish dates covering today under a PI." | T | M | UC-06 |
 | ATM-08 | Move to current Sprint shall offer only my pending User Stories whose iteration is a Sprint with a finish date before today (India time) and that differ from the target. Stories in the current Sprint, a future Sprint or an undated iteration shall be left untouched, as shall Features, Bugs and Tasks. See OI-08. | T | M | UC-06 |
 | ATM-09 | The move shall write only the Iteration Path, after confirmation. It shall report the moved and failed counts, then refresh. | T | M | UC-06 |
 | ATM-10 | The month-tasks panel shall list each pending Feature that is mine, or that holds my pending work, outside the Absence Epic. Each shall carry one status: "Has task", "Task missing", "Story + task missing" or "Choose story". | T | M | UC-06 |
@@ -295,9 +295,11 @@ Stakeholders:
 | QV-09 | "Export CSV" shall download the filtered rows with the shown columns. Values containing `"`, `,`, CR or LF shall be quoted. | T | S | UC-08 |
 | QV-10 | The table shall show at most 500 rows, with a note when more match. | D | C | UC-08 |
 | QV-11 | Read-only view items shall not count in Overview, Monthly Time Writing or Assigned to Me. | T | M | UC-08 |
-| QV-12 | A release-source view shall offer the sections "Register · {n} releases" and "Documents · {n}", remembering the selected one in localStorage `demand-planning-release-tab-v1`. | D | M | UC-08 |
-| QV-13 | The Register shall group releases by stream. The release is taken from the Area Path (last segment, or the configured release pattern), and the stream from the segment above it. Each release shall show its approval date and document count, and "Tracked · {n}" or "Not tracked" depending on whether a Feature, User Story or Task in the Time Writing backlog names it. | T | M | UC-08 |
-| QV-14 | The Documents section shall show the release documents as a query view (QV-03 to QV-10). | D | M | UC-08 |
+| QV-12 | Every read-only Azure DevOps view shall be its own sidebar page with no tabs inside it. A release-source view shall show, on one page, the Releases list (QV-13) above the documents (QV-14). | D | M | UC-08 |
+| QV-13 | The Releases list shall be one flat list with no grouping by stream: one row per Name + Release, read from the documents' Area Path, else their Iteration Path, where a segment "Release x.y.z" gives the release and the segment above it the name. Each row shall show the approval date, the document count, and "Tracked · {n}" or "Not tracked" depending on whether a Feature, User Story or Task in the Time Writing backlog has a title naming both the name and the exact release number. Each row shall also show Planned (h) and Booked (h): the sum of Original Estimate and of Completed Work, over all months, on the Time Writing Tasks (month Tasks, or Tasks under a Time Writing story) under the Features that track the release, plus any tracking Task itself; Removed Tasks are excluded, negative values count as 0, each Task is counted once, and a release with no such Task shows "—". | T | M | UC-08 |
+| QV-14 | The documents shall be shown as a query view (QV-03 to QV-10). |  D | M | UC-08 |
+| QV-15 | When any item of a read-only view has a release in its paths (QV-13), the view shall show the columns Name and Release after the ID. The QMS-0025 Time Writing backlog shall not use this. | T | S | UC-08 |
+| QV-16 | Every read-only Azure DevOps view (not QMS-0025) shall show the header month picker and, by default, only the items whose month (India time) is the selected month: the Author Approval Date (configured field, else any approval-date field), else the Changed Date. On a release-source view this filters both the Releases list and the documents; planned and booked hours stay all-months. An "All months" checkbox shall turn the filter off, and a month with no items shall say so and give the total. | T | M | UC-08 |
 
 ### 3.9 Overview (OVR) — UC-09, UC-10
 
@@ -526,7 +528,7 @@ These describe as-built behaviour that is ambiguous, inconsistent, or may not ma
 | UC-05 | TWN-08, MON-18, MON-19 |
 | UC-06 | TWN-09, ATM-01…14 |
 | UC-07 | BKL-01…12 |
-| UC-08 | QV-01…14, FET-07, FET-08, FET-18, FET-19 |
+| UC-08 | QV-01…15, FET-07, FET-08, FET-18, FET-19 |
 | UC-09 | OVR-01…05, CAP-01…09 |
 | UC-10 | OVR-06…09 |
 | UC-11 | BAS-01…11 |

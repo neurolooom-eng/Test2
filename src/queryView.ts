@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { releaseOf } from './releasePath.ts'
 
 // Read-only views of a connection's query results: the columns are the query's own SELECT list, in its order, named
 // as Azure DevOps names them; rows follow the query's ORDER BY. A query that selects only the ID (or a team backlog
@@ -69,12 +70,22 @@ const standard: Record<string, (item: AzureWorkItem) => FieldValue | undefined> 
   'System.IterationPath': (item) => item.iterationPath, 'System.Tags': (item) => item.tags, 'System.ChangedDate': (item) => item.changedDate,
   'System.CreatedDate': (item) => item.createdDate, 'Microsoft.VSTS.Scheduling.TargetDate': (item) => item.targetDate, 'Microsoft.VSTS.Common.ClosedDate': (item) => item.closedDate,
 }
+// Virtual columns: the name and release read from the item's Area / Iteration Path (see releasePath).
+export const releaseNameRef = '@Release.Name', releaseRef = '@Release'
+standard[releaseNameRef] = (item) => releaseOf(item)?.name
+standard[releaseRef] = (item) => releaseOf(item)?.release
+// The view's columns with Name and Release added after the ID (or first) when any item has a release in its paths.
+export function withReleaseColumns<T extends { ref: string }>(columns: T[], items: AzureWorkItem[], make: (ref: string) => T): T[] {
+  if (!items.some((item) => releaseOf(item)) || columns.some((column) => column.ref === releaseRef)) return columns
+  const at = columns.findIndex((column) => column.ref === 'System.Id') + 1
+  return [...columns.slice(0, at), make(releaseNameRef), make(releaseRef), ...columns.slice(at)]
+}
 const standardByLower = new Map(Object.keys(standard).map((ref) => [ref.toLowerCase(), standard[ref]]))
 export function cellValue(item: AzureWorkItem, ref: string): FieldValue | undefined {
   return item.fields?.[ref] ?? (standard[ref] ?? standardByLower.get(ref.toLowerCase()))?.(item)
 }
 
-const builtInNames: Record<string, string> = { 'System.Id': 'ID', 'System.WorkItemType': 'Work Item Type', 'System.AssignedTo': 'Assigned To', 'System.IterationPath': 'Iteration Path', 'System.AreaPath': 'Area Path', 'System.TeamProject': 'Team Project' }
+const builtInNames: Record<string, string> = { [releaseNameRef]: 'Name', [releaseRef]: 'Release', 'System.Id': 'ID', 'System.WorkItemType': 'Work Item Type', 'System.AssignedTo': 'Assigned To', 'System.IterationPath': 'Iteration Path', 'System.AreaPath': 'Area Path', 'System.TeamProject': 'Team Project' }
 // Column heading: Azure's field name when it was read, else a readable form of the reference name.
 export function columnName(ref: string, names: Record<string, string> = {}) {
   return names[ref] ?? builtInNames[ref] ?? ref.split('.').pop()!.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
