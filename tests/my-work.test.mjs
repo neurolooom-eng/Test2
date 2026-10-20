@@ -38,9 +38,18 @@ test('month-task candidates: my pending Features or Features holding my pending 
   assert.equal(monthTaskCandidates([...items, item(12, 'User Story', 'CP | Care Pathways | v3.1 - Time Writing', { parentId: 2 })], me, 'October 2026', 37778).find((row) => row.feature.id === 2).status, 'conflict')
 })
 
-test('move candidates: my pending items not already in the target sprint', () => {
-  const target = 'Quality\\PI 2026.4\\Sprint 2'
-  assert.deepEqual(moveCandidates([...items, item(13, 'Task', 'Already there', { ...ana, iterationPath: target })], me, target, 37778).map(({ item }) => item.id), [2, 3, 5, 7])
+test('move candidates: only my pending User Stories in a past Sprint; current, future and undated left alone', () => {
+  const sprint = (n, startDate, finishDate) => ({ path: `Quality\\PI 2026.4\\Sprint ${n}`, attributes: { startDate, finishDate } })
+  const iterations = [sprint(1, '2026-09-28', '2026-10-09'), sprint(2, '2026-10-12', '2026-10-23'), sprint(3, '2026-10-26', '2026-11-06')]
+  const target = 'Quality\\PI 2026.4\\Sprint 2', today = new Date('2026-10-20T06:00:00Z')
+  const extra = [
+    item(13, 'User Story', 'In current sprint', { ...ana, iterationPath: target }),
+    item(14, 'User Story', 'In future sprint', { ...ana, iterationPath: 'Quality\\PI 2026.4\\Sprint 3' }),
+    item(15, 'User Story', 'Only in the PI', { ...ana, iterationPath: 'Quality\\PI 2026.4' }),
+    item(16, 'User Story', 'Ben in past sprint', { ...ben }),
+  ]
+  assert.deepEqual(moveCandidates([...items, ...extra], me, target, iterations, 37778, today).map(({ item }) => item.id), [3, 5], 'Features and Tasks are never moved; only stories in Sprint 1 (past)')
+  assert.deepEqual(moveCandidates(items, me, target, [], 37778, today), [], 'without iteration dates nothing is treated as past')
 })
 
 const raw = (id, fields) => ({ id, fields: { 'System.TeamProject': 'Quality', 'System.State': 'Active', 'System.AreaPath': 'Quality\\A', 'System.IterationPath': 'Quality\\PI 2026.4\\Sprint 1', ...fields } })

@@ -23,6 +23,7 @@ export function MyWorkPage({ azure, store, my }: { azure: AzureWorkspace; store:
   const [pairs, setPairs] = useState<Pair[] | null>(null)
   const [target, setTarget] = useState('')
   const [skipMove, setSkipMove] = useState<Set<number>>(new Set())
+  const [iterations, setIterations] = useState<AzureIteration[]>([])
   const [skipTask, setSkipTask] = useState<Set<number>>(new Set())
   const { config, pat } = azure
   const month = currentIndiaMonth()
@@ -31,7 +32,7 @@ export function MyWorkPage({ azure, store, my }: { azure: AzureWorkspace; store:
   const pending = my.pending
   const shown = typeFilter === 'All' ? pending : pending.filter(({ item }) => (typeFilter === 'Other' ? !(workTypes as readonly string[]).includes(item.workItemType) : item.workItemType === typeFilter))
   const counts = Object.fromEntries(workTypes.map((type) => [type, pending.filter(({ item }) => item.workItemType === type).length])) as Record<string, number>
-  const toMove = target ? moveCandidates(azure.items, my.me, target, absenceEpicId) : []
+  const toMove = target ? moveCandidates(azure.items, my.me, target, iterations, absenceEpicId) : []
   const candidates = my.known ? monthTaskCandidates(azure.items, my.me, month, absenceEpicId) : []
   const missing = candidates.filter((row) => row.status === 'needs-task' || row.status === 'needs-story')
   const note = (entry: Log) => setLog((current) => [entry, ...current].slice(0, 8))
@@ -50,7 +51,9 @@ export function MyWorkPage({ azure, store, my }: { azure: AzureWorkspace; store:
     if (!config || !pat.trim()) return
     setBusy('sprint')
     try {
-      const found = currentIterationPairs(await readAzureIterations(config, pat))
+      const all = await readAzureIterations(config, pat)
+      setIterations(all)
+      const found = currentIterationPairs(all)
       setPairs(found); setTarget(found[0]?.sprint.path ?? ''); setSkipMove(new Set())
       if (!found.length) note({ tone: 'error', text: 'No current Sprint found: no team iteration with start and finish dates covering today under a PI.' })
     } catch (failure) { note({ tone: 'error', text: failure instanceof Error ? failure.message : 'Could not read iterations.' }) }
@@ -109,7 +112,7 @@ export function MyWorkPage({ azure, store, my }: { azure: AzureWorkspace; store:
         {blocked && <Notice tone="warning">{blocked}</Notice>}
         {log.map((entry, index) => <Notice key={index} tone={entry.tone}>{entry.text}</Notice>)}
         <div className="action-grid">
-          <Panel className="action-card" eyebrow="BULK" title="Move to current PI + Sprint" detail="Finds today’s Sprint (and its PI) from the team’s iteration dates, then moves your pending items that are elsewhere.">
+          <Panel className="action-card" eyebrow="BULK" title="Move to current PI + Sprint" detail="Finds today’s Sprint (and its PI) from the team’s iteration dates, then moves your pending User Stories that are still in a past Sprint. Stories already in the current or a future Sprint, and Features and Tasks, are not touched.">
             {!pairs ? <button type="button" className="primary" disabled={Boolean(blocked) || busy === 'sprint'} onClick={() => void findSprint()}>{busy === 'sprint' ? 'Reading iterations…' : 'Find current Sprint'}</button>
               : !pairs.length ? <EmptyState title="No current Sprint found." detail="Check the team’s iteration dates in Azure DevOps." />
                 : <>
