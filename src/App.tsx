@@ -8,7 +8,6 @@ import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
 import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
-import { ReleasesPage } from './pages/ReleasesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
 import { BoardPage } from './pages/BoardPage'
@@ -67,7 +66,6 @@ export default function App() {
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} />}
-      {page === 'releases' && <ReleasesPage azure={azure} month={month} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} views={views} current={view} onSelect={openView} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
