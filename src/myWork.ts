@@ -1,0 +1,64 @@
+import type { AzureWorkItem } from './domain'
+
+// "Me" is matched by Azure email (Assigned To unique name) when known, otherwise by display name.
+export interface Me { email?: string; name?: string }
+const finished = new Set(['closed', 'resolved', 'done', 'completed', 'removed', 'cut'])
+export const isPending = (item: Pick<AzureWorkItem, 'state'>) => !finished.has(item.state.trim().toLowerCase())
+export function isMine(item: Pick<AzureWorkItem, 'assignedTo' | 'assignedToEmail'>, me: Me) {
+  const email = me.email?.trim().toLowerCase(), name = me.name?.trim().toLowerCase()
+  if (email && item.assignedToEmail) return item.assignedToEmail === email
+  return Boolean(name && item.assignedTo.trim().toLowerCase() === name)
+}
+
+export const workTypes = ['Feature', 'User Story', 'Bug', 'Task'] as const
+// The states offered for finishing an item. Azure DevOps rejects a state the item's process does not allow
+// (for example Resolved on an Agile Task); the error is shown as returned.
+export const finishStates: Record<string, string[]> = { Feature: ['Resolved', 'Closed'], 'User Story': ['Resolved', 'Closed'], Bug: ['Resolved', 'Closed'], Task: ['Closed'] }
+
+function ancestry(items: AzureWorkItem[]) {
+  const byId = new Map(items.map((item) => [item.id, item]))
+  return (item: AzureWorkItem) => {
+    const chain: AzureWorkItem[] = []; const seen = new Set([item.id]); let current = item.parentId == null ? undefined : byId.get(item.parentId)
+    while (current && !seen.has(current.id)) { chain.push(current); seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) }
+    return chain
+  }
+}
+
+// Pending (not finished) items assigned to me, excluding absence, grouped by type and ordered Feature → Story → Bug → Task, oldest first.
+export function myPendingWork(items: AzureWorkItem[], me: Me, absenceEpicId?: number) {
+  const chainOf = ancestry(items)
+  const pending = items.filter((item) => isPending(item) && isMine(item, me) && item.workItemType !== 'Epic').map((item) => {
+    const chain = chainOf(item)
+    if (absenceEpicId != null && chain.some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)) return null
+    return { item, feature: chain.find((entry) => entry.workItemType === 'Feature'), epic: chain.find((entry) => entry.workItemType === 'Epic') }
+  }).filter((row): row is NonNullable<typeof row> => row != null)
+  const rank = (type: string) => { const index = (workTypes as readonly string[]).indexOf(type); return index < 0 ? workTypes.length : index }
+  return pending.sort((a, b) => rank(a.item.workItemType) - rank(b.item.workItemType) || a.item.id - b.item.id)
+}
+
+// Features that need my month Time Writing task: pending, outside the absence Epic, and either assigned to me or
+// holding a pending item of mine. Status comes from the cached backlog; creation re-checks Azure before writing.
+export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string; taskTitle: string; status: 'exists' | 'needs-task' | 'needs-story' | 'conflict' }
+export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
+  const chainOf = ancestry(items)
+  const inAbsence = (item: AzureWorkItem) => absenceEpicId != null && chainOf(item).some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)
+  const featureIds = new Set<number>()
+  for (const item of items) {
+    if (!isPending(item) || !isMine(item, me) || inAbsence(item)) continue
+    if (item.workItemType === 'Feature') featureIds.add(item.id)
+    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature) && !/\s-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)) featureIds.add(feature.id) }
+  }
+  return items.filter((item) => featureIds.has(item.id)).sort((a, b) => a.title.localeCompare(b.title)).map((feature) => {
+    const storyTitle = `${feature.title.trim()} - Time Writing`, taskTitle = `${monthLabel} | ${feature.title.trim()}`
+    const stories = items.filter((item) => item.parentId === feature.id && item.workItemType === 'User Story' && item.title.trim().toLowerCase() === storyTitle.toLowerCase() && item.state.toLowerCase() !== 'removed')
+    if (stories.length > 1) return { feature, storyTitle, taskTitle, status: 'conflict' as const }
+    if (!stories.length) return { feature, storyTitle, taskTitle, status: 'needs-story' as const }
+    const exists = items.some((item) => item.parentId === stories[0].id && item.workItemType === 'Task' && item.title.trim().toLowerCase() === taskTitle.toLowerCase() && item.state.toLowerCase() !== 'removed' && isMine(item, me))
+    return { feature, storyTitle, taskTitle, status: exists ? 'exists' as const : 'needs-task' as const }
+  })
+}
+
+// My pending items not yet in the target iteration (the current Sprint under the current PI).
+export function moveCandidates(items: AzureWorkItem[], me: Me, target: string, absenceEpicId?: number) {
+  return myPendingWork(items, me, absenceEpicId).filter(({ item }) => item.iterationPath.trim().toLowerCase() !== target.trim().toLowerCase())
+}

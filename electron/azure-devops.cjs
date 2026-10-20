@@ -84,23 +84,42 @@ function azureTimeWritingEffortRequest(input) {
   } }
 }
 
+// Deliberately constrained write: only State and Iteration Path of one known work item.
+function azureWorkItemUpdateRequest(input) {
+  if (!input || input.operation !== 'update-work-item') throw new Error('Invalid work-item update.')
+  const connection = azureReadRequest({ ...input, operation: 'areas' })
+  if (!Number.isSafeInteger(input.workItemId) || input.workItemId < 1) throw new Error('Invalid work item.')
+  const state = input.state == null ? undefined : input.state, iterationPath = input.iterationPath == null ? undefined : input.iterationPath
+  if (state === undefined && iterationPath === undefined) throw new Error('Nothing to update.')
+  if (state !== undefined && (typeof state !== 'string' || !state.trim() || state.length > 64 || !/^[\p{L}\p{N} _-]+$/u.test(state))) throw new Error('Invalid state.')
+  if (iterationPath !== undefined && (typeof iterationPath !== 'string' || !iterationPath.trim() || iterationPath.length > 4096 || /\p{Cc}/u.test(iterationPath))) throw new Error('Invalid iteration path.')
+  const patch = [
+    ...(state === undefined ? [] : [{ op: 'add', path: '/fields/System.State', value: state }]),
+    ...(iterationPath === undefined ? [] : [{ op: 'add', path: '/fields/System.IterationPath', value: iterationPath }]),
+  ]
+  return { url: `${projectBase(input)}/_apis/wit/workitems/${input.workItemId}?api-version=${apiVersion(input)}`, options: {
+    method: 'PATCH', redirect: 'error', headers: { ...connection.options.headers, 'Content-Type': 'application/json-patch+json' }, body: JSON.stringify(patch),
+  } }
+}
+
 async function requestAzureDevOps(input) {
   const creating = input?.operation === 'create-feature' || input?.operation === 'create-child'
-  const writing = creating || input?.operation === 'update-time-writing-effort'
-  const request = creating ? azureFeatureRequest(input) : input?.operation === 'update-time-writing-effort' ? azureTimeWritingEffortRequest(input) : azureReadRequest(input)
+  const updating = input?.operation === 'update-time-writing-effort' || input?.operation === 'update-work-item'
+  const writing = creating || updating
+  const request = creating ? azureFeatureRequest(input) : input?.operation === 'update-time-writing-effort' ? azureTimeWritingEffortRequest(input) : input?.operation === 'update-work-item' ? azureWorkItemUpdateRequest(input) : azureReadRequest(input)
   let response
   try { response = await fetch(request.url, { ...request.options, signal: AbortSignal.timeout(45000) }) }
-  catch { throw new Error(writing && !input.validateOnly ? `${creating ? 'Creation' : 'Effort update'} could not be confirmed. Check the Azure DevOps work item before retrying.` : 'Azure DevOps could not be reached. Check network/VPN access and the organization URL.') }
+  catch { throw new Error(writing && !input.validateOnly ? `${creating ? 'Creation' : 'Update'} could not be confirmed. Check the Azure DevOps work item before retrying.` : 'Azure DevOps could not be reached. Check network/VPN access and the organization URL.') }
   if (response.status === 401) throw new Error('PAT rejected or expired. Check Work Items (Read) access.')
   if (response.status === 403) throw new Error(`Access denied by Azure DevOps. Check Work Items (${writing ? 'Read & Write' : 'Read'}) scope and project permissions.`)
   if (writing && (response.status === 400 || response.status === 422)) {
     const detail = await response.json().catch(() => ({}))
-    throw new Error(`Azure DevOps rejected the ${creating ? 'Feature' : 'effort update'}: ${String(detail.message ?? 'Check required fields and project rules.').replaceAll(input.pat, '[redacted]').slice(0, 1200)}`)
+    throw new Error(`Azure DevOps rejected the ${creating ? 'Feature' : 'update'}: ${String(detail.message ?? 'Check required fields and project rules.').replaceAll(input.pat, '[redacted]').slice(0, 1200)}`)
   }
   if (response.status === 404) throw new Error('Project or team not found. Check connection details.')
-  if (!response.ok) throw new Error(writing && !input.validateOnly ? `${creating ? 'Create' : 'Effort update'} returned ${response.status}. Check Azure DevOps before retrying.` : `Azure DevOps returned ${response.status}. No data was imported.`)
+  if (!response.ok) throw new Error(writing && !input.validateOnly ? `${creating ? 'Create' : 'Update'} returned ${response.status}. Check Azure DevOps before retrying.` : `Azure DevOps returned ${response.status}. No data was imported.`)
   if (!(response.headers.get('content-type') ?? '').includes('application/json')) throw new Error('Azure DevOps returned a sign-in page. Check the PAT.')
   return response.json()
 }
 
-module.exports = { azureReadRequest, azureFeatureRequest, azureTimeWritingEffortRequest, requestAzureDevOps }
+module.exports = { azureReadRequest, azureFeatureRequest, azureTimeWritingEffortRequest, azureWorkItemUpdateRequest, requestAzureDevOps }
