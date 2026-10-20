@@ -95,3 +95,11 @@ test('planned and booked hours per release come from the Time Writing Tasks unde
   assert.deepEqual([r21.planned, r21.booked, r21.hourTasks], [16, 17, 2], 'two month tasks; not the plain task, not the removed one; the tracking Task 111 is not counted twice')
   assert.deepEqual([register.find((entry) => entry.name === 'Viewer').hourTasks, register.find((entry) => entry.name === 'Viewer').planned], [0, 0])
 })
+
+import { viewMonthOf } from '../src/releaseSource.ts'
+test('ADS month filter: approval date (India time), else any approval-date field, else Changed Date', () => {
+  assert.equal(viewMonthOf({ approvalDate: '2026-09-30T20:00:00Z', changedDate: '2026-10-05T00:00:00Z' }), '2026-10', 'late 30 Sep UTC is October in India')
+  assert.equal(viewMonthOf({ fields: { 'Custom.AuthorApprovalDate': '2026-08-12T00:00:00Z' }, changedDate: '2026-10-05T00:00:00Z' }), '2026-08')
+  assert.equal(viewMonthOf({ changedDate: '2026-10-05T00:00:00Z' }), '2026-10')
+  assert.equal(viewMonthOf({}), undefined)
+})

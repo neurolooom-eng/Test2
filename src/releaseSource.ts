@@ -103,6 +103,12 @@ export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql:
   return { organization: config.organization, project: config.project, query: wiql.trim(), fetchedAt: new Date().toISOString(), items }
 }
 
+// Month of an item in the read-only ADS views (India time): its approval date (Author Approval Date or any approval-date
+// field), else its Changed Date.
+export function viewMonthOf(item: Pick<AzureWorkItem, 'approvalDate' | 'changedDate' | 'fields'>) {
+  return approvalMonthOf(item.approvalDate ?? approvalDateFrom(item.fields ?? {}) ?? item.changedDate)
+}
+
 export function approvalMonthOf(date: string | undefined) {
   if (!date || !Number.isFinite(Date.parse(date))) return undefined
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).formatToParts(new Date(date))

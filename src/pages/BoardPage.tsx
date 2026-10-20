@@ -3,7 +3,8 @@ import { EmptyState, Page, Panel, Pill } from '../components/ui'
 import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
 import { QueryView } from '../components/QueryView'
 import { ReleaseView } from '../components/ReleaseView'
-import { formatDate, formatDateTime } from '../format'
+import { formatDate, formatDateTime, monthName } from '../format'
+import { viewMonthOf } from '../releaseSource'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
 import { loadAzureConnectionProfile } from '../azureCredentials'
 import type { BacklogView } from '../backlogViews'
@@ -13,10 +14,10 @@ import { columnName, queryLayout, type QueryColumn, type QueryOrder } from '../q
 
 // One page for all configured Azure DevOps views (each its own entry in the sidebar): the Time Writing backlog
 // (QMS-0025) as an editable tree, and every other shown connection as a read-only query view.
-export function BoardPage({ azure, store, current, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; onOpenConnection: () => void }) {
+export function BoardPage({ azure, store, current, month, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; month: string; onOpenConnection: () => void }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
-  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} onOpenConnection={onOpenConnection} />
+  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} month={month} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))
   const counts = new Map<string, number>()
@@ -35,7 +36,8 @@ export function BoardPage({ azure, store, current, onOpenConnection }: { azure: 
 }
 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
-function ReadOnlyView({ id, name, role, azure, store, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; onOpenConnection: () => void }) {
+function ReadOnlyView({ id, name, role, azure, store, month, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; onOpenConnection: () => void }) {
+  const [allMonths, setAllMonths] = useState(false)
   // Release sources keep one snapshot; backlog views, documents and reference data are stored per connection.
   const source = role === 'release-source' ? store.state.releaseSource : (store.state.azureSources ?? []).find((entry) => entry.connectionId === id)
   const status = azure.connectionStatus[id]
@@ -49,13 +51,16 @@ function ReadOnlyView({ id, name, role, azure, store, onOpenConnection }: { id: 
   const stale = Boolean(source && current && (!source.columns?.length || source.query.trim() !== profile!.query!.trim()))
   const columns: QueryColumn[] | undefined = stale && current ? current.columns.map((ref) => ({ ref, name: columnName(ref) })) : source?.columns
   const orderBy: QueryOrder[] | undefined = stale && current ? current.orderBy : source?.orderBy
+  // Month filter (header month picker): items approved in the month, else changed in it; "All months" turns it off.
+  const items = source ? allMonths ? source.items : source.items.filter((item) => viewMonthOf(item) === month) : []
   const refresh = <button className="primary" disabled={busy} onClick={() => void azure.fetchConnection(id)}>{busy ? 'Fetching…' : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>
   return <Page className="backlog-page">
     <Panel className="connection-panel backlog-panel">
-      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${source.items.length} items · fetched ${formatDateTime(source.fetchedAt)}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
+      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
       {stale && !busy && <div className="notice warning" role="status">The saved data was fetched with different columns than the connection's query now has. Refresh from Azure to load every column's values.</div>}
-      {source && config ? role === 'release-source' ? <ReleaseView name={name} items={source.items} backlog={azure.items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={source.items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
+      {source && config && !items.length && source.items.length ? <EmptyState title={`No items in ${monthName(month)}.`} detail={`${source.items.length} items have an approval date (else a changed date) in other months. Pick another month in the header, or tick “All months”.`} />
+        : source && config ? role === 'release-source' ? <ReleaseView name={name} items={items} backlog={azure.items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
         : <><EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or Assigned to Me.' : 'Add it again in Settings → Azure DevOps.'} /></>}
     </Panel>
   </Page>
