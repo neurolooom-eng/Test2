@@ -18,7 +18,9 @@ function validateManifest(value) {
     const file = value.files?.[platform]
     if (!file) continue
     if (file.name !== name || typeof file.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(file.sha256) || !Number.isSafeInteger(file.size) || file.size < 1) throw new Error(`The update information for ${platform} is invalid.`)
-    files[platform] = { name, sha256: file.sha256, size: file.size }
+    // Optional per-platform build number and revision (installers are published per platform); else the manifest's.
+    if ((file.buildNumber !== undefined && (!Number.isSafeInteger(file.buildNumber) || file.buildNumber < 1)) || (file.revision !== undefined && (typeof file.revision !== 'string' || !/^[0-9a-f]{7,40}$/.test(file.revision)))) throw new Error(`The update information for ${platform} is invalid.`)
+    files[platform] = { name, sha256: file.sha256, size: file.size, buildNumber: file.buildNumber ?? value.buildNumber, revision: file.revision ?? value.revision, builtAt: typeof file.builtAt === 'string' ? file.builtAt : (typeof value.builtAt === 'string' ? value.builtAt : '') }
   }
   return { buildNumber: value.buildNumber, revision: value.revision, version: typeof value.version === 'string' ? value.version : '', builtAt: typeof value.builtAt === 'string' ? value.builtAt : '', files }
 }
@@ -35,7 +37,7 @@ async function checkForUpdate(fetch, distDir, platform = process.platform) {
   const latest = validateManifest(await response.json())
   const current = currentBuild(distDir)
   const file = latest.files[platform]
-  return { current, latest: { buildNumber: latest.buildNumber, revision: latest.revision, version: latest.version, builtAt: latest.builtAt }, supported: Boolean(file), available: Boolean(file) && latest.buildNumber > current.buildNumber }
+  return { current, latest: { buildNumber: file?.buildNumber ?? latest.buildNumber, revision: file?.revision ?? latest.revision, version: latest.version, builtAt: file?.builtAt || latest.builtAt }, supported: Boolean(file), available: Boolean(file) && file.buildNumber > current.buildNumber }
 }
 
 // Streams the installer to disk while hashing it; the file is removed unless size and SHA-256 both match.
@@ -45,7 +47,7 @@ async function downloadUpdate(fetch, distDir, targetDir, onProgress = () => {}, 
   const latest = validateManifest(await response.json())
   const file = latest.files[platform]
   if (!file) throw new Error('No installer is published for this operating system.')
-  if (latest.buildNumber <= currentBuild(distDir).buildNumber) throw new Error('This is already the latest build.')
+  if (file.buildNumber <= currentBuild(distDir).buildNumber) throw new Error('This is already the latest build.')
   const download = await fetch(releaseBase + file.name, { cache: 'no-store' })
   if (!download.ok || !download.body) throw new Error(`The installer could not be downloaded (${download.status}).`)
   fs.mkdirSync(targetDir, { recursive: true })
@@ -66,7 +68,7 @@ async function downloadUpdate(fetch, distDir, targetDir, onProgress = () => {}, 
     out.destroy(); fs.rmSync(target, { force: true })
     throw error
   }
-  return { path: target, buildNumber: latest.buildNumber }
+  return { path: target, buildNumber: file.buildNumber }
 }
 
 module.exports = { releaseBase, installerNames, validateManifest, currentBuild, checkForUpdate, downloadUpdate }

@@ -307,3 +307,7 @@ body:has(.modal-backdrop){overflow:hidden}
 .markdown-table table{min-width:0;width:100%}
 .markdown-table th,.markdown-table td{vertical-align:top;text-align:left;font-size:13px;line-height:1.45}
 @media (max-width:900px){.docs-layout{grid-template-columns:minmax(0,1fr)}.docs-toc{position:static;max-height:none}}
+.resizable th{position:relative}
+.col-resize{position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
+.col-resize:hover,.col-resize:active{background:color-mix(in srgb,var(--accent, #4f46e5) 35%,transparent)}
+.resizable td{overflow:hidden;text-overflow:ellipsis}
