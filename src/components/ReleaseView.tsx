@@ -13,15 +13,15 @@ export function ReleaseView({ name, items, backlog, columns, orderBy, unresolved
   const [open, setOpen] = useState('')
   const register = releaseRegister(items, backlog)
   const widths = useColumnWidths(`releases:${name}`)
-  const headings = ['Name', 'Release', 'Approved', 'Documents', 'Time Writing', 'Planned (h)', 'Booked (h)']
+  const headings = ['Name', 'Release', 'Approved', 'Documents', 'Time Writing Feature', 'Planned (h)', 'Booked (h)']
   return <>
-    <TablePanel title="Releases" detail="Release from the segment “Release x.y.z” of each document's Iteration Path, with the name from its Area Path (last segment); without a release in the Iteration Path, both from the Area Path (“…\Name\Release x.y.z”). Tracked = a Feature, User Story or Task in the Time Writing backlog names both. Planned and booked = Original Estimate and Completed Work, all months, on the Time Writing Tasks under those Features." count={`${register.length} releases`}>
+    <TablePanel title="Releases" detail="Release from the segment “Release x.y.z” of each document's Iteration Path, with the name from its Area Path (last segment); without a release in the Iteration Path, both from the Area Path (“…\Name\Release x.y.z”). Time Writing Feature = the QMS-0025 Feature whose title (or whose stories or tasks) names both. Planned and booked = Original Estimate and Completed Work, all months, on its Time Writing Tasks." count={`${register.length} releases`}>
       {register.length ? <table className="release-register resizable"><thead><tr>{headings.map((heading) => <th key={heading} style={widths.style(heading)}>{heading}{widths.handle(heading)}</th>)}</tr></thead><tbody>
         {register.flatMap((release) => [
           <tr key={release.key}>
             <td><button type="button" className="text-button" aria-expanded={open === release.key} onClick={() => setOpen(open === release.key ? '' : release.key)}>{open === release.key ? '▾' : '▸'} {release.name}</button></td>
             <td>{release.release}</td><td>{release.approvalDate ? formatDate(release.approvalDate) : '—'}</td><td>{release.documents}</td>
-            <td>{release.tracked ? <Pill tone="open">Tracked · {release.trackedBy.length}</Pill> : <Pill tone="warning">Not tracked</Pill>}</td>
+            <td>{release.features.length ? release.features.map((feature) => <a key={feature.id} className="feature-link" href={feature.url} target="_blank" rel="noreferrer">#{feature.id} {feature.title}</a>) : release.tracked ? <Pill tone="info">Named by {release.trackedBy.length} item{release.trackedBy.length === 1 ? '' : 's'}, no Feature</Pill> : <Pill tone="warning">Not tracked</Pill>}</td>
             <td>{release.hourTasks ? formatHours(release.planned) : '—'}</td>
             <td>{release.hourTasks ? <>{formatHours(release.booked)}{release.planned > 0 && release.booked > release.planned && <small className="negative">+{formatHours(release.booked - release.planned)} over plan</small>}</> : '—'}<small>{release.hourTasks ? `${release.hourTasks} task${release.hourTasks === 1 ? '' : 's'}` : ''}</small></td>
           </tr>,

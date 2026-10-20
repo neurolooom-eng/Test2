@@ -99,6 +99,7 @@ test('planned and booked hours per release come from the Time Writing Tasks unde
   ]
   const register = releaseRegister(source, backlog)
   const r21 = register.find((entry) => entry.release === '2.1')
+  assert.deepEqual(r21.features.map((feature) => feature.id), [100], 'the tracking Feature, once, even though its tasks also name the release')
   assert.deepEqual([r21.planned, r21.booked, r21.hourTasks], [16, 17, 2], 'two month tasks; not the plain task, not the removed one; the tracking Task 111 is not counted twice')
   assert.deepEqual([register.find((entry) => entry.name === 'Viewer').hourTasks, register.find((entry) => entry.name === 'Viewer').planned], [0, 0])
 })
