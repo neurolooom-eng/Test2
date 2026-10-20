@@ -15,7 +15,7 @@ export function connectionConfig(profile: Pick<AzureConnectionProfile, 'url' | '
 }
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
-export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
+export interface ConnectionInput { id?: string; name: string; viewName: string; showInMenu: boolean; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 export function useAzureWorkspace(store: PageProps['store']) {
@@ -189,7 +189,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const email = input.creatorEmail.trim().toLowerCase()
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
     const id = input.id || crypto.randomUUID().replaceAll('-', '')
-    saveAzureConnectionProfile({ id, url, reason: name, role: input.role, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}), ...(isCloudBase(base) ? {} : { baseUrl: base }), ...(apiVersion ? { apiVersion } : {}) })
+    saveAzureConnectionProfile({ id, url, reason: name, role: input.role, ...(input.viewName.trim() ? { viewName: input.viewName.trim() } : {}), showInMenu: input.showInMenu, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}), ...(isCloudBase(base) ? {} : { baseUrl: base }), ...(apiVersion ? { apiVersion } : {}) })
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles)
     if (input.role === 'time-tracking' && (id === activeConnectionProfileId || !profiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking'))) selectConnectionProfile(id)

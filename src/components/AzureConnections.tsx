@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { EmptyState, Notice, Panel, Pill, type Tone } from './ui'
 import { AzureSourceBar } from './AzureSourceBar'
 import { formatDateTime } from '../format'
-import { loadAzureConnectionProfile, splitAzureUrl, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
+import { defaultShowInMenu, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
-import { defaultTimeWritingViewName } from '../backlogViews'
+import { timeWritingView } from '../backlogViews'
 import type { PageProps } from '../pages/types'
 
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
@@ -15,10 +15,10 @@ const roleUse: Record<AzureConnectionRole, string> = {
   'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
   documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
   reference: 'Any other read-only data: fetched and listed with its count.',
-  'backlog-view': 'Shown as its own tab on the Backlogs page (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or My work.',
+  'backlog-view': 'Shown as its own view in the Azure DevOps menu (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or My work.',
 }
 const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery, 'backlog-view': 'Optional. Leave empty to read the team Epic backlog.' }
-const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
+const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', viewName: '', showInMenu: defaultShowInMenu(role), role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 // Azure DevOps connection setup, shown as the first section of Settings.
 export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
@@ -26,18 +26,6 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   const [form, setForm] = useState<ConnectionInput | null>(null)
   const [formError, setFormError] = useState('')
   const [fetchingAll, setFetchingAll] = useState(false)
-  const savedViewName = store.state.timeWritingViewName?.trim() || defaultTimeWritingViewName
-  const [viewName, setViewName] = useState(savedViewName)
-  function saveViewName(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const name = viewName.trim() || defaultTimeWritingViewName
-    store.update((draft) => {
-      draft.timeWritingViewName = name
-      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'Settings', entityId: 'time-writing-view-name', detail: `Time Writing backlog view renamed to “${name}”` })
-      return draft
-    })
-    setViewName(name)
-  }
   const [dismissed, setDismissed] = useState(loadDismissedPresets)
   const presets = pendingPresets(connectionProfiles, dismissed)
   const sources = store.state.azureSources ?? []
@@ -46,7 +34,7 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   function edit(profile: AzureConnectionProfileSummary) {
     const parts = splitAzureUrl(profile.url, profile.baseUrl)
     const { serverUrl, organization } = splitCollectionUrl(parts.baseUrl)
-    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, serverUrl, organization, project: parts.project, team: parts.team, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
+    setFormError(''); setForm({ id: profile.id, name: profile.reason, viewName: profile.viewName ?? '', showInMenu: showsInMenu(profile), role: profile.role, serverUrl, organization, project: parts.project, team: parts.team, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
   }
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -71,11 +59,8 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   }
 
   return <section id="settings-connections" className="settings-section">
-    <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open {savedViewName} →</button></div>
+    <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open {timeWritingView(connectionProfiles, activeConnectionProfileId).name} →</button></div>
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
-    <Panel className="connection-panel" eyebrow="VIEWS" title="Backlog view names" detail="The Time Writing backlog's name in the sidebar and on its tab. Other views appear in the sidebar once a connection is saved as Backlog view (read only), named after the connection (e.g. Digital Platform, Clinical Platform, Serviceability, IOCC); rename them with Edit on the connection.">
-      <form className="inline-form view-name-form" onSubmit={saveViewName}><label>Time Writing backlog view<input value={viewName} maxLength={60} onChange={(event) => setViewName(event.target.value)} placeholder={defaultTimeWritingViewName} /></label><button className="primary" disabled={(viewName.trim() || defaultTimeWritingViewName) === savedViewName}>Save name</button></form>
-    </Panel>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
@@ -87,7 +72,7 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
         const parts = splitAzureUrl(profile.url, profile.baseUrl), [tone, label] = statusTone(profile), status = connectionStatus[profile.id]
         const active = profile.role === 'time-tracking' && profile.id === activeConnectionProfileId
         return <tr key={profile.id}>
-          <td><strong>{profile.reason}</strong>{active && <small>Active Time Writing source</small>}</td>
+          <td><strong>{profile.reason}</strong>{active && <small>Active Time Writing source</small>}<small>{showsInMenu(profile) ? `In menu as “${viewNameOf(profile)}”` : 'Hidden from menu (backend only)'}</small></td>
           <td>{roleLabel[profile.role]}</td>
           <td>{parts.baseUrl.replace('https://', '')}{profile.baseUrl && <Pill tone="info">On-prem</Pill>}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}{profile.apiVersion ? ` · API ${profile.apiVersion}` : ''}</small></td>
           <td>{profile.query ? <span className="query-chip" title={profile.query}>Custom query</span> : <small>{profile.role === 'time-tracking' || profile.role === 'backlog-view' ? 'Team Epic backlog' : 'Default'}</small>}</td>
@@ -100,7 +85,9 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
         <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>{!form.id && form.organization && <Notice>Pre-filled settings: enter your PAT, change anything else if needed, then Save and Test.</Notice>}
         <div className="connection-form">
           <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. QMS-0025, Digital Platform, DHFI releases" /></label>
-          <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
+          <label>View name (optional)<input value={form.viewName} maxLength={80} onChange={(event) => setForm({ ...form, viewName: event.target.value })} placeholder={form.name.trim() || 'Same as the connection name'} /><small>Name in the Azure DevOps menu and on its tab, e.g. QMS-0025.</small></label>
+          <label className="checkbox-label menu-toggle"><input type="checkbox" checked={form.showInMenu} onChange={(event) => setForm({ ...form, showInMenu: event.target.checked })} />Show in menu<small>Off: used only in the background (data, releases, documents), not listed as a view.</small></label>
+          <label>Used for<select value={form.role} onChange={(event) => { const role = event.target.value as AzureConnectionRole; setForm({ ...form, role, showInMenu: defaultShowInMenu(role) }) }}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
           <label>Server URL (on-prem only)<input type="url" value={form.serverUrl} onChange={(event) => setForm({ ...form, serverUrl: event.target.value })} placeholder="Empty for dev.azure.com · e.g. https://tfs.company.com/tfs" /><small>Leave empty for Azure DevOps Services. On-prem: the server address without the collection.</small></label>
           <label>Organization / collection<input required value={form.organization} onChange={(event) => setForm({ ...form, organization: event.target.value })} placeholder={form.serverUrl.trim() ? 'e.g. DHPCollection' : 'Azure DevOps organization'} /><small>{form.serverUrl.trim() ? 'On-prem this is the collection name.' : 'The name after dev.azure.com/.'}</small></label>
           <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
