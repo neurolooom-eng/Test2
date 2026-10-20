@@ -93,3 +93,17 @@ test('regional holidays apply to everyone mapped to the region, not to the assig
   assert.equal(withProfiles.totals.absenceByKind['Public holiday'], 16)
   assert.equal(without.totals.absenceByKind['Public holiday'], 0, 'no region mapped, nothing applied')
 })
+
+import { itemsForPerson } from '../src/capacity.ts'
+test('individual overview: only that person\'s Tasks, hierarchy kept, regional holidays still applied', () => {
+  const { items } = regionalSample({ organization: 'Org', project: 'Quality', team: 'T' }, '2026-10')
+  const settings = capacityContext({ resourceProfiles: sampleProfiles })
+  const mine = itemsForPerson(items, { name: 'Chen Wei' }, settings)
+  assert.ok(mine.filter((item) => item.workItemType === 'Task').every((task) => task.assignedTo === 'Chen Wei' || task.assignedTo === ''), 'only Chen\'s tasks plus unassigned holiday tasks')
+  assert.equal(mine.filter((item) => item.workItemType !== 'Task').length, items.filter((item) => item.workItemType !== 'Task').length, 'all Epics, Features and Stories kept')
+  const team = capacityModel(items, '2026-10', settings), alone = capacityModel(mine, '2026-10', settings)
+  assert.deepEqual(alone.people.map((person) => person.name), ['Chen Wei'])
+  const teamChen = team.people.find((person) => person.name === 'Chen Wei'), aloneChen = alone.people[0]
+  assert.deepEqual([aloneChen.work, aloneChen.absence, aloneChen.utilization], [teamChen.work, teamChen.absence, teamChen.utilization], 'same numbers as in the team view, India holiday included')
+  assert.equal(aloneChen.absenceByKind['Public holiday'], 8)
+})

@@ -1,13 +1,14 @@
 import type { AzureWorkItem } from './domain'
 
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
-// Month of a Time Writing Task from its title prefix: "October 2026 | …", also "Oct 2026 - …", "October-2026: …" or
-// "2026-10 | …". The month must start the title and be followed by |, :, - or a dash.
+// Month of a Time Writing Task from the start of its title, whatever delimiter follows: "October 2026 | …",
+// "Oct 2026 - …", "October-2026: …", "October 2026 / …", "2026-10 | …" or just "October 2026". No fixed delimiter is
+// required by Azure DevOps or by the app; the month and year only have to lead the title.
 export function timeWritingMonth(title: string): string | undefined {
   const text = title.trim()
-  const named = /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[\s,._/-]*(\d{4})\s*[|:\-–—]/i.exec(text)
+  const named = /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?[\s,._/-]*(\d{4})(?!\d)/i.exec(text)
   if (named) return `${named[2]}-${String(months.findIndex(month => month.slice(0, 3).toLowerCase() === named[1].slice(0, 3).toLowerCase()) + 1).padStart(2, '0')}`
-  const numeric = /^(\d{4})[-/.](0?[1-9]|1[0-2])\s*[|:\-–—]/.exec(text)
+  const numeric = /^(\d{4})[-/.](0?[1-9]|1[0-2])(?!\d)/.exec(text)
   return numeric ? `${numeric[1]}-${numeric[2].padStart(2, '0')}` : undefined
 }
 // A Time Writing User Story names "Time Writing" anywhere in its title (e.g. "<Feature> - Time Writing", "Time Writing - DP").

@@ -1,5 +1,6 @@
 import type { AzureWorkItem } from './domain'
 import { isTimeWritingStory, timeWritingMonth, workingDays } from './azureInsights.ts'
+import { isMine, type Me } from './myWork.ts'
 
 // Capacity model for the selected month. Source rows are the Time Writing Tasks named
 // "<Month> <Year> | …" under "… - Time Writing" User Stories; absence is everything under the
@@ -220,4 +221,22 @@ export function azureResources(source: AzureWorkItem[], month: string, settings:
   }
   return [...people.values()].map(({ streamHours, ...person }) => ({ ...person, streams: [...streamHours].filter(([, work]) => work > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([title]) => title) }))
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// One person's slice of the backlog for the Individual Overview: every Epic, Feature and Story stays (for hierarchy),
+// but only Tasks assigned to that person, plus regional holiday Tasks, which are unassigned and apply by region.
+export function itemsForPerson(source: AzureWorkItem[], person: Me, settings: CapacitySettings = defaultCapacitySettings) {
+  const byId = new Map(source.map((item) => [item.id, item]))
+  const holiday = (task: AzureWorkItem) => {
+    let current = task.parentId == null ? undefined : byId.get(task.parentId), feature: AzureWorkItem | undefined
+    const seen = new Set<number>([task.id])
+    while (current && !seen.has(current.id)) {
+      seen.add(current.id)
+      if (current.workItemType === 'Feature') feature = current
+      if (current.workItemType === 'Epic') return current.id === settings.absenceEpicId && feature != null && holidayRegion(feature.title) != null
+      current = current.parentId == null ? undefined : byId.get(current.parentId)
+    }
+    return false
+  }
+  return source.filter((item) => item.workItemType !== 'Task' || isMine(item, person) || holiday(item))
 }
