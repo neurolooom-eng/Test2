@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import { fetchAzureWorkItems, isCloudBase, mergeAzureWorkItems, normalizeBaseUrl, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
+import { fetchAzureWorkItems, isCloudBase, mergeAzureWorkItems, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
-import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
+import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, collectionUrlFrom, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
 import { defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, releaseQueryWhere, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
@@ -15,7 +15,7 @@ export function connectionConfig(profile: Pick<AzureConnectionProfile, 'url' | '
 }
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
-export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; baseUrl: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
+export interface ConnectionInput { id?: string; name: string; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 export function useAzureWorkspace(store: PageProps['store']) {
@@ -176,8 +176,8 @@ export function useAzureWorkspace(store: PageProps['store']) {
   function saveConnection(input: ConnectionInput) {
     const name = input.name.trim()
     if (!name) throw new Error('Give the connection a name, e.g. "Time Writing" or "DHFI releases".')
-    const url = composeAzureUrl(input.baseUrl, input.project, input.team)
-    const base = normalizeBaseUrl(input.baseUrl), apiVersion = input.apiVersion.trim()
+    const base = collectionUrlFrom(input.serverUrl, input.organization), apiVersion = input.apiVersion.trim()
+    const url = composeAzureUrl(base, input.project, input.team)
     if (apiVersion && !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(apiVersion)) throw new Error('API version looks like 7.1, 6.0 or 5.0.')
     const existing = input.id ? loadAzureConnectionProfile(input.id) : null
     const token = input.pat.trim() || existing?.token || ''
@@ -260,6 +260,20 @@ export function useAzureWorkspace(store: PageProps['store']) {
     }
   }
 
+  // Checks address, collection, project, PAT and API version with an empty query; reads nothing, writes nothing.
+  async function testConnection(id: string) {
+    const profile = loadAzureConnectionProfile(id)
+    if (!profile) return
+    setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Testing…' } }))
+    try {
+      const config = connectionConfig(profile)
+      await runWorkItemQuery(config, profile.token, 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.Id] < 1')
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'ok', message: `Connection works: ${config.project} is reachable with this PAT.`, at: new Date().toISOString() } }))
+    } catch (failure) {
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: failure instanceof Error ? failure.message : 'Connection test failed.' } }))
+    }
+  }
+
   // Fetches the active Time Writing connection and every read-only connection, one after another.
   async function fetchAll() {
     setError(''); setMessage('')
@@ -282,7 +296,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     setPreview(null); setMessage(`${incoming.length} team-backlog records loaded into the app cache. Check browser save status for persistence. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>

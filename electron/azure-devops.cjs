@@ -102,21 +102,48 @@ function azureWorkItemUpdateRequest(input) {
   } }
 }
 
-async function requestAzureDevOps(input) {
+// api-version negotiation: explicit version as is; otherwise 7.1, then 6.0 and 5.0 for older Azure DevOps Server.
+const detectedVersions = new Map()
+const isApiVersionError = (text) => /api[- ]?version|version of the api|VssVersionOutOfRange|out of range/i.test(text) && /version/i.test(text)
+
+// fetchImpl: the main process passes Electron's net.fetch (Chromium network stack: Windows certificate store, system
+// proxy), which on-prem servers with a company certificate need; tests pass a stub. Redirects are never followed.
+async function requestAzureDevOps(input, fetchImpl = fetch) {
   const creating = input?.operation === 'create-feature' || input?.operation === 'create-child'
   const updating = input?.operation === 'update-time-writing-effort' || input?.operation === 'update-work-item'
   const writing = creating || updating
   const request = creating ? azureFeatureRequest(input) : input?.operation === 'update-time-writing-effort' ? azureTimeWritingEffortRequest(input) : input?.operation === 'update-work-item' ? azureWorkItemUpdateRequest(input) : azureReadRequest(input)
+  const collection = projectBase(input).split('/').slice(0, -1).join('/').toLowerCase()
+  const explicit = typeof input.apiVersion === 'string' && apiVersion(input) === input.apiVersion
+  const versions = explicit ? [input.apiVersion] : detectedVersions.has(collection) ? [detectedVersions.get(collection)] : ['7.1', '6.0', '5.0']
   let response
-  try { response = await fetch(request.url, { ...request.options, signal: AbortSignal.timeout(45000) }) }
-  catch { throw new Error(writing && !input.validateOnly ? `${creating ? 'Creation' : 'Update'} could not be confirmed. Check the Azure DevOps work item before retrying.` : 'Azure DevOps could not be reached. Check network/VPN access and the organization URL.') }
+  for (const [attempt, version] of versions.entries()) {
+    const url = request.url.replace(/api-version=[^&]*/, `api-version=${version}`)
+    try { response = await fetchImpl(url, { ...request.options, redirect: 'manual', signal: AbortSignal.timeout(45000) }) }
+    catch (error) {
+      const detail = String(error?.cause?.code ?? error?.code ?? error?.message ?? '')
+      const certificate = /CERT|SSL|TLS|self.signed|issuer/i.test(detail)
+      throw new Error(writing && !input.validateOnly ? `${creating ? 'Creation' : 'Update'} could not be confirmed. Check the Azure DevOps work item before retrying.` : certificate ? `The server's certificate was not accepted (${detail.slice(0, 120)}). Ask IT whether the company root certificate is installed in Windows.` : `Azure DevOps could not be reached at ${new URL(url).host}. Check VPN, the server URL and the collection.${detail ? ` (${detail.slice(0, 120)})` : ''}`)
+    }
+    if (response.status === 400 && attempt < versions.length - 1) {
+      const text = await response.clone().text().catch(() => '')
+      if (isApiVersionError(text)) continue
+    }
+    if (response.ok && attempt > 0) detectedVersions.set(collection, version)
+    break
+  }
+  if (response.status >= 300 && response.status < 400) throw new Error('Azure DevOps redirected the request (usually to a sign-in page). Check the PAT and that PATs are enabled on this server.')
   if (response.status === 401) throw new Error('PAT rejected or expired. Check Work Items (Read) access.')
   if (response.status === 403) throw new Error(`Access denied by Azure DevOps. Check Work Items (${writing ? 'Read & Write' : 'Read'}) scope and project permissions.`)
   if (writing && (response.status === 400 || response.status === 422)) {
     const detail = await response.json().catch(() => ({}))
     throw new Error(`Azure DevOps rejected the ${creating ? 'Feature' : 'update'}: ${String(detail.message ?? 'Check required fields and project rules.').replaceAll(input.pat, '[redacted]').slice(0, 1200)}`)
   }
-  if (response.status === 404) throw new Error('Project or team not found. Check connection details.')
+  if (response.status === 404) throw new Error(`Not found at ${projectBase(input).replace(/^https:\/\//, '')}. Check the collection, project and team names.`)
+  if (response.status === 400) {
+    const detail = await response.json().catch(() => ({}))
+    if (detail.message) throw new Error(`Azure DevOps refused the request: ${String(detail.message).replaceAll(input.pat, '[redacted]').slice(0, 600)}`)
+  }
   if (!response.ok) throw new Error(writing && !input.validateOnly ? `${creating ? 'Create' : 'Update'} returned ${response.status}. Check Azure DevOps before retrying.` : `Azure DevOps returned ${response.status}. No data was imported.`)
   if (!(response.headers.get('content-type') ?? '').includes('application/json')) throw new Error('Azure DevOps returned a sign-in page. Check the PAT.')
   return response.json()

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EmptyState, Notice, Page, Panel, Pill, type Tone } from '../components/ui'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import { formatDateTime } from '../format'
-import { loadAzureConnectionProfile, splitAzureUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
+import { loadAzureConnectionProfile, splitAzureUrl, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import type { PageProps } from './types'
@@ -15,7 +15,7 @@ const roleUse: Record<AzureConnectionRole, string> = {
   reference: 'Any other read-only data: fetched and listed with its count.',
 }
 const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery }
-const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, baseUrl: 'https://dev.azure.com/', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
+const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
   const { connectionProfiles, connectionStatus, activeConnectionProfileId, preview, busy } = azure
@@ -27,7 +27,8 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
 
   function edit(profile: AzureConnectionProfileSummary) {
     const parts = splitAzureUrl(profile.url, profile.baseUrl)
-    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, ...parts, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
+    const { serverUrl, organization } = splitCollectionUrl(parts.baseUrl)
+    setFormError(''); setForm({ id: profile.id, name: profile.reason, role: profile.role, serverUrl, organization, project: parts.project, team: parts.team, pat: '', query: profile.query ?? '', creatorEmail: profile.creatorEmail ?? '', apiVersion: profile.apiVersion ?? '' })
   }
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -44,7 +45,7 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
     const status = connectionStatus[profile.id]
     if (status?.state === 'busy') return ['info', 'Fetching…']
     if (status?.state === 'error') return ['danger', 'Failed']
-    if (status?.state === 'ok') return ['open', 'Fetched']
+    if (status?.state === 'ok') return ['open', status.message.startsWith('Connection works') ? 'Connected' : 'Fetched']
     return lastFetch(profile) ? ['open', 'Data saved'] : ['neutral', 'Not fetched']
   }
 
@@ -62,7 +63,7 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
           <td>{parts.baseUrl.replace('https://', '')}{profile.baseUrl && <Pill tone="info">On-prem</Pill>}<small>{parts.project}{parts.team ? ` · team ${parts.team}` : ''}{profile.apiVersion ? ` · API ${profile.apiVersion}` : ''}</small></td>
           <td>{profile.query ? <span className="query-chip" title={profile.query}>Custom query</span> : <small>{profile.role === 'time-tracking' ? 'Team Epic backlog' : 'Default'}</small>}</td>
           <td><Pill tone={tone}>{label}</Pill><small>{status?.message ?? lastFetch(profile)}</small></td>
-          <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
+          <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.testConnection(profile.id)}>Test</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
         </tr>
       })}</tbody></table></div>
         : <EmptyState title="No connections yet." detail="Add your Time Writing project first, then the DHFI release source and any other read-only sources." />}
@@ -71,10 +72,11 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
         <div className="connection-form">
           <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Time Writing, DHFI releases, Vault" /></label>
           <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
-          <label>Base URL<input required type="url" value={form.baseUrl} onChange={(event) => setForm({ ...form, baseUrl: event.target.value })} placeholder="https://dev.azure.com/org  or  https://tfs.company.com/tfs/Collection" /><small>Cloud: https://dev.azure.com/&lt;organization&gt;. On-prem: the collection URL, e.g. https://tfs.company.com/tfs/DefaultCollection.</small></label>
+          <label>Server URL (on-prem only)<input type="url" value={form.serverUrl} onChange={(event) => setForm({ ...form, serverUrl: event.target.value })} placeholder="Empty for dev.azure.com · e.g. https://tfs.company.com/tfs" /><small>Leave empty for Azure DevOps Services. On-prem: the server address without the collection.</small></label>
+          <label>Organization / collection<input required value={form.organization} onChange={(event) => setForm({ ...form, organization: event.target.value })} placeholder={form.serverUrl.trim() ? 'e.g. DHPCollection' : 'Azure DevOps organization'} /><small>{form.serverUrl.trim() ? 'On-prem this is the collection name.' : 'The name after dev.azure.com/.'}</small></label>
           <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
           {form.role === 'time-tracking' && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
-          <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="7.1" /><small>Leave empty for 7.1. Older Azure DevOps Server versions may need a lower one, e.g. 6.0 or 5.0.</small></label>
+          <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="Automatic" /><small>Leave empty to detect it: 7.1, then 6.0 and 5.0 for older Azure DevOps Server.</small></label>
           <label>PAT{form.id ? ' (leave empty to keep the saved one)' : ''}<input type="password" autoComplete="off" required={!form.id || !loadAzureConnectionProfile(form.id)} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
           {form.role === 'time-tracking' && <label>Feature creator email (optional)<input type="email" value={form.creatorEmail} onChange={(event) => setForm({ ...form, creatorEmail: event.target.value })} placeholder="Assigned to Features created from the app" /></label>}
           <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' ? '' : 'Empty uses the default shown.'}</small></label>

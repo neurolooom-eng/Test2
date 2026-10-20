@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron')
+const { app, BrowserWindow, shell, ipcMain, net } = require('electron')
 const path = require('path')
 const { pathToFileURL } = require('url')
 const { requestAzureDevOps } = require('./azure-devops.cjs')
@@ -15,7 +15,8 @@ ipcMain.handle('azure-devops:request', async (event, request) => {
   const devUrl = process.env.VITE_DEV_SERVER_URL
   const trusted = source === bundledUrl || (devUrl && source && new URL(source).origin === new URL(devUrl).origin)
   if (!trusted || event.senderFrame !== event.sender.mainFrame) throw new Error('Untrusted request source.')
-  return requestAzureDevOps(request)
+  // Chromium's network stack: uses the Windows certificate store and system proxy (needed for on-prem servers).
+  return requestAzureDevOps(request, (url, options) => net.fetch(url, options))
 })
 
 function createWindow() {

@@ -81,3 +81,23 @@ export function splitAzureUrl(value: string, baseUrl?: string) {
     return { baseUrl: decodeURI(base), project: rest[0] ?? '', team: backlog >= 0 && rest[backlog + 1] === 'backlog' ? rest[backlog + 2] ?? '' : '' }
   } catch { return { baseUrl: '', project: '', team: '' } }
 }
+
+// Same shape as other Azure DevOps tools: an optional server URL (on-prem, e.g. https://tfs.company.com/tfs), the
+// organization (on-prem: the collection, e.g. DHPCollection) and the project. Empty server URL = Azure DevOps Services.
+export function collectionUrlFrom(serverUrl: string, organization: string) {
+  const org = organization.trim()
+  if (!org || /[/\\?#]/.test(org)) throw new Error(serverUrl.trim() ? 'Enter the collection name (organization), e.g. DefaultCollection.' : 'Enter the Azure DevOps organization name.')
+  if (!serverUrl.trim()) return `https://dev.azure.com/${encodeURIComponent(org)}`
+  const server = normalizeBaseUrl(serverUrl)
+  if (new URL(server).hostname === 'dev.azure.com') return `https://dev.azure.com/${encodeURIComponent(org)}`
+  // Tolerate the collection pasted into the server URL as well.
+  return server.toLowerCase().endsWith(`/${encodeURIComponent(org).toLowerCase()}`) ? server : `${server}/${encodeURIComponent(org)}`
+}
+export function splitCollectionUrl(collection: string) {
+  try {
+    const url = new URL(normalizeBaseUrl(collection))
+    const parts = url.pathname.split('/').filter(Boolean)
+    if (url.hostname === 'dev.azure.com') return { serverUrl: '', organization: decodeURIComponent(parts[0] ?? '') }
+    return { serverUrl: `${url.origin}${parts.slice(0, -1).map((part) => `/${part}`).join('')}`, organization: decodeURIComponent(parts.at(-1) ?? '') }
+  } catch { return { serverUrl: '', organization: '' } }
+}
