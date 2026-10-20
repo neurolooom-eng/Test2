@@ -10,8 +10,8 @@ test('build metadata uses strict x.y.z versions and rejects malformed or executa
   assert.deepEqual(validateBuildInfo(build), build)
   for (const version of ['v1.2.3', '1.2', '01.2.3', '1.2.3-beta', '1.2.3.4']) assert.throws(() => validateBuildInfo({ ...build, version }))
   for (const change of [{ app: 'other' }, { buildId: '../evil' }, { builtAt: 'not a date' }, { revision: '<script>' }]) assert.throws(() => validateBuildInfo({ ...build, ...change }))
-  assert.match(formatBuildDate(build.builtAt), /17 Oct 2026/)
-  assert.match(formatBuildDate(build.builtAt), /00:00:00 IST$/)
+  assert.match(formatBuildDate(build.builtAt, 'Asia/Kolkata'), /\b17\b/)
+  assert.match(formatBuildDate(build.builtAt, 'UTC'), /UTC/)
 })
 
 test('cache-busting URLs remain on the app origin and preserve path, other parameters and fragment', () => {

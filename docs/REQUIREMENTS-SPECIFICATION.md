@@ -145,6 +145,7 @@ Stakeholders:
 | NAV-09 | The header shall show the month picker on Overview, Monthly Time Writing, Baselines, Snapshots and Settings. It shall hide the picker on Assigned to Me, the Azure DevOps views and Documentation. | D | M | UC-01 |
 | NAV-10 | The month picker shall accept only values of the form `YYYY-MM`. | T | M | UC-01 |
 | NAV-11 | The month picker shall default to the current month in the Asia/Kolkata time zone. | T | S | UC-01 |
+| NAV-12 | Every date and time that tells when data was fetched, saved or built (view bars, connection list, header status tooltip, build details, Git commit messages) shall be shown in the viewer's own time zone with the zone named (e.g. "20 Oct 2026, 21:05 CEST"), and "today" (overdue, changed in 7 days, plan checks) shall be the viewer's local date. Month assignment of Time Writing stays on Asia/Kolkata (NAV-11). | T | S | UC-01 |
 | NAV-12 | The page title's tooltip shall carry the page description from the page registry. Pages shall not repeat a page header inside the content. | I | S | UC-01 |
 | NAV-13 | The app shall show the data notices (FET-12 to FET-16) once, directly below the header, on every page. | D | M | UC-01, UC-03 |
 | NAV-14 | The sidebar footer shall show the storage label, exactly one of: "● Live SharePoint", "⚠ Not saved locally", "◌ Saving locally", "○ Local IndexedDB". | D | S | UC-15 |

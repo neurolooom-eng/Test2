@@ -13,7 +13,12 @@ test('formatPercent and formatDate keep dashes for missing data', () => {
 })
 test('formatDateTime falls back on empty or unparsable input', () => {
   assert.equal(formatDateTime(undefined, 'Confirmed this session'), 'Confirmed this session'); assert.equal(formatDateTime('not a date'), '—')
-  assert.equal(formatDateTime('2026-10-16T21:00:00Z'), new Date('2026-10-16T21:00:00Z').toLocaleString())
+  // In the viewer's time zone, with the zone named: the same instant reads differently per zone.
+  { const india = formatDateTime('2026-10-16T21:00:00Z', '—', 'Asia/Kolkata'); assert.ok(/\b17\b/.test(india) && india.includes('Oct') && india.includes('02:30'), india) }
+  { const ny = formatDateTime('2026-10-16T21:00:00Z', '—', 'America/New_York'); assert.ok(/\b16\b/.test(ny) && ny.includes('05:00'), ny) }
+  assert.match(formatDateTime('2026-10-16T21:00:00Z', '—', 'UTC'), /UTC/)
+  assert.equal(todayIso(new Date('2026-10-16T21:00:00Z'), 'Asia/Kolkata'), '2026-10-17')
+  assert.equal(todayIso(new Date('2026-10-16T21:00:00Z'), 'America/New_York'), '2026-10-16')
 })
 test('monthName and todayIso use the month key format the app stores', () => {
   assert.equal(monthName('2026-10'), 'October 2026'); assert.match(todayIso(), /^\d{4}-\d{2}-\d{2}$/)

@@ -2,9 +2,15 @@
 export function formatHours(value: number | null | undefined) { return value == null ? '—' : Number(value.toFixed(2)).toLocaleString() }
 export function formatPercent(value: number | null | undefined, digits = 1) { return value == null ? '—' : `${value.toFixed(digits)}%` }
 export function formatDate(value: string | undefined, fallback = '—') { return value ? value.slice(0, 10) : fallback }
-export function formatDateTime(value: string | undefined, fallback = '—') { return value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : fallback }
+// Date and time in the viewer's own time zone, with the zone shown (e.g. "20 Oct 2026, 21:05 CEST"): used for when
+// data was fetched or saved. timeZone is for tests only.
+export function formatDateTime(value: string | undefined, fallback = '—', timeZone?: string) {
+  if (!value || !Number.isFinite(Date.parse(value))) return fallback
+  return new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short', ...(timeZone ? { timeZone } : {}) }).format(new Date(value))
+}
 export function monthName(month: string) { return new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`)) }
-export function todayIso() { return new Date().toISOString().slice(0, 10) }
+// Today's date (YYYY-MM-DD) in the viewer's time zone.
+export function todayIso(now = new Date(), timeZone?: string) { return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', ...(timeZone ? { timeZone } : {}) }).format(now) }
 export function localTimeZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local time' } catch { return 'Local time' } }
 export function timeZoneLabel(date = new Date()) {
   try { return new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(date).find((part) => part.type === 'timeZoneName')?.value ?? localTimeZone() } catch { return localTimeZone() }

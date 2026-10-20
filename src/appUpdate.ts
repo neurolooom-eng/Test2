@@ -6,8 +6,9 @@ export function validateBuildInfo(value: unknown): BuildInfo {
   return info
 }
 
-export function formatBuildDate(iso: string) {
-  return `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(iso))} IST`
+// When a build was made, in the viewer's time zone (with the zone shown). timeZone is for tests only.
+export function formatBuildDate(iso: string, timeZone?: string) {
+  return new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short', ...(timeZone ? { timeZone } : {}) }).format(new Date(iso))
 }
 
 export function updateUrls(href: string, nonce: string, buildId?: string) {
