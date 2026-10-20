@@ -159,3 +159,12 @@ test('pre-filled connections: DHP on-prem and the cloud Time Writing project, un
   assert.deepEqual(pendingPresets([{ url: 'https://tfsapac04.ta.philips.com/tfs/DHPCollection/DHP' }], []).map((preset) => preset.key), ['time-writing-cloud'], 'saved → no longer offered')
   assert.deepEqual(pendingPresets([{ url: 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics' }], ['dhp-on-prem']), [], 'saved with a team URL, or dismissed')
 })
+
+import { detectOs, desktopDownloads } from '../src/desktopDownloads.ts'
+test('desktop download: fixed links to the rolling release, OS detection', () => {
+  assert.equal(desktopDownloads.windows, 'https://github.com/neurolooom-eng/Test2/releases/download/desktop-latest/Demand-Planning-Hub-Setup.exe')
+  assert.equal(desktopDownloads.mac, 'https://github.com/neurolooom-eng/Test2/releases/download/desktop-latest/Demand-Planning-Hub-mac.dmg')
+  assert.equal(detectOs('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'), 'windows')
+  assert.equal(detectOs('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5)'), 'mac')
+  assert.equal(detectOs('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)'), 'other')
+})

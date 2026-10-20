@@ -90,6 +90,88 @@ jobs:
     permissions:
       contents: write
 
+  package-macos:
+    name: Package macOS application
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web application
+        run: pnpm build:web
+
+      # No Apple Developer ID is configured, so the app is not notarised; see the download page for first-launch steps.
+      - name: Package macOS disk image (Intel + Apple silicon)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm exec electron-builder --mac dmg --universal --publish never
+
+      - name: Record disk image checksum
+        run: |
+          cd release
+          dmg=$(ls *.dmg | head -n 1)
+          test -n "$dmg"
+          shasum -a 256 "$dmg" > SHA256SUMS-mac.txt
+
+      - name: Upload macOS disk image
+        uses: actions/upload-artifact@v4
+        with:
+          name: demand-planning-macos-${{ github.sha }}
+          path: |
+            release/*.dmg
+            release/SHA256SUMS-mac.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-desktop:
+    name: Publish desktop installers
+    if: github.ref == 'refs/heads/main'
+    needs: [validate-and-package, package-macos]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: demand-planning-*-${{ github.sha }}
+          path: installers
+          merge-multiple: true
+
+      # One rolling release with fixed file names, so the in-app download links never change.
+      - name: Update the desktop-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ls -la installers
+          notes="Latest desktop build from main (build ${GITHUB_RUN_NUMBER}, ${GITHUB_SHA::8}). Windows: Demand-Planning-Hub-Setup.exe. macOS: Demand-Planning-Hub-mac.dmg. Checksums in SHA256SUMS*.txt."
+          if gh release view desktop-latest --repo "$REPO" > /dev/null 2>&1; then
+            gh release edit desktop-latest --repo "$REPO" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
+          else
+            gh release create desktop-latest --repo "$REPO" --target "$GITHUB_SHA" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
+          fi
+          gh release upload desktop-latest installers/*.exe installers/*.dmg installers/SHA256SUMS*.txt --repo "$REPO" --clobber
+
   build-web-site:
     name: Build browser application
     if: github.ref == 'refs/heads/main'
