@@ -1,28 +1,28 @@
 import type { AzureWorkItem } from './domain'
 import { isMonthTask, timeWritingStoryIds } from './azureInsights.ts'
 
-// Baseline = estimation rules per stream, applied to each release's scope. A rule combines:
-//  - fixed hours by release type (e.g. DP: Major 40h, MLD 30h, PU 20h),
-//  - line items priced per unit, where units = base units + driver count × units per driver
-//    (e.g. CP documents: 2h × (14 + 11 × assets)),
-//  - an optional cap on the total.
-// A release's scope (type and driver counts) is kept as a dated history, so a re-baseline after items are
-// scoped in is visible as growth rather than overwriting the original estimate.
-export interface BaselineItem { label: string; hoursPerUnit: number; baseUnits: number; driver?: string; unitsPerDriver?: number }
-export interface BaselineRule { stream: string; types: Record<string, number>; items: BaselineItem[]; cap?: number }
-export interface ScopeEntry { at: string; type?: string; drivers: Record<string, number>; reason?: string }
+// Baseline = one estimation rule per stream, the same formula for every stream:
+//   hours per unit × (base units + units per driver × driver count), capped at an optional maximum
+// e.g. CP: 2h × (14 + 11 × assets), Serviceability: 2h × (0 + 1 × documents), max 60h.
+// A release's scope (its driver count) is kept as a dated history, so a re-baseline after items are scoped in is
+// visible as growth rather than overwriting the original estimate.
+export interface BaselineRule { stream: string; hoursPerUnit: number; baseUnits: number; driver: string; unitsPerDriver: number; cap?: number }
+export interface ScopeEntry { at: string; drivers: Record<string, number>; reason?: string }
 export interface ReleaseScope { release: string; stream: string; history: ScopeEntry[] }
 
-// Illustrative values from the planning conversation; replaced by the exact baseline when it is shared.
+// Illustrative values from the planning conversation; replaced by the exact baseline when it is shared. DP's values
+// are placeholders: its old rule used release types (Major/MLD/PU), which the uniform formula does not have.
 export const exampleBaselineRules: BaselineRule[] = [
-  { stream: 'DP', types: { Major: 40, Minor: 40, MLD: 30, PU: 20 }, items: [] },
-  { stream: 'Serviceability', types: {}, items: [{ label: 'Documents', hoursPerUnit: 2, baseUnits: 0, driver: 'documents', unitsPerDriver: 1 }], cap: 60 },
-  { stream: 'CP', types: {}, items: [{ label: 'Documents', hoursPerUnit: 2, baseUnits: 14, driver: 'assets', unitsPerDriver: 11 }] },
+  { stream: 'DP', hoursPerUnit: 2, baseUnits: 10, driver: 'documents', unitsPerDriver: 1 },
+  { stream: 'Serviceability', hoursPerUnit: 2, baseUnits: 0, driver: 'documents', unitsPerDriver: 1, cap: 60 },
+  { stream: 'CP', hoursPerUnit: 2, baseUnits: 14, driver: 'assets', unitsPerDriver: 11 },
 ]
 
 const finite = (value: unknown, min = 0) => { const number = Number(value); return Number.isFinite(number) && number >= min ? number : undefined }
 const text = (value: unknown) => typeof value === 'string' ? value.trim() : ''
 
+// Rules saved in the earlier shape ({ types, items[] }) are read as the uniform formula: the first line item is kept;
+// a rule that only had release types becomes 0h per document, so the editor asks for its formula.
 export function normalizeRules(value: unknown): BaselineRule[] {
   if (!Array.isArray(value)) return exampleBaselineRules
   const seen = new Set<string>()
@@ -32,18 +32,11 @@ export function normalizeRules(value: unknown): BaselineRule[] {
     const stream = text(input.stream)
     if (!stream || seen.has(stream.toLowerCase())) return []
     seen.add(stream.toLowerCase())
-    const types: Record<string, number> = {}
-    if (input.types && typeof input.types === 'object' && !Array.isArray(input.types)) for (const [name, hours] of Object.entries(input.types)) { const value = finite(hours); if (name.trim() && value != null) types[name.trim()] = value }
-    const items = (Array.isArray(input.items) ? input.items : []).flatMap((item): BaselineItem[] => {
-      if (!item || typeof item !== 'object') return []
-      const entry = item as Record<string, unknown>
-      const label = text(entry.label), hoursPerUnit = finite(entry.hoursPerUnit)
-      if (!label || hoursPerUnit == null) return []
-      const driver = text(entry.driver), unitsPerDriver = finite(entry.unitsPerDriver)
-      return [{ label, hoursPerUnit, baseUnits: finite(entry.baseUnits) ?? 0, ...(driver && unitsPerDriver != null ? { driver, unitsPerDriver } : {}) }]
-    })
+    const legacy = Array.isArray(input.items) ? input.items.find((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && finite((item as Record<string, unknown>).hoursPerUnit) != null) : undefined
+    const from = input.hoursPerUnit != null || !legacy ? input : legacy
+    const driver = text(from.driver)
     const cap = finite(input.cap)
-    return [{ stream, types, items, ...(cap ? { cap } : {}) }]
+    return [{ stream, hoursPerUnit: finite(from.hoursPerUnit) ?? 0, baseUnits: finite(from.baseUnits) ?? 0, driver: driver || 'documents', unitsPerDriver: driver ? finite(from.unitsPerDriver) ?? 0 : finite(from.unitsPerDriver) ?? 1, ...(cap ? { cap } : {}) }]
   })
 }
 
@@ -59,40 +52,28 @@ export function normalizeScopes(value: unknown): ReleaseScope[] {
       if (!Number.isFinite(Date.parse(text(entry.at)))) return []
       const drivers: Record<string, number> = {}
       if (entry.drivers && typeof entry.drivers === 'object' && !Array.isArray(entry.drivers)) for (const [name, count] of Object.entries(entry.drivers)) { const value = finite(count); if (name.trim() && value != null) drivers[name.trim()] = value }
-      return [{ at: text(entry.at), ...(text(entry.type) ? { type: text(entry.type) } : {}), drivers, ...(text(entry.reason) ? { reason: text(entry.reason) } : {}) }]
+      return [{ at: text(entry.at), drivers, ...(text(entry.reason) ? { reason: text(entry.reason) } : {}) }]
     }).sort((a, b) => a.at.localeCompare(b.at))
     return release && stream && history.length ? [{ release, stream, history }] : []
   })
 }
 
-// Driver names a rule asks for, in order of first use (e.g. ['assets'] for CP, ['documents'] for Serviceability).
-export function ruleDrivers(rule: BaselineRule) { return [...new Set(rule.items.flatMap((item) => item.driver ? [item.driver] : []))] }
-
-// Human-readable formula, e.g. "Documents: 2h × (14 + 11 × assets)".
+// Human-readable formula, e.g. "2h × (14 + 11 × assets) · max 60h".
 export function describeRule(rule: BaselineRule) {
-  const parts = [
-    ...(Object.keys(rule.types).length ? [`Type: ${Object.entries(rule.types).map(([name, hours]) => `${name} ${hours}h`).join(' · ')}`] : []),
-    ...rule.items.map((item) => {
-      const units = [item.baseUnits ? String(item.baseUnits) : '', item.driver ? `${item.unitsPerDriver === 1 ? '' : `${item.unitsPerDriver} × `}${item.driver}` : ''].filter(Boolean).join(' + ') || '0'
-      return `${item.label}: ${item.hoursPerUnit}h × ${units.includes('+') ? `(${units})` : units}`
-    }),
-    ...(rule.cap ? [`max ${rule.cap}h`] : []),
-  ]
-  return parts.join(' · ') || 'No rule lines yet'
+  const driverPart = rule.unitsPerDriver ? `${rule.unitsPerDriver === 1 ? '' : `${rule.unitsPerDriver} × `}${rule.driver}` : ''
+  const units = [rule.baseUnits ? String(rule.baseUnits) : '', driverPart].filter(Boolean).join(' + ') || '0'
+  return `${rule.hoursPerUnit}h × ${units.includes('+') ? `(${units})` : units}${rule.cap ? ` · max ${rule.cap}h` : ''}`
 }
 
-export interface BaselineResult { total: number; fixed: number; lines: { label: string; units: number; hours: number }[]; capped: boolean; uncapped: number; missing: string[] }
-export function baselineHours(rule: BaselineRule, scope: Pick<ScopeEntry, 'type' | 'drivers'>): BaselineResult {
-  const typed = Object.keys(rule.types).length > 0
-  const fixed = scope.type ? rule.types[scope.type] ?? 0 : 0
-  const missing = [...(typed && (!scope.type || !(scope.type in rule.types)) ? ['type'] : []), ...ruleDrivers(rule).filter((driver) => scope.drivers[driver] == null)]
-  const lines = rule.items.map((item) => {
-    const units = item.baseUnits + (item.driver ? (scope.drivers[item.driver] ?? 0) * (item.unitsPerDriver ?? 0) : 0)
-    return { label: item.label, units, hours: units * item.hoursPerUnit }
-  })
-  const uncapped = fixed + lines.reduce((sum, line) => sum + line.hours, 0)
+export interface BaselineResult { total: number; units: number; uncapped: number; capped: boolean; missing: string[] }
+export function baselineHours(rule: BaselineRule, scope: Pick<ScopeEntry, 'drivers'>): BaselineResult {
+  const needsDriver = rule.unitsPerDriver > 0
+  const count = scope.drivers[rule.driver]
+  const missing = needsDriver && count == null ? [rule.driver] : []
+  const units = rule.baseUnits + (needsDriver ? (count ?? 0) * rule.unitsPerDriver : 0)
+  const uncapped = units * rule.hoursPerUnit
   const capped = rule.cap != null && uncapped > rule.cap
-  return { total: capped ? rule.cap! : uncapped, fixed, lines, capped, uncapped, missing }
+  return { total: capped ? rule.cap! : uncapped, units, uncapped, capped, missing }
 }
 
 const sameStream = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()

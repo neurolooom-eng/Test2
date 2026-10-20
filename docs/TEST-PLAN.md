@@ -587,23 +587,26 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-BAS-02 Scope form** — Req BAS-05…07
 - Steps:
-  1. Open Set scope on a release whose rule has types.
-  2. Leave the type empty.
-  3. Fill it in and save.
+  1. Open Set scope on a CP release (driver: assets).
+  2. Leave the assets count empty.
+  3. Enter 10 and save.
   4. Re-baseline with the same values.
 - Expected:
-  - Step 2: save is disabled.
-  - Step 3: a version is added, and the audit shows "Baseline".
+  - Step 2: save is disabled, and no release type field is shown.
+  - Step 3: the form shows "2h × (14 + 11 × assets) = 124 units × 2h = 248h", a version is added, and the audit shows "Baseline".
   - Step 4: the BAS-07 warning shows, saving is allowed, and the audit shows "Re-baseline".
 
 **TC-BAS-03 Rules editor** — Req BAS-08…10
 - Steps:
-  1. Add a duplicate stream, a negative hours value and a line item without a label.
-  2. Save.
-  3. Press "Load example values".
+  1. Check that every stream row has the same fields (hours per unit, fixed units per release, driver, units per driver, maximum).
+  2. Add a duplicate stream and a negative hours value, and set DP's hours per unit to 0.
+  3. Save.
+  4. Press "Load example values".
 - Expected:
-  - Step 2: the invalid entries are dropped, the audit shows "Update"/"BaselineRules", and "Estimation rules saved." shows.
-  - Step 3: the draft changes, but nothing is saved until "Save rules".
+  - Step 2: a warning names DP as having no hours per unit.
+  - Step 3: the duplicate stream is dropped and the negative value becomes 0, the audit shows "Update"/"BaselineRules", and "Estimation rules saved." shows.
+  - Step 4: the draft changes, but nothing is saved until "Save rules".
+  - A rule saved earlier with release types (old DP) reads as 0h per document after the upgrade (L1 `baseline.test.mjs`).
 
 **TC-BAS-04 Task plan check** — Req BAS-11
 
