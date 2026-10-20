@@ -168,3 +168,14 @@ test('desktop download: fixed links to the rolling release, OS detection', () =>
   assert.equal(detectOs('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5)'), 'mac')
   assert.equal(detectOs('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)'), 'other')
 })
+
+import { backlogViews } from '../src/backlogViews.ts'
+test('Backlog tabs: active Time Writing backlog first, then read-only views in saved order', () => {
+  const profiles = [
+    { id: 'tw1', reason: 'Old TW', role: 'time-tracking' }, { id: 'dp', reason: 'Digital Platform', role: 'backlog-view' },
+    { id: 'tw2', reason: 'QMS-0025', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view' },
+  ]
+  assert.deepEqual(backlogViews(profiles, 'tw2'), [{ id: 'tw2', name: 'QMS-0025', readOnly: false }, { id: 'dp', name: 'Digital Platform', readOnly: true }, { id: 'cp', name: 'Clinical Platform', readOnly: true }])
+  assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
+  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'Backlog', readOnly: false }])
+})

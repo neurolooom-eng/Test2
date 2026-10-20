@@ -5,7 +5,8 @@ import { createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMont
 import { Modal } from './ui'
 import { BacklogTable } from './BacklogTable'
 
-export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat }: { items: AzureWorkItem[]; config: AzureConfig; onCreated: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void }) {
+// readOnly: a backlog view from another connection — no Feature creation or child completion, nothing written to Azure.
+export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat, readOnly = false, title: heading, tabs }: { items: AzureWorkItem[]; config: AzureConfig; onCreated?: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void; readOnly?: boolean; title?: string; tabs?: React.ReactNode }) {
   const [state, setState] = useState<string[]>(['New', 'Active'])
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -84,12 +85,12 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
       const fresh = [...currentIterationPairs(choices), ...futureIterationPairs(choices)]
       if (!fresh.some((pair) => pair.pi.path === iterationPath && pair.sprint.path === sprintPath)) throw new Error('The selected PI/Sprint is no longer current. Reload the schedule and review it before creating. No write was attempted.')
       const bundle = resumeFeature ? await completeReleaseHierarchy(config, token, resumeFeature.id, releaseKind, milestones, monthLabel, undefined, sprintPath) : await createAzureReleaseHierarchy(config, token, feature, releaseKind, milestones, monthLabel)
-      onCreated(parent ? [parent, ...bundle.items] : bundle.items)
+      onCreated?.(parent ? [parent, ...bundle.items] : bundle.items)
       setResult(bundle.feature); setResultText(`Hierarchy complete: ${milestones.length} milestone stories, Time Writing story and ${monthLabel} task verified.`); setParent(null); setResumeFeature(null); setExpanded((current) => new Set([...current, bundle.feature.key, ...bundle.items.filter((item) => item.workItemType === 'User Story').map((item) => item.key), ...(parent ? [parent.key] : [])]))
     } catch (failure) {
       const detail = failure instanceof Error ? failure.message : 'Unable to create the hierarchy.'
       if (failure instanceof HierarchyCreationError && failure.createdItems.length) {
-        onCreated(parent ? [parent, ...failure.createdItems] : failure.createdItems)
+        onCreated?.(parent ? [parent, ...failure.createdItems] : failure.createdItems)
         setPartialError(detail); setParent(null); setResumeFeature(null)
       } else setError(detail)
     }
@@ -97,12 +98,12 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
   }
 
   return <>
-    <div className="panel-heading backlog-heading"><div><h2>{config.team || config.project}</h2><p className="muted">{epics.length} Epics · {scoped.length} work items · Epic → Feature → User Story → Task</p></div><button className="primary" disabled={!epics.length} onClick={() => openEditor(epics[0])}>＋ New Feature</button></div>
+    <div className="panel-heading backlog-heading"><div><h2>{heading ?? (config.team || config.project)}</h2><p className="muted">{epics.length} Epics · {scoped.length} work items · Epic → Feature → User Story → Task</p></div>{readOnly ? <span className="pill">Read only</span> : <button className="primary" disabled={!epics.length} onClick={() => openEditor(epics[0])}>＋ New Feature</button>}</div>
     <div className="tree-controls"><div className="button-row" role="group" aria-label="Work item states (multi-select)">{[...states, 'All'].map((value) => <button key={value} className={state.includes(value) ? 'primary' : 'ghost'} aria-pressed={state.includes(value)} onClick={() => setState((current) => value === 'All' ? ['All'] : current.includes(value) ? current.filter((item) => item !== value && item !== 'All') : [...current.filter((item) => item !== 'All'), value])}>{value}</button>)}</div><input aria-label="Search work-item tree" placeholder="Search ID, title, type or assignee" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="ghost" onClick={() => { setExpandAll(!expandAll); setExpanded(new Set()) }}>{expandAll ? 'Collapse all' : 'Expand all'}</button></div>
     <p className="muted tree-help">Select multiple states. Default: New + Active. Matching children retain their ancestors as context, even when the parent has another state. All Epics remain available in the New Feature selector.</p>
     {result && <div className="notice success" role="status"><a href={result.url} target="_blank" rel="noreferrer">Feature #{result.id}: {result.title}</a> — {resultText}</div>}
     {partialError && <div className="notice error" role="alert">{partialError}</div>}
-    <BacklogTable key={`${config.organization}/${config.project}/${config.team}`} scope={`${config.organization}/${config.project}/${config.team}`} tree={tree} expanded={expanded} expandAll={expandAll} searching={filtering} onToggle={toggle} onExpand={(value) => { setExpandAll(value); setExpanded(new Set()) }} onNewFeature={openEditor} onComplete={openResume} />
+    <BacklogTable key={`${config.organization}/${config.project}/${config.team}`} scope={`${config.organization}/${config.project}/${config.team}`} tree={tree} expanded={expanded} expandAll={expandAll} searching={filtering} onToggle={toggle} onExpand={(value) => { setExpandAll(value); setExpanded(new Set()) }} onNewFeature={readOnly ? undefined : openEditor} onComplete={readOnly ? undefined : openResume} tabs={tabs} />
     {(parent || resumeFeature) && <Modal title={resumeFeature ? 'Complete Feature children' : 'Add Feature under an Epic'} eyebrow="AZURE DEVOPS WRITE" onClose={closeEditor}><form onSubmit={create}>
       <p className="muted">{resumeFeature ? 'Completes missing children without recreating the Feature.' : `Creates one real Feature and its selected children in ${config.organization} / ${config.project}.`} Review the hierarchy below. Project validation runs before each save.</p>
       {parent && <label>Parent Epic<select disabled={creating} value={parent.key} onChange={(event) => setParent(epics.find((item) => item.key === event.target.value) ?? null)}>{epics.map((epic) => <option value={epic.key} key={epic.key}>#{epic.id} · {epic.title} ({epic.state})</option>)}</select></label>}
