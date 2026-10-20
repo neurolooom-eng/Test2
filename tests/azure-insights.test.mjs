@@ -20,9 +20,9 @@ test('Task fields remain the sole monthly source when User Story fields are blan
   assert.equal(data.trend.at(-1).actual.value, 0)
   assert.equal(data.plan.count, 1); assert.equal(data.plan.total, 1)
 })
-test('only Time Writing child Tasks contribute monthly trend; excludes Removed and unrelated tasks', () => {
-  const data = azureInsights([item(1), item(2, { state: 'Removed', originalEstimate: 1000 }), item(3, { title: 'October 2026 | Other', workItemType: 'Task', parentId: 77, completedWork: 99 }), item(4, { title: 'No month', workItemType: 'Task', parentId: 1, completedWork: 30 })], '2026-10', '2026-10-17')
-  assert.equal(data.timeWritingStories.length, 1); assert.equal(data.trend.at(-1).actual.value, null); assert.equal(data.unmappedTasks, 1)
+test('month-named Tasks contribute monthly trend under any parent; excludes Removed and tasks without a month', () => {
+  const data = azureInsights([item(1), item(2, { state: 'Removed', originalEstimate: 1000 }), item(3, { title: 'October 2026 | Other', workItemType: 'Task', parentId: 77, completedWork: 99 }), item(4, { title: 'No month', workItemType: 'Task', parentId: 1, completedWork: 30 }), item(5, { title: 'Unrelated', workItemType: 'Task', parentId: 78, completedWork: 7 })], '2026-10', '2026-10-17')
+  assert.equal(data.timeWritingStories.length, 1); assert.equal(data.trend.at(-1).actual.value, 99); assert.equal(data.unmappedTasks, 1)
   assert.equal(timeWritingMonth('october 2026 | Release'), '2026-10')
   assert.equal(timeWritingMonth('Release October 2026'), undefined)
 })

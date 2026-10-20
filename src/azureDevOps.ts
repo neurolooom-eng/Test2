@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { planMonthStory, timeWritingMonth } from './azureInsights.ts'
 
 // baseUrl is the organization (https://dev.azure.com/<org>) or, on premises, the Azure DevOps Server collection
 // (e.g. https://tfs.example.com/tfs/DefaultCollection). Omitted means Azure DevOps Services for organization.
@@ -294,7 +295,6 @@ export async function createAzureFeature(config: AzureConfig, pat: string, featu
 }
 
 const validHours = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1_000_000
-const monthNamedTask = (title: string) => /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}\s*\|/i.test(title.trim())
 
 /** Updates only the two Azure scheduling fields on a selected-month Task. */
 export async function updateAzureTimeWritingEffort(config: AzureConfig, pat: string, workItemId: number, planHours: number | undefined, actualHours: number | undefined, markAdhoc = false, transport: AzureTransport = requestAzure): Promise<AzureWorkItem> {
@@ -302,12 +302,8 @@ export async function updateAzureTimeWritingEffort(config: AzureConfig, pat: str
   if (!Number.isSafeInteger(workItemId) || workItemId < 1 || (planHours == null && actualHours == null) || (planHours != null && !validHours(planHours)) || (actualHours != null && !validHours(actualHours))) throw new Error('Original Estimate and Completed Work must be numbers from 0 to 1,000,000 hours.')
   const source = await transport({ ...config, pat, operation: 'items', ids: [workItemId] }) as { value?: RawItem[] }
   const raw = source.value?.find((item) => item.id === workItemId)
-  const parentId = raw && (typeof raw.fields['System.Parent'] === 'number' ? raw.fields['System.Parent'] : parentFromRelation(raw))
-  if (!raw || raw.fields['System.WorkItemType'] !== 'Task' || !monthNamedTask(String(raw.fields['System.Title'] ?? ''))) throw new Error('Only a month-named Time Writing Task can be updated from Monthly effort.')
-  if (!parentId) throw new Error('The monthly Task has no parent Time Writing User Story.')
-  const parentSource = await transport({ ...config, pat, operation: 'items', ids: [parentId] }) as { value?: RawItem[] }
-  const parent = parentSource.value?.find((item) => item.id === parentId)
-  if (!parent || parent.fields['System.WorkItemType'] !== 'User Story' || !/-\s*Time Writ(?:ing|ting)\s*$/i.test(String(parent.fields['System.Title'] ?? ''))) throw new Error('The Task parent is not a Time Writing User Story.')
+  // Only a Task whose title starts with a month and year (any delimiter, any parent story name) can be edited here.
+  if (!raw || raw.fields['System.WorkItemType'] !== 'Task' || !timeWritingMonth(String(raw.fields['System.Title'] ?? ''))) throw new Error('Only a month-named Time Writing Task can be updated from Monthly effort.')
   const existingTags = typeof raw.fields['System.Tags'] === 'string' ? raw.fields['System.Tags'] : ''
   const tags = markAdhoc && !existingTags.split(';').some(tag => tag.trim().toLowerCase() === 'ad-hoc') ? [...existingTags.split(';').map(tag => tag.trim()).filter(Boolean), 'ad-hoc'].join('; ') : undefined
   const response = await transport({ ...config, pat, operation: 'update-time-writing-effort', workItemId, planHours, actualHours, tags }) as RawItem
@@ -410,12 +406,17 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   const feature = mapAzureWorkItem(raw, config)
   const storyTitle = `${feature.title.trim()} - Time Writing`, taskTitle = `${monthLabel} | ${feature.title.trim()}`
   if (taskTitle.length > 255 || storyTitle.length > 255) throw new Error(`#${feature.id}: the Feature title is too long for an automatic child title.`)
-  const stories = (await directChildren(config, pat, feature.id, transport)).filter((item) => item.workItemType === 'User Story' && item.title.trim().toLowerCase() === storyTitle.toLowerCase() && item.state.toLowerCase() !== 'removed')
-  if (stories.length > 1) throw new Error(`#${feature.id} has ${stories.length} "${storyTitle}" stories. Merge them in Azure DevOps first.`)
-  let story = stories[0], storyCreated = false
-  if (!story) { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, feature.iterationPath, undefined, transport); storyCreated = true }
-  const mine = (await directChildren(config, pat, story.id, transport)).filter((item) => item.workItemType === 'Task' && item.title.trim().toLowerCase() === taskTitle.toLowerCase() && item.state.toLowerCase() !== 'removed' && item.assignedToEmail === email)
-  if (mine.length) return { status: 'exists', task: mine[0], story, storyCreated }
+  // Every story under the Feature and its Tasks are re-read now, so a month Task of mine with any title or delimiter,
+  // under any story, is found and reused rather than duplicated.
+  const children = await directChildren(config, pat, feature.id, transport)
+  const stories = []
+  for (const story of children.filter((item) => item.workItemType === 'User Story' && item.state.toLowerCase() !== 'removed')) stories.push({ story, tasks: await directChildren(config, pat, story.id, transport) })
+  const plan = planMonthStory(stories, children.filter((item) => item.workItemType === 'Task'), timeWritingMonth(monthLabel) ?? '', storyTitle, (item) => item.assignedToEmail === email)
+  if (plan.status === 'exists') return { status: 'exists', task: plan.task, story: plan.story ?? feature, storyCreated: false }
+  if (plan.status === 'conflict') throw new Error(`#${feature.id} has ${plan.stories.length} possible Time Writing stories (${plan.stories.map((item) => `#${item.id}`).join(', ')}). Add your month Task under the right one in Azure DevOps.`)
+  let story: AzureWorkItem, storyCreated = false
+  if (plan.status === 'use') story = plan.story
+  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, feature.iterationPath, undefined, transport); storyCreated = true }
   const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport)
   return { status: 'created', task, story, storyCreated }
 }

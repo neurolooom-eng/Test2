@@ -1,9 +1,9 @@
 import type { AzureWorkItem } from './domain'
-import { isTimeWritingStory, timeWritingMonth, workingDays } from './azureInsights.ts'
+import { isMonthTask, timeWritingMonth, workingDays } from './azureInsights.ts'
 import { isMine, type Me } from './myWork.ts'
 
-// Capacity model for the selected month. Source rows are the Time Writing Tasks named
-// "<Month> <Year> | …" under "… - Time Writing" User Stories; absence is everything under the
+// Capacity model for the selected month. Source rows are the Tasks whose title starts with the month and year
+// ("October 2026 | …", any delimiter), under any story; absence is everything under the
 // configured absence Epic, where each person has a Feature for PTO / Sick Leave / Unplanned Leave.
 export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; profiles?: Record<string, ResourceProfile> }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80 }
@@ -92,8 +92,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     while (current && !seen.has(current.id)) { chain.push(current); seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) }
     return chain
   }
-  const storyIds = new Set(items.filter(item => isTimeWritingStory(item)).map(item => item.id))
-  const monthlyTasks = items.filter(item => item.workItemType === 'Task' && item.parentId != null && storyIds.has(item.parentId) && timeWritingMonth(item.title) === month)
+  const monthlyTasks = items.filter(item => isMonthTask(item) && timeWritingMonth(item.title) === month)
   const funded = workingDays(month) * settings.hoursPerDay
   const people = new Map<string, PersonLoad & { streamMap: Map<string, StreamLoad> }>()
   const streams = new Map<string, StreamSummary & { names: Set<string>; featureKeys: Set<string> }>()
@@ -173,8 +172,7 @@ export function problemBreakdown(source: AzureWorkItem[], months: string[], sett
   const monthSet = new Set(months)
   const items = [...new Map(source.filter((item) => item.state.trim().toLowerCase() !== 'removed').map((item) => [item.key, item])).values()]
   const byId = new Map(items.map((item) => [item.id, item]))
-  const storyIds = new Set(items.filter((item) => isTimeWritingStory(item)).map((item) => item.id))
-  const tasks = items.filter((item) => item.workItemType === 'Task' && item.parentId != null && storyIds.has(item.parentId) && monthSet.has(timeWritingMonth(item.title) ?? ''))
+  const tasks = items.filter((item) => isMonthTask(item) && monthSet.has(timeWritingMonth(item.title) ?? ''))
   const chainOf = (item: AzureWorkItem) => {
     const chain: AzureWorkItem[] = []; const seen = new Set<number>([item.id]); let current = item.parentId == null ? undefined : byId.get(item.parentId)
     while (current && !seen.has(current.id)) { chain.push(current); seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) }
