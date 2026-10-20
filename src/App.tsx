@@ -49,12 +49,9 @@ export default function App() {
   const views = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId, store.state.timeWritingViewName)
   const [viewId, setViewId] = useState(loadBacklogTab)
   const view = views.find((entry) => entry.id === viewId) ?? views[0]
-  const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setDraftView(undefined); setPage('board') }
-  // Azure DevOps connections live at the top of Settings; a view that is not set up opens its pre-filled form there.
-  const [draftView, setDraftView] = useState<string>()
-  const go = (next: Page) => { setDraftView(undefined); setPage(next) }
-  const openConnection = () => go('admin')
-  const setUpView = (name: string) => { setDraftView(name); setPage('admin') }
+  const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setPage('board') }
+  // Azure DevOps connections live at the top of Settings.
+  const openConnection = () => setPage('admin')
   const pageProps = { store, month, setMonth }
   const buildStatus = <BuildStatus pending={store.hasPendingSave} failed={store.ready && (store.cache.status === 'error' || (store.connection.mode === 'sharepoint' && ['error', 'conflict'].includes(store.connection.status)))} busy={azure.busy} preview={Boolean(azure.preview)} onBackup={store.ready ? () => exportStateJson({ ...store.state, azureWorkItems: mergeAzureWorkItems(store.state.azureWorkItems ?? [], azure.preview?.items ?? []), ...(azure.preview ? { azureBacklogScope: azure.preview.scope } : {}) }) : undefined} />
   const storageTone = store.connection.mode === 'sharepoint' ? 'open' : store.cache.status === 'error' || store.connection.status === 'error' || store.connection.status === 'conflict' ? 'danger' : 'neutral'
@@ -65,7 +62,7 @@ export default function App() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">DP</div><div><strong>Demand Planning</strong><span>Quality Engineering</span></div></div>
-      <nav aria-label="Primary navigation">{pageGroups.map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? views.map((entry) => <button key={entry.id} className={page === 'board' && view.id === entry.id ? 'nav-active' : ''} aria-current={page === 'board' && view.id === entry.id ? 'page' : undefined} onClick={() => openView(entry.id)}><span className="nav-icon">{item.icon}</span>{entry.name}{entry.readOnly && !entry.configured && <span className="nav-hint">set up</span>}</button>) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => go(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
+      <nav aria-label="Primary navigation">{pageGroups.map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? views.map((entry) => <button key={entry.id} className={page === 'board' && view.id === entry.id ? 'nav-active' : ''} aria-current={page === 'board' && view.id === entry.id ? 'page' : undefined} onClick={() => openView(entry.id)}><span className="nav-icon">{item.icon}</span>{entry.name}</button>) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
       <div className="sidebar-footer"><DesktopDownload />{buildStatus}</div>
     </aside>
     <main>
@@ -78,9 +75,9 @@ export default function App() {
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenConnection={openConnection} onOpenSettings={() => setPage('admin')} />}
       {page === 'releases' && <ReleasesPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
-      {page === 'board' && <BoardPage azure={azure} store={store} views={views} current={view} onSelect={openView} onOpenConnection={openConnection} onSetUpView={setUpView} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} views={views} current={view} onSelect={openView} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => go('board')} draftView={draftView} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
     </main>
   </div>
 }

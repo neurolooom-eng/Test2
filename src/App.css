@@ -237,6 +237,4 @@ input,select,textarea{border-radius:var(--radius-sm);transition:border-color .15
 /* Dialogs sit above every page layer, including the sticky sidebar, top bar and the update notice. */
 .modal-backdrop{z-index:1000}
 body:has(.modal-backdrop){overflow:hidden}
-/* Sidebar: a view that has no connection yet. */
-.nav-hint{margin-left:auto;white-space:nowrap;font-size:10px;color:var(--sidebar-muted);border:1px solid var(--sidebar-line);border-radius:999px;padding:1px 7px}
 .view-name-form{grid-template-columns:minmax(220px,360px) auto!important;align-items:end;justify-content:start}

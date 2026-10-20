@@ -9,14 +9,13 @@ import type { BacklogView } from '../backlogViews'
 import type { AzureConfig } from '../azureDevOps'
 import type { PageProps } from './types'
 
-// One page for all Azure DevOps views (listed in the sidebar and as tabs): QMS-0025 is the Time Writing backlog,
-// the others are read-only backlog-view connections or, until connected, a prompt to set them up.
-export function BoardPage({ azure, store, views, current, onSelect, onOpenConnection, onSetUpView }: { azure: AzureWorkspace; store: PageProps['store']; views: BacklogView[]; current: BacklogView; onSelect: (id: string) => void; onOpenConnection: () => void; onSetUpView: (name: string) => void }) {
+// One page for all configured Azure DevOps views (listed in the sidebar and as tabs): the Time Writing backlog
+// (QMS-0025) and the read-only backlog-view connections.
+export function BoardPage({ azure, store, views, current, onSelect, onOpenConnection }: { azure: AzureWorkspace; store: PageProps['store']; views: BacklogView[]; current: BacklogView; onSelect: (id: string) => void; onOpenConnection: () => void }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
   const choose = onSelect
-  const tabs = <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{!view.configured ? <small> · not set up</small> : view.readOnly && <small> · read only</small>}</button>)}</div>
-  if (!current.configured && current.readOnly) return <Page className="backlog-page"><Panel className="connection-panel backlog-panel"><div className="backlog-toolbar">{tabs}</div><EmptyState title={`“${current.name}” is not set up yet.`} detail="Add its Azure DevOps connection: server URL (on-prem) or organization, project, PAT, and a team or a query. It is shown here read only and is not counted in Overview, Monthly Time Writing or My work." /><div className="button-row"><button className="primary" onClick={() => onSetUpView(current.name)}>Set up {current.name}</button></div></Panel></Page>
+  const tabs = views.length > 1 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
   if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))

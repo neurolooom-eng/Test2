@@ -13,7 +13,7 @@ import type { PageProps } from './types'
 const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
 const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`))
 
-export function AdminPage({ store, month, azure, git, onOpenBoard, draftView }: PageProps & { azure: AzureWorkspace; git: GitStorage; onOpenBoard: () => void; draftView?: string }) {
+export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; onOpenBoard: () => void }) {
   const [reason, setReason] = useState('Approved operational extension')
   const [capacityMessage, setCapacityMessage] = useState('')
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
@@ -92,7 +92,7 @@ export function AdminPage({ store, month, azure, git, onOpenBoard, draftView }: 
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   return <Page>
     <nav className="settings-nav" aria-label="Settings sections">{[['settings-connections', 'Azure DevOps'], ['settings-storage', 'Storage'], ['settings-capacity', 'Capacity & periods'], ['settings-resources', 'Resources'], ['settings-masters', 'Master data'], ['settings-audit', 'Audit']].map(([id, label]) => <button key={id} type="button" className="ghost" onClick={() => jump(id)}>{label}</button>)}</nav>
-    <AzureConnections key={draftView ?? ''} azure={azure} store={store} onOpenBoard={onOpenBoard} draftView={draftView} />
+    <AzureConnections azure={azure} store={store} onOpenBoard={onOpenBoard} />
     <div id="settings-storage" className="settings-anchor" />
     <GitStoragePanel git={git} />
     <Panel className="connection-panel" eyebrow="CENTRAL DATA" title="SharePoint connection" detail="Uses Microsoft sign-in and stores one versioned JSON data file in the I&D Quality document library. No client secret is stored in the browser." action={<Pill tone={store.connection.mode === 'sharepoint' ? 'open' : connectionFailed ? 'danger' : 'neutral'}>{store.connection.status}</Pill>}>

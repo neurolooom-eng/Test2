@@ -170,23 +170,14 @@ test('desktop download: fixed links to the rolling release, OS detection', () =>
 })
 
 import { backlogViews } from '../src/backlogViews.ts'
-test('Azure DevOps views: QMS-0025 first, the four standard views always listed, matched to connections by name', () => {
+test('Azure DevOps views: QMS-0025 first, then only configured backlog views in saved order', () => {
   const profiles = [
-    { id: 'tw1', reason: 'Old TW', role: 'time-tracking' }, { id: 'cp', reason: 'clinical platform', role: 'backlog-view' },
-    { id: 'tw2', reason: 'Time Writing', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'x', reason: 'Extra view', role: 'backlog-view' },
+    { id: 'tw1', reason: 'Old TW', role: 'time-tracking' }, { id: 'dp', reason: 'Digital Platform', role: 'backlog-view' },
+    { id: 'tw2', reason: 'Time Writing', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view' },
   ]
-  const views = backlogViews(profiles, 'tw2')
-  assert.deepEqual(views.map((view) => [view.id, view.name, view.readOnly, view.configured]), [
-    ['tw2', 'QMS-0025', false, true],
-    ['setup:Digital Platform', 'Digital Platform', true, false],
-    ['cp', 'Clinical Platform', true, true],
-    ['setup:Serviceability', 'Serviceability', true, false],
-    ['setup:IOCC', 'IOCC', true, false],
-    ['x', 'Extra view', true, true],
-  ])
+  assert.deepEqual(backlogViews(profiles, 'tw2'), [{ id: 'tw2', name: 'QMS-0025', readOnly: false }, { id: 'dp', name: 'Digital Platform', readOnly: true }, { id: 'cp', name: 'Clinical Platform', readOnly: true }])
   assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
   assert.equal(backlogViews(profiles, 'tw2', 'My Backlog')[0].name, 'My Backlog', 'the Time Writing view can be renamed in Settings')
   assert.equal(backlogViews(profiles, 'tw2', '  ')[0].name, 'QMS-0025')
-  const empty = backlogViews([], '')
-  assert.equal(empty.length, 5); assert.deepEqual(empty[0], { id: 'time-writing', name: 'QMS-0025', readOnly: false, configured: false })
+  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false }], 'unconfigured views are not listed')
 })
