@@ -7,15 +7,18 @@ export interface QueryColumn { ref: string; name: string }
 export interface QueryOrder { ref: string; desc: boolean }
 export const defaultViewColumns = ['System.Id', 'System.WorkItemType', 'System.Title', 'System.State', 'System.AssignedTo', 'System.IterationPath']
 
-const refsIn = (text: string) => [...text.matchAll(/\[([^\]]+)\]/g)].map((match) => match[1].trim()).filter(Boolean)
+// Field references in a SELECT or ORDER BY list, with or without square brackets: "[System.Id], System.Title".
+const fieldRef = /^\[?\s*([A-Za-z_][\w]*(?:\.[\w]+)*)\s*\]?$/
+const splitList = (text: string) => text.split(',').map((part) => part.trim()).filter(Boolean)
+const refOf = (part: string) => fieldRef.exec(part.replace(/\s+(ASC|DESC)$/i, '').trim())?.[1]
 
 export function queryLayout(wiql?: string): { columns: string[]; orderBy: QueryOrder[] } {
-  const text = (wiql ?? '').replace(/\s+/g, ' ').trim()
+  const text = (wiql ?? '').replace(/^\uFEFF/, '').replace(/\s+/g, ' ').trim()
   const select = /^SELECT\s+(.+?)\s+FROM\s+WorkItems\b/i.exec(text)?.[1] ?? ''
-  const selected = [...new Set(refsIn(select))]
+  const selected = [...new Set(splitList(select).map(refOf).filter((ref): ref is string => Boolean(ref)))]
   const columns = selected.length > 1 || (selected.length === 1 && selected[0] !== 'System.Id') ? selected : defaultViewColumns
   const order = /\sORDER\s+BY\s+(.+)$/i.exec(text)?.[1] ?? ''
-  const orderBy = order.split(',').flatMap((part) => { const ref = refsIn(part)[0]; return ref ? [{ ref, desc: /\bDESC\b/i.test(part) }] : [] })
+  const orderBy = splitList(order).flatMap((part) => { const ref = refOf(part); return ref ? [{ ref, desc: /\bDESC$/i.test(part) }] : [] })
   return { columns, orderBy }
 }
 
