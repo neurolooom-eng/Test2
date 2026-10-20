@@ -257,3 +257,10 @@ body:has(.modal-backdrop){overflow:hidden}
 .data-notices{max-width:1500px;margin:0 auto}
 .content{padding-top:20px}
 .data-notices .notice:last-child{margin-bottom:0}
+/* Overview tabs: This month / Trends. */
+.overview-tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin:4px 0 18px}
+.overview-tabs .backlog-tab{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;padding:10px 2px}
+.overview-tabs .backlog-tab-active{border-bottom-color:var(--accent);color:var(--text);font-weight:600}
+.how-calculated{margin-top:18px}
+.how-calculated summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:10px}
+.overview-stack{display:grid;gap:18px;margin-bottom:18px}
