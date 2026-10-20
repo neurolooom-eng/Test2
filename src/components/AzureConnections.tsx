@@ -10,7 +10,7 @@ import type { PageProps } from '../pages/types'
 
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
 const roleUse: Record<AzureConnectionRole, string> = {
-  'time-tracking': 'Feeds the Overview, Monthly Time Writing and Baselines. Without a query the team’s Epic backlog is read; with a query its results plus their parents are read. One Time Writing connection is active at a time.',
+  'time-tracking': 'Feeds the Overview, Monthly Time Writing and Baselines. Without a query the team’s Epic backlog is read; with a query its results plus their parents are read. Refreshed data is saved automatically. One Time Writing connection is active at a time.',
   'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
   documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
   reference: 'Any other read-only data: fetched and listed with its count.',
@@ -57,7 +57,7 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   return <section id="settings-connections" className="settings-section">
     <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open Backlogs →</button></div>
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
-    <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Time Writing previews before saving; release, document and reference connections are saved as soon as they are fetched. Nothing is written to Azure DevOps when fetching."
+    <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
         <div><strong>{preset.name}</strong><small>{preset.serverUrl ? `${preset.serverUrl.replace('https://', '')}/${preset.organization}` : `dev.azure.com/${preset.organization}`} · {preset.project}{preset.team ? ` · team ${preset.team}` : ''}</small></div>

@@ -83,9 +83,9 @@ export function useAzureWorkspace(store: PageProps['store']) {
         else saveAzurePat(parsed, pat)
       } catch { tokenWarning = ' PAT could not be saved in this browser; the current-session token was used for fetching.' }
       const result = await fetchAzureWorkItems({ ...parsed, team: parsed.team || team.trim() }, pat)
-      setPreview(result)
+      const kept = autoSave(result)
       setLastRefreshed(new Date().toISOString())
-      setMessage(`${result.items.length} work items fetched from ${result.scope.team}'s Epic backlog only. Saving replaces the previous Azure cache with this scope.${tokenWarning}`)
+      setMessage(`${kept || `${result.items.length} work items fetched from ${result.scope.team}'s Epic backlog and saved.`}${tokenWarning}`)
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to fetch Azure DevOps data.') }
     finally { fetching.current = false; setBusy(false) }
   }
@@ -230,8 +230,8 @@ export function useAzureWorkspace(store: PageProps['store']) {
             const asOf = new Date().toISOString(), areaPaths = [...new Set(items.map((item) => item.areaPath))].sort()
             result = { items, areaPaths, asOf, scope: { organization: parsed.organization, project: parsed.project, team: parsed.team, itemKeys: items.map((item) => item.key), areaPaths, fetchedAt: asOf } }
           } else result = await fetchAzureWorkItems(parsed, profile.token)
-          setPreview(result); setLastRefreshed(new Date().toISOString())
-          done = `${result.items.length} work items — review and save the preview`
+          const kept = autoSave(result); setLastRefreshed(new Date().toISOString())
+          done = kept || `${result.items.length} work items fetched and saved`
         } finally { fetching.current = false; setBusy(false) }
       } else if (role === 'release-source') {
         const snapshot = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
@@ -291,20 +291,36 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const targets = connectionProfiles.filter((profile) => profile.role !== 'time-tracking' || profile.id === (activeConnectionProfileId || connectionProfiles.find((entry) => entry.role === 'time-tracking')?.id))
     let ok = 0
     for (const profile of targets) if (await fetchConnection(profile.id)) ok += 1
-    setMessage(`${ok} of ${targets.length} connection${targets.length === 1 ? '' : 's'} fetched.${targets.some((profile) => profile.role === 'time-tracking') ? ' Review and save the Time Writing preview.' : ''}`)
+    setMessage(`${ok} of ${targets.length} connection${targets.length === 1 ? '' : 's'} fetched and saved.`)
+  }
+
+  // Writes a fetched Time Writing result to the app cache, replacing the previous Azure cache for that scope.
+  function storeFetched(result: AzureFetchResult, how: string) {
+    store.update((draft) => {
+      draft.azureWorkItems = mergeAzureWorkItems([], result.items)
+      draft.azureBacklogScope = structuredClone(result.scope)
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Sync', entity: 'AzureDevOps', entityId: 'work-items', detail: `${how}: replaced Azure cache with ${result.items.length} records from ${result.scope.team || result.scope.project}. Other app data and Azure source records were not changed.` })
+      return draft
+    })
+    setPreview(null)
+  }
+
+  // Refreshed data is saved straight away. Only an empty result never replaces saved work items silently: it is
+  // shown as a preview to save or discard, so a wrong team or query cannot wipe the cache.
+  function autoSave(result: AzureFetchResult) {
+    if (!result.items.length && (store.state.azureWorkItems?.length ?? 0)) {
+      setPreview(result)
+      return 'Azure returned no work items, so the saved data was kept. Check the team or query; save the empty preview only if that is expected.'
+    }
+    storeFetched(result, 'Refresh (saved automatically)')
+    return ''
   }
 
   function savePreview() {
     if (!preview) return
     if (!sameAzureScope(preview.scope, config)) { setError('The source changed after fetching. Refresh the selected backlog before saving.'); return }
-    const incoming = preview.items
-    store.update((draft) => {
-      draft.azureWorkItems = mergeAzureWorkItems([], incoming)
-      draft.azureBacklogScope = structuredClone(preview.scope)
-      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Sync', entity: 'AzureDevOps', entityId: 'work-items', detail: `Replaced Azure cache with ${incoming.length} records from ${preview.scope.team}'s Epic backlog hierarchy only. Other app data and Azure source records were not changed.` })
-      return draft
-    })
-    setPreview(null); setMessage(`${incoming.length} team-backlog records loaded into the app cache. Check browser save status for persistence. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
+    storeFetched(preview, 'Saved preview')
+    setMessage(`${preview.items.length} team-backlog records saved. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
   return { projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
