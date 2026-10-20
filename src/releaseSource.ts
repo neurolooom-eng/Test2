@@ -9,7 +9,7 @@ import { isMonthTask, timeWritingStoryIds } from './azureInsights.ts'
 export interface ReleaseSourceSettings { approvalDateField?: string }
 export const defaultReleaseSourceSettings: ReleaseSourceSettings = {}
 export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
-export interface ReleaseEntry { key: string; name: string; release: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; planned: number; booked: number; hourTasks: number; approvalDate?: string; approvalMonth?: string }
+export interface ReleaseEntry { key: string; name: string; release: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; features: AzureWorkItem[]; planned: number; booked: number; hourTasks: number; approvalDate?: string; approvalMonth?: string }
 
 type Transport = (request: AzureRequest) => Promise<unknown>
 
@@ -133,7 +133,7 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
     const found = releaseOf(item)
     if (!found) continue
     const key = `${found.name}\u0000${found.release}`.toLowerCase()
-    const entry = entries.get(key) ?? { key: `${found.name} ${found.release}`, name: found.name, release: found.release, documents: 0, items: [], tracked: false, trackedBy: [], planned: 0, booked: 0, hourTasks: 0 }
+    const entry = entries.get(key) ?? { key: `${found.name} ${found.release}`, name: found.name, release: found.release, documents: 0, items: [], tracked: false, trackedBy: [], features: [], planned: 0, booked: 0, hourTasks: 0 }
     entry.documents += 1; entry.items.push(item)
     if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate) }
     entries.set(key, entry)
@@ -147,10 +147,12 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
   const hours = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0
   return [...entries.values()].map((entry) => {
     const trackedBy = live.filter((item) => ['Feature', 'User Story', 'Task'].includes(item.workItemType) && names(item.title, entry))
-    const features = new Set(trackedBy.map(featureOf).filter((feature): feature is AzureWorkItem => Boolean(feature)).map((feature) => feature.id))
+    // The Features tracking the release: those naming it, and the Features above stories or tasks that name it.
+    const tracking = [...new Map(trackedBy.map(featureOf).filter((feature): feature is AzureWorkItem => Boolean(feature)).map((feature) => [feature.id, feature])).values()].sort((a, b) => a.id - b.id)
+    const features = new Set(tracking.map((feature) => feature.id))
     const tasks = new Map(timeWritingTasks.filter((task) => features.has(featureOf(task)?.id ?? -1) || trackedBy.some((item) => item.id === task.id)).map((task) => [task.id, task]))
     const planned = [...tasks.values()].reduce((sum, task) => sum + hours(task.originalEstimate), 0)
     const booked = [...tasks.values()].reduce((sum, task) => sum + hours(task.completedWork), 0)
-    return { ...entry, tracked: trackedBy.length > 0, trackedBy, planned, booked, hourTasks: tasks.size }
+    return { ...entry, tracked: trackedBy.length > 0, trackedBy, features: tracking, planned, booked, hourTasks: tasks.size }
   }).sort((a, b) => a.name.localeCompare(b.name) || b.release.localeCompare(a.release, undefined, { numeric: true }))
 }
