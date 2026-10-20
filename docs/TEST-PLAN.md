@@ -536,7 +536,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Open Overview, Monthly and Assigned to Me.
 - Expected: that Task appears on none of them.
 
-**TC-QV-05 Releases and Name/Release columns** — Req QV-12…15 — L1 `release-source.test.mjs`, `query-view.test.mjs`.
+**TC-QV-05 Releases and Name/Release columns** — Req QV-12…15 — L1 `release-source.test.mjs` (incl. planned/booked hours per release: month Tasks only, Removed excluded, no double counting), `query-view.test.mjs`.
 - L3 steps:
   1. Open the release-source view (TD-01).
   2. Open another read-only view whose items have "…\Name\Release x.y.z" in their Area or Iteration Path.

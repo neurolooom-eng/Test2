@@ -79,3 +79,19 @@ test('completed releases are those approved in the selected month', () => {
   assert.deepEqual(completedReleases(register, '2026-09').map((release) => release.release), ['3.1'])
   assert.equal(register.find((release) => release.name === 'Clinical Library').approvalMonth, undefined)
 })
+
+test('planned and booked hours per release come from the Time Writing Tasks under the tracking Features, each counted once', () => {
+  const source = [doc(1, 'DHFI\\DoseNav\\Release 2.1'), doc(2, 'DHFI\\Viewer\\Release 1.0')]
+  const backlog = [
+    doc(100, 'X', { workItemType: 'Feature', title: 'DP | DoseNav | v2.1' }),
+    doc(110, 'X', { workItemType: 'User Story', title: 'DP | DoseNav | v2.1 - Time Writing', parentId: 100 }),
+    doc(111, 'X', { workItemType: 'Task', title: 'September 2026 | DoseNav 2.1', parentId: 110, originalEstimate: 10, completedWork: 8 }),
+    doc(112, 'X', { workItemType: 'Task', title: 'October 2026 | DoseNav 2.1', parentId: 110, originalEstimate: 6, completedWork: 9 }),
+    doc(113, 'X', { workItemType: 'Task', title: 'Review comments', parentId: 100, originalEstimate: 50, completedWork: 50 }),
+    doc(114, 'X', { workItemType: 'Task', title: 'November 2026 | DoseNav 2.1', parentId: 110, originalEstimate: 4, completedWork: -1, state: 'Removed' }),
+  ]
+  const register = releaseRegister(source, backlog)
+  const r21 = register.find((entry) => entry.release === '2.1')
+  assert.deepEqual([r21.planned, r21.booked, r21.hourTasks], [16, 17, 2], 'two month tasks; not the plain task, not the removed one; the tracking Task 111 is not counted twice')
+  assert.deepEqual([register.find((entry) => entry.name === 'Viewer').hourTasks, register.find((entry) => entry.name === 'Viewer').planned], [0, 0])
+})
