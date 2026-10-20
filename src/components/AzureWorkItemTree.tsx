@@ -6,7 +6,7 @@ import { Modal } from './ui'
 import { BacklogTable } from './BacklogTable'
 
 // readOnly: a backlog view from another connection — no Feature creation or child completion, nothing written to Azure.
-export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat, readOnly = false, title: heading, tabs }: { items: AzureWorkItem[]; config: AzureConfig; onCreated?: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void; readOnly?: boolean; title?: string; tabs?: React.ReactNode }) {
+export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat, readOnly = false, tabs }: { items: AzureWorkItem[]; config: AzureConfig; onCreated?: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void; readOnly?: boolean; tabs?: React.ReactNode }) {
   const [state, setState] = useState<string[]>(['New', 'Active'])
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -98,7 +98,7 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
   }
 
   return <>
-    <div className="panel-heading backlog-heading"><div><h2>{heading ?? (config.team || config.project)}</h2><p className="muted">{epics.length} Epics · {scoped.length} work items · Epic → Feature → User Story → Task</p></div>{readOnly ? <span className="pill">Read only</span> : <button className="primary" disabled={!epics.length} onClick={() => openEditor(epics[0])}>＋ New Feature</button>}</div>
+    <div className="panel-heading backlog-heading"><div><p className="muted">{epics.length} Epics · {scoped.length} work items · Epic → Feature → User Story → Task</p></div>{readOnly ? <span className="pill">Read only</span> : <button className="primary" disabled={!epics.length} onClick={() => openEditor(epics[0])}>＋ New Feature</button>}</div>
     <div className="tree-controls"><div className="button-row" role="group" aria-label="Work item states (multi-select)">{[...states, 'All'].map((value) => <button key={value} className={state.includes(value) ? 'primary' : 'ghost'} aria-pressed={state.includes(value)} onClick={() => setState((current) => value === 'All' ? ['All'] : current.includes(value) ? current.filter((item) => item !== value && item !== 'All') : [...current.filter((item) => item !== 'All'), value])}>{value}</button>)}</div><input aria-label="Search work-item tree" placeholder="Search ID, title, type or assignee" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="ghost" onClick={() => { setExpandAll(!expandAll); setExpanded(new Set()) }}>{expandAll ? 'Collapse all' : 'Expand all'}</button></div>
     <p className="muted tree-help">Select multiple states. Default: New + Active. Matching children retain their ancestors as context, even when the parent has another state. All Epics remain available in the New Feature selector.</p>
     {result && <div className="notice success" role="status"><a href={result.url} target="_blank" rel="noreferrer">Feature #{result.id}: {result.title}</a> — {resultText}</div>}

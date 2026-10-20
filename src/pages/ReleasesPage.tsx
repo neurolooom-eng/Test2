@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel } from '../components/ui'
-import { AzureSourceBar } from '../components/AzureSourceBar'
 import { azureInsights, indiaMonth } from '../azureInsights'
 import { completedReleases, normalizeReleaseSourceSettings, releaseRegister } from '../releaseSource'
 import { formatDate, formatDateTime, monthName, todayIso } from '../format'
@@ -10,7 +9,7 @@ import type { PageProps } from './types'
 
 const milestones: ReleaseMilestone[] = ['PRD', 'SFV', 'DT', 'PR', 'Design Review']
 
-export function ReleasesPage({ azure, month, store, onOpenConnection }: { azure: AzureWorkspace; month: string; store: PageProps['store']; onOpenConnection: () => void }) {
+export function ReleasesPage({ azure, month, store }: { azure: AzureWorkspace; month: string; store: PageProps['store'] }) {
   const [today] = useState(todayIso)
   const data = azureInsights(azure.items, month, today)
   const features = data.features.filter(item => indiaMonth(item.closedDate) === month || item.targetDate?.startsWith(month))
@@ -22,7 +21,6 @@ export function ReleasesPage({ azure, month, store, onOpenConnection }: { azure:
   const untracked = register.reduce((sum, stream) => sum + stream.releases.filter((release) => !release.tracked).length, 0)
   const plans = store.state.releasePlans ?? []
   return <Page>
-    <AzureSourceBar azure={azure} onOpenConnection={onOpenConnection} />
     <Metrics>
       <Metric label="Completed releases" value={source ? completed.length : '—'} hint={source ? `Author Approval Date in ${monthName(month)}` : 'Fetch the release source under Azure DevOps'} tone={completed.length ? 'positive' : undefined} />
       <Metric label="Approved releases" value={source ? releaseCount : '—'} hint={source ? `${register.length} stream${register.length === 1 ? '' : 's'} · ${untracked} without Time Writing items` : 'All releases in the read-only source'} tone={untracked ? 'negative' : undefined} />

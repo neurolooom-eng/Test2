@@ -3,10 +3,10 @@ import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel, type Tone }
 import { HoursTrendChart } from '../components/HoursTrendChart'
 import { DonutChart, EpicBulletChart, EpicMixChart, ParetoChart, UtilizationChart, UtilizationHeatmap } from '../components/WorkloadCharts'
 import { epicColors, shortFeatureTitle } from '../chartUtils'
-import { AzureSourceBar } from '../components/AzureSourceBar'
+import { ScopeSwitch } from '../components/ScopeSwitch'
+import { usePersonScope } from '../usePersonScope'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
-import type { Me } from '../myWork'
 import { capacityContext, capacityModel, itemsForPerson, monthlyHours, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
 import { formatHours, formatPercent, monthName } from '../format'
 import type { Page as PageId } from './registry'
@@ -20,18 +20,11 @@ function LevelToggle({ value, onChange }: { value: Level; onChange: (value: Leve
   return <div className="viz-range" role="group" aria-label="Group by">{(['feature', 'epic'] as const).map((level) => <button key={level} type="button" className={value === level ? 'primary' : 'ghost'} aria-pressed={value === level} onClick={() => onChange(level)}>By {level === 'feature' ? 'Feature' : 'Epic'}</button>)}</div>
 }
 
-type View = 'team' | 'individual'
-const viewKey = 'demand-planning-overview-view-v1'
-
-export function DashboardPage({ month, azure, navigate, store, setMonth, my, backlogName = 'Backlog' }: { backlogName?: string; month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
+export function DashboardPage({ month, azure, navigate, store, setMonth, my }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
   const settings = capacityContext(store.state)
-  const [view, setViewState] = useState<View>(() => { try { return localStorage.getItem(viewKey) === 'individual' ? 'individual' : 'team' } catch { return 'team' } })
-  const [person, setPerson] = useState('')
-  const setView = (next: View) => { setViewState(next); try { localStorage.setItem(viewKey, next) } catch { /* convenience only */ } }
-  const scope: Me | null = view === 'individual' ? (person ? { name: person } : my.known ? my.me : null) : null
-  const individual = view === 'individual'
+  const personScope = usePersonScope('demand-planning-overview-view-v1', 'team', my)
+  const { scope, individual, who } = personScope
   const items = scope ? itemsForPerson(azure.items, scope, settings) : individual ? [] : azure.items
-  const who = scope ? scope.name ?? scope.email ?? 'Me' : 'Team'
   const profileLine = (name: string) => [settings.profiles?.[name]?.role, settings.profiles?.[name]?.region].filter(Boolean).join(' · ')
   const model = capacityModel(items, month, settings)
   const [span, setSpan] = useState<6 | 12>(12)
@@ -48,13 +41,7 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my, bac
   const otherStreams = model.streams.slice(maxMatrixStreams)
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
   return <Page>
-    <AzureSourceBar azure={azure} onOpenConnection={() => navigate('admin')}><button className="ghost" onClick={() => navigate('board')}>Open {backlogName}</button></AzureSourceBar>
-    <div className="view-switch" role="group" aria-label="Overview for">
-      <span>Overview for</span>
-      {(['team', 'individual'] as const).map((value) => <button key={value} type="button" className={view === value ? 'primary' : 'ghost'} aria-pressed={view === value} onClick={() => setView(value)}>{value === 'team' ? 'Team' : 'Individual'}</button>)}
-      {individual && <select aria-label="Person" value={person} onChange={(event) => setPerson(event.target.value)}><option value="">{my.known ? `Me (${my.me.name ?? my.me.email})` : 'Choose a person…'}</option>{my.people.map((name) => <option key={name}>{name}</option>)}</select>}
-      {individual && <small>Only this person’s Tasks; regional holidays still apply by region.</small>}
-    </div>
+    <ScopeSwitch scope={personScope} label="Overview for" note="Only this person’s Tasks; regional holidays still apply by region." />
     {individual && !scope ? <EmptyState title="Choose whose overview to show." detail="Pick a person above, or set your Azure email on the Time Writing connection to make “Me” the default." /> : <>
     <Metrics>
       <Metric label={individual ? `${who} · utilization` : 'Team utilization'} value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.work)}h booked of ${formatHours(model.totals.available)}h available`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { EmptyState, Notice, Panel, Pill, type Tone } from './ui'
-import { AzureSourceBar } from './AzureSourceBar'
 import { formatDateTime } from '../format'
 import { defaultShowInMenu, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
@@ -15,14 +14,14 @@ const roleUse: Record<AzureConnectionRole, string> = {
   'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
   documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
   reference: 'Any other read-only data: fetched and listed with its count.',
-  'backlog-view': 'Shown as its own view in the Azure DevOps menu (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or My work.',
+  'backlog-view': 'Shown as its own view in the Azure DevOps menu (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or Assigned to Me.',
 }
 const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery, 'backlog-view': 'Optional. Leave empty to read the team Epic backlog.' }
 const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', viewName: '', showInMenu: defaultShowInMenu(role), role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 // Azure DevOps connection setup, shown as the first section of Settings.
 export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
-  const { connectionProfiles, connectionStatus, activeConnectionProfileId, preview, busy } = azure
+  const { connectionProfiles, connectionStatus, activeConnectionProfileId, busy } = azure
   const [form, setForm] = useState<ConnectionInput | null>(null)
   const [formError, setFormError] = useState('')
   const [fetchingAll, setFetchingAll] = useState(false)
@@ -60,7 +59,6 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
 
   return <section id="settings-connections" className="settings-section">
     <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open {timeWritingView(connectionProfiles, activeConnectionProfileId).name} →</button></div>
-    <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>

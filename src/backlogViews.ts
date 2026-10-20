@@ -17,7 +17,8 @@ export function timeWritingView(profiles: ViewProfile[], activeId: string): Back
 export function backlogViews(profiles: ViewProfile[], activeId: string): BacklogView[] {
   const timeWriting = activeTimeWriting(profiles, activeId)
   return [
-    ...(timeWriting && showsInMenu(timeWriting) ? [timeWritingView(profiles, activeId)] : []),
+    // Without any Time Writing connection (sample data, first start) the backlog is still listed, as "Backlog".
+    ...(!timeWriting || showsInMenu(timeWriting) ? [timeWritingView(profiles, activeId)] : []),
     ...profiles.filter((profile) => profile.role !== 'time-tracking' && showsInMenu(profile)).map((profile) => ({ id: profile.id, name: viewNameOf(profile), readOnly: true, role: profile.role })),
   ]
 }
