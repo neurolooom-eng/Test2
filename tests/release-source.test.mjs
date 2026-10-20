@@ -112,3 +112,20 @@ test('ADS month filter: approval date (India time), else any approval-date field
   assert.equal(viewMonthOf({ changedDate: '2026-10-05T00:00:00Z' }), '2026-10')
   assert.equal(viewMonthOf({}), undefined)
 })
+
+import { tracksRelease, releaseFeatureTitle } from '../src/releaseSource.ts'
+test('tracking is an exact match of name and release segments in a Feature title', () => {
+  assert.equal(tracksRelease('DP | Dose Planning | v1.1.0.1', 'Dose Planning', '1.1.0.1'), true)
+  assert.equal(tracksRelease('DP | Dose Planning | v1.1.0.1', 'Dose Planning', '1.1.0.2'), false)
+  assert.equal(tracksRelease('DP | Dose Planning | Release 1.1.0.2', 'Dose Planning', '1.1.0.2'), true)
+  assert.equal(tracksRelease('DP | Dose Planning | v1.1.0', 'Dose Planning', '1.1.0.1'), false)
+  assert.equal(tracksRelease('DP | Dose Planning Lite | v1.1.0.1', 'Dose Planning', '1.1.0.1'), false, 'the name must be a whole segment')
+  assert.equal(tracksRelease(releaseFeatureTitle('DP', 'Dose Planning', '1.1.0.2'), 'Dose Planning', '1.1.0.2'), true, 'a Feature the app creates maps back')
+  const source = [doc(1, 'DHFI\\Dose Planning\\Release 1.1.0.1'), doc(2, 'DHFI\\Dose Planning\\Release 1.1.0.2')]
+  const backlog = [
+    doc(100, 'X', { workItemType: 'Feature', title: 'DP | Dose Planning | v1.1.0.1' }),
+    doc(101, 'X', { workItemType: 'User Story', title: 'Dose Planning 1.1.0.2 - Time Writing', parentId: 100 }),
+  ]
+  const register = releaseRegister(source, backlog)
+  assert.deepEqual(register.map((entry) => [entry.release, entry.features.map((feature) => feature.id)]), [['1.1.0.2', []], ['1.1.0.1', [100]]], 'a story naming 1.1.0.2 under the 1.1.0.1 Feature no longer maps 1.1.0.2 to it')
+})
