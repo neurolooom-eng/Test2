@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { useAppStore } from './store'
-import { forgetGitStorage, GitConflictError, historyUrl, loadGitConfig, loadGitToken, planningData, readPlanningFile, saveGitConfig, saveGitToken, serializePlanning, validateGitConfig, writePlanningFile, type GitConfig } from './gitStorage'
+import { forgetGitStorage, GitConflictError, historyUrl, loadGitConfig, loadGitToken, planningData, readPlanningFile, readTextFile, saveGitConfig, saveGitToken, serializePlanning, siblingConfig, validateGitConfig, writePlanningFile, writeTextFile, type GitConfig } from './gitStorage'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
 
@@ -62,11 +62,25 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     }
   }
 
+  // The Azure DevOps views file (next to the data file): read the current version, then commit the new text.
+  const viewsConfig = config ? siblingConfig(config, 'azure-views.json') : null
+  async function readViews() {
+    if (!viewsConfig || !token) throw new Error('Connect Git storage first.')
+    return readTextFile(viewsConfig, token)
+  }
+  async function writeViews(text: string, commitMessage: string) {
+    if (!viewsConfig || !token) throw new Error('Connect Git storage first.')
+    if (isSample) throw new Error('Synthetic sample data is loaded. Saving to Git is disabled.')
+    const current = await readTextFile(viewsConfig, token)
+    if (current.text === text) return { changed: false, commitUrl: historyUrl(viewsConfig) }
+    return { changed: true, ...(await writeTextFile(viewsConfig, token, text, current.sha, commitMessage)) }
+  }
+
   function disconnect() {
     try { forgetGitStorage() } catch { /* nothing stored */ }
     setConfig(null); setToken(''); setSynced(null); setStatus('off'); setMessage('Git storage disconnected in this browser. The data stays in the app and in the repository.'); sha.current = null
   }
 
-  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect }
+  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews }
 }
 export type GitStorage = ReturnType<typeof useGitStorage>

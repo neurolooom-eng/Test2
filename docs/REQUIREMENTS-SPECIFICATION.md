@@ -177,6 +177,10 @@ Stakeholders:
 | CON-18 | The app shall store connections and their PATs only in localStorage key `demand-planning-azure-connection-profiles-v1`, never in the app state. | I, T | M | UC-02 |
 | CON-19 | The app shall mark a connection with a base URL as "On-prem" in the connection table. | D | C | UC-02 |
 | CON-20 | "Clone" shall open the connection form as a new connection with every setting of the chosen one (name and view name suffixed "(copy)"). Saving it without a PAT shall use the chosen connection's saved PAT. The chosen connection shall not change. | T | S | UC-02 |
+| CON-21 | Settings shall have a "Windchill host" section: host (https only, no user name or password; a pasted page address is reduced to its origin), service path (under /Windchill/, default /Windchill/servlet/odata), login (Windows single sign-on), object type, search parameters and columns to return. It shall be saved in this browser only, with no password stored. | T | S | UC-02 |
+| CON-22 | In the desktop app, "Test connection" shall make one read-only GET to the saved host's service path, offering Windows single sign-on to that host only, and report: connected with the listed service names, sign-on refused (401/403), redirected to a sign-in page (3xx), another status, not JSON, or not reachable. In the web version the test shall be disabled with a note that it runs in the desktop app. | T | S | UC-02 |
+| CON-23 | Settings → "Views in Git" shall save every Azure DevOps connection (ID, name, view name, role, shown in menu, project URL, on-prem server, API version, creator email, query) — never a PAT — as azure-views.json in the Git data repository, next to the planning data file, as one commit with a description; an unchanged file shall not be committed again. Saving shall be disabled with sample data. | T | S | UC-02 |
+| CON-24 | "Restore from Git" shall, after confirmation, add or overwrite the connections in the file by ID and leave other connections unchanged. A restored connection shall keep the PAT it already has in this browser, else use the PAT entered for the restore, else the PAT of a saved connection to the same organisation or on-prem server; connections with no PAT shall be listed as not restored. | T | S | UC-02 |
 
 ### 3.3 Fetching and saving Azure DevOps data (FET) — UC-03
 
@@ -300,6 +304,7 @@ Stakeholders:
 | QV-14 | The documents shall be shown as a query view (QV-03 to QV-10). |  D | M | UC-08 |
 | QV-15 | When any item of a read-only view has a release in its paths (QV-13), the view shall show the columns Name and Release after the ID. The QMS-0025 Time Writing backlog shall not use this. | T | S | UC-08 |
 | QV-16 | Every read-only Azure DevOps view (not QMS-0025) shall show the header month picker and, by default, only the items whose month (India time) is the selected month: the Author Approval Date (configured field, else any approval-date field), else the Changed Date. On a release-source view this filters both the Releases list and the documents; planned and booked hours stay all-months. An "All months" checkbox shall turn the filter off, and a month with no items shall say so and give the total. | T | M | UC-08 |
+| QV-17 | Every read-only connection, release sources included, shall keep its own fetched snapshot (by connection ID), so each view shows only the results of its own query. A release snapshot saved before this (one shared snapshot) shall be shown only for the connection whose query it was fetched with, or when there is one release source, and shall be dropped at the next release-source fetch. | T | M | UC-08 |
 
 ### 3.9 Overview (OVR) — UC-09, UC-10
 

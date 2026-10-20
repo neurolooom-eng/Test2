@@ -6,6 +6,7 @@ import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
 import { timeWritingView } from '../backlogViews'
+import { viewSource } from '../viewSources'
 import type { PageProps } from '../pages/types'
 
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
@@ -28,7 +29,6 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   const [dismissed, setDismissed] = useState(loadDismissedPresets)
   const presets = pendingPresets(connectionProfiles, dismissed)
   const sources = store.state.azureSources ?? []
-  const releaseSource = store.state.releaseSource
 
   const formFrom = (profile: AzureConnectionProfileSummary): ConnectionInput => {
     const parts = splitAzureUrl(profile.url, profile.baseUrl)
@@ -52,10 +52,9 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
     void azure.fetchConnection(id)
   }
   const lastFetch = (profile: AzureConnectionProfileSummary) => {
-    if (profile.role === 'release-source') return releaseSource ? `${releaseSource.items.length} documents · ${formatDateTime(releaseSource.fetchedAt)}` : ''
     if (profile.role === 'time-tracking') return profile.id === activeConnectionProfileId && azure.saved.length ? `${azure.saved.length} saved work items` : ''
-    const source = sources.find((entry) => entry.connectionId === profile.id)
-    return source ? `${source.items.length} work items · ${formatDateTime(source.fetchedAt)}` : ''
+    const source = viewSource(store.state, profile.id, profile.role, profile.query, azure.connectionProfiles.filter((entry) => entry.role === 'release-source').length)
+    return source ? `${source.items.length} ${profile.role === 'release-source' ? 'documents' : 'work items'} · ${formatDateTime(source.fetchedAt)}` : ''
   }
   const statusTone = (profile: AzureConnectionProfileSummary): [Tone, string] => {
     const status = connectionStatus[profile.id]
