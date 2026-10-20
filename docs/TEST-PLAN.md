@@ -540,7 +540,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Open Overview, Monthly and Assigned to Me.
 - Expected: that Task appears on none of them.
 
-**TC-QV-05 Releases, Name/Release columns and month filter** — Req QV-12…16 — month: `viewMonthOf` (approval date in India time, else approval-date field, else Changed Date); browser check: picker shown on read-only views and not on QMS-0025, “All months” shows every item — L1 `release-source.test.mjs` (incl. planned/booked hours per release: month Tasks only, Removed excluded, no double counting), `query-view.test.mjs`.
+**TC-QV-05 Releases, Name/Release columns and month filter** — Req QV-12…17 — per-view snapshots: `view-sources.test.mjs`; month: `viewMonthOf` (approval date in India time, else approval-date field, else Changed Date); browser check: picker shown on read-only views and not on QMS-0025, “All months” shows every item — L1 `release-source.test.mjs` (incl. planned/booked hours per release: month Tasks only, Removed excluded, no double counting), `query-view.test.mjs`.
 - L3 steps:
   1. Open the release-source view (TD-01).
   2. Open another read-only view whose items have "…\Name\Release x.y.z" in their Area or Iteration Path.
@@ -927,7 +927,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-04 | TC-FET-07 |
 | QV-06…10 | TC-QV-03 |
 | QV-11 | TC-QV-04 |
-| QV-12…16 | TC-QV-05 |
+| QV-12…17 | TC-QV-05 |
 | OVR-01…04 | TC-OVR-01 |
 | OVR-05 | TC-OVR-02 |
 | OVR-06…08 | TC-OVR-03 |

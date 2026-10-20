@@ -251,8 +251,10 @@ export function useAzureWorkspace(store: PageProps['store']) {
         const layout = await viewLayout(parsed, profile.token, query || defaultReleaseQuery)
         const fetched = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings), refsOf(layout))
         const snapshot = { ...fetched, ...layout }
+        // Each release source keeps its own snapshot; the old shared one is dropped so it is never shown for another view.
         store.update((draft) => {
-          draft.releaseSource = snapshot
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: 'release-source', ...snapshot }]
+          delete draft.releaseSource
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from “${profile.reason}”` })
           return draft
         })

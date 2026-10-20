@@ -5,6 +5,8 @@ import { QueryView } from '../components/QueryView'
 import { ReleaseView } from '../components/ReleaseView'
 import { formatDate, formatDateTime, monthName } from '../format'
 import { viewMonthOf } from '../releaseSource'
+import { viewSource } from '../viewSources'
+import { listAzureConnectionProfiles } from '../azureCredentials'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
 import { loadAzureConnectionProfile } from '../azureCredentials'
 import type { BacklogView } from '../backlogViews'
@@ -38,10 +40,10 @@ export function BoardPage({ azure, store, current, month, onOpenConnection }: { 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
 function ReadOnlyView({ id, name, role, azure, store, month, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; onOpenConnection: () => void }) {
   const [allMonths, setAllMonths] = useState(false)
-  // Release sources keep one snapshot; backlog views, documents and reference data are stored per connection.
-  const source = role === 'release-source' ? store.state.releaseSource : (store.state.azureSources ?? []).find((entry) => entry.connectionId === id)
+  // Every connection's fetch is stored on its own (by connection ID).
   const status = azure.connectionStatus[id]
   const profile = loadAzureConnectionProfile(id)
+  const source = viewSource(store.state, id, role, profile?.query, listAzureConnectionProfiles().filter((entry) => entry.role === 'release-source').length)
   let config: AzureConfig | null = null
   try { config = profile ? connectionConfig(profile) : null } catch { config = null }
   const busy = status?.state === 'busy'

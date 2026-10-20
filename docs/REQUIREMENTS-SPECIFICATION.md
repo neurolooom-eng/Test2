@@ -304,6 +304,7 @@ Stakeholders:
 | QV-14 | The documents shall be shown as a query view (QV-03 to QV-10). |  D | M | UC-08 |
 | QV-15 | When any item of a read-only view has a release in its paths (QV-13), the view shall show the columns Name and Release after the ID. The QMS-0025 Time Writing backlog shall not use this. | T | S | UC-08 |
 | QV-16 | Every read-only Azure DevOps view (not QMS-0025) shall show the header month picker and, by default, only the items whose month (India time) is the selected month: the Author Approval Date (configured field, else any approval-date field), else the Changed Date. On a release-source view this filters both the Releases list and the documents; planned and booked hours stay all-months. An "All months" checkbox shall turn the filter off, and a month with no items shall say so and give the total. | T | M | UC-08 |
+| QV-17 | Every read-only connection, release sources included, shall keep its own fetched snapshot (by connection ID), so each view shows only the results of its own query. A release snapshot saved before this (one shared snapshot) shall be shown only for the connection whose query it was fetched with, or when there is one release source, and shall be dropped at the next release-source fetch. | T | M | UC-08 |
 
 ### 3.9 Overview (OVR) — UC-09, UC-10
 
