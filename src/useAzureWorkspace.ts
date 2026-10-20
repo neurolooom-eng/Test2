@@ -1,17 +1,29 @@
 import { useRef, useState } from 'react'
-import { fetchAzureWorkItems, isCloudBase, mergeAzureWorkItems, parseAzureProjectUrl, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
+import { fetchAzureWorkItems, isCloudBase, mapAzureWorkItem, mergeAzureWorkItems, parseAzureProjectUrl, readFieldNames, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, collectionUrlFrom, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
 import { defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, releaseQueryWhere, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
+import { columnName, pickFields, queryLayout } from './queryView'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
 const defaultConfig = parseAzureProjectUrl(defaultUrl)
 // A saved connection as an Azure config: its project URL read against its own base URL (cloud or on-prem collection).
 export function connectionConfig(profile: Pick<AzureConnectionProfile, 'url' | 'baseUrl' | 'apiVersion'>): AzureConfig {
   return { ...parseAzureProjectUrl(profile.url, profile.baseUrl), ...(profile.apiVersion ? { apiVersion: profile.apiVersion } : {}) }
+}
+
+// Query views keep the query's selected columns (named as Azure DevOps names them) and its sort order.
+async function viewLayout(config: AzureConfig, pat: string, query: string) {
+  const { columns, orderBy } = queryLayout(query)
+  const names = await readFieldNames(config, pat)
+  return { columns: columns.map((ref) => ({ ref, name: columnName(ref, names) })), orderBy }
+}
+const withQueryFields = (config: AzureConfig, query: string) => {
+  const { columns } = queryLayout(query)
+  return (item: { id: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }) => ({ ...mapAzureWorkItem(item, config), fields: pickFields(item.fields, columns) })
 }
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
@@ -234,7 +246,8 @@ export function useAzureWorkspace(store: PageProps['store']) {
           done = kept || `${result.items.length} work items fetched and saved`
         } finally { fetching.current = false; setBusy(false) }
       } else if (role === 'release-source') {
-        const snapshot = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
+        const fetched = await fetchReleaseSource(parsed, profile.token, query || defaultReleaseQuery, undefined, normalizeReleaseSourceSettings(store.state.releaseSourceSettings))
+        const snapshot = { ...fetched, ...await viewLayout(parsed, profile.token, query || defaultReleaseQuery) }
         store.update((draft) => {
           draft.releaseSource = snapshot
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: snapshot.fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'ReleaseSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${snapshot.items.length} release documents fetched read-only from “${profile.reason}”` })
@@ -242,20 +255,22 @@ export function useAzureWorkspace(store: PageProps['store']) {
         })
         done = `${snapshot.items.length} release documents saved`
       } else if (role === 'backlog-view') {
-        // Read-only backlog view: the query's results plus their parents up to the Epic, or the team's Epic backlog.
-        const items = query ? (await withAncestors(parsed, profile.token, await runWorkItemQuery(parsed, profile.token, query))).filter((item) => item.state.trim().toLowerCase() !== 'removed') : (await fetchAzureWorkItems(parsed, profile.token)).items
+        // Read-only backlog view: the query's results with its selected columns, or the team's Epic backlog.
+        const layout = await viewLayout(parsed, profile.token, query)
+        const items = query ? await runWorkItemQuery(parsed, profile.token, query, undefined, withQueryFields(parsed, query)) : (await fetchAzureWorkItems(parsed, profile.token)).items
         const fetchedAt = new Date().toISOString()
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items, ...layout }]
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only for backlog view “${profile.reason}”` })
           return draft
         })
         done = `${items.length} work items saved`
       } else {
-        const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery)
+        const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery, undefined, withQueryFields(parsed, query || projectQuery))
+        const layout = await viewLayout(parsed, profile.token, query || projectQuery)
         const fetchedAt = new Date().toISOString()
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' : 'reference', organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' : 'reference', organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items, ...layout }]
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only from “${profile.reason}”` })
           return draft
         })

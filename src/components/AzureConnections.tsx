@@ -11,7 +11,7 @@ import type { PageProps } from '../pages/types'
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
 const roleUse: Record<AzureConnectionRole, string> = {
   'time-tracking': 'Feeds the Overview, Monthly Time Writing and Baselines. Without a query the team’s Epic backlog is read; with a query its results plus their parents are read. Refreshed data is saved automatically. One Time Writing connection is active at a time.',
-  'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
+  'release-source': 'Approved documents whose Area Path carries the release identifier; can be shown in the Azure DevOps menu as a read-only view.',
   documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
   reference: 'Any other read-only data: fetched and listed with its count.',
   'backlog-view': 'Shown as its own view in the Azure DevOps menu (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or Assigned to Me.',

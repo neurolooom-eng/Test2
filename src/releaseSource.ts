@@ -1,11 +1,12 @@
 import type { AzureWorkItem } from './domain'
 import { mapAzureWorkItem, requestAzure, type AzureConfig, type AzureRequest } from './azureDevOps.ts'
+import { pickFields, queryLayout } from './queryView.ts'
 
 // Read-only release source: a second Azure project (e.g. DHFI) queried with a saved WIQL query.
 // Approved documents carry the release identifier in their Area Path; streams group those releases.
 export interface ReleaseSourceSettings { streamSegment: number; releasePattern?: string; approvalDateField?: string }
 export const defaultReleaseSourceSettings: ReleaseSourceSettings = { streamSegment: 1 }
-export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
+export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
 export interface ReleaseEntry { id: string; name: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; approvalDate?: string; approvalMonth?: string }
 export interface StreamReleases { stream: string; releases: ReleaseEntry[]; summary: string }
 
@@ -99,7 +100,8 @@ export async function withAncestors(config: AzureConfig, pat: string, items: Azu
 export async function fetchReleaseSource(config: AzureConfig, pat: string, wiql: string, transport: Transport = requestAzure, settings: ReleaseSourceSettings = defaultReleaseSourceSettings): Promise<ReleaseSourceSnapshot> {
   if (!config.organization || !config.project) throw new Error('Select a release-source configuration with an organization and project.')
   if (!pat.trim()) throw new Error('The release-source configuration needs a Work Items (Read) PAT.')
-  const items = await runWorkItemQuery(config, pat, wiql, transport, (item) => { const mapped = mapAzureWorkItem(item, config); const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped })
+  const { columns } = queryLayout(wiql)
+  const items = await runWorkItemQuery(config, pat, wiql, transport, (item) => { const mapped = { ...mapAzureWorkItem(item, config), fields: pickFields(item.fields, columns) }; const approvalDate = approvalDateFrom(item.fields, settings); return approvalDate ? { ...mapped, approvalDate } : mapped })
   return { organization: config.organization, project: config.project, query: wiql.trim(), fetchedAt: new Date().toISOString(), items }
 }
 

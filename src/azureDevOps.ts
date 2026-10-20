@@ -25,7 +25,7 @@ export const projectApiBase = (config: Pick<AzureConfig, 'organization' | 'proje
 // Azure DevOps Services accepts 7.1; older Azure DevOps Server versions need a lower version (e.g. 6.0 or 5.0).
 export const apiVersionOf = (config: Pick<AzureConfig, 'apiVersion'>) => config.apiVersion && /^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(config.apiVersion) ? config.apiVersion : '7.1'
 export interface AzureRequest extends AzureConfig {
-  operation: 'backlog-epics' | 'areas' | 'iterations' | 'iteration-tree' | 'query' | 'items' | 'create-feature' | 'create-child' | 'update-time-writing-effort' | 'update-work-item'
+  operation: 'backlog-epics' | 'areas' | 'iterations' | 'iteration-tree' | 'fields' | 'query' | 'items' | 'create-feature' | 'create-child' | 'update-time-writing-effort' | 'update-work-item'
   pat: string
   query?: string
   ids?: number[]
@@ -521,9 +521,9 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   const base = projectApiBase(request)
   const updating = request.operation === 'update-time-writing-effort' || request.operation === 'update-work-item'
   const writing = request.operation === 'create-feature' || request.operation === 'create-child' || updating
-  const readingMetadata = request.operation === 'backlog-epics' || request.operation === 'areas' || request.operation === 'iterations' || request.operation === 'iteration-tree'
+  const readingMetadata = request.operation === 'backlog-epics' || request.operation === 'areas' || request.operation === 'iterations' || request.operation === 'iteration-tree' || request.operation === 'fields'
   const create = request.operation === 'create-feature' || request.operation === 'create-child'
-  const endpoint = updating ? `_apis/wit/workitems/${request.workItemId}` : create ? `_apis/wit/workitems/$${request.operation === 'create-feature' ? 'Feature' : encodeURIComponent(request.workItemType!)}` : request.operation === 'backlog-epics' ? `${encodeURIComponent(request.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems` : request.operation === 'iteration-tree' ? '_apis/wit/classificationnodes/iterations' : readingMetadata ? `${encodeURIComponent(request.team)}/_apis/work/teamsettings/${request.operation === 'areas' ? 'teamfieldvalues' : 'iterations'}` : request.operation === 'query' ? '_apis/wit/wiql' : '_apis/wit/workitemsbatch'
+  const endpoint = updating ? `_apis/wit/workitems/${request.workItemId}` : create ? `_apis/wit/workitems/$${request.operation === 'create-feature' ? 'Feature' : encodeURIComponent(request.workItemType!)}` : request.operation === 'backlog-epics' ? `${encodeURIComponent(request.team)}/_apis/work/backlogs/Microsoft.EpicCategory/workItems` : request.operation === 'iteration-tree' ? '_apis/wit/classificationnodes/iterations' : request.operation === 'fields' ? '_apis/wit/fields' : readingMetadata ? `${encodeURIComponent(request.team)}/_apis/work/teamsettings/${request.operation === 'areas' ? 'teamfieldvalues' : 'iterations'}` : request.operation === 'query' ? '_apis/wit/wiql' : '_apis/wit/workitemsbatch'
   const body = request.operation === 'update-work-item' ? workItemUpdatePatch(request) : request.operation === 'update-time-writing-effort' ? [{ ...(request.planHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.OriginalEstimate', value: request.planHours }) }, { ...(request.actualHours == null ? {} : { op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.CompletedWork', value: request.actualHours }) }, ...(request.tags ? [{ op: 'add', path: '/fields/System.Tags', value: request.tags }] : [])].filter(patch => 'op' in patch) : create ? featurePatch(request, request.feature!) : request.operation === 'query' ? { query: request.query } : { ids: request.ids, errorPolicy: 'Fail', $expand: 'Relations' }
   const versions = versionsToTry(request)
   let response: Response | undefined
@@ -564,4 +564,13 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (!response.ok) throw new Error(updating ? `Update of #${request.workItemId} returned ${response.status}. Check it in Azure DevOps.` : writing && !request.validateOnly ? `Create request returned ${response.status}. Check the backlog before retrying to avoid duplicates.` : `Azure DevOps request failed (${response.status}). No data was imported.`)
   if (!(response.headers.get('content-type') ?? '').includes('application/json')) throw new Error('Azure DevOps returned a sign-in page. Check the PAT and organization access.')
   return response.json()
+}
+
+// Display names of the project's work-item fields (reference name → name), for query-view column headings.
+// Read-only; when it fails the view falls back to readable reference names.
+export async function readFieldNames(config: AzureConfig, pat: string, transport: AzureTransport = requestAzure): Promise<Record<string, string>> {
+  try {
+    const response = await transport({ ...config, team: config.team || config.project, pat, operation: 'fields' }) as { value?: { referenceName?: unknown; name?: unknown }[] }
+    return Object.fromEntries((response.value ?? []).flatMap((field) => typeof field.referenceName === 'string' && typeof field.name === 'string' ? [[field.referenceName, field.name]] : []))
+  } catch { return {} }
 }
