@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { formatDate } from '../src/format.ts'
 import { queryLayout, pickFields, cellValue, columnName, formatCell, sortItems, viewSummary, viewCsv, defaultViewColumns } from '../src/queryView.ts'
 
 const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: 'Ana', areaPath: 'p\\DP', iterationPath: 'p\\S1', tags: '', url: 'u', syncedAt: '' }
@@ -17,7 +18,7 @@ test('fields: identities become display names; standard columns fall back to the
   const row = item(7, { fields: { 'Custom.Docs': 3 } })
   assert.equal(cellValue(row, 'Custom.Docs'), 3); assert.equal(cellValue(row, 'System.Title'), 'Item 7'); assert.equal(cellValue(row, 'Custom.Unknown'), undefined)
   assert.equal(columnName('Custom.AuthorApprovalDate'), 'Author Approval Date'); assert.equal(columnName('Custom.X', { 'Custom.X': 'Azure Name' }), 'Azure Name'); assert.equal(columnName('System.AssignedTo'), 'Assigned To')
-  assert.equal(formatCell('2026-10-12T00:00:00Z'), '2026-10-12'); assert.equal(formatCell(true), 'Yes'); assert.equal(formatCell(undefined), '')
+  assert.equal(formatCell('2026-10-12T00:00:00Z'), formatDate('2026-10-12T00:00:00Z'), 'dates as long dates in the viewer’s time zone'); assert.equal(formatCell(true), 'Yes'); assert.equal(formatCell(undefined), '')
 })
 
 test('sorting follows the query order; blanks last; numbers numeric', () => {

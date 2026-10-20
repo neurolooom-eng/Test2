@@ -1,7 +1,15 @@
 // Display formatting shared by every page. Keep values as data; these only render them.
 export function formatHours(value: number | null | undefined) { return value == null ? '—' : Number(value.toFixed(2)).toLocaleString() }
 export function formatPercent(value: number | null | undefined, digits = 1) { return value == null ? '—' : `${value.toFixed(digits)}%` }
-export function formatDate(value: string | undefined, fallback = '—') { return value ? value.slice(0, 10) : fallback }
+// Long date in the viewer's time zone, e.g. "30 September 2026". Azure DevOps dates (Author Approval Date, Target
+// Date, …) are stored in UTC, so the local calendar date can differ from the UTC one; this is the date the month
+// filters and counts use. A plain YYYY-MM-DD is shown as that calendar date. timeZone is for tests only.
+export function formatDate(value: string | undefined, fallback = '—', timeZone?: string) {
+  if (!value) return fallback
+  const plain = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  if (!plain && !Number.isFinite(Date.parse(value))) return value.slice(0, 10)
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric', ...(plain ? { timeZone: 'UTC' } : timeZone ? { timeZone } : {}) }).format(new Date(plain ? `${value}T00:00:00Z` : value))
+}
 // Date and time in the viewer's own time zone, with the zone shown (e.g. "20 Oct 2026, 21:05 CEST"): used for when
 // data was fetched or saved. timeZone is for tests only.
 export function formatDateTime(value: string | undefined, fallback = '—', timeZone?: string) {

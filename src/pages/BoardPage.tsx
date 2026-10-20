@@ -4,7 +4,7 @@ import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
 import { QueryView } from '../components/QueryView'
 import { ReleaseView } from '../components/ReleaseView'
 import { formatDate, formatDateTime, monthName } from '../format'
-import { viewMonthOf } from '../releaseSource'
+import { approvalDateFrom, viewMonthOf } from '../releaseSource'
 import { viewSource } from '../viewSources'
 import { listAzureConnectionProfiles } from '../azureCredentials'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
@@ -56,12 +56,15 @@ function ReadOnlyView({ id, name, role, azure, store, month, gitNote, onOpenConn
   const orderBy: QueryOrder[] | undefined = stale && current ? current.orderBy : source?.orderBy
   // Month filter (header month picker): items approved in the month, else changed in it; "All months" turns it off.
   const items = source ? allMonths ? source.items : source.items.filter((item) => viewMonthOf(item) === month) : []
+  // Items without an approval date fall back to their Changed Date for the month filter; say how many.
+  const undated = source ? source.items.filter((item) => !(item.approvalDate ?? approvalDateFrom(item.fields ?? {}))).length : 0
   const refresh = <button className="primary" disabled={busy} onClick={() => void azure.fetchConnection(id)}>{busy ? 'Fetching…' : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>
   return <Page className="backlog-page">
     <Panel className="connection-panel backlog-panel">
       <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}${'fromGit' in source && source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
       {azure.isSample ? null : gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
+      {source && !allMonths && undated > 0 && <div className="notice" role="status">Month filter: by Author Approval Date in your time zone. {undated} of {source.items.length} items have no approval date{role === 'release-source' ? '' : ' in the query’s columns'}, so their Changed Date is used.</div>}
       {stale && !busy && <div className="notice warning" role="status">The saved data was fetched with different columns than the connection's query now has. Refresh from Azure to load every column's values.</div>}
       {source && config && !items.length && source.items.length ? <EmptyState title={`No items in ${monthName(month)}.`} detail={`${source.items.length} items have an approval date (else a changed date) in other months. Pick another month in the header, or tick “All months”.`} />
         : source && config ? role === 'release-source' ? <ReleaseView name={name} items={items} backlog={azure.items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
