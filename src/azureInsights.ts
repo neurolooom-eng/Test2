@@ -1,10 +1,17 @@
 import type { AzureWorkItem } from './domain'
 
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+// Month of a Time Writing Task from its title prefix: "October 2026 | …", also "Oct 2026 - …", "October-2026: …" or
+// "2026-10 | …". The month must start the title and be followed by |, :, - or a dash.
 export function timeWritingMonth(title: string): string | undefined {
-  const match = /^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})\s*\|/i.exec(title.trim())
-  return match ? `${match[2]}-${String(months.findIndex(month => month.toLowerCase() === match[1].toLowerCase()) + 1).padStart(2, '0')}` : undefined
+  const text = title.trim()
+  const named = /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[\s,._/-]*(\d{4})\s*[|:\-–—]/i.exec(text)
+  if (named) return `${named[2]}-${String(months.findIndex(month => month.slice(0, 3).toLowerCase() === named[1].slice(0, 3).toLowerCase()) + 1).padStart(2, '0')}`
+  const numeric = /^(\d{4})[-/.](0?[1-9]|1[0-2])\s*[|:\-–—]/.exec(text)
+  return numeric ? `${numeric[1]}-${numeric[2].padStart(2, '0')}` : undefined
 }
+// A Time Writing User Story names "Time Writing" anywhere in its title (e.g. "<Feature> - Time Writing", "Time Writing - DP").
+export const isTimeWritingStory = (item: { workItemType: string; title: string }) => item.workItemType === 'User Story' && /\btime[\s_-]*writ(?:ing|ting)\b/i.test(item.title)
 export function indiaMonth(date?: string) {
   if (!date || !Number.isFinite(Date.parse(date))) return undefined
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).formatToParts(new Date(date))
@@ -25,7 +32,7 @@ export function azureInsights(source: AzureWorkItem[], month: string, today: str
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error('Choose a valid dashboard month.')
   const items = [...new Map(source.filter(item => item.state.trim().toLowerCase() !== 'removed').map(item => [item.key, item])).values()]
   const features = items.filter(item => item.workItemType === 'Feature'), tasks = items.filter(item => item.workItemType === 'Task')
-  const timeWritingStories = items.filter(item => item.workItemType === 'User Story' && /\s*-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title))
+  const timeWritingStories = items.filter(isTimeWritingStory)
   const storyIds = new Set(timeWritingStories.map(item => item.id))
   const timeWritingTasks = tasks.filter(item => item.parentId != null && storyIds.has(item.parentId))
   const monthlyTasks = timeWritingTasks.filter(item => timeWritingMonth(item.title) === month)
@@ -69,4 +76,19 @@ export function azureInsights(source: AzureWorkItem[], month: string, today: str
   const epicBreakdown = [...epicGroups.values()].map(group => { const groupFeatures = [...new Map(group.stories.map(featureOf).filter((item): item is AzureWorkItem => Boolean(item)).map(item => [item.key, item])).values()]; const groupTasks = monthlyTasks.filter(task => group.stories.some(story => story.id === task.parentId)); return { ...group, plan: total(groupTasks, 'originalEstimate'), actual: total(groupTasks, 'completedWork'), npra: total(groupFeatures.filter(item => hasTag(item, 'NPRA Hours')), 'originalEstimate'), tasks: groupTasks.length } }).sort((a,b) => (b.actual.value ?? -1) - (a.actual.value ?? -1))
   const capacity = dayCapacity
   return { items, features, tasks, timeWritingStories, storiesForMonth, timeWritingTasks, monthlyTasks, plan, actual, variance, paired, overdue, flags, closures, priorClosures, resources, trend, epicBreakdown, npraFeatures, npra, absenceTasks, absence, workingDays: dayCount, dayCapacity, capacity, available: actualLessAbsence, utilization: utilization(dayCapacity, actualLessAbsence), unassignedNpRA: npraFeatures.filter(item => !item.assignedTo), unmappedTasks: timeWritingTasks.filter(item => !timeWritingMonth(item.title)).length }
+}
+
+// Why Time Writing items are not counted for a month: stories without that month's Task, Tasks under a Time Writing
+// story whose title has no month prefix, and month Tasks whose parent is not a Time Writing story.
+export function timeWritingGaps(source: AzureWorkItem[], month: string) {
+  const items = source.filter(item => item.state.trim().toLowerCase() !== 'removed')
+  const byId = new Map(items.map(item => [item.id, item]))
+  const stories = items.filter(isTimeWritingStory), storyIds = new Set(stories.map(item => item.id))
+  const tasks = items.filter(item => item.workItemType === 'Task')
+  const finished = (item: AzureWorkItem) => ['closed', 'done', 'completed', 'resolved'].includes(item.state.trim().toLowerCase())
+  return {
+    storiesWithoutTask: stories.filter(story => !finished(story) && !tasks.some(task => task.parentId === story.id && timeWritingMonth(task.title) === month)),
+    tasksWithoutMonth: tasks.filter(task => task.parentId != null && storyIds.has(task.parentId) && !timeWritingMonth(task.title)),
+    tasksOutsideStory: tasks.filter(task => timeWritingMonth(task.title) === month && !(task.parentId != null && storyIds.has(task.parentId))).map(task => ({ task, parent: task.parentId == null ? undefined : byId.get(task.parentId) })),
+  }
 }

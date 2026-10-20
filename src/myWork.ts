@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { isTimeWritingStory } from './azureInsights.ts'
 
 // "Me" is matched by Azure email (Assigned To unique name) when known, otherwise by display name.
 export interface Me { email?: string; name?: string }
@@ -46,7 +47,7 @@ export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
   for (const item of items) {
     if (!isPending(item) || !isMine(item, me) || inAbsence(item)) continue
     if (item.workItemType === 'Feature') featureIds.add(item.id)
-    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature) && !/\s-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)) featureIds.add(feature.id) }
+    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature) && !isTimeWritingStory(item)) featureIds.add(feature.id) }
   }
   return items.filter((item) => featureIds.has(item.id)).sort((a, b) => a.title.localeCompare(b.title)).map((feature) => {
     const storyTitle = `${feature.title.trim()} - Time Writing`, taskTitle = `${monthLabel} | ${feature.title.trim()}`

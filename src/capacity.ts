@@ -1,5 +1,5 @@
 import type { AzureWorkItem } from './domain'
-import { timeWritingMonth, workingDays } from './azureInsights.ts'
+import { isTimeWritingStory, timeWritingMonth, workingDays } from './azureInsights.ts'
 
 // Capacity model for the selected month. Source rows are the Time Writing Tasks named
 // "<Month> <Year> | …" under "… - Time Writing" User Stories; absence is everything under the
@@ -91,7 +91,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     while (current && !seen.has(current.id)) { chain.push(current); seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) }
     return chain
   }
-  const storyIds = new Set(items.filter(item => item.workItemType === 'User Story' && /\s*-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)).map(item => item.id))
+  const storyIds = new Set(items.filter(item => isTimeWritingStory(item)).map(item => item.id))
   const monthlyTasks = items.filter(item => item.workItemType === 'Task' && item.parentId != null && storyIds.has(item.parentId) && timeWritingMonth(item.title) === month)
   const funded = workingDays(month) * settings.hoursPerDay
   const people = new Map<string, PersonLoad & { streamMap: Map<string, StreamLoad> }>()
@@ -172,7 +172,7 @@ export function problemBreakdown(source: AzureWorkItem[], months: string[], sett
   const monthSet = new Set(months)
   const items = [...new Map(source.filter((item) => item.state.trim().toLowerCase() !== 'removed').map((item) => [item.key, item])).values()]
   const byId = new Map(items.map((item) => [item.id, item]))
-  const storyIds = new Set(items.filter((item) => item.workItemType === 'User Story' && /\s*-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)).map((item) => item.id))
+  const storyIds = new Set(items.filter((item) => isTimeWritingStory(item)).map((item) => item.id))
   const tasks = items.filter((item) => item.workItemType === 'Task' && item.parentId != null && storyIds.has(item.parentId) && monthSet.has(timeWritingMonth(item.title) ?? ''))
   const chainOf = (item: AzureWorkItem) => {
     const chain: AzureWorkItem[] = []; const seen = new Set<number>([item.id]); let current = item.parentId == null ? undefined : byId.get(item.parentId)

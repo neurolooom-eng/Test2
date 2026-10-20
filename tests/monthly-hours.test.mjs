@@ -103,3 +103,28 @@ test('resource list comes from Azure assignees and reconciles with the monthly c
   }
   assert.deepEqual(azureResources([], '2026-10'), [])
 })
+
+import { timeWritingMonth, isTimeWritingStory, timeWritingGaps } from '../src/azureInsights.ts'
+test('Time Writing naming: month prefixes and story titles are matched tolerantly', () => {
+  for (const title of ['October 2026 | DP', 'Oct 2026 - DP', 'october-2026: DP', 'OCT 2026 – DP', '2026-10 | DP', '2026/10 - DP', 'Oct, 2026 | DP']) assert.equal(timeWritingMonth(title), '2026-10', title)
+  assert.equal(timeWritingMonth('Sept 2026 | x'), '2026-09')
+  for (const title of ['DP | Dose Planning | v4.2', 'Review October 2026 | x', '2026 | x', 'October 26 | x', 'Octopus 2026 | x']) assert.equal(timeWritingMonth(title), undefined, title)
+  for (const title of ['DP | Dose Planning | v4.2 - Time Writing', 'Time Writing - DP', 'DP Time writing', 'TimeWriting Q4', 'Time-Writing']) assert.equal(isTimeWritingStory({ workItemType: 'User Story', title }), true, title)
+  assert.equal(isTimeWritingStory({ workItemType: 'User Story', title: 'Writing time estimates' }), false)
+  assert.equal(isTimeWritingStory({ workItemType: 'Task', title: 'Time Writing' }), false)
+})
+
+test('Time Writing gaps: stories without the month task, tasks without a month, month tasks outside a story', () => {
+  const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: '', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '' }
+  const at = (id, workItemType, title, parentId, extra = {}) => ({ ...base, key: `o/p/${id}`, id, workItemType, title, parentId, ...extra })
+  const items = [
+    at(1, 'User Story', 'Time Writing - DP'), at(2, 'Task', 'October 2026 | DP', 1),
+    at(3, 'User Story', 'CP - Time Writing'), at(4, 'Task', 'September 2026 | CP', 3), at(5, 'Task', 'Weekly support', 3),
+    at(6, 'User Story', 'SFV review'), at(7, 'Task', 'Oct 2026 - SFV', 6),
+    at(8, 'User Story', 'QMS - Time Writing', undefined, { state: 'Closed' }),
+  ]
+  const gaps = timeWritingGaps(items, '2026-10')
+  assert.deepEqual(gaps.storiesWithoutTask.map((item) => item.id), [3], 'closed stories are not flagged')
+  assert.deepEqual(gaps.tasksWithoutMonth.map((item) => item.id), [5])
+  assert.deepEqual(gaps.tasksOutsideStory.map(({ task, parent }) => [task.id, parent.id]), [[7, 6]])
+})
