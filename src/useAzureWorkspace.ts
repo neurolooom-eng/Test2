@@ -185,6 +185,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const query = input.query.trim()
     if (query) releaseQueryWhere(query)
     if (input.role === 'time-tracking' && !input.team.trim() && !query) throw new Error('A Time Writing connection needs a team (its Epic backlog is read) or a query.')
+    if (input.role === 'backlog-view' && !input.team.trim() && !query) throw new Error('A backlog view needs a team (its Epic backlog is shown) or a query.')
     const email = input.creatorEmail.trim().toLowerCase()
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
     const id = input.id || crypto.randomUUID().replaceAll('-', '')
@@ -240,11 +241,21 @@ export function useAzureWorkspace(store: PageProps['store']) {
           return draft
         })
         done = `${snapshot.items.length} release documents saved`
+      } else if (role === 'backlog-view') {
+        // Read-only backlog view: the query's results plus their parents up to the Epic, or the team's Epic backlog.
+        const items = query ? (await withAncestors(parsed, profile.token, await runWorkItemQuery(parsed, profile.token, query))).filter((item) => item.state.trim().toLowerCase() !== 'removed') : (await fetchAzureWorkItems(parsed, profile.token)).items
+        const fetchedAt = new Date().toISOString()
+        store.update((draft) => {
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || `Team backlog: ${parsed.team}`, fetchedAt, items }]
+          draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only for backlog view “${profile.reason}”` })
+          return draft
+        })
+        done = `${items.length} work items saved`
       } else {
         const items = await runWorkItemQuery(parsed, profile.token, query || projectQuery)
         const fetchedAt = new Date().toISOString()
         store.update((draft) => {
-          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role, organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items }]
+          draft.azureSources = [...(draft.azureSources ?? []).filter((source) => source.connectionId !== id), { connectionId: id, name: profile.reason, role: role === 'documents' ? 'documents' : 'reference', organization: parsed.organization, project: parsed.project, query: query || projectQuery, fetchedAt, items }]
           draft.audits.unshift({ id: crypto.randomUUID(), timestamp: fetchedAt, actor: 'u-owner', action: 'Sync', entity: 'AzureSource', entityId: `${parsed.organization}/${parsed.project}`, detail: `${items.length} work items fetched read-only from “${profile.reason}”` })
           return draft
         })

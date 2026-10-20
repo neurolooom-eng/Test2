@@ -8,14 +8,15 @@ import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
 import type { PageProps } from './types'
 
-const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)' }
+const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
 const roleUse: Record<AzureConnectionRole, string> = {
   'time-tracking': 'Feeds the Overview, Monthly Time Writing and Baselines. Without a query the team’s Epic backlog is read; with a query its results plus their parents are read. One Time Writing connection is active at a time.',
   'release-source': 'Approved documents whose Area Path carries the release identifier; feeds Feature milestones and completed releases.',
   documents: 'Document source such as Vault; fetched read-only and kept for document counts per release.',
   reference: 'Any other read-only data: fetched and listed with its count.',
+  'backlog-view': 'Shown as its own tab on the Backlogs page (Epic → Feature → User Story → Task), read only. Without a query the team’s Epic backlog is read; with a query its results plus their parents. Not counted in Overview, Monthly Time Writing or My work.',
 }
-const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery }
+const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking': 'Optional. Leave empty to read the team Epic backlog.', 'release-source': defaultReleaseQuery, documents: projectQuery, reference: projectQuery, 'backlog-view': 'Optional. Leave empty to read the team Epic backlog.' }
 const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
@@ -78,16 +79,16 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
       {form && <form className="connection-editor" onSubmit={submit}>
         <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>{!form.id && form.organization && <Notice>Pre-filled settings: enter your PAT, change anything else if needed, then Save and Test.</Notice>}
         <div className="connection-form">
-          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Time Writing, DHFI releases, Vault" /></label>
+          <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. QMS-0025, Digital Platform, DHFI releases" /></label>
           <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
           <label>Server URL (on-prem only)<input type="url" value={form.serverUrl} onChange={(event) => setForm({ ...form, serverUrl: event.target.value })} placeholder="Empty for dev.azure.com · e.g. https://tfs.company.com/tfs" /><small>Leave empty for Azure DevOps Services. On-prem: the server address without the collection.</small></label>
           <label>Organization / collection<input required value={form.organization} onChange={(event) => setForm({ ...form, organization: event.target.value })} placeholder={form.serverUrl.trim() ? 'e.g. DHPCollection' : 'Azure DevOps organization'} /><small>{form.serverUrl.trim() ? 'On-prem this is the collection name.' : 'The name after dev.azure.com/.'}</small></label>
           <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
-          {form.role === 'time-tracking' && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
+          {(form.role === 'time-tracking' || form.role === 'backlog-view') && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
           <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="Automatic" /><small>Leave empty to detect it: 7.1, then 6.0 and 5.0 for older Azure DevOps Server.</small></label>
           <label>PAT{form.id ? ' (leave empty to keep the saved one)' : ''}<input type="password" autoComplete="off" required={!form.id || !loadAzureConnectionProfile(form.id)} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /></label>
           {form.role === 'time-tracking' && <label>Feature creator email (optional)<input type="email" value={form.creatorEmail} onChange={(event) => setForm({ ...form, creatorEmail: event.target.value })} placeholder="Assigned to Features created from the app" /></label>}
-          <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' ? '' : 'Empty uses the default shown.'}</small></label>
+          <label className="query-field">Query (optional, WIQL)<textarea rows={4} spellCheck={false} value={form.query} onChange={(event) => setForm({ ...form, query: event.target.value })} placeholder={queryPlaceholder[form.role]} /><small>A flat query: SELECT … FROM WorkItems WHERE …. Only the WHERE clause is used; results are read in pages. {form.role === 'time-tracking' || form.role === 'backlog-view' ? '' : 'Empty uses the default shown.'}</small></label>
         </div>
         <Notice>{roleUse[form.role]}</Notice>
         {formError && <Notice tone="error">{formError}</Notice>}

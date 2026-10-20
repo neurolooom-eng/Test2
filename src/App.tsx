@@ -70,7 +70,7 @@ export default function App() {
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenConnection={openConnection} onOpenSettings={() => setPage('admin')} />}
       {page === 'releases' && <ReleasesPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}
-      {page === 'board' && <BoardPage azure={azure} onOpenConnection={openConnection} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} onOpenConnection={openConnection} />}
       {page === 'azure' && <AzureDevOpsPage azure={azure} store={store} onOpenBoard={() => setPage('board')} />}
       {page === 'migration' && <MigrationPage {...pageProps} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}

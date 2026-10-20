@@ -147,8 +147,8 @@ export interface AppState {
   releaseSource?: { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }
   releaseSourceSettings?: { streamSegment?: number; releasePattern?: string; approvalDateField?: string }
   releasePlans?: ReleasePlan[]
-  // Read-only snapshots from additional Azure connections (document sources such as Vault, reference data).
-  azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference'; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }[]
+  // Read-only snapshots from additional Azure connections (backlog views, document sources such as Vault, reference data).
+  azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference' | 'backlog-view'; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }[]
 }
 
 export interface AzureWorkItem {
