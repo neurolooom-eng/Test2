@@ -10,6 +10,7 @@ import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
+import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace } from './useAzureWorkspace'
 import { useGitStorage } from './useGitStorage'
@@ -69,6 +70,7 @@ export default function App() {
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
+      {page === 'docs' && <DocsPage />}
     </main>
   </div>
 }

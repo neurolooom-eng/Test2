@@ -31,3 +31,7 @@ export function exportStateJson(state: AppState) {
 export function downloadCsv(contents: string, filename: string) {
   saveBlob(`﻿${contents}`, 'text/csv;charset=utf-8', filename)
 }
+
+export function downloadMarkdown(contents: string, filename: string) {
+  saveBlob(contents, 'text/markdown;charset=utf-8', filename)
+}
