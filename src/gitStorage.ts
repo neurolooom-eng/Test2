@@ -80,6 +80,29 @@ export async function readPlanningFile(config: GitConfig, token: string, fetchIm
   return { data: parsePlanning(decodeBase64(body.content)), sha: body.sha }
 }
 
+// Another JSON file in the same repository and folder as the planning data (e.g. the Azure DevOps views).
+export function siblingConfig(config: GitConfig, file: string): GitConfig {
+  const folder = config.path.includes('/') ? config.path.slice(0, config.path.lastIndexOf('/') + 1) : ''
+  return { ...config, path: `${folder}${file}` }
+}
+
+// Plain text read / commit of a file, with the same errors and conflict check as the planning data file.
+export async function readTextFile(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<{ text: string | null; sha: string | null }> {
+  const response = await fetchImpl(`${fileUrl(config)}?ref=${encodeURIComponent(config.branch)}`, { headers: headers(token), cache: 'no-store' })
+  if (response.status === 404) return { text: null, sha: null }
+  if (!response.ok) throw await failure(response, config, `read ${config.path}`)
+  const body = (await response.json()) as { content?: string; encoding?: string; sha?: string; type?: string }
+  if (body.type !== 'file' || body.encoding !== 'base64' || typeof body.content !== 'string' || typeof body.sha !== 'string') throw new Error(`${config.path} is not a readable file in ${config.owner}/${config.repo}.`)
+  return { text: decodeBase64(body.content), sha: body.sha }
+}
+export async function writeTextFile(config: GitConfig, token: string, text: string, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {
+  const response = await fetchImpl(fileUrl(config), { method: 'PUT', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim() || `Update ${config.path}`, content: encodeBase64(text), branch: config.branch, ...(sha ? { sha } : {}) }) })
+  if (!response.ok) throw await failure(response, config, `save ${config.path}`)
+  const body = (await response.json()) as { content?: { sha?: string }; commit?: { html_url?: string } }
+  if (typeof body.content?.sha !== 'string') throw new Error(`GitHub saved ${config.path} but returned no version id.`)
+  return { sha: body.content.sha, commitUrl: body.commit?.html_url ?? historyUrl(config) }
+}
+
 // Writes the data file as one commit. The sha of the version that was loaded is required, so a concurrent change
 // is refused (GitConflictError) instead of being overwritten.
 export async function writePlanningFile(config: GitConfig, token: string, data: PlanningData, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {

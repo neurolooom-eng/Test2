@@ -1,9 +1,10 @@
-const { app, BrowserWindow, shell, ipcMain, net } = require('electron')
+const { app, BrowserWindow, shell, ipcMain, net, session } = require('electron')
 const path = require('path')
 const { pathToFileURL } = require('url')
 const { spawn } = require('child_process')
 const { requestAzureDevOps } = require('./azure-devops.cjs')
 const { checkForUpdate, downloadUpdate } = require('./desktop-update.cjs')
+const { windchillUrl, testWindchill } = require('./windchill.cjs')
 const distDir = path.join(__dirname, '..', 'dist')
 const bundledUrl = pathToFileURL(path.join(distDir, 'index.html')).href
 const trustedSender = (event) => {
@@ -53,6 +54,13 @@ ipcMain.handle('azure-devops:request', async (event, request) => {
   if (!trusted || event.senderFrame !== event.sender.mainFrame) throw new Error('Untrusted request source.')
   // Chromium's network stack: uses the Windows certificate store and system proxy (needed for on-prem servers).
   return requestAzureDevOps(request, (url, options) => net.fetch(url, options))
+})
+
+ipcMain.handle('windchill:test', async (event, request) => {
+  if (!trustedSender(event)) throw new Error('Untrusted request source.')
+  // Windows single sign-on (Negotiate/NTLM) is offered only to the configured Windchill host.
+  session.defaultSession.allowNTLMCredentialsForDomains(windchillUrl(request).hostname)
+  return testWindchill(request, (url, options) => net.fetch(url, options))
 })
 
 function createWindow() {
