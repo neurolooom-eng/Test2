@@ -331,14 +331,14 @@ Stakeholders:
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
 | BAS-01 | A release shall be a Feature, not Removed, whose parent Epic title equals a rule's stream (trimmed, case-insensitive). | T | M | UC-11 |
-| BAS-02 | Baseline hours shall be the release-type hours plus Σ (base units + driver count × units per driver) × hours per unit. When a maximum is set and the sum exceeds it, the baseline shall equal the maximum. | T | M | UC-11 |
+| BAS-02 | Every stream shall use the same formula: baseline hours = hours per unit × (fixed units per release + units per driver × driver count). When a maximum is set and the result exceeds it, the baseline shall equal the maximum. There shall be no release types. | T | M | UC-11 |
 | BAS-03 | Actual hours for a release shall be the Completed Work (negatives treated as 0) on its Month Tasks, and on Tasks under its Time Writing stories, rolled up to the nearest Feature. | T | M | UC-11 |
 | BAS-04 | The table shall show, per release: stream, release, scope, baseline, actual, variance (actual − current baseline), and scope growth (current baseline − first baseline). | T | M | UC-11 |
-| BAS-05 | "Set scope" / "Re-baseline" shall require a release type (when the rule has types) and a value for every driver before "Save baseline" is enabled. | T | M | UC-11 |
-| BAS-06 | Saving a scope shall append a version {time, type, drivers, reason} to the release's history and write an audit entry "Baseline" or "Re-baseline". | T | M | UC-11 |
+| BAS-05 | "Set scope" / "Re-baseline" shall require the driver count (when the rule has units per driver > 0) before "Save baseline" is enabled. | T | M | UC-11 |
+| BAS-06 | Saving a scope shall append a version {time, driver count, reason} to the release's history and write an audit entry "Baseline" or "Re-baseline". | T | M | UC-11 |
 | BAS-07 | When a scope is identical to the current one, the form shall warn "Same scope as the current baseline; saving adds a version with no change." and still allow saving. | D | C | UC-11 |
-| BAS-08 | The rules editor shall maintain, per stream: maximum hours, release types (name, hours), and line items (label, hours per unit, base units, driver, units per driver). | D | M | UC-11 |
-| BAS-09 | Saving rules shall drop: empty or duplicate stream names, negative or non-finite numbers, items without a label or a valid hours-per-unit, drivers without units-per-driver, and a maximum of 0. It shall write an audit "Update"/"BaselineRules". | T | M | UC-11 |
+| BAS-08 | The rules editor shall maintain one row per stream with: hours per unit, fixed units per release, driver, units per driver and maximum hours, and shall show the resulting formula. It shall warn about streams whose hours per unit is 0. | D | M | UC-11 |
+| BAS-09 | Saving rules shall drop empty or duplicate stream names, replace negative or non-finite numbers with 0, and drop a maximum of 0. Rules saved in the earlier shape (release types and line items) shall be read as the uniform formula: the first line item is kept, and a types-only rule becomes 0h per document. Saving shall write an audit "Update"/"BaselineRules". | T | M | UC-11 |
 | BAS-10 | "Load example values" shall load the example rules into the draft without saving. | D | C | UC-11 |
 | BAS-11 | The "Task plan check · this month" panel shall flag a Month Task with ">25%" when Original Estimate > 0 and Completed Work > 1.25 × Original Estimate. See OI-07. | T | S | UC-11 |
 

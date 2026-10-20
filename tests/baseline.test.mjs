@@ -1,39 +1,39 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { baselineHours, describeRule, exampleBaselineRules, normalizeRules, normalizeScopes, releaseBaselines, ruleDrivers } from '../src/baseline.ts'
+import { baselineHours, describeRule, exampleBaselineRules, normalizeRules, normalizeScopes, releaseBaselines } from '../src/baseline.ts'
 
 const [dp, serviceability, cp] = exampleBaselineRules
 
-test('CP: 2h per document over 14 base documents plus 11 per asset', () => {
+test('one formula for every stream: hours per unit × (fixed units + units per driver × count)', () => {
   const result = baselineHours(cp, { drivers: { assets: 10 } })
-  assert.equal(result.total, 248, '10 × 11 × 120 + 14 × 120 minutes = 14,880 min = 248h')
-  assert.deepEqual(result.lines, [{ label: 'Documents', units: 124, hours: 248 }])
-  assert.deepEqual(ruleDrivers(cp), ['assets'])
-  assert.equal(describeRule(cp), 'Documents: 2h × (14 + 11 × assets)')
+  assert.equal(result.total, 248, '2h × (14 + 11 × 10) = 2h × 124 = 248h')
+  assert.deepEqual([result.units, result.uncapped, result.capped, result.missing], [124, 248, false, []])
+  assert.equal(describeRule(cp), '2h × (14 + 11 × assets)')
   assert.deepEqual(baselineHours(cp, { drivers: {} }).missing, ['assets'])
+  assert.equal(baselineHours(dp, { drivers: { documents: 15 } }).total, 50, 'DP uses the same formula: 2h × (10 + 15)')
+  assert.equal(describeRule(dp), '2h × (10 + documents)')
+  for (const rule of exampleBaselineRules) assert.deepEqual(Object.keys(rule).filter((key) => key !== 'cap').sort(), ['baseUnits', 'driver', 'hoursPerUnit', 'stream', 'unitsPerDriver'])
 })
 
-test('DP: fixed hours by release type; unknown or missing type is reported', () => {
-  assert.equal(baselineHours(dp, { type: 'Major', drivers: {} }).total, 40)
-  assert.equal(baselineHours(dp, { type: 'MLD', drivers: {} }).total, 30)
-  assert.equal(baselineHours(dp, { type: 'PU', drivers: {} }).total, 20)
-  assert.deepEqual(baselineHours(dp, { drivers: {} }).missing, ['type'])
-  assert.deepEqual(baselineHours(dp, { type: 'Hotfix', drivers: {} }).missing, ['type'])
-})
-
-test('Serviceability: 2h per document, capped at 60h', () => {
+test('Serviceability: 2h per document, capped at 60h; a rule without a driver uses its fixed units only', () => {
   assert.equal(baselineHours(serviceability, { drivers: { documents: 20 } }).total, 40)
   const capped = baselineHours(serviceability, { drivers: { documents: 45 } })
   assert.deepEqual([capped.total, capped.uncapped, capped.capped], [60, 90, true])
-  assert.equal(describeRule(serviceability), 'Documents: 2h × documents · max 60h')
+  assert.equal(describeRule(serviceability), '2h × documents · max 60h')
+  const fixed = { stream: 'QMS', hoursPerUnit: 3, baseUnits: 5, driver: 'documents', unitsPerDriver: 0 }
+  assert.deepEqual([baselineHours(fixed, { drivers: {} }).total, baselineHours(fixed, { drivers: {} }).missing], [15, []])
 })
 
-test('rules and scopes are normalised from stored data', () => {
+test('rules and scopes are normalised from stored data, including the earlier types + line items shape', () => {
   assert.deepEqual(normalizeRules(undefined), exampleBaselineRules)
   assert.deepEqual(normalizeRules([]), [])
-  assert.deepEqual(normalizeRules([{ stream: ' QMS ', types: { A: '5', B: -1, '': 3 }, items: [{ label: 'Procedures', hoursPerUnit: 1.5, driver: 'procedures', unitsPerDriver: 1 }, { label: '', hoursPerUnit: 1 }], cap: 0 }, { stream: 'qms' }, 'x']),
-    [{ stream: 'QMS', types: { A: 5 }, items: [{ label: 'Procedures', hoursPerUnit: 1.5, baseUnits: 0, driver: 'procedures', unitsPerDriver: 1 }] }])
-  assert.deepEqual(normalizeScopes([{ release: 'R', stream: 'CP', history: [{ at: '2026-10-14T00:00:00Z', drivers: { assets: 10 } }, { at: '2026-10-01T00:00:00Z', drivers: { assets: 8 }, reason: 'Initial' }, { at: 'bad', drivers: {} }] }, { release: '', stream: 'CP', history: [] }]),
+  assert.deepEqual(normalizeRules([{ stream: ' QMS ', hoursPerUnit: '1.5', baseUnits: -2, driver: ' procedures ', unitsPerDriver: 1, cap: 0 }, { stream: 'qms' }, 'x']),
+    [{ stream: 'QMS', hoursPerUnit: 1.5, baseUnits: 0, driver: 'procedures', unitsPerDriver: 1 }])
+  // Earlier shape: the first priced line item is kept; a types-only rule (old DP) becomes 0h per document.
+  assert.deepEqual(normalizeRules([{ stream: 'CP', types: {}, items: [{ label: 'Documents', hoursPerUnit: 2, baseUnits: 14, driver: 'assets', unitsPerDriver: 11 }] }, { stream: 'DP', types: { Major: 40, PU: 20 }, items: [] }, { stream: 'Serviceability', types: {}, items: [{ label: 'Documents', hoursPerUnit: 2, baseUnits: 0, driver: 'documents', unitsPerDriver: 1 }], cap: 60 }]),
+    [{ stream: 'CP', hoursPerUnit: 2, baseUnits: 14, driver: 'assets', unitsPerDriver: 11 }, { stream: 'DP', hoursPerUnit: 0, baseUnits: 0, driver: 'documents', unitsPerDriver: 1 }, { stream: 'Serviceability', hoursPerUnit: 2, baseUnits: 0, driver: 'documents', unitsPerDriver: 1, cap: 60 }])
+  // A release type in an old scope entry is dropped; the driver count stays.
+  assert.deepEqual(normalizeScopes([{ release: 'R', stream: 'CP', history: [{ at: '2026-10-14T00:00:00Z', drivers: { assets: 10 } }, { at: '2026-10-01T00:00:00Z', type: 'Major', drivers: { assets: 8 }, reason: 'Initial' }, { at: 'bad', drivers: {} }] }, { release: '', stream: 'CP', history: [] }]),
     [{ release: 'R', stream: 'CP', history: [{ at: '2026-10-01T00:00:00Z', drivers: { assets: 8 }, reason: 'Initial' }, { at: '2026-10-14T00:00:00Z', drivers: { assets: 10 } }] }])
 })
 
