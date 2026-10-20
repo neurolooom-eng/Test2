@@ -14,7 +14,7 @@ export function BoardPage({ azure, store, views, current, onSelect, onOpenConnec
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
   const choose = onSelect
-  const tabs = views.length > 1 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
+  const tabs = views.length > 0 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
   if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))

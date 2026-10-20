@@ -186,9 +186,10 @@ test('Azure DevOps menu: connections marked Show in menu, named by View name, ba
     { id: 'rel', name: 'DHFI', readOnly: true, role: 'release-source' },
   ], 'reference is hidden by default; a backlog view can be hidden; any source can be shown')
   assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
+  assert.equal(backlogViews(profiles, 'missing')[0].name, 'QMS-0025', 'a Time Writing connection without a View name is named QMS-0025')
   assert.deepEqual(backlogViews([{ ...profiles[1], showInMenu: false }], 'tw2'), [], 'the Time Writing backlog can be hidden too')
   assert.equal(timeWritingView([{ ...profiles[1], showInMenu: false }], 'tw2').name, 'QMS-0025', 'links to the backlog keep its name')
-  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'Backlog', readOnly: false, role: 'time-tracking' }], 'without a Time Writing connection the backlog is still reachable')
+  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false, role: 'time-tracking' }], 'without a Time Writing connection the backlog is still reachable, as QMS-0025')
 })
 
 test('View name and Show in menu are saved with the connection', () => {
