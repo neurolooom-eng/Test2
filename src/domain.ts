@@ -149,6 +149,8 @@ export interface AppState {
   releasePlans?: ReleasePlan[]
   // Read-only snapshots from additional Azure connections (backlog views, document sources such as Vault, reference data).
   azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference' | 'backlog-view'; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[] }[]
+  // Name of the Time Writing backlog view in the sidebar and on its tab (default QMS-0025); set in Settings.
+  timeWritingViewName?: string
 }
 
 export interface AzureWorkItem {

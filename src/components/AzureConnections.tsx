@@ -6,6 +6,7 @@ import { loadAzureConnectionProfile, splitAzureUrl, splitCollectionUrl, type Azu
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
+import { defaultTimeWritingViewName } from '../backlogViews'
 import type { PageProps } from '../pages/types'
 
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)', 'backlog-view': 'Backlog view (read only)' }
@@ -20,11 +21,24 @@ const queryPlaceholder: Record<AzureConnectionRole, string> = { 'time-tracking':
 const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => ({ name: '', role, serverUrl: '', organization: '', project: '', team: '', pat: '', query: '', creatorEmail: '', apiVersion: '' })
 
 // Azure DevOps connection setup, shown as the first section of Settings.
-export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void }) {
+// draftView: opened from a view that is not set up yet; the form starts pre-filled with its name as a backlog view.
+export function AzureConnections({ azure, store, onOpenBoard, draftView }: { azure: AzureWorkspace; store: PageProps['store']; onOpenBoard: () => void; draftView?: string }) {
   const { connectionProfiles, connectionStatus, activeConnectionProfileId, preview, busy } = azure
-  const [form, setForm] = useState<ConnectionInput | null>(null)
+  const [form, setForm] = useState<ConnectionInput | null>(() => draftView ? { ...empty('backlog-view'), name: draftView } : null)
   const [formError, setFormError] = useState('')
   const [fetchingAll, setFetchingAll] = useState(false)
+  const savedViewName = store.state.timeWritingViewName?.trim() || defaultTimeWritingViewName
+  const [viewName, setViewName] = useState(savedViewName)
+  function saveViewName(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const name = viewName.trim() || defaultTimeWritingViewName
+    store.update((draft) => {
+      draft.timeWritingViewName = name
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'Settings', entityId: 'time-writing-view-name', detail: `Time Writing backlog view renamed to “${name}”` })
+      return draft
+    })
+    setViewName(name)
+  }
   const [dismissed, setDismissed] = useState(loadDismissedPresets)
   const presets = pendingPresets(connectionProfiles, dismissed)
   const sources = store.state.azureSources ?? []
@@ -58,8 +72,11 @@ export function AzureConnections({ azure, store, onOpenBoard }: { azure: AzureWo
   }
 
   return <section id="settings-connections" className="settings-section">
-    <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open Backlogs →</button></div>
+    <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps</h2><p className="muted">Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</p></div><button className="primary" onClick={onOpenBoard}>Open {savedViewName} →</button></div>
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
+    <Panel className="connection-panel" eyebrow="VIEWS" title="Backlog view names" detail="The Time Writing backlog's name in the sidebar and on its tab. The other views are named after their connections (Digital Platform, Clinical Platform, Serviceability, IOCC); rename them with Edit on the connection.">
+      <form className="inline-form view-name-form" onSubmit={saveViewName}><label>Time Writing backlog view<input value={viewName} maxLength={60} onChange={(event) => setViewName(event.target.value)} placeholder={defaultTimeWritingViewName} /></label><button className="primary" disabled={(viewName.trim() || defaultTimeWritingViewName) === savedViewName}>Save name</button></form>
+    </Panel>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
