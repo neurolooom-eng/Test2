@@ -4,12 +4,12 @@ import { BaselineRulesEditor } from '../components/BaselineRulesEditor'
 import { GitSyncBar } from '../components/GitStorage'
 import type { GitStorage } from '../useGitStorage'
 import { azureInsights } from '../azureInsights'
-import { baselineHours, describeRule, normalizeRules, normalizeScopes, releaseBaselines, ruleDrivers, type BaselineRule, type ReleaseBaselineRow, type ScopeEntry } from '../baseline'
+import { baselineHours, describeRule, normalizeRules, normalizeScopes, releaseBaselines, type BaselineRule, type ReleaseBaselineRow, type ScopeEntry } from '../baseline'
 import { formatDate, formatHours, todayIso } from '../format'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { PageProps } from './types'
 
-const scopeText = (rule: BaselineRule, entry: Pick<ScopeEntry, 'type' | 'drivers'>) => [entry.type, ...ruleDrivers(rule).map((driver) => `${entry.drivers[driver] ?? '?'} ${driver}`)].filter(Boolean).join(' · ') || '—'
+const scopeText = (rule: BaselineRule, entry: Pick<ScopeEntry, 'drivers'>) => rule.unitsPerDriver ? `${entry.drivers[rule.driver] ?? '?'} ${rule.driver}` : 'Fixed units only'
 
 export function BaselinesPage({ azure, month, store, git, onOpenSettings }: { azure: AzureWorkspace; month: string; store: PageProps['store']; git: GitStorage; onOpenSettings: () => void }) {
   const [today] = useState(todayIso)
@@ -57,7 +57,7 @@ export function BaselinesPage({ azure, month, store, git, onOpenSettings }: { az
       <Metric label="Actual" value={`${formatHours(totals.actual)}h`} hint="Completed Work on those releases, all months" tone={totals.actual > totals.baseline && scoped.length ? 'negative' : undefined} />
       <Metric label="Scope growth" value={`${totals.growth >= 0 ? '+' : ''}${formatHours(totals.growth)}h`} hint="Current baseline minus first baseline" tone={totals.growth > 0 ? 'negative' : undefined} />
     </Metrics>
-    <TablePanel className="admin-section" title="Release baselines" detail="Each release (Feature under a stream with rules) gets a baseline from its scope: release type and driver counts such as documents or assets. Changing the scope adds a dated entry, so re-baselining shows as scope growth instead of overwriting the first estimate." count={`${releases.length} releases`}>
+    <TablePanel className="admin-section" title="Release baselines" detail="Each release (Feature under a stream with rules) gets a baseline from its scope: the driver count (documents, assets, …) in the stream's formula. Changing the scope adds a dated entry, so re-baselining shows as scope growth instead of overwriting the first estimate." count={`${releases.length} releases`}>
       {releases.length ? <table className="baseline-table"><thead><tr><th>Stream</th><th>Release</th><th>Scope</th><th>Baseline (h)</th><th>Actual (h)</th><th>Variance (h)</th><th>Scope growth (h)</th><th /></tr></thead><tbody>{releases.map((row) => {
         const key = `${row.stream}|${row.feature.key}`
         return [
@@ -95,18 +95,16 @@ const describeRuleLine = (rule: BaselineRule) => `${rule.stream}: ${describeRule
 
 function ScopeForm({ row, onSave, onCancel }: { row: ReleaseBaselineRow; onSave: (entry: Omit<ScopeEntry, 'at'>) => void; onCancel: () => void }) {
   const last = row.scope?.history[row.scope.history.length - 1]
-  const types = Object.keys(row.rule.types), drivers = ruleDrivers(row.rule)
-  const [type, setType] = useState(last?.type ?? types[0] ?? '')
-  const [counts, setCounts] = useState<Record<string, string>>(() => Object.fromEntries(drivers.map((driver) => [driver, last?.drivers[driver] != null ? String(last.drivers[driver]) : ''])))
+  const { driver } = row.rule, needsCount = row.rule.unitsPerDriver > 0
+  const [count, setCount] = useState(last?.drivers[driver] != null ? String(last.drivers[driver]) : '')
   const [reason, setReason] = useState('')
-  const entry = { ...(type ? { type } : {}), drivers: Object.fromEntries(Object.entries(counts).filter(([, value]) => value !== '' && Number(value) >= 0).map(([driver, value]) => [driver, Number(value)])) }
+  const entry = { drivers: needsCount && count !== '' && Number(count) >= 0 ? { [driver]: Number(count) } : {} }
   const result = baselineHours(row.rule, entry)
-  const unchanged = last && JSON.stringify({ type: last.type, drivers: last.drivers }) === JSON.stringify({ type: entry.type, drivers: entry.drivers })
+  const unchanged = last && JSON.stringify(last.drivers) === JSON.stringify(entry.drivers)
   return <form className="scope-form" onSubmit={(event) => { event.preventDefault(); onSave({ ...entry, ...(reason.trim() ? { reason: reason.trim() } : {}) }) }}>
-    {types.length > 0 && <label>Release type<select value={type} onChange={(event) => setType(event.target.value)}>{types.map((name) => <option key={name} value={name}>{name} ({row.rule.types[name]}h)</option>)}</select></label>}
-    {drivers.map((driver) => <label key={driver}>{driver}<input type="number" min="0" step="1" required value={counts[driver]} onChange={(event) => setCounts({ ...counts, [driver]: event.target.value })} /></label>)}
+    {needsCount && <label>{driver}<input type="number" min="0" step="1" required value={count} onChange={(event) => setCount(event.target.value)} /></label>}
     <label className="wide-field">Reason{last ? ' (e.g. items scoped in)' : ''}<input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={last ? 'Why the scope changed' : 'Initial scope'} /></label>
-    <div className="scope-result"><span>Baseline</span><strong>{formatHours(result.total)}h</strong><small>{[result.fixed ? `${formatHours(result.fixed)}h type` : '', ...result.lines.map((line) => `${line.label}: ${line.units} units = ${formatHours(line.hours)}h`), result.capped ? `capped at ${formatHours(row.rule.cap)}h` : ''].filter(Boolean).join(' · ') || '—'}</small></div>
+    <div className="scope-result"><span>Baseline</span><strong>{formatHours(result.total)}h</strong><small>{describeRule(row.rule)} = {result.units} units × {row.rule.hoursPerUnit}h = {formatHours(result.uncapped)}h{result.capped ? ` · capped at ${formatHours(row.rule.cap)}h` : ''}</small></div>
     {unchanged && <Notice tone="warning">Same scope as the current baseline; saving adds a version with no change.</Notice>}
     <div className="button-row"><button type="submit" className="primary" disabled={result.missing.length > 0}>{last ? 'Save re-baseline' : 'Save baseline'}</button><button type="button" className="ghost" onClick={onCancel}>Cancel</button></div>
   </form>
