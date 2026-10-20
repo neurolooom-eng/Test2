@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Metric, Metrics, Page, Pill, TablePanel } from '../components/ui'
+import { Metric, Metrics, Page, Panel, Pill, TablePanel } from '../components/ui'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
-import { azureInsights } from '../azureInsights'
-import { formatHours, todayIso } from '../format'
+import { azureInsights, timeWritingGaps } from '../azureInsights'
+import { formatHours, monthName, todayIso } from '../format'
 import type { PageProps } from './types'
 
 type Edit = { originalEstimate?: string; completedWork?: string }
@@ -17,6 +17,7 @@ export function MonthlyPage({ azure, month, store, onOpenConnection }: { azure: 
   const [edits, setEdits] = useState<Record<number, Edit>>({})
   const [saving, setSaving] = useState(false)
   const data = azureInsights(azure.items, month, today)
+  const gaps = timeWritingGaps(azure.items, month)
   const planningPeriod = store.state.periods.find(item => item.month === month)
   const actualPeriod = store.state.periods.find(item => item.month === nextMonth(month))
   const planningLocked = locked(planningPeriod?.planningDeadline ?? `${month}-05T23:59:59`, planningPeriod?.planningLocked, planningPeriod?.planningExtendedUntil, now)
@@ -57,5 +58,19 @@ export function MonthlyPage({ azure, month, store, onOpenConnection }: { azure: 
       <table><thead><tr><th>Epic</th><th>Time Writing User Story</th><th>Month Task</th><th>State</th><th>Original Estimate</th><th>Completed Work</th><th>Tags</th></tr></thead><tbody>{data.epicBreakdown.flatMap(group => data.monthlyTasks.filter(task => group.stories.some(story => story.id === task.parentId)).map(task => { const story = group.stories.find(item => item.id === task.parentId), isAdhoc = adhoc(task.tags); return <tr key={task.key}><td>{group.epic ? <a href={group.epic.url} target="_blank" rel="noreferrer">#{group.epic.id} {group.epic.title}</a> : 'No Epic path'}</td><td>{story ? <a href={story.url} target="_blank" rel="noreferrer">#{story.id} {story.title}</a> : 'No parent story'}</td><td><a href={task.url} target="_blank" rel="noreferrer">#{task.id} {task.title}</a></td><td><Pill tone="info">{task.state}</Pill></td><td><input aria-label={`Original Estimate for ${task.id}`} disabled={planningLocked || isAdhoc || saving} inputMode="decimal" value={editValue(task, 'originalEstimate')} onChange={event => change(task.id, 'originalEstimate', event.target.value)} /></td><td><input aria-label={`Completed Work for ${task.id}`} disabled={actualsLocked || saving} inputMode="decimal" value={editValue(task, 'completedWork')} onChange={event => change(task.id, 'completedWork', event.target.value)} /></td><td>{isAdhoc ? <Pill tone="warning">ad-hoc</Pill> : task.tags || '—'}</td></tr> }))}</tbody></table>
       {!azure.pat.trim() && data.monthlyTasks.length > 0 && <p className="muted">Select an ADS configuration whose PAT has Work Items (Read &amp; Write) to save staged Azure fields.</p>}
     </TablePanel>
+    <GapsPanel gaps={gaps} month={month} />
   </Page>
+}
+
+// Lists what the page did not pick up for the month and why, so naming or hierarchy problems are visible.
+function GapsPanel({ gaps, month }: { gaps: ReturnType<typeof timeWritingGaps>; month: string }) {
+  const label = monthName(month)
+  const total = gaps.storiesWithoutTask.length + gaps.tasksWithoutMonth.length + gaps.tasksWithoutFeature.length
+  const link = (item: { id: number; title: string; url: string }) => <a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a>
+  return <Panel className="admin-section gaps-panel" eyebrow="CHECK" title={total ? `Not picked up for ${label} (${total})` : `Everything picked up for ${label}`}
+    detail={<>A Task is counted for the month when its title starts with the month and year — any delimiter after it (“{label} | …”, “{label.slice(0, 3)} {month.slice(0, 4)} - …”, …). The story above it can have any name; the Feature and Epic come from the parent links. Only items in the saved backlog are checked — the team’s Epic backlog and area paths, or a Time Writing connection’s query — so refresh from Azure and save the preview after adding items.</>}>
+    {gaps.storiesWithoutTask.length > 0 && <details open><summary><Pill tone="warning">{gaps.storiesWithoutTask.length}</Pill> Time Writing stories with no {label} Task</summary><p className="muted">Open stories that held month Tasks before (or say “Time Writing”) but none for {label}. Add the month Task (My work can create them for your Features), or close the story if it is finished.</p><ul>{gaps.storiesWithoutTask.slice(0, 60).map((story) => <li key={story.key}>{link(story)}{story.assignedTo && <small> · {story.assignedTo}</small>}</li>)}</ul></details>}
+    {gaps.tasksWithoutMonth.length > 0 && <details open><summary><Pill tone="warning">{gaps.tasksWithoutMonth.length}</Pill> Tasks under a Time Writing story without a month in the title</summary><p className="muted">Not counted for any month. Start the title with the month, e.g. “{label} | …”.</p><ul>{gaps.tasksWithoutMonth.slice(0, 60).map((task) => <li key={task.key}>{link(task)}</li>)}</ul></details>}
+    {gaps.tasksWithoutFeature.length > 0 && <details open><summary><Pill tone="warning">{gaps.tasksWithoutFeature.length}</Pill> {label} Tasks with no Feature above them</summary><p className="muted">Counted, but not attributed to a stream. Link them under a story or Feature of the right Epic.</p><ul>{gaps.tasksWithoutFeature.slice(0, 60).map(({ task, parent }) => <li key={task.key}>{link(task)}<small> · parent: {parent ? `#${parent.id} ${parent.title} (${parent.workItemType})` : task.parentId ? `#${task.parentId} (not in the saved data)` : 'none'}</small></li>)}</ul></details>}
+  </Panel>
 }

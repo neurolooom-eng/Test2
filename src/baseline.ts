@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { isMonthTask, timeWritingStoryIds } from './azureInsights.ts'
 
 // Baseline = estimation rules per stream, applied to each release's scope. A rule combines:
 //  - fixed hours by release type (e.g. DP: Major 40h, MLD 30h, PU 20h),
@@ -103,10 +104,10 @@ export function releaseBaselines(source: AzureWorkItem[], rules: BaselineRule[],
   const items = [...new Map(source.filter((item) => item.state.trim().toLowerCase() !== 'removed').map((item) => [item.key, item])).values()]
   const byId = new Map(items.map((item) => [item.id, item]))
   const featureOf = (item: AzureWorkItem) => { let current = item.parentId == null ? undefined : byId.get(item.parentId); const seen = new Set<number>(); while (current && current.workItemType !== 'Feature' && !seen.has(current.id)) { seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) } return current?.workItemType === 'Feature' ? current : undefined }
-  const storyIds = new Set(items.filter((item) => item.workItemType === 'User Story' && /\s*-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)).map((item) => item.id))
+  const storyIds = timeWritingStoryIds(items)
   const actual = new Map<number, number>()
   for (const task of items) {
-    if (task.workItemType !== 'Task' || task.parentId == null || !storyIds.has(task.parentId)) continue
+    if (task.workItemType !== 'Task' || !(isMonthTask(task) || (task.parentId != null && storyIds.has(task.parentId)))) continue
     const feature = featureOf(task)
     if (feature) actual.set(feature.id, (actual.get(feature.id) ?? 0) + (Number.isFinite(task.completedWork) ? Math.max(0, task.completedWork!) : 0))
   }

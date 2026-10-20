@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { planMonthStory, timeWritingMonth, timeWritingStoryIds } from './azureInsights.ts'
 
 // "Me" is matched by Azure email (Assigned To unique name) when known, otherwise by display name.
 export interface Me { email?: string; name?: string }
@@ -42,19 +43,20 @@ export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string
 export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
   const chainOf = ancestry(items)
   const inAbsence = (item: AzureWorkItem) => absenceEpicId != null && chainOf(item).some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)
+  const storyIds = timeWritingStoryIds(items), month = timeWritingMonth(monthLabel) ?? ''
   const featureIds = new Set<number>()
   for (const item of items) {
-    if (!isPending(item) || !isMine(item, me) || inAbsence(item)) continue
+    if (!isPending(item) || !isMine(item, me) || inAbsence(item) || storyIds.has(item.id) || timeWritingMonth(item.title)) continue
     if (item.workItemType === 'Feature') featureIds.add(item.id)
-    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature) && !/\s-\s*time\s*writ(?:ing|ting)\s*$/i.test(item.title)) featureIds.add(feature.id) }
+    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature)) featureIds.add(feature.id) }
   }
+  const childrenOf = (id: number) => items.filter((item) => item.parentId === id)
   return items.filter((item) => featureIds.has(item.id)).sort((a, b) => a.title.localeCompare(b.title)).map((feature) => {
     const storyTitle = `${feature.title.trim()} - Time Writing`, taskTitle = `${monthLabel} | ${feature.title.trim()}`
-    const stories = items.filter((item) => item.parentId === feature.id && item.workItemType === 'User Story' && item.title.trim().toLowerCase() === storyTitle.toLowerCase() && item.state.toLowerCase() !== 'removed')
-    if (stories.length > 1) return { feature, storyTitle, taskTitle, status: 'conflict' as const }
-    if (!stories.length) return { feature, storyTitle, taskTitle, status: 'needs-story' as const }
-    const exists = items.some((item) => item.parentId === stories[0].id && item.workItemType === 'Task' && item.title.trim().toLowerCase() === taskTitle.toLowerCase() && item.state.toLowerCase() !== 'removed' && isMine(item, me))
-    return { feature, storyTitle, taskTitle, status: exists ? 'exists' as const : 'needs-task' as const }
+    const children = childrenOf(feature.id)
+    const plan = planMonthStory(children.filter((item) => item.workItemType === 'User Story').map((story) => ({ story, tasks: childrenOf(story.id) })), children.filter((item) => item.workItemType === 'Task'), month, storyTitle, (task) => isMine(task, me))
+    const status = plan.status === 'exists' ? 'exists' as const : plan.status === 'use' ? 'needs-task' as const : plan.status === 'create' ? 'needs-story' as const : 'conflict' as const
+    return { feature, storyTitle: plan.status === 'use' ? plan.story.title : storyTitle, taskTitle, status }
   })
 }
 
