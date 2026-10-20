@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ReleaseSummary } from '../components/ReleaseSummary'
+import { ReleaseQuadrants } from '../components/ReleaseQuadrants'
 import { releaseStreams } from '../releaseOverview'
 import { EmptyState, Metric, Metrics, Page, Panel, Pill, TablePanel, type Tone } from '../components/ui'
 import { HoursTrendChart } from '../components/HoursTrendChart'
@@ -26,8 +26,8 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my }: {
   const settings = capacityContext(store.state)
   const personScope = usePersonScope('demand-planning-overview-view-v1', 'team', my)
   // Two tabs: this month's capacity picture, and the monthly-review trends; the last one opened is remembered.
-  const [tab, setTabState] = useState<'month' | 'trends'>(() => { try { return localStorage.getItem('demand-planning-overview-tab-v1') === 'trends' ? 'trends' : 'month' } catch { return 'month' } })
-  const setTab = (next: 'month' | 'trends') => { setTabState(next); try { localStorage.setItem('demand-planning-overview-tab-v1', next) } catch { /* convenience only */ } }
+  const [tab, setTabState] = useState<'month' | 'trends' | 'releases'>(() => { try { const saved = localStorage.getItem('demand-planning-overview-tab-v1'); return saved === 'trends' || saved === 'releases' ? saved : 'month' } catch { return 'month' } })
+  const setTab = (next: 'month' | 'trends' | 'releases') => { setTabState(next); try { localStorage.setItem('demand-planning-overview-tab-v1', next) } catch { /* convenience only */ } }
   const { scope, individual, who } = personScope
   const items = scope ? itemsForPerson(azure.items, scope, settings) : individual ? [] : azure.items
   const profileLine = (name: string) => [settings.profiles?.[name]?.role, settings.profiles?.[name]?.region].filter(Boolean).join(' · ')
@@ -48,7 +48,6 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my }: {
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
   return <Page>
     <ScopeSwitch scope={personScope} label="Overview for" note="Only this person’s Tasks; regional holidays still apply by region." />
-    {releaseStreamList.length > 0 && <ReleaseSummary streams={releaseStreamList} month={month} />}
     {individual && !scope ? <EmptyState title="Choose whose overview to show." detail="Pick a person above, or set your Azure email on the Time Writing connection to make “Me” the default." /> : <>
     <Metrics>
       <Metric label={individual ? `${who} · utilization` : 'Team utilization'} value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.work)}h booked of ${formatHours(model.totals.available)}h available`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />
@@ -56,8 +55,9 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my }: {
       <Metric label="Has capacity" value={model.counts.hasCapacity} hint={`< ${settings.availableBelow}% of available hours`} tone={model.counts.hasCapacity ? 'positive' : undefined} />
       <Metric label="Absence" value={formatHours(model.totals.absence)} hint={absenceKinds.filter((kind) => model.totals.absenceByKind[kind]).map((kind) => `${kind} ${formatHours(model.totals.absenceByKind[kind])}h`).join(' · ') || `Under Epic #${settings.absenceEpicId}`} />
     </Metrics>
-    <div className="overview-tabs" role="tablist" aria-label="Overview sections">{([['month', `This month · ${monthName(month)}`], ['trends', 'Trends']] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
-    {tab === 'month' ? <>
+    <div className="overview-tabs" role="tablist" aria-label="Overview sections">{([['month', `This month · ${monthName(month)}`], ['releases', `Releases · ${monthName(month)}`], ['trends', 'Trends']] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
+    {tab === 'releases' ? (releaseStreamList.length ? <ReleaseQuadrants streams={releaseStreamList} month={month} /> : <EmptyState title="No release views fetched yet." detail="Fetch the DP, CP and IOCC views (desktop app), or load their data from Git (Settings → Views in Git). A view counts when its documents carry “Release x.y.z” in their paths." />)
+    : tab === 'month' ? <>
     <div className="overview-stack">
       <TablePanel title="Who has capacity" detail={`${monthName(month)} · ${model.workingDays} working days × ${settings.hoursPerDay}h = ${formatHours(model.fundedPerPerson)}h funded per person, less absence.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
         <table><thead><tr><th>Person</th><th>Status</th><th>Available</th><th>Planned</th><th>Booked</th><th>Utilization</th><th>Main stream</th></tr></thead><tbody>{model.people.map((person) => <tr key={person.name}><td><strong>{person.name}</strong>{profileLine(person.name) && <small>{profileLine(person.name)}</small>}{person.absence > 0 && <small>{formatHours(person.absence)}h absence</small>}</td><td><Pill tone={statusTone[person.status]}>{person.status}</Pill></td><td>{formatHours(person.available)}</td><td>{formatHours(person.planned)}</td><td>{formatHours(person.work)}</td><td><div className="load"><div className="progress"><i className={person.status === 'Overloaded' ? 'over' : ''} style={{ width: `${Math.min(100, person.utilization ?? 0)}%` }} /></div><span>{formatPercent(person.utilization)}</span></div></td><td>{person.streams[0]?.title ?? '—'}{person.streams.length > 1 && <small>+{person.streams.length - 1} more</small>}</td></tr>)}</tbody></table>
