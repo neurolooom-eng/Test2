@@ -144,7 +144,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Note the header items.
   3. On Overview, type `2026-13` and then `2026-09` in the month picker.
 - Expected:
-  - The header shows only the title, the data chip with ↻, the month picker (on Overview, Monthly, Baselines, Snapshots and Settings only; not on Documentation), and the theme toggle.
+  - The header shows only the title, the Team/Individual switch (Overview and Monthly only), the data chip with ↻, the month picker (on Overview, Monthly, Baselines, Snapshots and Settings only; not on Documentation), and the theme toggle.
   - Hovering the title shows the page description.
   - No page repeats a header inside its content.
   - `2026-13` is not accepted. `2026-09` updates the page.
@@ -325,7 +325,7 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-TWN-02 Feature and Epic from the chain** — Req TWN-07, TWN-08
 - Steps: open Monthly for October 2026 (TD-02a).
 - Expected:
-  - T1 is shown under Epic DP and story "anything random".
+  - T1 is shown under Epic DP and Feature F1 ("DP | Core | v5.1"); the story's name plays no part.
   - S2 counts as a Time Writing story by its title.
 
 **TC-TWN-03 Story placement plan** — Req TWN-09 — L1 `monthly-hours.test.mjs` (month-task placement).
