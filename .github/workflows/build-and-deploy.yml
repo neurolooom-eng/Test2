@@ -90,8 +90,11 @@ jobs:
     permissions:
       contents: write
 
+  # macOS runners often queue for a long time, so the disk image is built only for main (and tags or manual runs),
+  # not for pull requests, and is published on its own: Web and Windows never wait for it.
   package-macos:
     name: Package macOS application
+    if: github.event_name != 'pull_request'
     runs-on: macos-latest
     timeout-minutes: 40
 
@@ -140,46 +143,87 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  publish-desktop:
-    name: Publish desktop installers
+  publish-windows:
+    name: Publish Windows installer
     if: github.ref == 'refs/heads/main'
-    needs: [validate-and-package, package-macos]
+    needs: validate-and-package
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+    # One publisher at a time: both installers update the same latest.json.
+    concurrency:
+      group: desktop-latest-publish
+      cancel-in-progress: false
 
     steps:
-      - name: Download installers
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download installer
         uses: actions/download-artifact@v4
         with:
-          pattern: demand-planning-*-${{ github.sha }}
+          name: demand-planning-windows-${{ github.sha }}
           path: installers
-          merge-multiple: true
 
-      # One rolling release with fixed file names, so the in-app download links never change.
-      - name: Update the desktop-latest release
+      # One rolling release with fixed file names, so the in-app download links never change. Windows and macOS are
+      # published separately (macOS runners often queue); latest.json keeps a build number per platform.
+      - name: Update the desktop-latest release (Windows)
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
           ls -la installers
-          notes="Latest desktop build from main (build ${GITHUB_RUN_NUMBER}, ${GITHUB_SHA::8}). Windows: Demand-Planning-Hub-Setup.exe. macOS: Demand-Planning-Hub-mac.dmg. Checksums in SHA256SUMS*.txt."
+          notes="Latest desktop builds from main. Windows: Demand-Planning-Hub-Setup.exe. macOS: Demand-Planning-Hub-mac.dmg. Each platform's build number is in latest.json; checksums in SHA256SUMS*.txt."
           if gh release view desktop-latest --repo "$REPO" > /dev/null 2>&1; then
             gh release edit desktop-latest --repo "$REPO" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
+            gh release download desktop-latest --repo "$REPO" --pattern latest.json --dir current || true
           else
             gh release create desktop-latest --repo "$REPO" --target "$GITHUB_SHA" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
           fi
-          # Update information for the in-app updater: build number (= this run, the same number the app shows),
-          # revision, and each installer's size and SHA-256, which the app verifies before installing.
-          node -e '
-            const fs = require("fs"), crypto = require("crypto")
-            const file = (name) => { const data = fs.readFileSync(`installers/${name}`); return { name, size: data.length, sha256: crypto.createHash("sha256").update(data).digest("hex") } }
-            const manifest = { app: "demandplanning", formatVersion: 1, buildNumber: Number(process.env.GITHUB_RUN_NUMBER), revision: process.env.GITHUB_SHA, builtAt: new Date().toISOString(), files: { win32: file("Demand-Planning-Hub-Setup.exe"), darwin: file("Demand-Planning-Hub-mac.dmg") } }
-            fs.writeFileSync("installers/latest.json", JSON.stringify(manifest, null, 2))
-          '
-          cat installers/latest.json
-          gh release upload desktop-latest installers/*.exe installers/*.dmg installers/SHA256SUMS*.txt installers/latest.json --repo "$REPO" --clobber
+          node scripts/desktop-manifest.cjs win32 installers/Demand-Planning-Hub-Setup.exe current/latest.json installers/latest.json
+          gh release upload desktop-latest installers/Demand-Planning-Hub-Setup.exe installers/SHA256SUMS.txt installers/latest.json --repo "$REPO" --clobber
+
+  publish-macos:
+    name: Publish macOS installer
+    if: github.ref == 'refs/heads/main'
+    needs: package-macos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    # One publisher at a time: both installers update the same latest.json.
+    concurrency:
+      group: desktop-latest-publish
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: demand-planning-macos-${{ github.sha }}
+          path: installers
+
+      # One rolling release with fixed file names, so the in-app download links never change. Windows and macOS are
+      # published separately (macOS runners often queue); latest.json keeps a build number per platform.
+      - name: Update the desktop-latest release (macOS)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ls -la installers
+          notes="Latest desktop builds from main. Windows: Demand-Planning-Hub-Setup.exe. macOS: Demand-Planning-Hub-mac.dmg. Each platform's build number is in latest.json; checksums in SHA256SUMS*.txt."
+          if gh release view desktop-latest --repo "$REPO" > /dev/null 2>&1; then
+            gh release edit desktop-latest --repo "$REPO" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
+            gh release download desktop-latest --repo "$REPO" --pattern latest.json --dir current || true
+          else
+            gh release create desktop-latest --repo "$REPO" --target "$GITHUB_SHA" --title "Demand Planning Hub — latest desktop build" --notes "$notes" --prerelease
+          fi
+          node scripts/desktop-manifest.cjs darwin installers/Demand-Planning-Hub-mac.dmg current/latest.json installers/latest.json
+          gh release upload desktop-latest installers/Demand-Planning-Hub-mac.dmg installers/SHA256SUMS-mac.txt installers/latest.json --repo "$REPO" --clobber
 
   build-web-site:
     name: Build browser application

@@ -45,3 +45,18 @@ test('desktop update download keeps only a verified installer from the fixed rel
   assert.equal(existsSync(join(bad, 'Demand-Planning-Hub-Setup.exe')), false, 'a file that fails the checksum is removed')
   await assert.rejects(downloadUpdate(fakeFetch(manifest(60)).fetch, dist(60), bad, undefined, 'win32'), /already the latest/)
 })
+
+const { mergeManifest } = createRequire(import.meta.url)('../scripts/desktop-manifest.cjs')
+test('Windows and macOS publish separately: each platform has its own build; the top level is the oldest', async () => {
+  const win = { size: installer.length, sha256: sha(installer), buildNumber: 101, revision: 'b'.repeat(40), builtAt: '2026-10-20T20:00:00Z' }
+  const merged = mergeManifest(manifest(95), 'win32', win)
+  assert.deepEqual([merged.buildNumber, merged.files.win32.buildNumber, merged.files.darwin.buildNumber, merged.files.darwin.revision], [95, 101, 95, 'abcdef1234567'], 'macOS still at 95, so older apps (top level only) see no update yet')
+  const winCheck = await checkForUpdate(fakeFetch(merged).fetch, dist(95), 'win32')
+  assert.equal(winCheck.available, true); assert.equal(winCheck.latest.buildNumber, 101)
+  assert.equal((await checkForUpdate(fakeFetch(merged).fetch, dist(95), 'darwin')).available, false, 'macOS app: no update until its own installer is published')
+  assert.equal((await downloadUpdate(fakeFetch(merged).fetch, dist(95), mkdtempSync(join(tmpdir(), 'dph-update-')), undefined, 'win32')).buildNumber, 101)
+  const both = mergeManifest(merged, 'darwin', { size: 5, sha256: sha('dmg!!'), buildNumber: 101, revision: 'b'.repeat(40), builtAt: '2026-10-20T21:00:00Z' })
+  assert.equal(both.buildNumber, 101)
+  assert.equal(mergeManifest(null, 'darwin', { size: 5, sha256: sha('dmg!!'), buildNumber: 7, revision: 'c'.repeat(40), builtAt: '' }).buildNumber, 7, 'first publish with no manifest yet')
+  assert.throws(() => validateManifest({ ...merged, files: { win32: { ...merged.files.win32, buildNumber: 0 } } }), /invalid/)
+})
