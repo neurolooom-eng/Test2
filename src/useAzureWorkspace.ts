@@ -28,7 +28,8 @@ const withQueryFields = (config: AzureConfig, refs: string[]) =>
 const refsOf = (layout: { columns: { ref: string }[] }) => layout.columns.map((column) => column.ref)
 
 export interface ConnectionStatus { state: 'busy' | 'ok' | 'error'; message: string; at?: string }
-export interface ConnectionInput { id?: string; name: string; viewName: string; showInMenu: boolean; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
+// cloneOf: the connection this one was cloned from; its saved PAT is used when no new PAT is entered.
+export interface ConnectionInput { id?: string; cloneOf?: string; name: string; viewName: string; showInMenu: boolean; role: AzureConnectionRole; serverUrl: string; organization: string; project: string; team: string; pat: string; query: string; creatorEmail: string; apiVersion: string }
 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 export function useAzureWorkspace(store: PageProps['store']) {
@@ -192,7 +193,7 @@ export function useAzureWorkspace(store: PageProps['store']) {
     const base = collectionUrlFrom(input.serverUrl, input.organization), apiVersion = input.apiVersion.trim()
     const url = composeAzureUrl(base, input.project, input.team)
     if (apiVersion && !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(apiVersion)) throw new Error('API version looks like 7.1, 6.0 or 5.0.')
-    const existing = input.id ? loadAzureConnectionProfile(input.id) : null
+    const existing = input.id ? loadAzureConnectionProfile(input.id) : input.cloneOf ? loadAzureConnectionProfile(input.cloneOf) : null
     const token = input.pat.trim() || existing?.token || ''
     if (!token) throw new Error('Enter the PAT for this connection.')
     const query = input.query.trim()

@@ -240,6 +240,15 @@ Cases marked **UAT** are also run in acceptance testing.
   - Each row reads "In menu as "…"" or "Hidden from menu (backend only)".
   - The dismissed preset stays hidden after the reload.
 
+**TC-CON-07 Clone a connection** — Req CON-20
+- Steps:
+  1. Press Clone on a saved on-prem connection.
+  2. Change only the project, leave the PAT empty, and save.
+- Expected:
+  - The form is titled "Clone of "{name}"", with all fields copied and the name ending "(copy)".
+  - The PAT label says the original's PAT will be used.
+  - After saving, both connections are listed. The clone has the new project and fetches with the original's PAT, and the original is unchanged.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -877,6 +886,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-13, CON-17 | TC-CON-06 |
 | CON-14…16 | TC-CON-04, TC-CON-05 |
 | CON-18 | TC-INS-01 |
+| CON-20 | TC-CON-07 |
 | FET-01, FET-04 | TC-CON-03 |
 | FET-02, FET-03 | TC-FET-01 |
 | FET-05, FET-06, FET-13 | TC-FET-02 |
@@ -963,7 +973,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-UI-01 |
-| UC-02 | TC-CON-01…06, TC-NAV-02 |
+| UC-02 | TC-CON-01…07, TC-NAV-02 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
