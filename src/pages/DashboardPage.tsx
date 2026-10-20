@@ -113,7 +113,7 @@ export function DashboardPage({ month, azure, navigate, store, setMonth, my }: {
       <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
       <p>Available = funded − absence hours (Completed Work on Tasks under Epic #{settings.absenceEpicId}; PTO, Sick Leave and Unplanned Leave are read from the Feature and Task titles).</p>
       <p>Utilization = booked hours (Completed Work on all other {monthName(month)} Time Writing Tasks) ÷ available × 100. Overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
-      <p className="muted">Tasks are matched to the month when their title starts with the month and year (e.g. “{monthName(month)} | …”, any delimiter). Thresholds and the absence Epic are set under Settings → Capacity and absence.</p>
+      <p className="muted">Tasks are matched to the month when their title starts or ends with the month and year (e.g. “{monthName(month)} | …” or “… | {monthName(month)}”, any delimiter). Thresholds and the absence Epic are set under Settings → Capacity and absence.</p>
       <div className="button-row"><button className="text-button" onClick={() => navigate('monthly')}>Open monthly detail →</button><button className="text-button" onClick={() => navigate('admin')}>Capacity settings →</button></div>
     </Panel>
     </>}
