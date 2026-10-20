@@ -234,3 +234,6 @@ input,select,textarea{border-radius:var(--radius-sm);transition:border-color .15
 .update-toast strong,.update-toast span{display:block}
 .update-toast span{color:var(--muted);margin-top:2px}
 @media(max-width:700px){.update-toast{left:16px;right:16px;flex-direction:column;align-items:stretch}}
+/* Dialogs sit above every page layer, including the sticky sidebar, top bar and the update notice. */
+.modal-backdrop{z-index:1000}
+body:has(.modal-backdrop){overflow:hidden}
