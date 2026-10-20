@@ -227,7 +227,7 @@ Stakeholders:
 | MON-02 | In Individual mode the page shall show only the chosen person's Tasks. In Team mode it shall show every person's Tasks. | T | M | UC-04 |
 | MON-03 | In Individual mode with no person chosen and no Me, the page shall show "Choose whose time writing to show, or set your Azure email on the Time Writing connection to make "Me" the default." and list no Tasks. | D | M | UC-04 |
 | MON-04 | The page shall show the metrics "Tasks", "Original Estimate", "Completed Work" and "Staged changes" for the selected month. | D | M | UC-04 |
-| MON-05 | The page shall list each Month Task of the selected month with: Epic, Time Writing User Story, Month Task, State, Original Estimate, Completed Work, Tags. Epic, story and Task shall link to Azure DevOps. | D | M | UC-04 |
+| MON-05 | The page shall list each Month Task of the selected month with: Epic, Feature (the nearest Feature above the Task), Month Task, State, Original Estimate, Completed Work, Tags. Epic, Feature and Task shall link to Azure DevOps. | D | M | UC-04 |
 | MON-06 | Planning for month M shall be locked when the period record of M is explicitly locked, or when the current time is at or after its planning extension (if set), otherwise its planning deadline (default `M-05T23:59:59` local). See OI-03. | T | M | UC-04 |
 | MON-07 | Actuals for month M shall be locked when the period record of M+1 is explicitly locked for actuals, or when the current time is at or after its actuals extension (if set), otherwise its actuals deadline (default `(M+1)-05T23:59:59` local). See OI-02. | T | M | UC-04 |
 | MON-08 | The page shall show the pills "Planning open"/"Planning locked" and "Actuals open"/"Actuals locked". | D | M | UC-04 |

@@ -325,7 +325,7 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-TWN-02 Feature and Epic from the chain** — Req TWN-07, TWN-08
 - Steps: open Monthly for October 2026 (TD-02a).
 - Expected:
-  - T1 is shown under Epic DP and story "anything random".
+  - T1 is shown under Epic DP and Feature F1 ("DP | Core | v5.1"); the story's name plays no part.
   - S2 counts as a Time Writing story by its title.
 
 **TC-TWN-03 Story placement plan** — Req TWN-09 — L1 `monthly-hours.test.mjs` (month-task placement).
