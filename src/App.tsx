@@ -21,7 +21,7 @@ import { DesktopDownload } from './components/DesktopDownload'
 import { useNow } from './useNow'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
-import { backlogViews, loadBacklogTab, saveBacklogTab } from './backlogViews'
+import { backlogViews, loadBacklogTab, saveBacklogTab, timeWritingView } from './backlogViews'
 import { mergeAzureWorkItems } from './azureDevOps'
 import { indiaMonth } from './azureInsights'
 import { monthName, relativeTime } from './format'
@@ -45,10 +45,11 @@ export default function App() {
     if (!(store.state.azureWorkItems?.length)) azure.loadSampleData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.ready])
-  // Azure DevOps views: QMS-0025 (Time Writing) and the read-only views, each in the sidebar and as a tab.
-  const views = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId, store.state.timeWritingViewName)
+  // Azure DevOps views: connections marked "Show in menu", each in the sidebar and as a tab.
+  const views = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId)
+  const timeWriting = timeWritingView(azure.connectionProfiles, azure.activeConnectionProfileId)
   const [viewId, setViewId] = useState(loadBacklogTab)
-  const view = views.find((entry) => entry.id === viewId) ?? views[0]
+  const view = views.find((entry) => entry.id === viewId) ?? views[0] ?? timeWriting
   const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setPage('board') }
   // Azure DevOps connections live at the top of Settings.
   const openConnection = () => setPage('admin')
@@ -62,14 +63,14 @@ export default function App() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">DP</div><div><strong>Demand Planning</strong><span>Quality Engineering</span></div></div>
-      <nav aria-label="Primary navigation">{pageGroups.map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? views.map((entry) => <button key={entry.id} className={page === 'board' && view.id === entry.id ? 'nav-active' : ''} aria-current={page === 'board' && view.id === entry.id ? 'page' : undefined} onClick={() => openView(entry.id)}><span className="nav-icon">{item.icon}</span>{entry.name}</button>) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
+      <nav aria-label="Primary navigation">{pageGroups.filter((group) => group !== 'Azure DevOps' || views.length > 0).map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? views.map((entry) => <button key={entry.id} className={page === 'board' && view.id === entry.id ? 'nav-active' : ''} aria-current={page === 'board' && view.id === entry.id ? 'page' : undefined} onClick={() => openView(entry.id)}><span className="nav-icon">{item.icon}</span>{entry.name}</button>) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
       <div className="sidebar-footer"><DesktopDownload />{buildStatus}</div>
     </aside>
     <main>
       <header className="topbar"><div><p className="eyebrow">{(meta.usesMonth ? monthName(month) : meta.group).toUpperCase()}</p><h1>{page === 'board' ? view.name : meta.label}</h1><p className="page-detail">{meta.detail}</p></div><div className="topbar-actions"><Clock />{my.known && page !== 'mywork' && <button type="button" className="pending-pill" onClick={() => setPage('mywork')} title="Your pending Azure DevOps work"><b>{my.pending.length}</b> pending</button>}<Pill tone={storageTone}><span title={azure.lastRefreshed ? `Azure data refreshed ${new Date(azure.lastRefreshed).toLocaleString()}` : 'Azure data not refreshed in this session'}>{storageLabel}{azure.lastRefreshed ? ` · Azure ${relativeTime(azure.lastRefreshed, now)}` : ''}</span></Pill><label className="month-picker">Month<input type="month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>{page !== 'overview' && <><Pill tone={planningOpen ? 'open' : 'locked'}>Planning {planningOpen ? 'open' : 'locked'}</Pill><Pill tone={actualsOpen ? 'open' : 'locked'}>Actuals {actualsOpen ? 'open' : 'locked'}</Pill></>}<ThemeToggle /></div></header>
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
-      {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} backlogName={views[0].name} />}
+      {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} backlogName={timeWriting.name} />}
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenConnection={openConnection} />}
       {page === 'activities' && <ActivitiesPage azure={azure} onOpenConnection={openConnection} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} onOpenConnection={openConnection} />}

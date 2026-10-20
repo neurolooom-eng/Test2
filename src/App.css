@@ -237,4 +237,7 @@ input,select,textarea{border-radius:var(--radius-sm);transition:border-color .15
 /* Dialogs sit above every page layer, including the sticky sidebar, top bar and the update notice. */
 .modal-backdrop{z-index:1000}
 body:has(.modal-backdrop){overflow:hidden}
-.view-name-form{grid-template-columns:minmax(220px,360px) auto!important;align-items:end;justify-content:start}
+/* Connection form: Show in menu switch with its explanation underneath. */
+.connection-form .menu-toggle{display:grid;grid-template-columns:auto 1fr;align-items:center;align-content:start;column-gap:8px;row-gap:4px;padding-top:24px}
+.connection-form .menu-toggle input{width:auto}
+.connection-form .menu-toggle small{grid-column:1/-1;font-weight:400}

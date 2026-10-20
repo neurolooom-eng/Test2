@@ -169,15 +169,33 @@ test('desktop download: fixed links to the rolling release, OS detection', () =>
   assert.equal(detectOs('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)'), 'other')
 })
 
-import { backlogViews } from '../src/backlogViews.ts'
-test('Azure DevOps views: QMS-0025 first, then only configured backlog views in saved order', () => {
+import { backlogViews, timeWritingView } from '../src/backlogViews.ts'
+import { showsInMenu, viewNameOf } from '../src/azureCredentials.ts'
+test('Azure DevOps menu: connections marked Show in menu, named by View name, backend-only ones hidden', () => {
   const profiles = [
-    { id: 'tw1', reason: 'Old TW', role: 'time-tracking' }, { id: 'dp', reason: 'Digital Platform', role: 'backlog-view' },
-    { id: 'tw2', reason: 'Time Writing', role: 'time-tracking' }, { id: 'ref', reason: 'DHP', role: 'reference' }, { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view' },
+    { id: 'tw1', reason: 'Old TW', role: 'time-tracking' },
+    { id: 'tw2', reason: 'Time Writing', viewName: 'QMS-0025', role: 'time-tracking' },
+    { id: 'dp', reason: 'DP backlog', viewName: 'Digital Platform', role: 'backlog-view' },
+    { id: 'ref', reason: 'DHP', role: 'reference' },
+    { id: 'rel', reason: 'DHFI', role: 'release-source', showInMenu: true },
+    { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view', showInMenu: false },
   ]
-  assert.deepEqual(backlogViews(profiles, 'tw2'), [{ id: 'tw2', name: 'QMS-0025', readOnly: false }, { id: 'dp', name: 'Digital Platform', readOnly: true }, { id: 'cp', name: 'Clinical Platform', readOnly: true }])
+  assert.deepEqual(backlogViews(profiles, 'tw2'), [
+    { id: 'tw2', name: 'QMS-0025', readOnly: false, role: 'time-tracking' },
+    { id: 'dp', name: 'Digital Platform', readOnly: true, role: 'backlog-view' },
+    { id: 'rel', name: 'DHFI', readOnly: true, role: 'release-source' },
+  ], 'reference is hidden by default; a backlog view can be hidden; any source can be shown')
   assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
-  assert.equal(backlogViews(profiles, 'tw2', 'My Backlog')[0].name, 'My Backlog', 'the Time Writing view can be renamed in Settings')
-  assert.equal(backlogViews(profiles, 'tw2', '  ')[0].name, 'QMS-0025')
-  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false }], 'unconfigured views are not listed')
+  assert.deepEqual(backlogViews([{ ...profiles[1], showInMenu: false }], 'tw2'), [], 'the Time Writing backlog can be hidden too')
+  assert.equal(timeWritingView([{ ...profiles[1], showInMenu: false }], 'tw2').name, 'QMS-0025', 'links to the backlog keep its name')
+  assert.deepEqual(backlogViews([], ''), [])
+})
+
+test('View name and Show in menu are saved with the connection', () => {
+  const store = memory()
+  saveAzureConnectionProfile({ id: 'v1', url: composeAzureUrl('https://dev.azure.com/org', 'Quality', 'T'), reason: 'DP backlog', role: 'backlog-view', viewName: '  Digital Platform ', showInMenu: false, token: 'x' }, store)
+  const [summary] = listAzureConnectionProfiles(store)
+  assert.equal(summary.viewName, 'Digital Platform'); assert.equal(summary.showInMenu, false)
+  assert.equal(viewNameOf(summary), 'Digital Platform'); assert.equal(showsInMenu(summary), false)
+  assert.equal(viewNameOf({ reason: 'DHFI' }), 'DHFI'); assert.equal(showsInMenu({ role: 'reference' }), false); assert.equal(showsInMenu({ role: 'backlog-view' }), true)
 })

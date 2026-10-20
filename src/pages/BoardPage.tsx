@@ -16,7 +16,7 @@ export function BoardPage({ azure, store, views, current, onSelect, onOpenConnec
   const [filter, setFilter] = useState('')
   const choose = onSelect
   const tabs = views.length > 1 ? <div className="backlog-tabs" role="tablist" aria-label="Backlog views">{views.map((view) => <button key={view.id} type="button" role="tab" aria-selected={view.id === current.id} className={`backlog-tab ${view.id === current.id ? 'backlog-tab-active' : ''}`} onClick={() => choose(view.id)}>{view.name}{view.readOnly && <small> · read only</small>}</button>)}</div> : undefined
-  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
+  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} tabs={tabs} onOpenConnection={onOpenConnection} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))
   const counts = new Map<string, number>()
@@ -36,8 +36,9 @@ export function BoardPage({ azure, store, views, current, onSelect, onOpenConnec
 }
 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
-function ReadOnlyView({ id, name, azure, store, tabs, onOpenConnection }: { id: string; name: string; azure: AzureWorkspace; store: PageProps['store']; tabs: React.ReactNode; onOpenConnection: () => void }) {
-  const source = (store.state.azureSources ?? []).find((entry) => entry.connectionId === id)
+function ReadOnlyView({ id, name, role, azure, store, tabs, onOpenConnection }: { id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; tabs: React.ReactNode; onOpenConnection: () => void }) {
+  // Release sources keep one snapshot; backlog views, documents and reference data are stored per connection.
+  const source = role === 'release-source' ? store.state.releaseSource : (store.state.azureSources ?? []).find((entry) => entry.connectionId === id)
   const status = azure.connectionStatus[id]
   const profile = loadAzureConnectionProfile(id)
   let config: AzureConfig | null = null
