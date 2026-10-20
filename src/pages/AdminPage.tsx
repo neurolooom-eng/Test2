@@ -7,6 +7,7 @@ import { azureResources, capacityContext, capacityModel, normalizeCapacitySettin
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
+import { WindchillSettingsPanel } from '../components/WindchillSettingsPanel'
 import { AzureConnections } from '../components/AzureConnections'
 import type { PageProps } from './types'
 
@@ -91,8 +92,10 @@ export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps &
   const connectionFailed = store.connection.status === 'error' || store.connection.status === 'conflict'
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   return <Page>
-    <nav className="settings-nav" aria-label="Settings sections">{[['settings-connections', 'Azure DevOps'], ['settings-storage', 'Storage'], ['settings-capacity', 'Capacity & periods'], ['settings-resources', 'Resources'], ['settings-masters', 'Master data'], ['settings-audit', 'Audit']].map(([id, label]) => <button key={id} type="button" className="ghost" onClick={() => jump(id)}>{label}</button>)}</nav>
+    <nav className="settings-nav" aria-label="Settings sections">{[['settings-connections', 'Azure DevOps'], ['settings-windchill', 'Windchill'], ['settings-storage', 'Storage'], ['settings-capacity', 'Capacity & periods'], ['settings-resources', 'Resources'], ['settings-masters', 'Master data'], ['settings-audit', 'Audit']].map(([id, label]) => <button key={id} type="button" className="ghost" onClick={() => jump(id)}>{label}</button>)}</nav>
     <AzureConnections azure={azure} store={store} onOpenBoard={onOpenBoard} />
+    <div id="settings-windchill" className="settings-anchor" />
+    <WindchillSettingsPanel />
     <div id="settings-storage" className="settings-anchor" />
     <GitStoragePanel git={git} />
     <Panel className="connection-panel" eyebrow="CENTRAL DATA" title="SharePoint connection" detail="Uses Microsoft sign-in and stores one versioned JSON data file in the I&D Quality document library. No client secret is stored in the browser." action={<Pill tone={store.connection.mode === 'sharepoint' ? 'open' : connectionFailed ? 'danger' : 'neutral'}>{store.connection.status}</Pill>}>

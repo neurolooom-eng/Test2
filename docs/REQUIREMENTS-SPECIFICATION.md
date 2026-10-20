@@ -177,6 +177,8 @@ Stakeholders:
 | CON-18 | The app shall store connections and their PATs only in localStorage key `demand-planning-azure-connection-profiles-v1`, never in the app state. | I, T | M | UC-02 |
 | CON-19 | The app shall mark a connection with a base URL as "On-prem" in the connection table. | D | C | UC-02 |
 | CON-20 | "Clone" shall open the connection form as a new connection with every setting of the chosen one (name and view name suffixed "(copy)"). Saving it without a PAT shall use the chosen connection's saved PAT. The chosen connection shall not change. | T | S | UC-02 |
+| CON-21 | Settings shall have a "Windchill host" section: host (https only, no user name or password; a pasted page address is reduced to its origin), service path (under /Windchill/, default /Windchill/servlet/odata), login (Windows single sign-on), object type, search parameters and columns to return. It shall be saved in this browser only, with no password stored. | T | S | UC-02 |
+| CON-22 | In the desktop app, "Test connection" shall make one read-only GET to the saved host's service path, offering Windows single sign-on to that host only, and report: connected with the listed service names, sign-on refused (401/403), redirected to a sign-in page (3xx), another status, not JSON, or not reachable. In the web version the test shall be disabled with a note that it runs in the desktop app. | T | S | UC-02 |
 
 ### 3.3 Fetching and saving Azure DevOps data (FET) — UC-03
 

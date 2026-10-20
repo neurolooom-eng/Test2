@@ -249,6 +249,8 @@ Cases marked **UAT** are also run in acceptance testing.
   - The PAT label says the original's PAT will be used.
   - After saving, both connections are listed. The clone has the new project and fetches with the original's PAT, and the original is unchanged.
 
+**TC-CON-08 Windchill host setup and connection test** — Req CON-21, CON-22 — L1 `windchill.test.mjs` (host/path rules, one GET, messages for 401, 3xx and network errors); browser check: http host rejected, page address saved as its origin and kept after reload, Test connection disabled on the web.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -888,6 +890,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-14…16 | TC-CON-04, TC-CON-05 |
 | CON-18 | TC-INS-01 |
 | CON-20 | TC-CON-07 |
+| CON-21, CON-22 | TC-CON-08 |
 | FET-01, FET-04 | TC-CON-03 |
 | FET-02, FET-03 | TC-FET-01 |
 | FET-05, FET-06, FET-13 | TC-FET-02 |
