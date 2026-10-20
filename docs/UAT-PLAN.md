@@ -17,7 +17,7 @@ The scenarios are the test cases marked **UAT** in [TEST-PLAN.md](TEST-PLAN.md).
 | 2 | Monthly Time Writing: scope, locks, staging and save | TC-MON-01, TC-MON-04 |
 | 3 | Assigned to Me: finish, move to the current Sprint, month tasks; Feature creation | TC-ATM-03, TC-ATM-04, TC-ATM-05, TC-BKL-02 |
 | 4 | Overview (This month, Trends), baselines, Git storage | TC-OVR-01, TC-GIT-02 |
-| 5 | Force Update, backup and restore, snapshots (where SharePoint is available) | TC-UPD-02, TC-STO-04, TC-SNP-02 |
+| 5 | Force Update, backup and restore, snapshots (where SharePoint is available), Documentation | TC-UPD-02, TC-STO-04, TC-SNP-02, TC-DOC-01 |
 
 ## Entry criteria
 

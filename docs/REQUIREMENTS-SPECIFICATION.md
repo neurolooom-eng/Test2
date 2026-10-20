@@ -124,6 +124,7 @@ Stakeholders:
 | UC-17 | Install and update the desktop app | All |
 | UC-18 | Explore the app with a synthetic sample dataset | All |
 | UC-19 | Build, verify and deploy the app | App owner (CI) |
+| UC-20 | Read the requirements, test plan and other project documents in the app | All |
 
 ## 3. Functional requirements
 
@@ -136,12 +137,12 @@ Stakeholders:
 | NAV-01 | The app shall show a sidebar with the groups, in this order: "Overview", "My Work", "Azure DevOps", "Data & governance". | D | M | UC-01 |
 | NAV-02 | The app shall list "Overview" under the group "Overview". | D | M | UC-01 |
 | NAV-03 | The app shall list "Assigned to Me" and "Monthly Time Writing", in that order, under the group "My Work". | D | M | UC-01 |
-| NAV-04 | The app shall list "Baselines", "Snapshots" and "Settings", in that order, under the group "Data & governance". | D | M | UC-01 |
+| NAV-04 | The app shall list "Baselines", "Snapshots", "Settings" and "Documentation", in that order, under the group "Data & governance". | D | M | UC-01 |
 | NAV-05 | The app shall list one entry under "Azure DevOps" for each view returned by the view rules in CON-10 to CON-12. | T | M | UC-01, UC-02 |
 | NAV-06 | When no Azure DevOps view exists, the app shall hide the "Azure DevOps" group. | D | S | UC-01 |
 | NAV-07 | The app shall show Azure DevOps views as separate sidebar entries, not as tabs within one page. | D | M | UC-01 |
 | NAV-08 | The header shall contain only: the page title, the data-status chip with its refresh button (FET-10), the month picker on pages that use a month, and the theme toggle. | I | M | UC-01 |
-| NAV-09 | The header shall show the month picker on Overview, Monthly Time Writing, Baselines, Snapshots and Settings. It shall hide the picker on Assigned to Me and the Azure DevOps views. | D | M | UC-01 |
+| NAV-09 | The header shall show the month picker on Overview, Monthly Time Writing, Baselines, Snapshots and Settings. It shall hide the picker on Assigned to Me, the Azure DevOps views and Documentation. | D | M | UC-01 |
 | NAV-10 | The month picker shall accept only values of the form `YYYY-MM`. | T | M | UC-01 |
 | NAV-11 | The month picker shall default to the current month in the Asia/Kolkata time zone. | T | S | UC-01 |
 | NAV-12 | The page title's tooltip shall carry the page description from the page registry. Pages shall not repeat a page header inside the content. | I | S | UC-01 |
@@ -438,7 +439,22 @@ Stakeholders:
 | SMP-03 | In sample mode the app shall show "Showing a synthetic sample dataset, not Azure DevOps data. Refresh from Azure to replace it." | D | M | UC-18 |
 | SMP-04 | The sample shall cover every model the pages use: people with profiles, streams, absence, holidays for three regions, the release source, and release scopes including a re-baseline. | T | S | UC-18 |
 
-### 3.19 User interface (UI)
+### 3.19 Documentation (DOC) — UC-20
+
+*Group rationale: the user asked for a documentation page in the app that holds these documents.*
+
+| ID | Requirement | Ver. | Pri. | Trace |
+|---|---|---|---|---|
+| DOC-01 | The Documentation page shall show, as tabs, every Markdown document in `docs/`: Requirements, Test plan, Verification plan, UAT plan, Azure DevOps setup, Project plan. | T | M | UC-20 |
+| DOC-02 | The page shall show the documents bundled with the running build. | I | M | UC-20 |
+| DOC-03 | The page shall render headings, paragraphs, nested lists, tables, rules, inline code, bold, italic and links as formatted text. It shall not inject HTML from the documents. | T, I | M | UC-20 |
+| DOC-04 | A link to another bundled document shall open that document in the page, at the linked section when an anchor is given. A link to a section shall scroll to it. | T, D | M | UC-20 |
+| DOC-05 | Only https links shall be clickable external links, opening in a new tab. Links of any other scheme shall be shown as plain text. | T | M | UC-20 |
+| DOC-06 | The page shall show an "On this page" list of the document's level-2 sections, linking to each. | D | S | UC-20 |
+| DOC-07 | "Download .md" shall download the shown document under its file name. | D | S | UC-20 |
+| DOC-08 | The page shall remember the selected document in localStorage `demand-planning-docs-tab-v1`. | D | C | UC-20 |
+
+### 3.20 User interface (UI)
 
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
@@ -447,7 +463,7 @@ Stakeholders:
 | UI-03 | Every icon-only button shall have an accessible label. | I | S | UC-01 |
 | UI-04 | Tab rows shall use `role="tablist"`/`role="tab"` with `aria-selected`, and sortable headings shall carry `aria-sort`. | I | S | UC-08, UC-09 |
 
-### 3.20 Build and deployment (CI) — UC-19
+### 3.21 Build and deployment (CI) — UC-19
 
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
@@ -521,5 +537,6 @@ These describe as-built behaviour that is ambiguous, inconsistent, or may not ma
 | UC-17 | DSK-01…10 |
 | UC-18 | SMP-01…04, FET-14, GIT-09, ATM-13 |
 | UC-19 | CI-01…05, UPD-01 |
+| UC-20 | DOC-01…08 |
 
 The forward trace, from requirement to test cases, is in [TEST-PLAN.md §7](TEST-PLAN.md#7-requirements-coverage-matrix).

@@ -120,7 +120,7 @@ Cases marked **UAT** are also run in acceptance testing.
 - Expected:
   - The groups read "Overview", "My Work", "Azure DevOps", "Data & governance", in that order.
   - "My Work" holds "Assigned to Me" then "Monthly Time Writing".
-  - "Data & governance" holds "Baselines", "Snapshots", "Settings".
+  - "Data & governance" holds "Baselines", "Snapshots", "Settings", "Documentation".
   - No "Work items", "Feature milestones" or "Migration" entry exists.
   - Azure DevOps views are separate entries, with no tab row on their pages.
 
@@ -144,7 +144,7 @@ Cases marked **UAT** are also run in acceptance testing.
   2. Note the header items.
   3. On Overview, type `2026-13` and then `2026-09` in the month picker.
 - Expected:
-  - The header shows only the title, the data chip with ↻, the month picker (on Overview, Monthly, Baselines, Snapshots and Settings only), and the theme toggle.
+  - The header shows only the title, the data chip with ↻, the month picker (on Overview, Monthly, Baselines, Snapshots and Settings only; not on Documentation), and the theme toggle.
   - Hovering the title shows the page description.
   - No page repeats a header inside its content.
   - `2026-13` is not accepted. `2026-09` updates the page.
@@ -802,7 +802,31 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
   - Cancelling keeps the real data.
   - The Azure DevOps project shows no requests or changes.
 
-### 6.18 User interface
+### 6.18 Documentation
+
+**TC-DOC-01 Documents and rendering** — Req DOC-01…03, DOC-05 — **UAT** — L1 `markdown.test.mjs` (every document in `docs/` is bundled and parses; anchors, tables, nested lists, inline formatting; link schemes).
+- Steps:
+  1. Open Documentation.
+  2. Open each tab.
+- Expected:
+  - There are six tabs, matching the files in `docs/`.
+  - Headings, tables, nested lists, bold text and code display formatted, with no raw Markdown characters such as `|---|` or `**`.
+  - The panel shows "docs/{file} · this build".
+  - Inspection: the Markdown component builds React elements and does not use `dangerouslySetInnerHTML`.
+
+**TC-DOC-02 Links, sections and download** — Req DOC-04, DOC-06…08
+- Steps:
+  1. In Requirements, click the "TEST-PLAN.md §7" link.
+  2. Click a section in "On this page".
+  3. Press "Download .md".
+  4. Reload the page.
+- Expected:
+  - Step 1 opens the Test plan at "7. Requirements coverage matrix".
+  - Step 2 scrolls to that section.
+  - Step 3 downloads a file with the document's file name and identical content.
+  - After step 4 the last document opened is still shown.
+
+### 6.19 User interface
 
 **TC-UI-01 Theme** — Req UI-01, UI-02 — L1 `theme.test.mjs`.
 - L3 steps:
@@ -820,7 +844,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
   - The tabs use `role="tab"` and `aria-selected`.
   - Sortable headings have `aria-sort`.
 
-### 6.19 CI and deployment
+### 6.20 CI and deployment
 
 **TC-INS-04 Workflow** — Req CI-01…04, NFR-01, IF-01, IF-03, IF-04
 - Inspect `.github/workflows/build-and-deploy.yml` and the source.
@@ -917,6 +941,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DSK-04…06 | TC-DSK-02 |
 | DSK-07…10 | TC-DSK-03 |
 | SMP-01…04 | TC-SMP-01 |
+| DOC-01…03, DOC-05 | TC-DOC-01 |
+| DOC-04, DOC-06…08 | TC-DOC-02 |
 | UI-01, UI-02 | TC-UI-01 |
 | UI-03, UI-04 | TC-INS-03 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
@@ -952,6 +978,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
 | UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04 |
 | UC-19 | TC-INS-04, TC-CI-01 |
+| UC-20 | TC-DOC-01, TC-DOC-02 |
 
 ## 8. Result record
 
