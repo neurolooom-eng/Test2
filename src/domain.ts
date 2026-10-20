@@ -36,7 +36,7 @@ export interface Activity {
   sourceNote?: string
   region?: string
   discipline?: string
-  source: 'Manual' | 'Migration' | 'TFS' | 'Windchill'
+  source: 'Manual' | 'TFS' | 'Windchill'
   createdAt: string
   createdBy: string
 }

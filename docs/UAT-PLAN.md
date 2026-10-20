@@ -14,7 +14,7 @@
 | 1 | Install/open, navigation, roles, masters and activity creation |
 | 2 | Monthly planning, baselines, capacity and 25% flags |
 | 3 | Planning freeze, ad-hoc work, actuals deadline and exception handling |
-| 4 | Historical migration rehearsal and source-to-target reconciliation |
+| 4 | Azure DevOps connections, backlog views and Monthly Time Writing |
 | 5 | Release data, dashboard insights, LTE/PI snapshot and exports |
 
 ## Entry criteria
@@ -28,7 +28,6 @@
 
 - No open critical/high defects
 - All core scenarios passed by at least one non-developer user
-- Migration totals reconciled and exceptions accepted
 - Owner signs off roles, lock behavior and audit evidence
 - Support owner, rollback route and production prerequisites confirmed
 

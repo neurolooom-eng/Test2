@@ -1,5 +1,5 @@
 // Single source for navigation labels, header text and grouping so the sidebar and page header always agree.
-export type Page = 'overview' | 'mywork' | 'activities' | 'monthly' | 'baselines' | 'releases' | 'board' | 'azure' | 'migration' | 'snapshots' | 'admin'
+export type Page = 'overview' | 'mywork' | 'activities' | 'monthly' | 'baselines' | 'releases' | 'board' | 'snapshots' | 'admin'
 export type PageGroup = 'Overview' | 'Time writing' | 'Azure DevOps' | 'Data & governance'
 
 export interface PageMeta { id: Page; label: string; icon: string; group: PageGroup; detail: string; usesMonth: boolean }
@@ -12,10 +12,8 @@ export const pages: PageMeta[] = [
   { id: 'releases', label: 'Feature milestones', icon: '◆', group: 'Time writing', detail: 'Feature dates and states from the same Azure backlog source.', usesMonth: true },
   { id: 'activities', label: 'Work items', icon: '✓', group: 'Time writing', detail: 'The selected-team backlog used across the application.', usesMonth: false },
   { id: 'board', label: 'Backlogs', icon: '▤', group: 'Azure DevOps', detail: 'Plan and track the team’s work in an expandable Epic → Feature → User Story → Task backlog.', usesMonth: false },
-  { id: 'azure', label: 'Azure DevOps', icon: '⇄', group: 'Azure DevOps', detail: 'Configure the connection, save ADS configurations and fetch data.', usesMonth: false },
-  { id: 'migration', label: 'Migration', icon: '⇧', group: 'Data & governance', detail: 'Load the TransformedData tab from the demand-planning Excel workbook or its CSV export.', usesMonth: false },
   { id: 'snapshots', label: 'Snapshots', icon: '▣', group: 'Data & governance', detail: 'Save point-in-time app data to SharePoint for LTE and PI Review; manage browser backups.', usesMonth: true },
-  { id: 'admin', label: 'Administration', icon: '⚙', group: 'Data & governance', detail: 'Periods, capacity settings, resources from Azure, masters, SharePoint connection and audit evidence.', usesMonth: true },
+  { id: 'admin', label: 'Settings', icon: '⚙', group: 'Data & governance', detail: 'Azure DevOps connections, Git and SharePoint storage, capacity, periods, resources, master data and audit.', usesMonth: true },
 ]
 
 export const pageGroups: PageGroup[] = ['Overview', 'Time writing', 'Azure DevOps', 'Data & governance']
