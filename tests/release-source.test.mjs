@@ -138,3 +138,15 @@ test('tracking is an exact match of name and release segments in a Feature title
   const lite = releaseRegister([doc(3, 'DHFI\\Dose Planning\\Release 2.0'), doc(4, 'DHFI\\Dose Planning Lite\\Release 2.0')], [doc(200, 'X', { workItemType: 'Feature', title: 'Art-A, Dose Planning Lite, v.2.0' }), doc(201, 'X', { workItemType: 'Feature', title: 'Art-A, Dose Planning, v.2.0' })])
   assert.deepEqual(lite.map((entry) => [entry.name, entry.features.map((feature) => feature.id)]), [['Dose Planning', [201]], ['Dose Planning Lite', [200]]], 'a Feature goes to the release with the longest name it matches')
 })
+
+import { normalizeVersion } from '../src/releaseSource.ts'
+test('versions equal up to trailing zero parts, for matching and for grouping', () => {
+  assert.deepEqual(['3', '3.0.0.0', 'v3.0', '3.1.0.0', '3.1.1.0', '1.0-beta'].map(normalizeVersion), ['3', '3', '3', '3.1', '3.1.1', '1.0-beta'])
+  assert.equal(tracksRelease('Art-A, Dose Planning, v.3', 'Dose Planning', '3.0.0.0'), true)
+  assert.equal(tracksRelease('Dose Planning 3.1.0.0', 'Dose Planning', '3.1'), true)
+  assert.equal(tracksRelease('Dose Planning v3.1.1', 'Dose Planning', '3.1.1.0'), true)
+  assert.equal(tracksRelease('Dose Planning v3.1.1', 'Dose Planning', '3.1'), false, 'a different version is still different')
+  assert.equal(tracksRelease('Dose Planning v3.10', 'Dose Planning', '3.1'), false)
+  const register = releaseRegister([doc(1, 'DHFI\\Dose Planning\\Release 3.1'), doc(2, 'DHFI\\Dose Planning\\Release 3.1.0.0')], [doc(9, 'X', { workItemType: 'Feature', title: 'Art-A Dose Planning 3.1.0' })])
+  assert.deepEqual(register.map((entry) => [entry.release, entry.documents, entry.features.map((feature) => feature.id)]), [['3.1', 2, [9]]], '3.1 and 3.1.0.0 are one release')
+})

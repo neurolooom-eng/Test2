@@ -130,12 +130,25 @@ export function completedReleases(register: ReleaseEntry[], month: string) {
 // A Feature tracks a release when its title, in any order and format, names the release's name as whole words and its
 // exact version: "Art-A, Dose Planning, v.1.1.0.1", "DP | Dose Planning | v1.1.0.1" or "Dose Planning Release 1.1.0.1".
 // The version may carry "v", "v." or "Rel"/"Release" in front but no other digits around it, so 1.1.0.1 never matches
-// 1.1.0.2, 1.1.0.10 or 11.1.0.1. Extra words (an Art, a program) are allowed.
+// 1.1.0.2, 1.1.0.10 or 11.1.0.1; trailing zero parts do not count (3.1 = 3.1.0.0). Extra words (an Art, a program)
+// are allowed.
 const words = (text: string) => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Versions are equal when they differ only by trailing zero parts: 3 = 3.0.0.0, 3.1 = 3.1.0.0, 3.1.1 = 3.1.1.0.
+// A version with other characters (e.g. 1.0-beta) is compared as written.
+export function normalizeVersion(version: string) {
+  const text = version.trim().toLowerCase().replace(/^v\.?\s*/, '')
+  if (!/^\d+(\.\d+)*$/.test(text)) return text
+  const parts = text.split('.').map((part) => String(Number(part)))
+  while (parts.length > 1 && parts.at(-1) === '0') parts.pop()
+  return parts.join('.')
+}
+const versionToken = /(^|[^\d.])(?:v\.?\s*|rel(?:ease)?\s*[-_:.]?\s*)?(\d+(?:\.\d+)*)(?![\d.]*\d)/gi
 export function tracksRelease(title: string, name: string, release: string) {
   if (!name.trim() || !release.trim() || !words(title).includes(words(name))) return false
-  return new RegExp(`(^|[^\\d.])(?:v\\.?\\s*|rel(?:ease)?\\s*[-_:.]?\\s*)?${escapeRegExp(release.trim())}(?![\\d.]*\\d)`, 'i').test(title)
+  const wanted = normalizeVersion(release)
+  if (!/^\d+(\.\d+)*$/.test(wanted)) return new RegExp(`(^|[^\\d.])(?:v\\.?\\s*|rel(?:ease)?\\s*[-_:.]?\\s*)?${escapeRegExp(release.trim())}(?![\\d.]*\\d)`, 'i').test(title)
+  return [...title.matchAll(versionToken)].some((match) => normalizeVersion(match[2]) === wanted)
 }
 // The Feature title the app creates for a release, in the exact form tracksRelease maps back.
 export const releaseFeatureTitle = (stream: string, name: string, release: string) => `${stream.trim()} | ${name.trim()} | v${release.trim()}`
@@ -145,7 +158,7 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
   for (const item of source ?? []) {
     const found = releaseOf(item)
     if (!found) continue
-    const key = `${found.name}\u0000${found.release}`.toLowerCase()
+    const key = `${found.name}\u0000${normalizeVersion(found.release)}`.toLowerCase()
     const entry = entries.get(key) ?? { key: `${found.name} ${found.release}`, name: found.name, release: found.release, documents: 0, items: [], tracked: false, trackedBy: [], features: [], planned: 0, booked: 0, hourTasks: 0 }
     entry.documents += 1; entry.items.push(item)
     if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate) }
