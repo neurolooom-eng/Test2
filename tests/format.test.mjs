@@ -9,7 +9,8 @@ test('formatHours renders missing values as a dash and rounds to two decimals', 
 })
 test('formatPercent and formatDate keep dashes for missing data', () => {
   assert.equal(formatPercent(null), '—'); assert.equal(formatPercent(87.456), '87.5%'); assert.equal(formatPercent(50, 0), '50%')
-  assert.equal(formatDate(undefined), '—'); assert.equal(formatDate(undefined, 'No target date'), 'No target date'); assert.equal(formatDate('2026-10-31T10:00:00Z'), '2026-10-31')
+  assert.equal(formatDate(undefined), '—'); assert.equal(formatDate(undefined, 'No target date'), 'No target date'); { const india = formatDate('2026-09-30T20:00:00Z', '—', 'Asia/Kolkata'), ny = formatDate('2026-09-30T20:00:00Z', '—', 'America/New_York'); assert.ok(india.includes('October') && /\b1\b/.test(india), india); assert.ok(ny.includes('September') && /\b30\b/.test(ny), ny) }
+  assert.ok(formatDate('2026-10-31').includes('October') && formatDate('2026-10-31').includes('31'), 'a plain date stays that calendar date')
 })
 test('formatDateTime falls back on empty or unparsable input', () => {
   assert.equal(formatDateTime(undefined, 'Confirmed this session'), 'Confirmed this session'); assert.equal(formatDateTime('not a date'), '—')

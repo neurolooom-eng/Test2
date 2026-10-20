@@ -24,7 +24,7 @@ import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
 import { backlogViews, loadBacklogTab, saveBacklogTab, timeWritingView } from './backlogViews'
 import { mergeAzureWorkItems } from './azureDevOps'
-import { indiaMonth } from './azureInsights'
+import { todayIso } from './format'
 import { HeaderSlot } from './headerSlot'
 
 export default function App() {
@@ -44,7 +44,8 @@ export default function App() {
   const my = useMyWork(azure, store)
   const [page, setPage] = useState<Page>('overview')
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
-  const [month, setMonth] = useState(() => indiaMonth(new Date().toISOString())!)
+  // The selected month starts on the viewer's current month (their time zone).
+  const [month, setMonth] = useState(() => todayIso().slice(0, 7))
   const meta = pageMeta(page)
   const sampleRequested = useRef(new URLSearchParams(window.location.search).get('sample') === '1')
   useEffect(() => {

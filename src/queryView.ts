@@ -1,3 +1,4 @@
+import { formatDate } from './format.ts'
 import type { AzureWorkItem } from './domain'
 import { releaseOf } from './releasePath.ts'
 
@@ -94,7 +95,7 @@ export function columnName(ref: string, names: Record<string, string> = {}) {
 const isDate = (value: FieldValue | undefined): value is string => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)
 export function formatCell(value: FieldValue | undefined) {
   if (value == null || value === '') return ''
-  if (isDate(value)) return value.slice(0, 10)
+  if (isDate(value)) return formatDate(value)
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   return String(value)
 }
