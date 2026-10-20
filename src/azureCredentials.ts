@@ -17,7 +17,7 @@ const valid = (profile: unknown): profile is AzurePatProfile => Boolean(profile 
 const validConnection = (profile: unknown): profile is AzureConnectionProfile => {
   if (!profile || typeof profile !== 'object') return false
   const value = profile as AzureConnectionProfile
-  if (typeof value.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(value.id) || typeof value.url !== 'string' || typeof value.reason !== 'string' || !value.reason.trim() || typeof value.token !== 'string' || !value.token.trim()) return false
+  if (typeof value.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(value.id) || typeof value.url !== 'string' || typeof value.reason !== 'string' || !value.reason.trim() || typeof value.token !== 'string') return false
   try {
     const url = new URL(value.url)
     if (url.protocol !== 'https:' || url.username || url.password) return false

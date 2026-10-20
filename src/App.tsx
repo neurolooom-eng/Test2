@@ -13,7 +13,8 @@ import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
 import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
-import { useAzureWorkspace } from './useAzureWorkspace'
+import { useAzureWorkspace, type FetchListener } from './useAzureWorkspace'
+import { sharedThroughGit } from './gitSnapshots'
 import { useGitStorage } from './useGitStorage'
 import { useMyWork } from './useMyWork'
 import { MyWorkPage } from './pages/MyWorkPage'
@@ -28,8 +29,18 @@ import { HeaderSlot } from './headerSlot'
 
 export default function App() {
   const store = useAppStore()
-  const azure = useAzureWorkspace(store)
+  const onFetched = useRef<FetchListener | undefined>(undefined)
+  const azure = useAzureWorkspace(store, onFetched)
   const git = useGitStorage(store, azure.isSample)
+  // Desktop app: every on-prem read-only fetch is saved to Git, so the web app can show it.
+  onFetched.current = (profile, source) => { if (window.azureDevOps && git.connected && !azure.isSample && sharedThroughGit(profile)) void git.pushSnapshot(profile, source) }
+  // Web app: the on-prem views come from Git (loaded once at start; Settings → Views in Git loads again).
+  const pulled = useRef(false)
+  useEffect(() => {
+    if (pulled.current || window.azureDevOps || !store.ready || !git.connected || azure.isSample || git.status === 'loading') return
+    pulled.current = true
+    void git.pullSnapshots().then(() => azure.reloadConnectionProfiles()).catch(() => { /* shown when loading from Settings */ })
+  }, [store.ready, git, azure])
   const my = useMyWork(azure, store)
   const [page, setPage] = useState<Page>('overview')
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
@@ -72,7 +83,7 @@ export default function App() {
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} />}
-      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} onOpenConnection={openConnection} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}

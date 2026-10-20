@@ -253,6 +253,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-09 Views in Git** — Req CON-23, CON-24 — L1 `view-definitions.test.mjs` (no PAT in the file, stable order, wrong files rejected, PAT order on restore, others untouched, file next to the data file); browser check with a mocked GitHub: Save writes azure-views.json without the PAT.
 
+**TC-CON-10 On-prem view data through Git** — Req CON-25, CON-26 — L1 `git-snapshots.test.mjs` (only on-prem read-only views, no PAT in the file, digest ignores fetch times, newer-only apply, raw read and version id for large files); browser checks with a mocked GitHub: a simulated desktop fetch commits azure-data/dp.json once and reports “Unchanged” on an identical fetch; the web app with no connections loads the view from Git, shows “(desktop app, via Git)”, and Refresh says there is no PAT.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -894,6 +896,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-20 | TC-CON-07 |
 | CON-21, CON-22 | TC-CON-08 |
 | CON-23, CON-24 | TC-CON-09 |
+| CON-25, CON-26 | TC-CON-10 |
 | FET-01, FET-04 | TC-CON-03 |
 | FET-02, FET-03 | TC-FET-01 |
 | FET-05, FET-06, FET-13 | TC-FET-02 |

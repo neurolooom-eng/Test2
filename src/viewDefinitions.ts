@@ -1,5 +1,7 @@
 import { listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials.ts'
 
+export { clean as cleanView }
+
 // The Azure DevOps connections (views and their queries) kept in the Git data repository for safe keeping and to set
 // up another computer: one JSON file next to the planning data. PATs are never written; on restore, a connection
 // keeps the PAT it already has here, else uses the PAT entered for the restore, else one saved here for the same
@@ -32,9 +34,9 @@ export function serverKey(view: Pick<AzureConnectionProfileSummary, 'url' | 'bas
   try { const url = new URL(view.url); return `${url.origin}/${url.pathname.split('/').filter(Boolean)[0] ?? ''}`.toLowerCase() } catch { return '' }
 }
 
-export interface RestoreResult { added: string[]; updated: string[]; skipped: string[] }
+export interface RestoreResult { added: string[]; updated: string[]; skipped: string[]; noPat: string[] }
 export function restoreViews(views: AzureConnectionProfileSummary[], pat: string, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage): RestoreResult {
-  const result: RestoreResult = { added: [], updated: [], skipped: [] }
+  const result: RestoreResult = { added: [], updated: [], skipped: [], noPat: [] }
   const local = listAzureConnectionProfiles(storage)
   const tokenFor = (view: AzureConnectionProfileSummary) => {
     const existing = loadAzureConnectionProfile(view.id, storage)?.token
@@ -46,7 +48,8 @@ export function restoreViews(views: AzureConnectionProfileSummary[], pat: string
   for (const view of views) {
     const token = tokenFor(view)
     const name = view.viewName || view.reason
-    if (!token) { result.skipped.push(name); continue }
+    // Without a PAT the connection is still restored, to show the data saved to Git; fetching needs a PAT.
+    if (!token) result.noPat.push(name)
     const existed = Boolean(loadAzureConnectionProfile(view.id, storage))
     try { saveAzureConnectionProfile({ ...view, token }, storage); (existed ? result.updated : result.added).push(name) } catch { result.skipped.push(name) }
   }
