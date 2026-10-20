@@ -23,6 +23,6 @@ export function DataNotices({ azure, onOpenConnection }: { azure: AzureWorkspace
     {!items.length && !busy && !preview && <Notice className="notice-split"><span>No source data loaded yet. <button className="text-button" onClick={onOpenConnection}>Fetch work items from Azure DevOps →</button></span><button className="ghost" onClick={azure.loadSampleData}>Load synthetic sample</button></Notice>}
     {isSample && <Notice tone="warning">Showing a synthetic sample dataset, not Azure DevOps data. Refresh from Azure to replace it.</Notice>}
     {error && <Notice tone="error">{error} Previously loaded data has been retained.</Notice>}
-    {message && <Notice>{message}</Notice>}
+    {message && <Notice className="notice-dismissible"><span>{message}</span><button type="button" className="notice-close" aria-label="Dismiss message" onClick={() => azure.setMessage('')}>×</button></Notice>}
   </div>
 }
