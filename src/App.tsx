@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import './fresh.css'
 import { useAppStore } from './store'
 import { Notice } from './components/ui'
 import { ThemeToggle } from './components/Clock'
