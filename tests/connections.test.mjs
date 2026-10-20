@@ -150,3 +150,12 @@ test('Windows app proxy: version fallback, redirects refused, certificate errors
   await assert.rejects(requestAzureDevOps({ ...input, project: 'Other' }, async () => new Response('', { status: 302, headers: { location: 'https://login' } })), /redirected/)
   await assert.rejects(requestAzureDevOps({ ...input, project: 'Other2' }, async () => { const error = new TypeError('fetch failed'); error.cause = { code: 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY' }; throw error }), /certificate/)
 })
+
+import { connectionPresets, pendingPresets, presetProjectUrl } from '../src/connectionPresets.ts'
+test('pre-filled connections: DHP on-prem and the cloud Time Writing project, until saved or dismissed', () => {
+  const dhp = connectionPresets.find((preset) => preset.key === 'dhp-on-prem')
+  assert.equal(presetProjectUrl(dhp), 'https://tfsapac04.ta.philips.com/tfs/DHPCollection/DHP')
+  assert.deepEqual(pendingPresets([], []).map((preset) => preset.key), ['time-writing-cloud', 'dhp-on-prem'])
+  assert.deepEqual(pendingPresets([{ url: 'https://tfsapac04.ta.philips.com/tfs/DHPCollection/DHP' }], []).map((preset) => preset.key), ['time-writing-cloud'], 'saved → no longer offered')
+  assert.deepEqual(pendingPresets([{ url: 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics' }], ['dhp-on-prem']), [], 'saved with a team URL, or dismissed')
+})
