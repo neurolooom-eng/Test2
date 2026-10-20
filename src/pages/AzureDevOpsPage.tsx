@@ -5,6 +5,7 @@ import { formatDateTime } from '../format'
 import { loadAzureConnectionProfile, splitAzureUrl, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
+import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
 import type { PageProps } from './types'
 
 const roleLabel: Record<AzureConnectionRole, string> = { 'time-tracking': 'Time Writing (read & write)', 'release-source': 'Releases · DHFI (read only)', documents: 'Documents · Vault (read only)', reference: 'Reference (read only)' }
@@ -22,6 +23,8 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
   const [form, setForm] = useState<ConnectionInput | null>(null)
   const [formError, setFormError] = useState('')
   const [fetchingAll, setFetchingAll] = useState(false)
+  const [dismissed, setDismissed] = useState(loadDismissedPresets)
+  const presets = pendingPresets(connectionProfiles, dismissed)
   const sources = store.state.azureSources ?? []
   const releaseSource = store.state.releaseSource
 
@@ -54,6 +57,11 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
     <AzureSourceBar azure={azure} showRefresh={false}>{preview && <button className="ghost" onClick={onOpenBoard}>Review in Backlogs →</button>}</AzureSourceBar>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" detail="Time Writing previews before saving; release, document and reference connections are saved as soon as they are fetched. Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
+      {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
+        <div><strong>{preset.name}</strong><small>{preset.serverUrl ? `${preset.serverUrl.replace('https://', '')}/${preset.organization}` : `dev.azure.com/${preset.organization}`} · {preset.project}{preset.team ? ` · team ${preset.team}` : ''}</small></div>
+        <Pill tone="warning">Needs PAT</Pill>
+        <div className="button-row nowrap"><button type="button" className="primary" onClick={() => { setFormError(''); setForm({ ...preset, pat: '' }) }}>Set up</button><button type="button" className="text-button" onClick={() => { const next = [...dismissed, preset.key]; setDismissed(next); saveDismissedPresets(next) }}>Dismiss</button></div>
+      </div>)}</div>}
       {connectionProfiles.length ? <div className="azure-table"><table className="connection-table"><thead><tr><th>Connection</th><th>Used for</th><th>Organization / project</th><th>Query</th><th>Status</th><th /></tr></thead><tbody>{connectionProfiles.map((profile) => {
         const parts = splitAzureUrl(profile.url, profile.baseUrl), [tone, label] = statusTone(profile), status = connectionStatus[profile.id]
         const active = profile.role === 'time-tracking' && profile.id === activeConnectionProfileId
@@ -66,9 +74,9 @@ export function AzureDevOpsPage({ azure, store, onOpenBoard }: { azure: AzureWor
           <td><div className="button-row nowrap"><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(profile.id)}>Fetch</button><button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.testConnection(profile.id)}>Test</button><button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove “${profile.reason}” from this browser? Its PAT is not revoked in Azure DevOps.`)) azure.removeConnection(profile.id) }}>Remove</button></div></td>
         </tr>
       })}</tbody></table></div>
-        : <EmptyState title="No connections yet." detail="Add your Time Writing project first, then the DHFI release source and any other read-only sources." />}
+        : presets.length ? null : <EmptyState title="No connections yet." detail="Add your Time Writing project first, then the DHFI release source and any other read-only sources." />}
       {form && <form className="connection-editor" onSubmit={submit}>
-        <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>
+        <h3>{form.id ? `Edit “${connectionProfiles.find((profile) => profile.id === form.id)?.reason ?? form.name}”` : 'New connection'}</h3>{!form.id && form.organization && <Notice>Pre-filled settings: enter your PAT, change anything else if needed, then Save and Test.</Notice>}
         <div className="connection-form">
           <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Time Writing, DHFI releases, Vault" /></label>
           <label>Used for<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as AzureConnectionRole })}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
