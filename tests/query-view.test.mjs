@@ -38,3 +38,9 @@ test('summary: counts by state, type and person; overdue open items; changed thi
   assert.deepEqual(summary.byPerson, [['Ana', 2], ['Unassigned', 1]]); assert.equal(summary.overdue, 1); assert.equal(summary.changedThisWeek, 1)
   assert.equal(viewCsv([item(5, { title: 'A, "b"' })], [{ ref: 'System.Id', name: 'ID' }, { ref: 'System.Title', name: 'Title' }]), 'ID,Title\r\n5,"A, ""b"""')
 })
+
+test('query columns are read with or without square brackets, in any mix', () => {
+  assert.deepEqual(queryLayout('SELECT System.Id, System.Title, Microsoft.VSTS.Common.Priority FROM WorkItems WHERE System.TeamProject = @project').columns, ['System.Id', 'System.Title', 'Microsoft.VSTS.Common.Priority'])
+  assert.deepEqual(queryLayout('﻿select [System.Id],\r\n\tSystem.Title from workitems where [System.State] <> \'Closed\' ORDER BY System.State DESC, [System.Id] asc'), { columns: ['System.Id', 'System.Title'], orderBy: [{ ref: 'System.State', desc: true }, { ref: 'System.Id', desc: false }] })
+  assert.deepEqual(queryLayout('SELECT System.Id FROM WorkItems WHERE System.TeamProject = @project').columns, defaultViewColumns)
+})
