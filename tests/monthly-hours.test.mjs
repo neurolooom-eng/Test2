@@ -103,3 +103,63 @@ test('resource list comes from Azure assignees and reconciles with the monthly c
   }
   assert.deepEqual(azureResources([], '2026-10'), [])
 })
+
+import { timeWritingMonth, isTimeWritingStory, timeWritingGaps } from '../src/azureInsights.ts'
+test('Time Writing naming: month prefixes and story titles are matched tolerantly', () => {
+  for (const title of ['October 2026 | DP', 'Oct 2026 - DP', 'october-2026: DP', 'OCT 2026 – DP', '2026-10 | DP', '2026/10 - DP', 'Oct, 2026 | DP', 'October 2026 / DP', 'October 2026 > DP', 'Oct. 2026 DP', 'October 2026', '[October 2026'.slice(1)]) assert.equal(timeWritingMonth(title), '2026-10', title)
+  assert.equal(timeWritingMonth('Sept 2026 | x'), '2026-09')
+  for (const title of ['DP | Dose Planning | v4.2', 'Review October 2026 | x', '2026 | x', 'October 26 | x', 'Octopus 2026 | x', 'October 20261 | x', '2026-13 | x']) assert.equal(timeWritingMonth(title), undefined, title)
+  for (const title of ['DP | Dose Planning | v4.2 - Time Writing', 'Time Writing - DP', 'DP Time writing', 'TimeWriting Q4', 'Time-Writing']) assert.equal(isTimeWritingStory({ workItemType: 'User Story', title }), true, title)
+  assert.equal(isTimeWritingStory({ workItemType: 'User Story', title: 'Writing time estimates' }), false)
+  assert.equal(isTimeWritingStory({ workItemType: 'Task', title: 'Time Writing' }), false)
+})
+
+test('Time Writing gaps: stories without the month task, tasks without a month, month tasks without a Feature', () => {
+  const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: '', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '' }
+  const at = (id, workItemType, title, parentId, extra = {}) => ({ ...base, key: `o/p/${id}`, id, workItemType, title, parentId, ...extra })
+  const items = [
+    at(20, 'Feature', 'DP | v4'), at(1, 'User Story', 'Time Writing - DP', 20), at(2, 'Task', 'October 2026 | DP', 1),
+    at(3, 'User Story', 'CP hours', 20), at(4, 'Task', 'September 2026 | CP', 3), at(5, 'Task', 'Weekly support', 3),
+    at(6, 'User Story', 'SFV review'), at(7, 'Task', 'Oct 2026 - SFV', 6),
+    at(8, 'User Story', 'QMS - Time Writing', undefined, { state: 'Closed' }),
+    at(9, 'User Story', 'Milestone: design review', 20), at(10, 'Task', 'Prepare slides', 9),
+  ]
+  const gaps = timeWritingGaps(items, '2026-10')
+  assert.deepEqual(gaps.storiesWithoutTask.map((item) => item.id), [3], 'any story holding month tasks counts; closed and milestone stories are not flagged')
+  assert.deepEqual(gaps.tasksWithoutMonth.map((item) => item.id), [5])
+  assert.deepEqual(gaps.tasksWithoutFeature.map(({ task, parent }) => [task.id, parent.id]), [[7, 6]])
+})
+
+import { azureInsights, planMonthStory } from '../src/azureInsights.ts'
+test('Time Writing is found from the month Task, whatever the story is called', () => {
+  const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: 'Asha', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '' }
+  const at = (id, workItemType, title, parentId, extra = {}) => ({ ...base, key: `o/p/${id}`, id, workItemType, title, parentId, ...extra })
+  const items = [
+    at(1, 'Epic', 'DP'), at(2, 'Feature', 'DP | v4', 1),
+    at(3, 'User Story', 'Hours for v4', 2), at(4, 'Task', 'Oct-2026 DP v4', 3, { originalEstimate: 10, completedWork: 12 }),
+    at(5, 'User Story', 'Design review', 2), at(6, 'Task', 'Prepare slides', 5, { completedWork: 99 }),
+    at(7, 'Task', 'October 2026: support', 2, { completedWork: 3 }),
+  ]
+  const insight = azureInsights(items, '2026-10', '2026-10-20')
+  assert.deepEqual(insight.monthlyTasks.map((item) => item.id).sort(), [4, 7])
+  assert.equal(insight.actual.value, 15)
+  assert.deepEqual(insight.epicBreakdown.map((group) => [group.epic?.title, group.tasks]), [['DP', 2]])
+  const model = capacityModel(items, '2026-10')
+  assert.equal(model.people.find((person) => person.name === 'Asha').work, 15, 'non-month tasks under other stories are not booked hours')
+})
+
+test('Month task placement: reuse any month task of mine, otherwise the right story, never a duplicate', () => {
+  const at = (id, workItemType, title, extra = {}) => ({ id, workItemType, title, state: 'Active', assignedTo: 'Asha', ...extra })
+  const mine = (item) => item.assignedTo === 'Asha'
+  const random = { story: at(3, 'User Story', 'Hours for v4'), tasks: [at(4, 'Task', 'Sep 2026 - v4')] }
+  const milestone = { story: at(5, 'User Story', 'Design review'), tasks: [at(6, 'Task', 'Prepare slides')] }
+  assert.deepEqual(planMonthStory([random, milestone], [], '2026-10', 'DP | v4 - Time Writing', mine), { status: 'use', story: random.story })
+  const done = { story: random.story, tasks: [...random.tasks, at(7, 'Task', 'Oct. 2026 / v4')] }
+  assert.equal(planMonthStory([done], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'exists')
+  assert.equal(planMonthStory([milestone], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'create', 'a milestone story is never used')
+  const other = { story: at(8, 'User Story', 'Ben hours'), tasks: [at(9, 'Task', 'Sep 2026 | v4', { assignedTo: 'Ben' })] }
+  assert.equal(planMonthStory([random, other], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'use', 'the story holding my tasks wins')
+  const third = { story: at(10, 'User Story', 'More hours'), tasks: [at(11, 'Task', 'Aug 2026 | v4', { assignedTo: 'Ben' })] }
+  assert.equal(planMonthStory([other, third], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'conflict')
+  assert.equal(planMonthStory([], [at(12, 'Task', 'October 2026 | v4')], '2026-10', 'x', mine).status, 'exists', 'a month task directly under the Feature counts')
+})

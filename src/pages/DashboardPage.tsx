@@ -5,7 +5,9 @@ import { DonutChart, EpicBulletChart, EpicMixChart, ParetoChart, UtilizationChar
 import { epicColors, shortFeatureTitle } from '../chartUtils'
 import { AzureSourceBar } from '../components/AzureSourceBar'
 import type { AzureWorkspace } from '../useAzureWorkspace'
-import { capacityContext, capacityModel, monthlyHours, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
+import type { MyWork } from '../useMyWork'
+import type { Me } from '../myWork'
+import { capacityContext, capacityModel, itemsForPerson, monthlyHours, problemBreakdown, absenceKinds, type LoadStatus } from '../capacity'
 import { formatHours, formatPercent, monthName } from '../format'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
@@ -18,27 +20,44 @@ function LevelToggle({ value, onChange }: { value: Level; onChange: (value: Leve
   return <div className="viz-range" role="group" aria-label="Group by">{(['feature', 'epic'] as const).map((level) => <button key={level} type="button" className={value === level ? 'primary' : 'ghost'} aria-pressed={value === level} onClick={() => onChange(level)}>By {level === 'feature' ? 'Feature' : 'Epic'}</button>)}</div>
 }
 
-export function DashboardPage({ month, azure, navigate, store, setMonth }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void }) {
+type View = 'team' | 'individual'
+const viewKey = 'demand-planning-overview-view-v1'
+
+export function DashboardPage({ month, azure, navigate, store, setMonth, my }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
   const settings = capacityContext(store.state)
+  const [view, setViewState] = useState<View>(() => { try { return localStorage.getItem(viewKey) === 'individual' ? 'individual' : 'team' } catch { return 'team' } })
+  const [person, setPerson] = useState('')
+  const setView = (next: View) => { setViewState(next); try { localStorage.setItem(viewKey, next) } catch { /* convenience only */ } }
+  const scope: Me | null = view === 'individual' ? (person ? { name: person } : my.known ? my.me : null) : null
+  const individual = view === 'individual'
+  const items = scope ? itemsForPerson(azure.items, scope, settings) : individual ? [] : azure.items
+  const who = scope ? scope.name ?? scope.email ?? 'Me' : 'Team'
   const profileLine = (name: string) => [settings.profiles?.[name]?.role, settings.profiles?.[name]?.region].filter(Boolean).join(' · ')
-  const model = capacityModel(azure.items, month, settings)
+  const model = capacityModel(items, month, settings)
   const [span, setSpan] = useState<6 | 12>(12)
-  const trend = monthlyHours(azure.items, month, span, settings)
+  const trend = monthlyHours(items, month, span, settings)
   const trendTotals = trend.filter((point) => point.actual != null)
   const fundedOver = Math.max(0, model.totals.work + model.totals.absence - model.totals.funded)
-  const problems = problemBreakdown(azure.items, trend.map((point) => point.month), settings)
+  const problems = problemBreakdown(items, trend.map((point) => point.month), settings)
   const [overrunLevel, setOverrunLevel] = useState<Level>('feature')
   const [adhocLevel, setAdhocLevel] = useState<Level>('epic')
   const matrixMax = Math.max(1, ...model.people.flatMap((person) => person.streams.map((stream) => stream.work)))
   // Epic colours come from a fixed 12-month window so switching 6/12 months never repaints an Epic.
-  const colors = epicColors(span === 12 ? trend : monthlyHours(azure.items, month, 12, settings))
+  const colors = epicColors(span === 12 ? trend : monthlyHours(items, month, 12, settings))
   const matrixStreams = model.streams.slice(0, maxMatrixStreams)
   const otherStreams = model.streams.slice(maxMatrixStreams)
   const personOther = (streams: typeof model.people[number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
   return <Page>
     <AzureSourceBar azure={azure} onOpenConnection={() => navigate('azure')}><button className="ghost" onClick={() => navigate('board')}>Open Backlogs</button></AzureSourceBar>
+    <div className="view-switch" role="group" aria-label="Overview for">
+      <span>Overview for</span>
+      {(['team', 'individual'] as const).map((value) => <button key={value} type="button" className={view === value ? 'primary' : 'ghost'} aria-pressed={view === value} onClick={() => setView(value)}>{value === 'team' ? 'Team' : 'Individual'}</button>)}
+      {individual && <select aria-label="Person" value={person} onChange={(event) => setPerson(event.target.value)}><option value="">{my.known ? `Me (${my.me.name ?? my.me.email})` : 'Choose a person…'}</option>{my.people.map((name) => <option key={name}>{name}</option>)}</select>}
+      {individual && <small>Only this person’s Tasks; regional holidays still apply by region.</small>}
+    </div>
+    {individual && !scope ? <EmptyState title="Choose whose overview to show." detail="Pick a person above, or set your Azure email on the Time Writing connection to make “Me” the default." /> : <>
     <Metrics>
-      <Metric label="Team utilization" value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.work)}h booked of ${formatHours(model.totals.available)}h available`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />
+      <Metric label={individual ? `${who} · utilization` : 'Team utilization'} value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.work)}h booked of ${formatHours(model.totals.available)}h available`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />
       <Metric label="Overloaded" value={model.counts.overloaded} hint={`≥ ${settings.overloadedAt}% of available hours`} tone={model.counts.overloaded ? 'negative' : undefined} />
       <Metric label="Has capacity" value={model.counts.hasCapacity} hint={`< ${settings.availableBelow}% of available hours`} tone={model.counts.hasCapacity ? 'positive' : undefined} />
       <Metric label="Absence" value={formatHours(model.totals.absence)} hint={absenceKinds.filter((kind) => model.totals.absenceByKind[kind]).map((kind) => `${kind} ${formatHours(model.totals.absenceByKind[kind])}h`).join(' · ') || `Under Epic #${settings.absenceEpicId}`} />
@@ -94,8 +113,9 @@ export function DashboardPage({ month, azure, navigate, store, setMonth }: { mon
       <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
       <p>Available = funded − absence hours (Completed Work on Tasks under Epic #{settings.absenceEpicId}; PTO, Sick Leave and Unplanned Leave are read from the Feature and Task titles).</p>
       <p>Utilization = booked hours (Completed Work on all other {monthName(month)} Time Writing Tasks) ÷ available × 100. Overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
-      <p className="muted">Tasks are matched to the month by the “{monthName(month)} | …” title convention. Thresholds and the absence Epic are set under Administration → Capacity and absence.</p>
+      <p className="muted">Tasks are matched to the month when their title starts with the month and year (e.g. “{monthName(month)} | …”, any delimiter). Thresholds and the absence Epic are set under Administration → Capacity and absence.</p>
       <div className="button-row"><button className="text-button" onClick={() => navigate('monthly')}>Open monthly detail →</button><button className="text-button" onClick={() => navigate('admin')}>Capacity settings →</button></div>
     </Panel>
+    </>}
   </Page>
 }
