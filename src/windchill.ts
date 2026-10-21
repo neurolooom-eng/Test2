@@ -40,5 +40,5 @@ export function saveWindchillSettings(settings: WindchillSettings) {
   localStorage.setItem(storageKey, JSON.stringify(settings))
 }
 
-export interface WindchillTestResult { ok: boolean; status: number; message: string; services: string[] }
-declare global { interface Window { windchill?: { test: (request: { host: string; servicePath: string }) => Promise<WindchillTestResult>; query?: (request: { host: string; servicePath: string; path: string }) => Promise<{ rows: Record<string, unknown>[] }> } } }
+export interface WindchillTestResult { ok: boolean; status: number; message: string; services: string[]; signIn?: boolean }
+declare global { interface Window { windchill?: { test: (request: { host: string; servicePath: string }) => Promise<WindchillTestResult>; query?: (request: { host: string; servicePath: string; path: string }) => Promise<{ rows: Record<string, unknown>[] }>; signIn?: (request: { host: string; servicePath: string }) => Promise<WindchillTestResult>; signOut?: () => Promise<{ ok: boolean }> } } }
