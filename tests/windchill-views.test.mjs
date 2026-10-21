@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { buildWindchillQuery, validateWindchillView, windchillCell } from '../src/windchillViews.ts'
+import { buildWindchillQuery, validateWindchillView, windchillCell, windchillSearchUrl, parseWindchillPage } from '../src/windchillViews.ts'
 import { windchillSnapshotFile, parseWindchillSnapshot, applyWindchillSnapshots } from '../src/windchillSnapshots.ts'
 const { queryWindchill } = createRequire(import.meta.url)('../electron/windchill.cjs')
 
@@ -45,4 +45,19 @@ test('Windchill results through Git: no credentials, newer results replace older
   assert.deepEqual(applyWindchillSnapshots([source('2026-10-19T10:00:00Z', 1)], [file]).sources.map((entry) => [entry.rows.length, entry.fromGit]), [[3, true]])
   assert.deepEqual(applyWindchillSnapshots([source('2026-10-21T10:00:00Z', 1)], [file]).applied, [])
   assert.throws(() => parseWindchillSnapshot('{"schema":1,"kind":"azure-view-snapshot"}'), /not a Windchill view snapshot/)
+})
+
+test('browser route: the search address to open, and results saved or copied from the browser', () => {
+  const service = 'https://plm.example.com/Windchill/servlet/odata'
+  assert.equal(windchillSearchUrl(`${service}/`, view), `${service}/${buildWindchillQuery(view)}`)
+  const page = parseWindchillPage('\uFEFF{"@odata.context":"x","value":[{"Number":"DHF-1"},null,{"Number":"DHF-2"}],"@odata.nextLink":"v7/DocMgmt/Documents?$skiptoken=2"}', service)
+  assert.deepEqual(page.rows, [{ Number: 'DHF-1' }, { Number: 'DHF-2' }])
+  assert.equal(page.next, `${service}/v7/DocMgmt/Documents?$skiptoken=2`, 'a relative next link resolves under the service')
+  assert.equal(parseWindchillPage('{"value":[],"@odata.nextLink":"https://evil.example.com/Windchill/servlet/odata/x"}', service).next, '', 'a next link to another host is dropped')
+  assert.equal(parseWindchillPage('{"value":[],"@odata.nextLink":"https://plm.example.com/other/x"}', service).next, '', 'a next link outside the service is dropped')
+  assert.equal(parseWindchillPage('{"value":[]}', service).next, '')
+  assert.throws(() => parseWindchillPage('<html><title>Sign in to your account</title></html>', service), /web page, not the search results/)
+  assert.throws(() => parseWindchillPage('not json', service), /not the JSON/)
+  assert.throws(() => parseWindchillPage('[{"id":"DocMgmt"}]', service), /domain list/)
+  assert.throws(() => parseWindchillPage('{"error":{"message":"Invalid property Foo"}}', service), /error: Invalid property Foo/)
 })

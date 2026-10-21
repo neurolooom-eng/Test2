@@ -145,3 +145,4 @@ td small{color:var(--text-3)}
 .topbar .view-switch>span{font-size:12px;color:var(--text-3)}
 .topbar .view-switch select{min-width:170px;padding:6px 10px;font-size:12.5px}
 @media(max-width:1000px){.topbar .view-switch>span{display:none}}
+.windchill-import{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:8px 0}.windchill-import a.ghost,.windchill-import label.ghost{display:inline-flex;align-items:center;text-decoration:none;cursor:pointer;font-size:12.5px;font-weight:600}.windchill-import label.ghost input{display:none}

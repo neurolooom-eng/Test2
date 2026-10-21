@@ -149,7 +149,7 @@ export interface AppState {
   releasePlans?: ReleasePlan[]
   // Read-only snapshots from additional Azure connections (backlog views, document sources such as Vault, reference data).
   // Windchill views' last results (Settings → Windchill views), fetched from the desktop app or loaded from Git.
-  windchillSources?: { viewId: string; name: string; fetchedAt: string; query: string; columns: string[]; rows: Record<string, unknown>[]; fromGit?: boolean }[]
+  windchillSources?: { viewId: string; name: string; fetchedAt: string; query: string; columns: string[]; rows: Record<string, unknown>[]; next?: string; fromGit?: boolean }[]
   azureSources?: { connectionId: string; name: string; role: 'documents' | 'reference' | 'backlog-view' | 'release-source'; fromGit?: boolean; organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[]; unresolved?: string[] }[]
 }
 
