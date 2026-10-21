@@ -24,11 +24,18 @@ test('desktop connection test: one GET to the service root; clear messages for r
   assert.throws(() => windchillUrl({ host: 'https://plm.example.com', servicePath: '/api' }), /Windchill/)
   const calls = []
   const ok = await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async (url, options) => { calls.push([url, options.method]); return Response.json({ value: [{ name: 'ProdMgmt' }, { name: 'DocMgmt' }] }) })
+  const req = { host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }
+  const xml = await testWindchill(req, async () => new Response('<service><workspace><collection href="ProdMgmt"/><collection href="DocMgmt"/></workspace></service>', { headers: { 'content-type': 'application/xml' } }))
+  assert.deepEqual([xml.ok, xml.services], [true, ['ProdMgmt', 'DocMgmt']], 'an XML service list is accepted')
+  const login = await testWindchill(req, async () => new Response('<html><title>Windchill Login</title></html>', { headers: { 'content-type': 'text/html' } }))
+  assert.match(login.message, /text\/html from \/Windchill\/servlet\/odata \(page title “Windchill Login”\).*sign-in page/)
+  const other = await testWindchill(req, async () => new Response('<html><title>Windchill</title></html>', { headers: { 'content-type': 'text/html' } }))
+  assert.match(other.message, /may not be enabled at this path/)
   assert.deepEqual(calls, [['https://plm.example.com/Windchill/servlet/odata', 'GET']])
   assert.deepEqual([ok.ok, ok.services], [true, ['ProdMgmt', 'DocMgmt']])
   assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => new Response('', { status: 401 }))).message, /single sign-on/)
   const followed = []
-  const sameHost = await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async (url, options) => { followed.push(options.redirect); return { ok: true, status: 200, url: 'https://plm.example.com/Windchill/servlet/odata/', json: async () => ({ value: [{ name: 'DocMgmt' }] }) } })
+  const sameHost = await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async (url, options) => { followed.push(options.redirect); return { ok: true, status: 200, url: 'https://plm.example.com/Windchill/servlet/odata/', text: async () => JSON.stringify({ value: [{ name: 'DocMgmt' }] }) } })
   assert.deepEqual([followed, sameHost.ok, sameHost.services], [['follow'], true, ['DocMgmt']], 'a redirect on the same host is followed, as in a browser')
   assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => ({ ok: true, status: 200, url: 'https://login.example.com/sso', json: async () => ({}) }))).message, /sign-in page on login\.example\.com/)
   assert.match((await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async () => { throw new Error('ENOTFOUND') })).message, /Could not reach/)
