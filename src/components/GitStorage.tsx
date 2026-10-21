@@ -31,6 +31,7 @@ export function GitSyncBar({ git, onOpenSettings }: { git: GitStorage; onOpenSet
   const [commit, setCommit] = useState('')
   if (!git.connected) return <Notice tone="warning" className="git-bar">Baselines and the region / role mapping are saved only in this browser until Git storage is connected.{onOpenSettings && <> <button type="button" className="text-button" onClick={onOpenSettings}>Set up Git storage →</button></>}</Notice>
   if (git.status === 'error' || git.status === 'conflict') return <Notice tone="error" className="git-bar">{git.message} <button type="button" className="text-button" onClick={() => void git.load()}>Load latest from Git</button></Notice>
+  if (git.readOnly) return <Notice tone="info" className="git-bar">View only: your Git token can read but not save, so baselines and the mapping are shown as in Git. Ask a People Manager (or anyone with write access) to change them.</Notice>
   if (git.isSample && (git.dirty || git.status === 'empty')) return <Notice tone="warning" className="git-bar">Synthetic sample data is loaded: changes stay in this browser and are not saved to Git.</Notice>
   if (git.dirty || git.status === 'empty') return <form className="git-bar git-bar-dirty" onSubmit={(event) => { event.preventDefault(); void git.save(commit).then(() => setCommit('')) }}>
     <span><strong>Unsaved changes</strong> — not yet in Git</span>

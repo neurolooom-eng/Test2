@@ -53,3 +53,25 @@ test('write: one commit with the loaded sha; a concurrent change is a conflict',
   assert.equal('sha' in sent, false, 'creating the file sends no sha'); assert.equal(sent.message, 'Update planning data'); assert.equal(created.sha, 'new')
   await assert.rejects(writePlanningFile(config, 't', data, 'old', 'x', async () => response(409, {})), GitConflictError)
 })
+
+import { canWrite } from '../src/gitStorage.ts'
+test('write check: read-only tokens are told apart without writing anything', async () => {
+  const config = { owner: 'o', repo: 'r', branch: 'main', path: 'planning-data.json' }
+  const run = async (push, probeStatus) => {
+    const calls = []
+    const result = await canWrite(config, 't', async (url, init = {}) => {
+      calls.push([init.method ?? 'GET', url, init.body])
+      return url.endsWith('/repos/o/r') ? Response.json({ permissions: { push } }) : new Response('{}', { status: probeStatus })
+    })
+    return { result, calls }
+  }
+  const noPush = await run(false, 422)
+  assert.equal(noPush.result, false, 'no write permission on the repository')
+  assert.equal(noPush.calls.length, 1, 'no probe needed')
+  const fineGrainedReadOnly = await run(true, 403)
+  assert.equal(fineGrainedReadOnly.result, false, 'the user may write, but this token may not')
+  assert.deepEqual(fineGrainedReadOnly.calls[1], ['PUT', 'https://api.github.com/repos/o/r/contents/.demand-planning-write-check', '{}'], 'the probe carries no content, so nothing can be written')
+  assert.equal((await run(true, 422)).result, true, 'an incomplete write is rejected only after the token is allowed to write')
+  assert.equal((await run(true, 500)).result, null, 'unknown')
+  assert.equal(await canWrite(config, 't', async () => new Response('', { status: 401 })), null)
+})

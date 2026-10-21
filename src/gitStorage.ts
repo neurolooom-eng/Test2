@@ -66,6 +66,20 @@ async function failure(response: Response, config: GitConfig, action: string): P
   return new Error(`GitHub could not ${action} (HTTP ${response.status})${detail ? `: ${detail}` : ''}.`)
 }
 
+// Whether the token may write to the repository (null when unknown). The repository's permissions say what the user
+// may do; a fine-grained token can still be read-only, so an empty write follows: GitHub refuses it (403) for a token
+// without write access, and rejects it as incomplete (422) otherwise. It has no content, so nothing is ever written.
+export async function canWrite(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<boolean | null> {
+  const repo = await fetchImpl(`${api}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}`, { headers: headers(token), cache: 'no-store' })
+  if (!repo.ok) return null
+  const permissions = ((await repo.json()) as { permissions?: { push?: unknown } }).permissions
+  if (permissions?.push === false) return false
+  const probe = await fetchImpl(fileUrl({ ...config, path: '.demand-planning-write-check' }), { method: 'PUT', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: '{}' })
+  if (probe.status === 403 || probe.status === 404) return false
+  if (probe.status === 400 || probe.status === 422) return true
+  return null
+}
+
 // Reads the data file. A missing file (with an accessible repository) returns data null so it can be created.
 export async function readPlanningFile(config: GitConfig, token: string, fetchImpl: Fetch = fetch): Promise<{ data: PlanningData | null; sha: string | null }> {
   const response = await fetchImpl(`${fileUrl(config)}?ref=${encodeURIComponent(config.branch)}`, { headers: headers(token), cache: 'no-store' })
