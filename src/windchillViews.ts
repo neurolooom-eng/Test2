@@ -47,6 +47,34 @@ export function buildWindchillQuery(input: WindchillView) {
   return `${view.entitySet}?${filter ? `$filter=${encodeURIComponent(filter)}&` : ''}$select=${encodeURIComponent(select)}`
 }
 
+// The view's search as a full address, opened in the browser where the company sign-in works.
+export function windchillSearchUrl(serviceUrl: string, view: WindchillView) {
+  return `${serviceUrl.replace(/\/+$/, '')}/${buildWindchillQuery(view)}`
+}
+
+// One page of results saved (or copied) from the browser: {"value": [...]} with the server's next-page link, kept
+// only when it stays on the same https service.
+export function parseWindchillPage(text: string, serviceUrl: string): { rows: Record<string, unknown>[]; next: string } {
+  const trimmed = text.replace(/^\uFEFF/, '').trim()
+  if (trimmed.startsWith('<')) throw new Error('This is a web page, not the search results. Wait until the browser shows the results (text starting with {"@odata.context" or {"value"), then save or copy that page.')
+  let body: Record<string, unknown>
+  try { body = JSON.parse(trimmed) } catch { throw new Error('This is not the JSON of a Windchill search. Save the page that shows the results, or copy all of its text.') }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('This JSON is not a Windchill search result; it may be the domain list.')
+  const failure = body.error as { message?: unknown } | undefined
+  if (failure && typeof failure === 'object') throw new Error(`Windchill answered with an error: ${String(failure.message ?? 'no message')}`)
+  if (!Array.isArray(body.value)) throw new Error('This JSON has no list of results ("value"); it may be the domain list.')
+  const rows = body.value.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
+  let next = ''
+  const link = body['@odata.nextLink']
+  if (typeof link === 'string') {
+    try {
+      const root = new URL(serviceUrl), url = new URL(link, `${root.href.replace(/\/+$/, '')}/`)
+      if (url.protocol === 'https:' && url.origin === root.origin && url.pathname.toLowerCase().startsWith(`${root.pathname.replace(/\/+$/, '').toLowerCase()}/`)) next = url.href
+    } catch { /* no usable next page */ }
+  }
+  return { rows, next }
+}
+
 // A cell: follows a path such as State/Value; objects show their Display or Value.
 export function windchillCell(row: Record<string, unknown>, column: string): string {
   let value: unknown = row
