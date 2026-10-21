@@ -13,7 +13,7 @@ import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
 import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
-import { useAzureWorkspace, type FetchListener } from './useAzureWorkspace'
+import { useAzureWorkspace, type FetchListener, type GitDataSource } from './useAzureWorkspace'
 import { sharedThroughGit } from './gitSnapshots'
 import { useGitStorage } from './useGitStorage'
 import { useWindchill } from './useWindchill'
@@ -26,24 +26,38 @@ import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
 import { backlogViews, loadBacklogTab, saveBacklogTab, timeWritingView } from './backlogViews'
 import { mergeAzureWorkItems } from './azureDevOps'
-import { todayIso } from './format'
+import { formatDateTime, todayIso } from './format'
 import { HeaderSlot } from './headerSlot'
 
 export default function App() {
   const store = useAppStore()
   const onFetched = useRef<FetchListener | undefined>(undefined)
-  const azure = useAzureWorkspace(store, onFetched)
+  const gitData = useRef<GitDataSource | undefined>(undefined)
+  const azure = useAzureWorkspace(store, onFetched, gitData)
   const git = useGitStorage(store, azure.isSample)
+  // On-prem views can load the data the desktop app saved to Git: on request, or when a fetch cannot run.
+  gitData.current = {
+    available: (id) => { const profile = azure.connectionProfiles.find((entry) => entry.id === id); return Boolean(git.connected && !azure.isSample && profile && sharedThroughGit(profile)) },
+    load: async (id) => {
+      const result = await git.pullSnapshot(id)
+      if (!result) return null
+      return result.applied ? `loaded the data saved to Git (fetched ${formatDateTime(result.fetchedAt)})` : `the data here is already the latest in Git (fetched ${formatDateTime(result.fetchedAt)})`
+    },
+  }
   const windchill = useWindchill(store, git)
   // Desktop app: every on-prem read-only fetch is saved to Git, so the web app can show it.
   onFetched.current = (profile, source) => { if (window.azureDevOps && git.connected && !azure.isSample && sharedThroughGit(profile)) void git.pushSnapshot(profile, source) }
-  // Web app: the on-prem views come from Git (loaded once at start; Settings → Views in Git loads again).
+  // At start with Git storage: the shared connection setup in Git is the default for every user (connections
+  // changed here are kept); the web app also loads the on-prem view data and Windchill exports saved to Git.
   const pulled = useRef(false)
   useEffect(() => {
-    if (pulled.current || window.azureDevOps || !store.ready || !git.connected || azure.isSample || git.status === 'loading') return
+    if (pulled.current || !store.ready || !git.connected || azure.isSample || git.status === 'loading') return
     pulled.current = true
-    void git.pullSnapshots().then(() => azure.reloadConnectionProfiles()).catch(() => { /* shown when loading from Settings */ })
-    void git.pullWindchill().then(() => windchill.reload()).catch(() => { /* shown when loading from Settings */ })
+    const web = !window.azureDevOps
+    void git.syncViews().catch(() => null)
+      .then(() => web ? git.pullSnapshots() : undefined).catch(() => { /* shown when loading from Settings */ })
+      .finally(() => azure.reloadConnectionProfiles())
+    if (web) void git.pullWindchill().then(() => windchill.reload()).catch(() => { /* shown when loading from Settings */ })
   }, [store.ready, git, azure, windchill])
   const my = useMyWork(azure, store)
   const [page, setPage] = useState<Page>('overview')

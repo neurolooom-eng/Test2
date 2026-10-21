@@ -6,6 +6,7 @@ import { formatDateTime } from './format'
 import { applyWindchillSnapshots, parseWindchillSnapshot, windchillDigest, windchillFolder, windchillSnapshotFile, type WindchillSnapshotFile, type WindchillSource } from './windchillSnapshots'
 import { loadWindchillViews, saveWindchillViews, type WindchillView } from './windchillViews'
 import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials'
+import { parseViews, syncViewsFromGit } from './viewDefinitions'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
 
@@ -73,6 +74,16 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     if (!viewsConfig || !token) throw new Error('Connect Git storage first.')
     return readTextFile(viewsConfig, token)
   }
+  // At start: the shared connection setup in Git becomes this browser's default (connections changed here are kept).
+  const [viewsSync, setViewsSync] = useState('')
+  async function syncViews() {
+    const file = await readViews()
+    if (file.text == null) return null
+    const result = syncViewsFromGit(parseViews(file.text))
+    const parts = [result.added.length && `${result.added.length} added (${result.added.join(', ')})`, result.updated.length && `${result.updated.length} updated (${result.updated.join(', ')})`, result.kept.length && `kept as changed here: ${result.kept.join(', ')}`].filter(Boolean)
+    setViewsSync(parts.length ? `Connections from Git: ${parts.join('; ')}.${result.noPat.length ? ` No PAT here yet for ${result.noPat.join(', ')}: they show the data saved to Git; add a PAT in Settings to fetch.` : ''}` : 'Connections are the same as in Git.')
+    return result
+  }
   async function writeViews(text: string, commitMessage: string) {
     if (!viewsConfig || !token) throw new Error('Connect Git storage first.')
     if (isSample) throw new Error('Synthetic sample data is loaded. Saving to Git is disabled.')
@@ -118,6 +129,19 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     return { files: files.length, applied, added, failed }
   }
 
+  // One on-prem view's data from Git (Load from Git, or the fallback when a fetch cannot run): null when Git has
+  // none; the data here is replaced only by a newer fetch.
+  async function pullSnapshot(connectionId: string) {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    const text = await readRawFile(siblingConfig(config, `${snapshotFolder}/${snapshotFileName(connectionId)}`), token)
+    if (!text) return null
+    const file = parseSnapshot(text)
+    if (file.connection.id !== connectionId) throw new Error(`${snapshotFileName(connectionId)} in Git belongs to another view.`)
+    const applied = applySnapshots(store.state.azureSources, [file]).applied.length > 0
+    if (applied) store.update((draft) => { draft.azureSources = applySnapshots(draft.azureSources, [file]).sources; return draft })
+    return { applied, fetchedAt: file.source.fetchedAt }
+  }
+
   // Windchill views: the same, in windchill-data/<view>.json.
   async function pushWindchill(view: WindchillView, source: WindchillSource) {
     const id = `wc:${view.id}`
@@ -154,6 +178,6 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     setConfig(null); setToken(''); setSynced(null); setStatus('off'); setMessage('Git storage disconnected in this browser. The data stays in the app and in the repository.'); sha.current = null
   }
 
-  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, snapshotNotes, pushSnapshot, pullSnapshots, pushWindchill, pullWindchill, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
+  return { config, connected, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, syncViews, viewsSync, snapshotNotes, pushSnapshot, pullSnapshot, pullSnapshots, pushWindchill, pullWindchill, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
 }
 export type GitStorage = ReturnType<typeof useGitStorage>

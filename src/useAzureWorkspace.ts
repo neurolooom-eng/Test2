@@ -34,7 +34,10 @@ export interface ConnectionInput { id?: string; cloneOf?: string; name: string; 
 // Kept at the app level so navigation between connection settings and Board preserves a fetched preview.
 // onFetched: told about every saved read-only fetch (the app saves on-prem ones to Git from the desktop app).
 export type FetchListener = (profile: AzureConnectionProfileSummary, source: NonNullable<PageProps['store']['state']['azureSources']>[number]) => void
-export function useAzureWorkspace(store: PageProps['store'], onFetched?: { current: FetchListener | undefined }) {
+// gitData: a view's data saved to Git (on-prem views, Git storage connected): Load from Git, and the fallback when a
+// fetch fails or this browser has no PAT. load returns what it did, or null when Git has nothing for the view.
+export interface GitDataSource { available: (id: string) => boolean; load: (id: string) => Promise<string | null> }
+export function useAzureWorkspace(store: PageProps['store'], onFetched?: { current: FetchListener | undefined }, gitData?: { current: GitDataSource | undefined }) {
   const [projectUrl, setProjectUrl] = useState(defaultUrl)
   const [team, setTeam] = useState('InD Quality')
   const [connectionProfiles, setConnectionProfiles] = useState<AzureConnectionProfileSummary[]>(() => listAzureConnectionProfiles())
@@ -230,7 +233,10 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
     const summary = connectionProfiles.find((entry) => entry.id === id)
     if (!profile) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'Saved connection not found in this browser.' } })); return false }
     const role = profile.role ?? 'time-tracking'
-    if (!profile.token.trim()) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'No PAT in this browser: this view shows the data the desktop app saved to Git. Add the PAT in Settings to fetch here.' } })); return false }
+    if (!profile.token.trim()) {
+      if (await fallBackToGit(id, 'No PAT in this browser')) return false
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'No PAT in this browser: this view shows the data the desktop app saved to Git. Add the PAT in Settings to fetch here.' } })); return false
+    }
     setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Fetching…' } }))
     try {
       const parsed = connectionConfig(profile)
@@ -295,11 +301,30 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
       return true
     } catch (failure) {
       const text = failure instanceof Error ? failure.message : 'Unable to fetch this connection.'
+      if (await fallBackToGit(id, `Fetch failed (${text})`)) return false
       setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: text } }))
       setError(`${summary?.reason ?? profile.reason}: ${text}`)
       return false
     }
   }
+
+  // Load from Git: the view's data saved to Git by the desktop app. Also the fallback when a fetch cannot run.
+  async function loadFromGit(id: string, reason = '') {
+    const source = gitData?.current
+    if (!source?.available(id)) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: 'Load from Git needs Git storage connected (Settings → Storage) and an on-prem view.' } })); return false }
+    setConnectionStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Loading from Git…' } }))
+    try {
+      const done = await source.load(id)
+      if (!done) { setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: `${reason ? `${reason}; ` : ''}Git has no saved data for this view yet (the desktop app saves it at each fetch).` } })); return false }
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'ok', message: `${reason ? `${reason}; ` : ''}${done}`, at: new Date().toISOString() } }))
+      return true
+    } catch (failure) {
+      setConnectionStatus((current) => ({ ...current, [id]: { state: 'error', message: `${reason ? `${reason}; ` : ''}Load from Git failed: ${failure instanceof Error ? failure.message : String(failure)}` } }))
+      return false
+    }
+  }
+  const fallBackToGit = (id: string, reason: string) => gitData?.current?.available(id) ? loadFromGit(id, reason) : Promise.resolve(false)
+  const canLoadFromGit = (id: string) => Boolean(gitData?.current?.available(id))
 
   // Checks address, collection, project, PAT and API version with an empty query; reads nothing, writes nothing.
   async function testConnection(id: string) {
@@ -353,7 +378,7 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
     setMessage(`${preview.items.length} team-backlog records saved. Old out-of-scope cached records were replaced; Azure DevOps and demand-planning data were not modified.`)
   }
 
-  return { reloadConnectionProfiles: () => setConnectionProfiles(listAzureConnectionProfiles()), projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
+  return { reloadConnectionProfiles: () => setConnectionProfiles(listAzureConnectionProfiles()), projectUrl, changeProjectUrl, team, setTeam, pat, setPat, creatorEmail, setCreatorEmail, role, setRole, connectionStatus, saveConnection, removeConnection, fetchConnection, loadFromGit: (id: string) => loadFromGit(id), canLoadFromGit, fetchAll, testConnection, applyWorkItems, isSample, loadSampleData, connectionProfiles, activeConnectionProfileId, selectConnectionProfile, saveConnectionProfile, forgetConnectionProfile, busy, error, setError, message, setMessage, preview, setPreview, saved, items, config, needsScopedRefresh, fetchPreview, refresh, lastRefreshed, rememberPat, forgetPat, featureCreated, savePreview, saveTimeWritingEffort }
 }
 
 export type AzureWorkspace = ReturnType<typeof useAzureWorkspace>

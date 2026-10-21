@@ -55,3 +55,38 @@ export function restoreViews(views: AzureConnectionProfileSummary[], pat: string
   }
   return result
 }
+
+// The shared connection setup in Git is every user's default; a user may still change a connection here. At start
+// (Git storage connected) connections missing here are added, and those not changed here since the last sync follow
+// Git; connections changed here are kept as they are. Nothing is deleted. The PAT handling is as for a restore.
+const baselineKey = 'demand-planning-views-git-baseline-v1'
+const fingerprint = (view: AzureConnectionProfileSummary) => JSON.stringify(clean(view))
+function readBaseline(storage: Pick<Storage, 'getItem'>): Record<string, string> {
+  try { const raw = JSON.parse(storage.getItem(baselineKey) ?? '{}') as unknown; return raw && typeof raw === 'object' ? raw as Record<string, string> : {} } catch { return {} }
+}
+// After saving to or restoring from Git, these connections match Git.
+export function markViewsSynced(views: AzureConnectionProfileSummary[], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
+  try { storage.setItem(baselineKey, JSON.stringify({ ...readBaseline(storage), ...Object.fromEntries(views.map((view) => [view.id, fingerprint(view)])) })) } catch { /* next sync compares again */ }
+}
+export interface SyncResult { added: string[]; updated: string[]; kept: string[]; noPat: string[] }
+export function syncViewsFromGit(views: AzureConnectionProfileSummary[], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage): SyncResult {
+  const result: SyncResult = { added: [], updated: [], kept: [], noPat: [] }
+  const baseline = readBaseline(storage)
+  const follow: AzureConnectionProfileSummary[] = [], synced: AzureConnectionProfileSummary[] = []
+  for (const view of views) {
+    const local = listAzureConnectionProfiles(storage).find((entry) => entry.id === view.id)
+    if (local && fingerprint(local) === fingerprint(view)) { synced.push(view); continue }
+    if (local && baseline[view.id] !== fingerprint(local)) { result.kept.push(view.viewName || view.reason); continue }
+    follow.push(view)
+  }
+  const restored = restoreViews(follow, '', storage)
+  for (const view of follow) {
+    const name = view.viewName || view.reason
+    if (restored.added.includes(name)) result.added.push(name)
+    else if (restored.updated.includes(name)) result.updated.push(name)
+    if (!restored.skipped.includes(name)) synced.push(view)
+  }
+  result.noPat = restored.noPat
+  markViewsSynced(synced, storage)
+  return result
+}
