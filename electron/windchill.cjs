@@ -22,8 +22,21 @@ async function testWindchill(request, fetch) {
   if (finalHost.toLowerCase() !== url.host.toLowerCase()) return { ok: false, status: response.status, message: `Windchill sent the app to a sign-in page on ${finalHost}. Single sign-on from the app may not be supported for this server; tell us which login page it is.`, services: [] }
   if (response.status === 401 || response.status === 403) return { ok: false, status: response.status, message: 'Windchill refused the single sign-on (status ' + response.status + '). The server may require another login method.', services: [] }
   if (!response.ok) return { ok: false, status: response.status, message: `Windchill answered with status ${response.status}. Check the service path (e.g. /Windchill/servlet/odata).`, services: [] }
+  // Read as text, so a non-JSON answer can be described: an XML service list is accepted; anything else is reported
+  // with its type, final address and page title (a sign-in page, or REST not enabled at this path).
+  let text = ''
+  try { text = await response.text() } catch { text = '' }
   let body
-  try { body = await response.json() } catch { return { ok: false, status: response.status, message: 'Windchill answered, but not with JSON: the service path may not be the REST (OData) service root.', services: [] } }
+  try { body = JSON.parse(text) } catch {
+    const collections = [...text.matchAll(/<collection[^>]*href="([^"]+)"/gi)].map((match) => match[1])
+    if (collections.length) return { ok: true, status: response.status, message: `Connected (XML service list): ${collections.length} services listed.`, services: collections.slice(0, 100) }
+    const type = (response.headers && typeof response.headers.get === 'function' && response.headers.get('content-type')) || 'unknown type'
+    let where = url.pathname
+    try { if (response.url) where = new URL(response.url).pathname } catch { /* keep the requested path */ }
+    const title = (/<title[^>]*>([^<]{1,120})<\/title>/i.exec(text)?.[1] ?? '').trim()
+    const login = /sign[\s-]?in|log[\s-]?in|password|saml|oauth/i.test(`${title} ${where}`)
+    return { ok: false, status: response.status, message: `Windchill answered with ${type} from ${where}${title ? ` (page title “${title}”)` : ''}, not JSON. ${login ? 'This looks like a sign-in page: the app’s Windows sign-on was not accepted.' : 'The REST (OData) service may not be enabled at this path; check the address in a browser.'}`, services: [] }
+  }
   const services = Array.isArray(body?.value) ? body.value.map((entry) => entry?.name ?? entry?.url).filter((name) => typeof name === 'string').slice(0, 100) : []
   return { ok: true, status: response.status, message: services.length ? `Connected: ${services.length} services listed.` : 'Connected, but no services were listed.', services }
 }
