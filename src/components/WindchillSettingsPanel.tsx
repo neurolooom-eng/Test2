@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { windchillBookmarklet } from '../windchillBridge'
 import { Notice, Panel, Pill } from './ui'
 import { testWindchillInBrowser } from '../windchillBrowser'
 import { loadWindchillSettings, normalizeServicePath, normalizeWindchillHost, saveWindchillSettings, windchillServiceUrl, type WindchillSettings, type WindchillTestResult } from '../windchill'
@@ -54,5 +55,18 @@ export function WindchillSettingsPanel() {
     {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     {saved.host && <p className="muted">Service address: {windchillServiceUrl(saved)}{dirty ? ' · Save first to test the new values.' : ''}</p>}
     {test && <Notice tone={test.ok ? 'success' : 'error'}>{test.message}{test.services.length > 0 && <> Services: {test.services.join(', ')}.</>}</Notice>}
+    {!window.windchill && <WindchillBookmark />}
   </Panel>
+}
+
+// The "Windchill → app" bookmark for Fetch via Windchill tab: dragged to the favourites bar, or created by hand with the
+// copied code as its address. React does not render javascript: links, so the address is set on the element directly.
+function WindchillBookmark() {
+  const code = windchillBookmarklet(window.location.origin)
+  const [copied, setCopied] = useState('')
+  const copy = () => { void navigator.clipboard?.writeText(code).then(() => setCopied('Copied.'), () => setCopied('Could not copy; select the code below instead.')) }
+  return <div className="windchill-bookmark">
+    <p><strong>Windchill → app bookmark</strong> (Windchill does not let this app read it directly): drag this button to your favourites bar, <a className="ghost" ref={(element) => { element?.setAttribute('href', code) }} onClick={(event) => event.preventDefault()}>Windchill → app</a>, or add a favourite named “Windchill → app” and paste the copied code as its address. <button type="button" className="ghost" onClick={copy}>Copy bookmark code</button> {copied && <small>{copied}</small>}</p>
+    <p className="muted">Then on a Windchill view click Fetch via Windchill tab, sign in to Windchill in the tab that opens if asked, and click the bookmark there once: the searches run on Windchill and the results come back here. The bookmark only reads, and only answers this app ({window.location.origin}).</p>
+  </div>
 }

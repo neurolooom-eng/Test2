@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadWindchillSettings, windchillServiceUrl } from './windchill'
 import { buildWindchillQuery, loadWindchillViews, parseWindchillPage, windchillSearchUrl, saveWindchillViews, validateWindchillView, type WindchillView } from './windchillViews'
 import type { WindchillSource } from './windchillSnapshots'
 import { queryWindchillInBrowser } from './windchillBrowser'
+import { bridgeKey, parseBridgeResults } from './windchillBridge'
 import type { GitStorage } from './useGitStorage'
 import type { PageProps } from './pages/types'
 
-// Windchill views: their searches (this browser), fetching them (desktop app, or the browser itself with its own
-// Windchill sign-in), and importing the results opened in the browser (where the company sign-in works). Each result is stored with the app data and, with Git storage
+// Windchill views: their searches (this browser), fetching them (desktop app, the browser itself with its own Windchill
+// sign-in, or a Windchill tab with the "Windchill → app" bookmark), and importing the results opened in the browser. Each result is stored with the app data and, with Git storage
 // connected, saved to Git for the web app.
 export function useWindchill(store: PageProps['store'], git: GitStorage) {
   const [views, setViews] = useState<WindchillView[]>(loadWindchillViews)
@@ -26,6 +27,12 @@ export function useWindchill(store: PageProps['store'], git: GitStorage) {
     saveWindchillViews(next); setViews(next)
     store.update((draft) => { draft.windchillSources = (draft.windchillSources ?? []).filter((source) => source.viewId !== id); return draft })
   }
+  function saveResults(view: WindchillView, query: string, rows: Record<string, unknown>[], message: string) {
+    const source: WindchillSource = { viewId: view.id, name: view.name, fetchedAt: new Date().toISOString(), query, columns: view.columns, rows }
+    store.update((draft) => { draft.windchillSources = [...(draft.windchillSources ?? []).filter((entry) => entry.viewId !== view.id), source]; return draft })
+    setStatus((current) => ({ ...current, [view.id]: { state: 'ok', message } }))
+    if (git.connected) void git.pushWindchill(view, source)
+  }
   async function fetchView(id: string) {
     const view = views.find((entry) => entry.id === id)
     if (!view) return
@@ -37,10 +44,7 @@ export function useWindchill(store: PageProps['store'], git: GitStorage) {
     setStatus((current) => ({ ...current, [id]: { state: 'busy', message: 'Searching Windchill…' } }))
     try {
       const { rows } = window.windchill?.query ? await window.windchill.query({ host: settings.host, servicePath: settings.servicePath, path }) : await queryWindchillInBrowser(windchillServiceUrl(settings), path)
-      const source: WindchillSource = { viewId: view.id, name: view.name, fetchedAt: new Date().toISOString(), query: path, columns: view.columns, rows }
-      store.update((draft) => { draft.windchillSources = [...(draft.windchillSources ?? []).filter((entry) => entry.viewId !== id), source]; return draft })
-      setStatus((current) => ({ ...current, [id]: { state: 'ok', message: `${rows.length} result${rows.length === 1 ? '' : 's'} saved.` } }))
-      if (git.connected) void git.pushWindchill(view, source)
+      saveResults(view, path, rows, `${rows.length} result${rows.length === 1 ? '' : 's'} saved.`)
     } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
   }
   // The search address to open in the browser; '' until the host is set and the view is valid.
@@ -67,6 +71,52 @@ export function useWindchill(store: PageProps['store'], git: GitStorage) {
     setStatus((current) => ({ ...current, [id]: { state: 'ok', message: `${count(page.rows.length)} imported${nextPage ? `, ${count(rows.length)} in total` : ''}.${page.next ? ' Windchill has more: open the next page, save it and use Import next page.' : ''}` } }))
     if (git.connected) void git.pushWindchill(view, source)
   }
-  return { views, sources, status, desktop, reload: () => setViews(loadWindchillViews()), saveView, removeView, fetchView, searchUrl, importView }
+  // Fetch via a Windchill tab: opens the service in a tab this app can answer (no "noopener"); the bookmark there asks
+  // for the searches and sends the results back. Only the Windchill origin, that tab and the request's code count.
+  const pending = useRef<{ nonce: string; origin: string; service: string; tab: Window; views: { id: string; path: string }[]; timer: number } | null>(null)
+  function fetchViaTab(ids: string[]) {
+    const settings = loadWindchillSettings()
+    const targets = views.filter((view) => ids.includes(view.id))
+    const mark = (state: 'busy' | 'error', message: string) => setStatus((current) => Object.fromEntries([...Object.entries(current), ...targets.map((view) => [view.id, { state, message }])]))
+    if (!settings.host) { mark('error', 'Set the Windchill host in Settings → Windchill first.'); return }
+    const requested: { id: string; path: string }[] = []
+    for (const view of targets) {
+      try { requested.push({ id: view.id, path: buildWindchillQuery(view) }) } catch (error) { setStatus((current) => ({ ...current, [view.id]: { state: 'error', message: error instanceof Error ? error.message : String(error) } })) }
+    }
+    if (!requested.length) return
+    const service = windchillServiceUrl(settings)
+    const tab = window.open(service, 'dph-windchill')
+    if (!tab) { mark('error', 'The browser blocked the Windchill tab; allow pop-ups for this app and try again.'); return }
+    if (pending.current) window.clearTimeout(pending.current.timer)
+    const timer = window.setTimeout(() => {
+      if (pending.current?.timer !== timer) return
+      pending.current = null
+      setStatus((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, requested.some((view) => view.id === id) && entry.state === 'busy' ? { state: 'error', message: 'No results came back from the Windchill tab. Click the “Windchill → app” bookmark there, or try again.' } : entry])))
+    }, 10 * 60 * 1000)
+    pending.current = { nonce: crypto.randomUUID(), origin: new URL(service).origin, service, tab, views: requested, timer }
+    mark('busy', 'Waiting for the Windchill tab: click the “Windchill → app” bookmark there.')
+  }
+  useEffect(() => {
+    function receive(event: MessageEvent) {
+      const request = pending.current
+      if (!request || event.origin !== request.origin || event.source !== request.tab) return
+      const data = event.data as { app?: unknown; type?: unknown } | null
+      if (data?.app !== bridgeKey) return
+      if (data.type === 'ready') { request.tab.postMessage({ app: bridgeKey, type: 'request', nonce: request.nonce, service: request.service, views: request.views }, request.origin); return }
+      const results = parseBridgeResults(event.data, request.nonce, request.views.map((view) => view.id))
+      if (!results) return
+      window.clearTimeout(request.timer)
+      pending.current = null
+      for (const result of results) {
+        const view = views.find((entry) => entry.id === result.id), query = request.views.find((entry) => entry.id === result.id)?.path ?? ''
+        if (!view) continue
+        if ('error' in result) setStatus((current) => ({ ...current, [view.id]: { state: 'error', message: `Windchill tab: ${result.error}` } }))
+        else saveResults(view, query, result.rows, `${result.rows.length} result${result.rows.length === 1 ? '' : 's'} from the Windchill tab.`)
+      }
+    }
+    window.addEventListener('message', receive)
+    return () => window.removeEventListener('message', receive)
+  })
+  return { views, sources, status, desktop, fetchViaTab, reload: () => setViews(loadWindchillViews()), saveView, removeView, fetchView, searchUrl, importView }
 }
 export type WindchillWorkspace = ReturnType<typeof useWindchill>
