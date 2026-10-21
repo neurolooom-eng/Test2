@@ -148,3 +148,4 @@ td small{color:var(--text-3)}
 .windchill-import{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:8px 0}.windchill-import a.ghost,.windchill-import label.ghost{display:inline-flex;align-items:center;text-decoration:none;cursor:pointer;font-size:12.5px;font-weight:600}.windchill-import label.ghost input{display:none}
 .windchill-bookmark{margin-top:12px;font-size:13px}.windchill-bookmark a.ghost{display:inline-flex;text-decoration:none;cursor:grab;margin:0 4px}
 .file-button{display:inline-flex;align-items:center;cursor:pointer}.file-button input{display:none}
+.plain-fieldset{border:0;padding:0;margin:0;min-width:0}
