@@ -29,6 +29,7 @@ test('desktop query: GET under the service root, next pages on the same host onl
   assert.deepEqual(result.rows.map((row) => row.Number), ['DHF-1', 'DHF-2'])
   assert.ok(calls[0][0].startsWith('https://plm.example.com/Windchill/servlet/odata/DocMgmt/Documents?')); assert.deepEqual(calls.map((call) => call[1]), ['GET', 'GET'])
   await assert.rejects(queryWindchill(request, async (url) => ({ ok: true, status: 200, url, json: async () => ({ value: [], '@odata.nextLink': 'https://evil.example.com/x' }) })), /outside the service/)
+  await assert.rejects(queryWindchill(request, async () => new Response('<html><title>Sign in to your account</title></html>', { headers: { 'content-type': 'text/html; charset=utf-8' } })), /sign-in page\). Click Sign in under Settings/, 'a login page is reported, not a JSON parse error')
   await assert.rejects(queryWindchill({ ...request, path: '../admin' }, fetch), /valid object type/)
   const versioned = []
   await queryWindchill({ ...request, path: 'v7/DocMgmt/Documents?$select=Number' }, async (url) => { versioned.push(url); return { ok: true, status: 200, url, json: async () => ({ value: [] }) } })
