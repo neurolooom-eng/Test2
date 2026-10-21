@@ -69,15 +69,15 @@ export function BaselinesPage({ azure, month, store, git, onOpenSettings }: { az
             <td>{formatHours(row.actual)}</td>
             <td className={row.variance != null && row.variance > 0 ? 'negative' : ''}>{row.variance == null ? '—' : `${row.variance > 0 ? '+' : ''}${formatHours(row.variance)}`}</td>
             <td className={row.growth ? 'negative' : ''}>{row.growth == null ? '—' : `${row.growth > 0 ? '+' : ''}${formatHours(row.growth)}`}</td>
-            <td><button type="button" className="ghost" onClick={() => setEditing(editing === key ? null : key)}>{row.scope ? 'Re-baseline' : 'Set scope'}</button></td>
+            <td>{!git.readOnly && <button type="button" className="ghost" onClick={() => setEditing(editing === key ? null : key)}>{row.scope ? 'Re-baseline' : 'Set scope'}</button>}</td>
           </tr>,
           open === key && row.scope ? <tr key={`${key}-history`} className="baseline-history"><td /><td colSpan={7}><ol>{row.scope.history.map((entry, index) => <li key={entry.at}><strong>v{index + 1}</strong> {formatDate(entry.at)} · {scopeText(row.rule, entry)} → {formatHours(baselineHours(row.rule, entry).total)}h{entry.reason && <em> — {entry.reason}</em>}</li>)}</ol></td></tr> : null,
-          editing === key ? <tr key={`${key}-edit`} className="baseline-edit"><td /><td colSpan={7}><ScopeForm row={row} onCancel={() => setEditing(null)} onSave={(entry) => saveScope(row, entry)} /></td></tr> : null,
+          editing === key && !git.readOnly ? <tr key={`${key}-edit`} className="baseline-edit"><td /><td colSpan={7}><ScopeForm row={row} onCancel={() => setEditing(null)} onSave={(entry) => saveScope(row, entry)} /></td></tr> : null,
         ]
       })}</tbody></table>
         : <EmptyState title={rules.length ? 'No releases found for the streams with rules.' : 'No estimation rules yet.'} detail={rules.length ? `Releases are the Features under the Epics ${rules.map((rule) => rule.stream).join(', ')}. Refresh from Azure DevOps or check the stream names in the rules below.` : 'Add a rule for a stream below.'} />}
     </TablePanel>
-    <BaselineRulesEditor key={JSON.stringify(rules)} rules={rules} streams={streams} onSave={saveRules} />
+    <BaselineRulesEditor key={JSON.stringify(rules)} rules={rules} streams={streams} onSave={saveRules} readOnly={git.readOnly} />
     <h2 className="baseline-subhead">Task plan check · this month</h2>
     <Metrics>
         <Metric label="Month tasks" value={data.monthlyTasks.length} hint={`${data.paired.length} with both fields populated`} />
