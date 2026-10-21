@@ -7,6 +7,29 @@ import { EmptyState, Notice, Panel, Pill } from './ui'
 
 const blank = (): WindchillView => ({ id: crypto.randomUUID().replaceAll('-', ''), name: '', entitySet: '', filters: [{ field: '', op: 'eq', value: '' }], columns: [], showInMenu: true })
 
+// Opens the view's search in the browser, where the company sign-in works, and imports the results saved (Ctrl+S) or
+// copied from there; a next page from Windchill is added the same way.
+function WindchillImport({ view, windchill }: { view: WindchillView; windchill: WindchillWorkspace }) {
+  const [error, setError] = useState('')
+  const source = windchill.sources.find((entry) => entry.viewId === view.id), url = windchill.searchUrl(view.id)
+  const take = (text: string, nextPage: boolean) => { setError(''); windchill.importView(view.id, text, nextPage) }
+  const file = (nextPage: boolean) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = event.currentTarget.files?.[0]
+    event.currentTarget.value = ''
+    if (chosen) void chosen.text().then((text) => take(text, nextPage), () => setError('The file could not be read.'))
+  }
+  const paste = (nextPage: boolean) => {
+    if (!navigator.clipboard?.readText) { setError('Pasting is not available here; save the page and import the file.'); return }
+    void navigator.clipboard.readText().then((text) => take(text, nextPage), () => setError('The clipboard could not be read; allow it, or save the page and import the file.'))
+  }
+  const steps = (nextPage: boolean, href: string) => <>
+    {href ? <a className="ghost" href={href} target="_blank" rel="noreferrer">{nextPage ? 'Open next page' : 'Open in browser'}</a> : <button type="button" className="ghost" disabled title="Set the Windchill host in Settings first">Open in browser</button>}
+    <label className="ghost">{nextPage ? 'Import next page' : 'Import file'}<input type="file" accept=".json,.txt,application/json,text/plain" onChange={file(nextPage)} /></label>
+    <button type="button" className="ghost" onClick={() => paste(nextPage)}>{nextPage ? 'Paste next page' : 'Paste results'}</button>
+  </>
+  return <div className="windchill-import">{steps(false, url)}{source?.next && steps(true, source.next)}{error && <small className="negative">{error}</small>}</div>
+}
+
 // Settings: the Windchill views — object type, filter rows and columns — with Fetch (desktop app).
 export function WindchillViewsPanel({ windchill }: { windchill: WindchillWorkspace }) {
   const [form, setForm] = useState<(WindchillView & { columnsText: string }) | null>(null)
@@ -18,11 +41,11 @@ export function WindchillViewsPanel({ windchill }: { windchill: WindchillWorkspa
     if (!form) return
     try { windchill.saveView({ ...form, columns: form.columnsText.split(',') }); setForm(null); setError('') } catch (failure) { setError(failure instanceof Error ? failure.message : 'The view could not be saved.') }
   }
-  return <Panel className="connection-panel" eyebrow="WINDCHILL" title="Windchill views" detail="Each view is one search: an object type, filter rows and the columns to show. The desktop app runs it read-only with your Windows sign-on; with Git storage connected the results are also saved to Git for the web app." action={<button type="button" className="primary" onClick={() => edit(blank())}>＋ New view</button>}>
+  return <Panel className="connection-panel" eyebrow="WINDCHILL" title="Windchill views" detail="Each view is one search: an object type, filter rows and the columns to show. Open in browser runs it where your company sign-in works; save the results (Ctrl+S) or copy them, then Import file or Paste results. Fetch runs it from the desktop app where Windchill allows that. With Git storage connected the results are also saved to Git for the web app." action={<button type="button" className="primary" onClick={() => edit(blank())}>＋ New view</button>}>
     {windchill.views.length ? <div className="azure-table"><table><thead><tr><th>View</th><th>Object type</th><th>Filters</th><th>Results</th><th /></tr></thead><tbody>{windchill.views.map((view) => {
       const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
       return <tr key={view.id}><td><strong>{view.name}</strong>{!view.showInMenu && <small>not in menu</small>}</td><td>{view.entitySet}</td><td>{view.filters.map((filter) => `${filter.field} ${windchillOps.find((entry) => entry.op === filter.op)?.label} ${filter.value}`).join(' · ') || '—'}</td>
-        <td>{source ? `${source.rows.length} · ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (via Git)' : ''}` : '—'}{status && <small className={status.state === 'error' ? 'negative' : ''}>{status.message}</small>}</td>
+        <td>{source ? `${source.rows.length} · ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (via Git)' : ''}` : '—'}{status && <small className={status.state === 'error' ? 'negative' : ''}>{status.message}</small>}<WindchillImport view={view} windchill={windchill} /></td>
         <td><div className="button-row"><button type="button" className="ghost" disabled={!windchill.desktop || status?.state === 'busy'} title={windchill.desktop ? undefined : 'Runs in the desktop app'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : 'Fetch'}</button><button type="button" className="ghost" onClick={() => edit(view)}>Edit</button><button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove the Windchill view “${view.name}” and its saved results from this app?`)) windchill.removeView(view.id) }}>Remove</button></div></td></tr>
     })}</tbody></table></div> : !form && <EmptyState title="No Windchill views yet." detail="Add one: e.g. Documents (v7/DocMgmt/Documents — domains and versions are listed by Test connection) where Number starts with DHF and State/Value equals RELEASED, showing Number, Name, Version, State/Value." />}
     {form && <form className="connection-form windchill-form" onSubmit={save}>
@@ -45,7 +68,8 @@ export function WindchillViewsPanel({ windchill }: { windchill: WindchillWorkspa
   </Panel>
 }
 
-// A Windchill view page: its last results with the chosen columns; search and CSV export; Fetch in the desktop app.
+// A Windchill view page: its last results with the chosen columns; search and CSV export; results opened in the
+// browser and imported, or Fetch in the desktop app.
 export function WindchillPage({ view, windchill, gitNote }: { view: WindchillView; windchill: WindchillWorkspace; gitNote?: { tone: string; text: string } }) {
   const [search, setSearch] = useState('')
   const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
@@ -55,9 +79,10 @@ export function WindchillPage({ view, windchill, gitNote }: { view: WindchillVie
   return <Panel className="connection-panel backlog-panel">
     <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.entitySet}{source ? ` · ${source.rows.length} results · fetched ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
       <div className="button-row"><button className="primary" disabled={!windchill.desktop || status?.state === 'busy'} title={windchill.desktop ? undefined : 'Runs in the desktop app'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button></div></div>
-    {status?.state === 'error' && <Notice tone="error">{status.message}</Notice>}
+    <WindchillImport view={view} windchill={windchill} />
+    {status && status.state !== 'busy' && <Notice tone={status.state === 'error' ? 'error' : 'success'}>{status.message}</Notice>}
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
-    {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail={windchill.desktop ? 'Fetch it from Windchill (read-only).' : 'Fetch it in the desktop app; with Git storage connected the results then appear here.'} />
+    {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
       : <div className="query-view">
         <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span><Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill><button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
         <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
