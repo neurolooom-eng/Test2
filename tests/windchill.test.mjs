@@ -25,6 +25,8 @@ test('desktop connection test: one GET to the service root; clear messages for r
   const calls = []
   const ok = await testWindchill({ host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }, async (url, options) => { calls.push([url, options.method]); return Response.json({ value: [{ name: 'ProdMgmt' }, { name: 'DocMgmt' }] }) })
   const req = { host: 'https://plm.example.com', servicePath: '/Windchill/servlet/odata' }
+  const domains = await testWindchill(req, async () => Response.json([{ path: 'https://plm.example.com/Windchill/servlet/odata/v7/DocMgmt', name: 'PTC Document Management Domain', id: 'DocMgmt' }, { path: 'https://plm.example.com/Windchill/servlet/odata/v8/ChangeMgmt', name: 'PTC Change Management Domain', id: 'ChangeMgmt' }]))
+  assert.deepEqual([domains.ok, domains.services], [true, ['v7/DocMgmt', 'v8/ChangeMgmt']], 'Windchill REST domain list with versioned paths')
   const xml = await testWindchill(req, async () => new Response('<service><workspace><collection href="ProdMgmt"/><collection href="DocMgmt"/></workspace></service>', { headers: { 'content-type': 'application/xml' } }))
   assert.deepEqual([xml.ok, xml.services], [true, ['ProdMgmt', 'DocMgmt']], 'an XML service list is accepted')
   const login = await testWindchill(req, async () => new Response('<html><title>Windchill Login</title></html>', { headers: { 'content-type': 'text/html' } }))

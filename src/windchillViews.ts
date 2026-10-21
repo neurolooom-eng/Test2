@@ -8,14 +8,15 @@ export const windchillOps: { op: WindchillOp; label: string }[] = [
   { op: 'eq', label: 'equals' }, { op: 'ne', label: 'is not' }, { op: 'startswith', label: 'starts with' }, { op: 'contains', label: 'contains' },
   { op: 'gt', label: 'after / greater than' }, { op: 'ge', label: 'on or after / at least' }, { op: 'lt', label: 'before / less than' }, { op: 'le', label: 'on or before / at most' },
 ]
-const entitySetPattern = /^[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*$/
+// Domain/Set, with the domain's version in front where the server has one (Windchill REST: v7/DocMgmt/Documents).
+const entitySetPattern = /^(v\d+\/)?[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*$/
 const fieldPattern = /^[A-Za-z_][A-Za-z0-9_]*(\/[A-Za-z_][A-Za-z0-9_]*)*$/
 const storageKey = 'demand-planning-windchill-views-v1'
 
 export function validateWindchillView(view: WindchillView): WindchillView {
   const name = view.name.trim(), entitySet = view.entitySet.trim().replace(/^\/+|\/+$/g, '')
   if (!name) throw new Error('Give the Windchill view a name.')
-  if (!entitySetPattern.test(entitySet)) throw new Error('Object type looks like Domain/Set, e.g. DocMgmt/Documents.')
+  if (!entitySetPattern.test(entitySet)) throw new Error('Object type looks like version/Domain/Set, e.g. v7/DocMgmt/Documents (the domain and its version are listed by Test connection).')
   const filters = view.filters.filter((filter) => filter.field.trim() || filter.value.trim()).map((filter) => {
     const field = filter.field.trim()
     if (!fieldPattern.test(field)) throw new Error(`“${field || '(empty)'}” is not a field name, e.g. Number, Name or State/Value.`)

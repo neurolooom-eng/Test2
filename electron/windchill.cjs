@@ -37,13 +37,17 @@ async function testWindchill(request, fetch) {
     const login = /sign[\s-]?in|log[\s-]?in|password|saml|oauth/i.test(`${title} ${where}`)
     return { ok: false, status: response.status, message: `Windchill answered with ${type} from ${where}${title ? ` (page title “${title}”)` : ''}, not JSON. ${login ? 'This looks like a sign-in page: the app’s Windows sign-on was not accepted.' : 'The REST (OData) service may not be enabled at this path; check the address in a browser.'}`, services: [] }
   }
-  const services = Array.isArray(body?.value) ? body.value.map((entry) => entry?.name ?? entry?.url).filter((name) => typeof name === 'string').slice(0, 100) : []
+  // Standard OData lists services under "value"; Windchill REST lists its domains as an array of { id, name, path }
+  // with a versioned path (…/odata/v7/DocMgmt), shown here as "v7/DocMgmt" — the start of a view's object type.
+  const base = url.href.replace(/\/+$/, '') + '/'
+  const domain = (entry) => typeof entry?.path === 'string' && entry.path.startsWith(base) ? entry.path.slice(base.length).replace(/\/+$/, '') : entry?.id ?? entry?.name
+  const services = (Array.isArray(body) ? body.map(domain) : Array.isArray(body?.value) ? body.value.map((entry) => entry?.name ?? entry?.url) : []).filter((name) => typeof name === 'string').slice(0, 100)
   return { ok: true, status: response.status, message: services.length ? `Connected: ${services.length} services listed.` : 'Connected, but no services were listed.', services }
 }
 
 // Runs one Windchill view read-only: GET <service root>/<Domain/Set>?$filter=…&$select=…, following the server's
 // next-page links on the same host and service root (at most 100 pages / 20,000 rows). Nothing is written.
-const queryPattern = /^[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*(\?[^#\s]*)?$/
+const queryPattern = /^(v\d+\/)?[A-Za-z][A-Za-z0-9_]*\/[A-Za-z][A-Za-z0-9_]*(\?[^#\s]*)?$/
 async function queryWindchill(request, fetch) {
   const root = windchillUrl(request)
   if (typeof request.path !== 'string' || !queryPattern.test(request.path) || request.path.includes('..')) throw new Error('The Windchill view has no valid object type.')

@@ -12,6 +12,7 @@ test('Option A: filter rows become one OData query; values escaped; columns sele
   assert.equal(decodeURIComponent(path), "DocMgmt/Documents?$filter=startswith(Number,'DHF') and State/Value eq 'RELEASED' and LastModified ge 2026-09-01T00:00:00Z and contains(Name,'O''Brien')&$select=Number,Name,State")
   assert.equal(decodeURIComponent(buildWindchillQuery({ ...view, filters: [] })), 'DocMgmt/Documents?$select=Number,Name,State')
   assert.throws(() => validateWindchillView({ ...view, entitySet: 'Documents' }), /Domain\/Set/)
+  assert.ok(decodeURIComponent(buildWindchillQuery({ ...view, entitySet: 'v7/DocMgmt/Documents' })).startsWith('v7/DocMgmt/Documents?$filter='), 'versioned domain')
   assert.throws(() => validateWindchillView({ ...view, filters: [{ field: 'Number) or (1', op: 'eq', value: 'x' }] }), /not a field name/)
   assert.throws(() => validateWindchillView({ ...view, filters: [{ field: 'Number', op: 'eq', value: '' }] }), /Enter a value/)
   assert.throws(() => validateWindchillView({ ...view, columns: [] }), /at least one column/)
@@ -29,6 +30,9 @@ test('desktop query: GET under the service root, next pages on the same host onl
   assert.ok(calls[0][0].startsWith('https://plm.example.com/Windchill/servlet/odata/DocMgmt/Documents?')); assert.deepEqual(calls.map((call) => call[1]), ['GET', 'GET'])
   await assert.rejects(queryWindchill(request, async (url) => ({ ok: true, status: 200, url, json: async () => ({ value: [], '@odata.nextLink': 'https://evil.example.com/x' }) })), /outside the service/)
   await assert.rejects(queryWindchill({ ...request, path: '../admin' }, fetch), /valid object type/)
+  const versioned = []
+  await queryWindchill({ ...request, path: 'v7/DocMgmt/Documents?$select=Number' }, async (url) => { versioned.push(url); return { ok: true, status: 200, url, json: async () => ({ value: [] }) } })
+  assert.equal(versioned[0], 'https://plm.example.com/Windchill/servlet/odata/v7/DocMgmt/Documents?$select=Number')
   await assert.rejects(queryWindchill(request, async (url) => ({ ok: false, status: 400, url, json: async () => ({ error: { message: 'Property Numbr not found' } }) })), /status 400: Property Numbr not found/)
   await assert.rejects(queryWindchill(request, async () => ({ ok: true, status: 200, url: 'https://login.example.com/sso', json: async () => ({}) })), /sign-in page on login\.example\.com/)
 })
