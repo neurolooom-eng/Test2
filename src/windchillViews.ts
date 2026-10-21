@@ -3,7 +3,8 @@
 // desktop app. Saved in this browser like the Azure DevOps connections; results are stored with the app data.
 export type WindchillOp = 'eq' | 'ne' | 'startswith' | 'contains' | 'gt' | 'ge' | 'lt' | 'le'
 export interface WindchillFilter { field: string; op: WindchillOp; value: string }
-export interface WindchillView { id: string; name: string; entitySet: string; filters: WindchillFilter[]; columns: string[]; showInMenu: boolean }
+// exportFile: an imported Windchill export (Release Details) rather than a search; its columns are the file's.
+export interface WindchillView { id: string; name: string; entitySet: string; filters: WindchillFilter[]; columns: string[]; showInMenu: boolean; exportFile?: string }
 export const windchillOps: { op: WindchillOp; label: string }[] = [
   { op: 'eq', label: 'equals' }, { op: 'ne', label: 'is not' }, { op: 'startswith', label: 'starts with' }, { op: 'contains', label: 'contains' },
   { op: 'gt', label: 'after / greater than' }, { op: 'ge', label: 'on or after / at least' }, { op: 'lt', label: 'before / less than' }, { op: 'le', label: 'on or before / at most' },
@@ -75,8 +76,9 @@ export function parseWindchillPage(text: string, serviceUrl: string): { rows: Re
   return { rows, next }
 }
 
-// A cell: follows a path such as State/Value; objects show their Display or Value.
+// A cell: a column of an export by its name, else a path such as State/Value; objects show their Display or Value.
 export function windchillCell(row: Record<string, unknown>, column: string): string {
+  if (Object.hasOwn(row, column) && typeof row[column] !== 'object') return String(row[column] ?? '')
   let value: unknown = row
   for (const part of column.split('/')) value = value && typeof value === 'object' ? (value as Record<string, unknown>)[part] : undefined
   if (value == null) return ''

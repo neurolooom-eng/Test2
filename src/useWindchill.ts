@@ -4,6 +4,7 @@ import { buildWindchillQuery, loadWindchillViews, parseWindchillPage, windchillS
 import type { WindchillSource } from './windchillSnapshots'
 import { queryWindchillInBrowser } from './windchillBrowser'
 import { bridgeKey, parseBridgeResults } from './windchillBridge'
+import { parseWindchillExport } from './windchillExport'
 import type { GitStorage } from './useGitStorage'
 import type { PageProps } from './pages/types'
 
@@ -71,6 +72,18 @@ export function useWindchill(store: PageProps['store'], git: GitStorage) {
     setStatus((current) => ({ ...current, [id]: { state: 'ok', message: `${count(page.rows.length)} imported${nextPage ? `, ${count(rows.length)} in total` : ''}.${page.next ? ' Windchill has more: open the next page, save it and use Import next page.' : ''}` } }))
     if (git.connected) void git.pushWindchill(view, source)
   }
+  // A Windchill export (CSV) under Release Details: a new export, or a newer file for an existing one. Throws when the
+  // file is not an export; returns the export's id.
+  function importExport(text: string, fileName: string, name: string, id?: string) {
+    const { columns, rows } = parseWindchillExport(text)
+    const existing = id ? views.find((entry) => entry.id === id) : undefined
+    const title = name.trim() || existing?.name || fileName.replace(/\.[^.]+$/, '') || 'Windchill export'
+    const view: WindchillView = { ...(existing ?? { id: crypto.randomUUID().replaceAll('-', ''), entitySet: '', filters: [], showInMenu: true }), name: title, columns, exportFile: fileName }
+    const next = [...views.filter((entry) => entry.id !== view.id), view]
+    saveWindchillViews(next); setViews(next)
+    saveResults(view, `file:${fileName}`, rows, `${rows.length} result${rows.length === 1 ? '' : 's'} imported from ${fileName}.`)
+    return view.id
+  }
   // Fetch via a Windchill tab: opens the service in a tab this app can answer (no "noopener"); the bookmark there asks
   // for the searches and sends the results back. Only the Windchill origin, that tab and the request's code count.
   const pending = useRef<{ nonce: string; origin: string; service: string; tab: Window; views: { id: string; path: string }[]; timer: number } | null>(null)
@@ -117,6 +130,6 @@ export function useWindchill(store: PageProps['store'], git: GitStorage) {
     window.addEventListener('message', receive)
     return () => window.removeEventListener('message', receive)
   })
-  return { views, sources, status, desktop, fetchViaTab, reload: () => setViews(loadWindchillViews()), saveView, removeView, fetchView, searchUrl, importView }
+  return { views, sources, status, desktop, fetchViaTab, importExport, reload: () => setViews(loadWindchillViews()), saveView, removeView, fetchView, searchUrl, importView }
 }
 export type WindchillWorkspace = ReturnType<typeof useWindchill>

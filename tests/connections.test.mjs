@@ -177,19 +177,19 @@ test('Azure DevOps menu: connections marked Show in menu, named by View name, ba
     { id: 'tw2', reason: 'Time Writing', viewName: 'QMS-0025', role: 'time-tracking' },
     { id: 'dp', reason: 'DP backlog', viewName: 'Digital Platform', role: 'backlog-view' },
     { id: 'ref', reason: 'DHP', role: 'reference' },
-    { id: 'rel', reason: 'DHFI', role: 'release-source', showInMenu: true },
+    { id: 'rel', reason: 'DHFI', role: 'release-source', showInMenu: true, baseUrl: 'https://tfs.example.com/tfs/DHPCollection' },
     { id: 'cp', reason: 'Clinical Platform', role: 'backlog-view', showInMenu: false },
   ]
   assert.deepEqual(backlogViews(profiles, 'tw2'), [
-    { id: 'tw2', name: 'QMS-0025', readOnly: false, role: 'time-tracking' },
-    { id: 'dp', name: 'Digital Platform', readOnly: true, role: 'backlog-view' },
-    { id: 'rel', name: 'DHFI', readOnly: true, role: 'release-source' },
-  ], 'reference is hidden by default; a backlog view can be hidden; any source can be shown')
+    { id: 'tw2', name: 'QMS-0025', readOnly: false, role: 'time-tracking', onPrem: false },
+    { id: 'dp', name: 'Digital Platform', readOnly: true, role: 'backlog-view', onPrem: false },
+    { id: 'rel', name: 'DHFI', readOnly: true, role: 'release-source', onPrem: true },
+  ], 'reference is hidden by default; a backlog view can be hidden; any source can be shown; on-prem views are marked (Release Details)')
   assert.equal(backlogViews(profiles, 'missing')[0].id, 'tw1', 'falls back to the first Time Writing connection')
   assert.equal(backlogViews(profiles, 'missing')[0].name, 'QMS-0025', 'a Time Writing connection without a View name is named QMS-0025')
   assert.deepEqual(backlogViews([{ ...profiles[1], showInMenu: false }], 'tw2'), [], 'the Time Writing backlog can be hidden too')
   assert.equal(timeWritingView([{ ...profiles[1], showInMenu: false }], 'tw2').name, 'QMS-0025', 'links to the backlog keep its name')
-  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false, role: 'time-tracking' }], 'without a Time Writing connection the backlog is still reachable, as QMS-0025')
+  assert.deepEqual(backlogViews([], ''), [{ id: 'time-writing', name: 'QMS-0025', readOnly: false, role: 'time-tracking', onPrem: false }], 'without a Time Writing connection the backlog is still reachable, as QMS-0025')
 })
 
 test('View name and Show in menu are saved with the connection', () => {

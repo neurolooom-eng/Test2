@@ -72,21 +72,48 @@ export function WindchillViewsPanel({ windchill }: { windchill: WindchillWorkspa
 // the browser and imported.
 export function WindchillPage({ view, windchill, gitNote }: { view: WindchillView; windchill: WindchillWorkspace; gitNote?: { tone: string; text: string } }) {
   const [search, setSearch] = useState('')
+  const [error, setError] = useState('')
   const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
   const columns = source?.columns.length ? source.columns : view.columns
   const rows = (source?.rows ?? []).filter((row) => !search.trim() || columns.some((column) => windchillCell(row, column).toLowerCase().includes(search.trim().toLowerCase())))
   const csv = () => [columns.join(','), ...rows.map((row) => columns.map((column) => { const value = windchillCell(row, column); return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value }).join(','))].join('\r\n')
   return <Panel className="connection-panel backlog-panel">
-    <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.entitySet}{source ? ` · ${source.rows.length} results · fetched ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
-      <div className="button-row"><button className="primary" disabled={status?.state === 'busy'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button></div></div>
-    <WindchillImport view={view} windchill={windchill} />
+    <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.exportFile ? `Windchill export ${view.exportFile}` : view.entitySet}{source ? ` · ${source.rows.length} results · ${view.exportFile ? 'imported' : 'fetched'} ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
+      <div className="button-row">{view.exportFile ? <ExportFileButton label="Import newer export" onFile={(text, file) => windchill.importExport(text, file, '', view.id)} onError={setError} /> : <button className="primary" disabled={status?.state === 'busy'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button>}
+        {view.exportFile && <button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove the Windchill export “${view.name}” from this app?`)) windchill.removeView(view.id) }}>Remove</button>}</div></div>
+    {!view.exportFile && <WindchillImport view={view} windchill={windchill} />}
+    {error && <Notice tone="error">{error}</Notice>}
     {status && <Notice tone={status.state === 'error' ? 'error' : status.state === 'busy' ? 'info' : 'success'}>{status.message}</Notice>}
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
     {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Fetch it from Windchill, or Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
       : <div className="query-view">
-        <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span><Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill><button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
+        <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span>{!view.exportFile && <Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill>}<button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
         <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
         {rows.length > 1000 && <p className="muted">Showing the first 1000 of {rows.length}; search to narrow, or export CSV for all.</p>}
       </div>}
+  </Panel>
+}
+
+// Chooses an export file and hands its text on; a file that is not an export is reported.
+function ExportFileButton({ label, onFile, onError }: { label: string; onFile: (text: string, fileName: string) => void; onError: (message: string) => void }) {
+  return <label className="primary file-button">{label}<input type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => {
+    const file = event.currentTarget.files?.[0]
+    event.currentTarget.value = ''
+    if (!file) return
+    void file.text().then((text) => { onError(''); try { onFile(text, file.name) } catch (failure) { onError(failure instanceof Error ? failure.message : String(failure)) } }, () => onError('The file could not be read.'))
+  }} /></label>
+}
+
+// Release Details → Import Windchill export: a search run in Windchill and exported as CSV becomes a page here.
+export function WindchillExportImport({ windchill, onImported }: { windchill: WindchillWorkspace; onImported: (id: string) => void }) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  return <Panel className="connection-panel" eyebrow="RELEASE DETAILS" title="Import a Windchill export" detail="In Windchill, run your search (e.g. a saved search), export the result list to a CSV file, then import it here. The columns are kept as in the file; with Git storage connected the export is also saved to Git for the web app.">
+    <div className="connection-form">
+      <label>Name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. GSS_BST released documents (default: the file name)" /></label>
+      <div className="connection-actions"><ExportFileButton label="Choose CSV export…" onFile={(text, file) => { onImported(windchill.importExport(text, file, name)); setName('') }} onError={setError} /></div>
+    </div>
+    {error && <Notice tone="error">{error}</Notice>}
+    <p className="muted">CSV or tab-separated text. Excel files: open them and save as CSV first.</p>
   </Panel>
 }
