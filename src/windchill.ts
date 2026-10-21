@@ -1,6 +1,6 @@
-// Windchill connection setup (settings only for now): the host and the search to run later from the desktop app.
-// Saved in this browser only, like the Azure DevOps connections; no password is stored — the login is the
-// Windows single sign-on of the desktop app.
+// Windchill connection setup: the host and service path the Windchill views search. Saved in this browser only, like
+// the Azure DevOps connections; no password is stored — the login is the browser's own Windchill sign-in (or the
+// desktop app's).
 export type WindchillLogin = 'sso'
 export interface WindchillSettings { host: string; servicePath: string; login: WindchillLogin; objectType: string; filter: string; fields: string }
 export const defaultWindchillSettings: WindchillSettings = { host: '', servicePath: '/Windchill/servlet/odata', login: 'sso', objectType: '', filter: '', fields: '' }
