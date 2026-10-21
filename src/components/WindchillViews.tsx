@@ -27,7 +27,7 @@ function WindchillImport({ view, windchill }: { view: WindchillView; windchill: 
     <label className="ghost">{nextPage ? 'Import next page' : 'Import file'}<input type="file" accept=".json,.txt,application/json,text/plain" onChange={file(nextPage)} /></label>
     <button type="button" className="ghost" onClick={() => paste(nextPage)}>{nextPage ? 'Paste next page' : 'Paste results'}</button>
   </>
-  return <div className="windchill-import">{steps(false, url)}{source?.next && steps(true, source.next)}{error && <small className="negative">{error}</small>}</div>
+  return <div className="windchill-import">{!window.windchill && <button type="button" className="ghost" disabled={!url} title={url ? undefined : 'Set the Windchill host in Settings first'} onClick={() => windchill.fetchViaTab([view.id])}>Fetch via Windchill tab</button>}{steps(false, url)}{source?.next && steps(true, source.next)}{error && <small className="negative">{error}</small>}</div>
 }
 
 // Settings: the Windchill views — object type, filter rows and columns — with Fetch, Open in browser and Import.
@@ -80,7 +80,7 @@ export function WindchillPage({ view, windchill, gitNote }: { view: WindchillVie
     <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.entitySet}{source ? ` · ${source.rows.length} results · fetched ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
       <div className="button-row"><button className="primary" disabled={status?.state === 'busy'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button></div></div>
     <WindchillImport view={view} windchill={windchill} />
-    {status && status.state !== 'busy' && <Notice tone={status.state === 'error' ? 'error' : 'success'}>{status.message}</Notice>}
+    {status && <Notice tone={status.state === 'error' ? 'error' : status.state === 'busy' ? 'info' : 'success'}>{status.message}</Notice>}
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
     {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Fetch it from Windchill, or Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
       : <div className="query-view">
