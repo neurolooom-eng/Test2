@@ -8,7 +8,9 @@ import { isMonthTask, timeWritingMonth } from './azureInsights.ts'
 // capacity. Capacity is counted once per person and month.
 
 export type MonthStatus = 'elapsed' | 'partial' | 'future'
-export interface DashboardFilter { region?: Region; role?: ResourceRole; person?: string; stream?: string }
+// Every filter is multi-select; an empty list means all.
+export interface DashboardFilter { regions: Region[]; roles: ResourceRole[]; people: string[]; streams: string[] }
+export const noFilter: DashboardFilter = { regions: [], roles: [], people: [], streams: [] }
 export interface StreamHours { key: string; title: string; plan: number; actual: number }
 export interface PersonMonth { month: string; status: MonthStatus; person: string; region?: Region; role?: ResourceRole; plan: number; actual: number; capacity: number; absence: number; tasks: number; planLines: number; blankActuals: number; streams: StreamHours[] }
 export interface Totals { plan: number; actual: number; capacity: number; absence: number; people: number; planUtil: number | null; actualUtil: number | null; gap: number; ratio: number | null }
@@ -24,23 +26,15 @@ export function monthStatus(month: string, today: string): MonthStatus {
   return month < current ? 'elapsed' : month === current ? 'partial' : 'future'
 }
 
-// Periods offered on the Overview, all relative to the month picked in the header.
-export const periods = [
-  { key: 'month', label: 'Selected month' },
-  { key: '3', label: 'Last 3 months' },
-  { key: '6', label: 'Last 6 months' },
-  { key: '12', label: 'Last 12 months' },
-  { key: 'ytd', label: 'Year to date' },
-  { key: 'year', label: 'Whole year (incl. future plans)' },
-] as const
-export type PeriodKey = typeof periods[number]['key']
-export function periodMonths(period: PeriodKey, month: string) {
-  const year = month.slice(0, 4), number = Number(month.slice(5))
-  if (period === 'month') return [month]
-  if (period === 'ytd') return monthRange(month, number)
-  if (period === 'year') return monthRange(`${year}-12`, 12)
-  return monthRange(month, Number(period))
+// Period: a year with any quarters and months of it (multi-select); nothing chosen = the whole year.
+export interface Period { year: number; quarters: number[]; months: number[] }
+export function periodMonths(period: Period) {
+  const chosen = new Set(period.months.filter((month) => month >= 1 && month <= 12))
+  for (const quarter of period.quarters) if (quarter >= 1 && quarter <= 4) for (let index = 0; index < 3; index += 1) chosen.add((quarter - 1) * 3 + 1 + index)
+  const months = chosen.size ? [...chosen].sort((a, b) => a - b) : Array.from({ length: 12 }, (_, index) => index + 1)
+  return months.map((month) => `${period.year}-${String(month).padStart(2, '0')}`)
 }
+export const quarterOf = (month: string) => Math.ceil(Number(month.slice(5)) / 3)
 
 export function personMonths(source: AzureWorkItem[], months: string[], today: string, settings: CapacitySettings = defaultCapacitySettings): PersonMonth[] {
   const profiles = settings.profiles ?? {}
@@ -72,14 +66,15 @@ export function personMonths(source: AzureWorkItem[], months: string[], today: s
   return rows
 }
 
-// Region, role and person narrow the people; a stream narrows the hours to that Epic and the people to those with
-// hours in it (their capacity is still counted whole).
+// Regions, roles and people narrow the people; streams narrow the hours to those Epics and the people to those with
+// hours in them (their capacity is still counted whole).
 export function applyFilter(rows: PersonMonth[], filter: DashboardFilter): PersonMonth[] {
-  return rows.filter((row) => (!filter.region || row.region === filter.region) && (!filter.role || row.role === filter.role) && (!filter.person || row.person === filter.person))
+  const has = <T,>(list: T[], value: T | undefined) => !list.length || (value != null && list.includes(value))
+  return rows.filter((row) => has(filter.regions, row.region) && has(filter.roles, row.role) && has(filter.people, row.person))
     .flatMap((row) => {
-      if (!filter.stream) return [row]
-      const stream = row.streams.find((entry) => entry.key === filter.stream)
-      return stream ? [{ ...row, plan: stream.plan, actual: stream.actual, streams: [stream] }] : []
+      if (!filter.streams.length) return [row]
+      const streams = row.streams.filter((entry) => filter.streams.includes(entry.key))
+      return streams.length ? [{ ...row, plan: round(streams.reduce((sum, entry) => sum + entry.plan, 0)), actual: round(streams.reduce((sum, entry) => sum + entry.actual, 0)), streams }] : []
     })
 }
 
