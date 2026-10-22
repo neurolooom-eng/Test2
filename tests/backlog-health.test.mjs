@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { olderSprintItems, featuresWithoutDoD, unassignedItems, hasDoD, scrumCsv, sprintEnd, hierarchyOf, unassignedCsv } from '../src/scrumMaster.ts'
+import { olderSprintItems, featuresWithoutDoD, unassignedItems, hasDoD, healthCsv, sprintEnd, hierarchyOf, unassignedCsv } from '../src/backlogHealth.ts'
 import { mapAzureWorkItem } from '../src/azureDevOps.ts'
 
 const base = { organization: 'org', project: 'Q', state: 'Active', assignedTo: 'Ana', areaPath: 'Q', iterationPath: 'Q\\PI 1\\Sprint 1', tags: '', url: 'u', syncedAt: '' }
@@ -18,7 +18,7 @@ const items = [
   item(8, 'Bug'),
 ]
 
-test('Scrum Master: open work in ended Sprints, Features without DoD, unassigned work', () => {
+test('Backlog Health: open work in ended Sprints, Features without DoD, unassigned work', () => {
   assert.deepEqual(olderSprintItems(items, iterations, today).map((row) => row.id), [2, 3, 4], 'Features, Stories, Tasks only; open; Sprint ended (Sprint 2 still running)')
   assert.deepEqual(olderSprintItems(items, [], today), [], 'without Sprint dates nothing is old')
   assert.equal(hasDoD({ description: '<b>DoD</b>: done' }), true); assert.equal(hasDoD({ description: 'Dodo' }), false); assert.equal(hasDoD({}), false)
@@ -26,12 +26,12 @@ test('Scrum Master: open work in ended Sprints, Features without DoD, unassigned
   assert.deepEqual(featuresWithoutDoD(items, false).map((row) => row.id), [3, 7], 'including closed ones')
   assert.deepEqual(unassignedItems(items).map((row) => row.id), [3, 6])
   assert.equal(sprintEnd(items[3], iterations), '2026-10-09')
-  const csv = scrumCsv(olderSprintItems(items, iterations, today), items, iterations).split('\r\n')
+  const csv = healthCsv(olderSprintItems(items, iterations, today), items, iterations).split('\r\n')
   assert.equal(csv[0], 'ID,Type,Title,State,Assigned To,Iteration,Sprint end,Parent,URL')
   assert.equal(csv[3], '4,User Story,"Story, ""quoted""",Active,Ana,Q\\PI 1\\Sprint 1,2026-10-09,#2 Item 2,u', 'quoted cells; parent with its title')
   const absence = [...items, item(900, 'Epic'), item(901, 'Feature', { parentId: 900, description: '', assignedTo: '' }), item(902, 'Task', { parentId: 901 })]
   assert.deepEqual([featuresWithoutDoD(absence, true, 900), unassignedItems(absence, 900), olderSprintItems(absence, iterations, today, 900)].map((rows) => rows.map((row) => row.id)), [[3], [3, 6], [2, 3, 4]], 'nothing under the absence Epic')
-  assert.match(scrumCsv([items[2]], items, iterations, 'Unassigned'), /^List,ID,/, 'combined export has a List column')
+  assert.match(healthCsv([items[2]], items, iterations, 'Unassigned'), /^List,ID,/, 'combined export has a List column')
 })
 
 test('Unassigned list: Epic, Feature, User Story, Task, paths, state, created by and on', () => {

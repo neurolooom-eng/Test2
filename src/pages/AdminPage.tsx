@@ -9,13 +9,17 @@ import type { GitStorage } from '../useGitStorage'
 import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
 import { AzureViewsGitPanel } from '../components/AzureViewsGit'
 import { AzureConnections } from '../components/AzureConnections'
+import { AccessPanel } from '../components/AccessPanel'
+import type { Access } from '../useAccess'
 import type { PageProps } from './types'
 
 const statusTone: Record<LoadStatus, Tone> = { 'Overloaded': 'danger', 'Balanced': 'open', 'Has capacity': 'info', 'No bookings': 'neutral' }
 const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(`${month}-01T00:00:00`))
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
-export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; onOpenBoard: () => void }) {
+// Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
+export function AdminPage({ store, month, azure, git, access, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; access: Access; onOpenBoard: () => void }) {
+  const shared = access.can('settings.manage')
   const [reason, setReason] = useState('Approved operational extension')
   const [capacityMessage, setCapacityMessage] = useState('')
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
@@ -26,6 +30,8 @@ export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps &
   const holidays = capacityModel(azure.items, month, capacity).holidays
   const unmapped = resources.filter((person) => !profiles[person.name]?.region).map((person) => person.name)
   const names = resources.map((person) => person.name)
+  // Everyone with an email in the Time Writing backlog, offered when adding members to access roles.
+  const people = [...new Map(azure.items.filter((item) => item.assignedToEmail).map((item) => [item.assignedToEmail!, item.assignedTo])).entries()].map(([email, name]) => ({ email, name })).sort((a, b) => a.name.localeCompare(b.name))
 
   function setProfile(name: string, patch: Partial<ResourceProfile>) {
     store.update((draft) => {
@@ -93,15 +99,19 @@ export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps &
   const connectionFailed = store.connection.status === 'error' || store.connection.status === 'conflict'
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   return <Page>
-    <nav className="settings-nav" aria-label="Settings sections">{[['settings-connections', 'Azure DevOps'], ['settings-storage', 'Storage'], ['settings-capacity', 'Capacity & periods'], ['settings-resources', 'Resources'], ['settings-masters', 'Master data'], ['settings-audit', 'Audit']].map(([id, label]) => <button key={id} type="button" className="ghost" onClick={() => jump(id)}>{label}</button>)}</nav>
+    <nav className="settings-nav" aria-label="Settings sections">{[['settings-connections', 'Azure DevOps'], ['settings-storage', 'Storage'], ['settings-access', 'Access'], ...(shared ? [['settings-capacity', 'Capacity & periods'], ['settings-resources', 'Resources'], ['settings-masters', 'Master data'], ['settings-audit', 'Audit']] : [])].map(([id, label]) => <button key={id} type="button" className="ghost" onClick={() => jump(id)}>{label}</button>)}</nav>
     <AzureConnections azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} />
     <div id="settings-storage" className="settings-anchor" />
     <GitStoragePanel git={git} />
-    <AzureViewsGitPanel git={git} azure={azure} />
+    {shared && <AzureViewsGitPanel git={git} azure={azure} />}
     <Panel className="connection-panel" eyebrow="CENTRAL DATA" title="SharePoint connection" detail="Uses Microsoft sign-in and stores one versioned JSON data file in the I&D Quality document library. No client secret is stored in the browser." action={<Pill tone={store.connection.mode === 'sharepoint' ? 'open' : connectionFailed ? 'danger' : 'neutral'}>{store.connection.status}</Pill>}>
       <form className="connection-form" onSubmit={connectSharePoint}><label>Tenant ID (optional)<input value={sharePointConfig.tenantId} onChange={(event) => setSharePointConfig({ ...sharePointConfig, tenantId: event.target.value })} placeholder="Auto-detect from work sign-in" /></label><label>Application (client) ID<input required value={sharePointConfig.clientId} onChange={(event) => setSharePointConfig({ ...sharePointConfig, clientId: event.target.value })} placeholder="Registered SPA client ID" /></label><label>SharePoint host<input required value={sharePointConfig.hostname} onChange={(event) => setSharePointConfig({ ...sharePointConfig, hostname: event.target.value })} /></label><label>Site path<input required value={sharePointConfig.sitePath} onChange={(event) => setSharePointConfig({ ...sharePointConfig, sitePath: event.target.value })} /></label><label className="wide-field">Central data file<input required value={sharePointConfig.stateFilePath} onChange={(event) => setSharePointConfig({ ...sharePointConfig, stateFilePath: event.target.value })} /></label><div className="connection-actions"><button className="primary" disabled={store.connection.status === 'connecting'}>{store.connection.status === 'connecting' ? 'Connecting…' : 'Connect to SharePoint'}</button>{store.connection.mode === 'empty' && <button type="button" className="primary" onClick={() => void store.initializeSharePoint()}>Initialize central data</button>}{store.connection.mode === 'sharepoint' && <><button type="button" className="ghost" onClick={() => void store.pullSharePoint()}>Pull latest</button><button type="button" className="ghost" onClick={store.disconnectSharePoint}>Disconnect</button></>}</div></form>
       {store.connection.message && <Notice tone={connectionFailed ? 'error' : 'info'}>{store.connection.message}{store.connection.account ? ` Signed in as ${store.connection.account}.` : ''}</Notice>}
     </Panel>
+    <div id="settings-access" className="settings-anchor" />
+    <AccessPanel access={access} git={git} people={people} />
+    {!shared && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
+    {shared && <>
     <div id="settings-capacity" className="settings-anchor" />
     <div className="admin-grid">
       <Panel eyebrow="CAPACITY" title="Capacity and absence" detail="Used by the Overview to compute available hours and utilization. Stored with the shared app data, not per browser.">
@@ -151,6 +161,7 @@ export function AdminPage({ store, month, azure, git, onOpenBoard }: PageProps &
       {!store.state.audits.length && <EmptyState title="No changes recorded yet." detail="Changes made in the app will appear here." />}
       <button className="danger-button" onClick={store.reset}>Reset synthetic MVP data</button>
     </Panel>
+    </>}
   </Page>
 }
 
