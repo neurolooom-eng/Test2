@@ -71,6 +71,8 @@ export function syncViewsFromGit(views: AzureConnectionProfileSummary[], storage
   const follow: AzureConnectionProfileSummary[] = [], synced: AzureConnectionProfileSummary[] = []
   for (const view of views) {
     const local = listAzureConnectionProfiles(storage).find((entry) => entry.id === view.id)
+    // A view in Git that duplicates another connection here (same server, project, role and query) is not added again.
+    if (!local && view.role !== 'time-tracking' && listAzureConnectionProfiles(storage).some((entry) => connectionKey(entry) === connectionKey(view))) { result.kept.push(view.viewName || view.reason); continue }
     if (local && fingerprint(local) === fingerprint(view)) { synced.push(view); continue }
     if (local && baseline[view.id] !== fingerprint(local)) { result.kept.push(view.viewName || view.reason); continue }
     follow.push(view)
@@ -106,4 +108,29 @@ export function promoteToTimeWriting(id: string, storage: Pick<Storage, 'getItem
   saveAzureConnectionProfile({ ...profile, role: 'time-tracking', showInMenu: true, ...(profile.creatorEmail || !previous?.creatorEmail ? {} : { creatorEmail: previous.creatorEmail }), ...(profile.viewName || !previous?.viewName ? {} : { viewName: previous.viewName }) }, storage)
   for (const entry of replaced) forgetAzureConnectionProfile(entry.id, storage)
   return replaced
+}
+
+// Two connections are the same when they read the same server, project (and team), role and query; then only one is
+// kept — the one with an ID from the shared setup (preferred), else the first — so no view is fetched, listed or
+// matched twice.
+const sameQuery = (query?: string) => (query ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+export function connectionKey(view: Pick<AzureConnectionProfileSummary, 'url' | 'baseUrl' | 'role' | 'query'>) {
+  const path = (() => { try { return decodeURIComponent(new URL(view.url).pathname).replace(/\/_backlogs\/.*$/, '').replace(/\/+$/, '').toLowerCase() } catch { return view.url.toLowerCase() } })()
+  return [serverKey(view), path, view.role, sameQuery(view.query)].join('|')
+}
+export function duplicateConnections(profiles: AzureConnectionProfileSummary[], preferred: string[] = []) {
+  const groups = new Map<string, AzureConnectionProfileSummary[]>()
+  for (const profile of profiles) { if (profile.role === 'time-tracking') continue; const key = connectionKey(profile); groups.set(key, [...(groups.get(key) ?? []), profile]) }
+  const remove: AzureConnectionProfileSummary[] = []
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    const keep = group.find((profile) => preferred.includes(profile.id)) ?? group[0]
+    remove.push(...group.filter((profile) => profile !== keep))
+  }
+  return remove
+}
+export function removeDuplicateConnections(preferred: string[] = [], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
+  const remove = duplicateConnections(listAzureConnectionProfiles(storage), preferred)
+  for (const profile of remove) { try { forgetAzureConnectionProfile(profile.id, storage) } catch { /* kept */ } }
+  return remove
 }

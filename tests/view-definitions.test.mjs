@@ -103,3 +103,22 @@ test('use a backlog view as Time Writing: it takes over, keeps the creator email
   assert.equal(loadAzureConnectionProfile('tw', storage), null)
   assert.throws(() => promoteToTimeWriting('missing', storage), /not found/)
 })
+
+import { duplicateConnections, removeDuplicateConnections, connectionKey } from '../src/viewDefinitions.ts'
+import { connectionPresets } from '../src/connectionPresets.ts'
+test('duplicate connections: same server, project, role and query; the shared ID is kept; Git does not add them back', () => {
+  const store = memory()
+  const base = 'https://tfsapac04.ta.philips.com/tfs/DHPCollection'
+  const dp = connectionPresets.find((preset) => preset.key === 'dp-completed')
+  assert.equal(dp.id, '93b332d0c3f8465488790b222f294b29', 'presets carry the ID of the shared setup')
+  saveAzureConnectionProfile({ id: 'copy1', url: `${base}/DHP.Vault`, baseUrl: base, reason: 'DP_Completed', viewName: 'DP [Completed Releases]', role: 'release-source', query: dp.query, token: 'p' }, store)
+  saveAzureConnectionProfile({ id: dp.id, url: `${base}/DHP.Vault`, baseUrl: base, reason: 'DP_Completed', viewName: 'DP [Completed Releases]', role: 'release-source', query: `  ${dp.query}\n`, token: '' }, store)
+  saveAzureConnectionProfile({ id: 'cp', url: `${base}/DHP.Vault`, baseUrl: base, reason: 'CP', role: 'release-source', query: 'SELECT [System.Id] FROM WorkItems WHERE x = 2', token: '' }, store)
+  assert.deepEqual(duplicateConnections(listAzureConnectionProfiles(store), [dp.id]).map((profile) => profile.id), ['copy1'], 'whitespace in the query does not matter; another query is not a duplicate')
+  assert.deepEqual(removeDuplicateConnections([dp.id], store).map((profile) => profile.id), ['copy1'])
+  assert.deepEqual(listAzureConnectionProfiles(store).map((profile) => profile.id).sort(), [dp.id, 'cp'].sort())
+  const again = syncViewsFromGit([{ id: 'copy1', url: `${base}/DHP.Vault`, baseUrl: base, reason: 'DP_Completed', role: 'release-source', query: dp.query }], store)
+  assert.equal(listAzureConnectionProfiles(store).some((profile) => profile.id === 'copy1'), false, 'a duplicate in Git is not added again')
+  assert.deepEqual(again.added, [])
+  assert.equal(connectionKey({ url: `${base}/DHP.Vault`, baseUrl: base, role: 'release-source', query: 'A  B' }), connectionKey({ url: `${base}/DHP.Vault/`, baseUrl: `${base}/`, role: 'release-source', query: 'a b' }))
+})

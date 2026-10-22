@@ -35,7 +35,8 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
   const [fetchingAll, setFetchingAll] = useState(false)
   const [dismissed, setDismissed] = useState(loadDismissedPresets)
   const presets = pendingPresets(connectionProfiles, dismissed)
-  const sources = store.state.azureSources ?? []
+  // Only the data of connections that exist here (data of a removed or duplicate connection is not listed).
+  const sources = (store.state.azureSources ?? []).filter((source) => connectionProfiles.some((profile) => profile.id === source.connectionId))
 
   const [patDrafts, setPatDrafts] = useState<Record<string, string>>({})
   const [patNote, setPatNote] = useState<{ key: string; text: string } | null>(null)
