@@ -18,7 +18,8 @@ The scenarios are the test cases marked **UAT** in [TEST-PLAN.md](TEST-PLAN.md).
 | 3 | Assigned to Me: finish, move to the current Sprint, month tasks; Feature creation | TC-ATM-03, TC-ATM-04, TC-ATM-05, TC-BKL-02 |
 | 4 | Overview (This month, Trends), baselines, Git storage | TC-OVR-01, TC-GIT-02 |
 | 5 | Force Update, backup and restore, snapshots (where SharePoint is available), Documentation | TC-UPD-02, TC-STO-04, TC-SNP-02, TC-DOC-01 |
-| 6 | Sharing through Git (shared connection setup, Load from Git, read-only token), Release Details and Windchill exports, Overview by region and role, Scrum Master | TC-CON-16, TC-CON-17, TC-CON-18, TC-CON-19, TC-CON-21, TC-SCR-01 |
+| 6 | Sharing through Git (shared connection setup, Load from Git, read-only token), Release Details and Windchill exports, Overview by region and role, Backlog Health | TC-CON-16, TC-CON-17, TC-CON-18, TC-CON-19, TC-CON-21, TC-SCR-01 |
+| 7 | Roles and access: set up roles, assign a Scrum Master by email, check what each role sees (two people on two browsers) | TC-ACC-01 |
 
 ## Entry criteria
 
