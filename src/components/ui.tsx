@@ -33,14 +33,14 @@ export function Info({ children, label = 'Info' }: { children: ReactNode; label?
   }, [at])
   useEffect(() => () => window.clearTimeout(timer.current), [])
   return <>
-    <button type="button" ref={anchor} className="info-button" aria-describedby={at ? id : undefined} aria-expanded={Boolean(at)} onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close} onClick={() => (at ? setAt(null) : open())}>ⓘ {label}</button>
+    <button type="button" ref={anchor} className="info-button" aria-describedby={at ? id : undefined} aria-expanded={Boolean(at)} onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close} onClick={(event) => { event.preventDefault(); if (at) setAt(null); else open() }}>ⓘ {label}</button>
     {at && createPortal(<div id={id} role="tooltip" className="info-pop" style={{ top: at.top, left: at.left }} onMouseEnter={open} onMouseLeave={close}>{children}</div>, document.body)}
   </>
 }
 
 export function Panel({ children, className = '', eyebrow, title, detail, info, action }: { children: ReactNode; className?: string; eyebrow?: string; title?: string; detail?: ReactNode; info?: ReactNode; action?: ReactNode }) {
   return <article className={`panel ${className}`}>
-    {(title || action) && <div className="panel-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}{title && <h2>{title}{info && <> <Info>{info}</Info></>}</h2>}{detail && <p className="muted">{detail}</p>}</div>{action}</div>}
+    {(title || action || info) && <div className="panel-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}{title ? <h2>{title}{info && <> <Info>{info}</Info></>}</h2> : info && <Info>{info}</Info>}{detail && <p className="muted">{detail}</p>}</div>{action}</div>}
     {children}
   </article>
 }

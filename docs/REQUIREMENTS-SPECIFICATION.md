@@ -308,7 +308,7 @@ Stakeholders:
 | ATM-13 | In sample mode, or without a Time Writing connection and PAT, every write action on the page shall be disabled, with the reason shown. | T | M | UC-06, UC-18 |
 | ATM-14 | The page shall keep the last 8 action results as notices. | D | C | UC-06 |
 | ATM-15 | The page shall offer one search box over the pending list that searches every type at once, ignoring the type chip: ID (with or without #), title, type, state, Feature, Epic, Area Path, Iteration Path and tags; every word must match, in any order and case. It shall show how many items match; Esc or a type chip shall clear it. | T | S | UC-06 |
-| ATM-16 | The explanations and rules of the pending list shall sit behind an "ⓘ Info" button next to its title, shown on hover, keyboard focus or tap, instead of as text on the page. | D | C | UC-06 |
+| ATM-16 | On every page, explanations of how a list, chart or rule works shall sit behind an "ⓘ Info" button next to the heading they belong to, shown on hover, keyboard focus or tap, instead of as text on the page; short status lines (counts, fetch times, totals) stay visible. | D | C | UC-01 |
 
 ### 3.7 Time Writing backlog view (BKL) — UC-07
 
