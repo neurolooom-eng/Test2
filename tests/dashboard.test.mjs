@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { personMonths, applyFilter, totals, plannedOverload, persistentOverload, concentration, rebalancing, streamTotals, change, byRole, byStream, periodMonths, monthStatus } from '../src/dashboard.ts'
+import { personMonths, applyFilter, totals, plannedOverload, persistentOverload, concentration, rebalancing, streamTotals, change, byRole, byStream, periodMonths, quarterOf, monthStatus, noFilter } from '../src/dashboard.ts'
 
 const base = { organization: 'o', project: 'p', state: 'Active', assignedTo: '', areaPath: 'p', iterationPath: 'p', tags: '', url: '', syncedAt: '' }
 let next = 1
@@ -18,10 +18,11 @@ const items = [cp, dp, f1, f2, s1, s2,
 const months = ['2026-07', '2026-08', '2026-09', '2026-10']
 const rows = personMonths(items, months, '2026-10-22', settings)
 
-test('periods and month status are relative to the selected month and today', () => {
-  assert.deepEqual(periodMonths('3', '2026-02'), ['2025-12', '2026-01', '2026-02'])
-  assert.deepEqual(periodMonths('ytd', '2026-03'), ['2026-01', '2026-02', '2026-03'])
-  assert.equal(periodMonths('year', '2026-05').length, 12)
+test('periods: a year with any quarters and months (none = whole year); month status against today', () => {
+  assert.deepEqual(periodMonths({ year: 2026, quarters: [1], months: [] }), ['2026-01', '2026-02', '2026-03'])
+  assert.deepEqual(periodMonths({ year: 2026, quarters: [4], months: [2, 11] }), ['2026-02', '2026-10', '2026-11', '2026-12'], 'quarters and months combine, without duplicates, in order')
+  assert.equal(periodMonths({ year: 2025, quarters: [], months: [] }).length, 12)
+  assert.equal(quarterOf('2026-08'), 3)
   assert.deepEqual(['2026-09', '2026-10', '2026-11'].map((month) => monthStatus(month, '2026-10-22')), ['elapsed', 'partial', 'future'])
 })
 
@@ -32,8 +33,10 @@ test('person-month records: plan, actual, capacity, region and role, lines and b
   assert.deepEqual([cy.planLines, cy.blankActuals, cy.actual], [1, 1, 0])
   const all = totals(rows)
   assert.equal(all.plan, 1090); assert.equal(all.people, 3)
-  assert.equal(totals(applyFilter(rows, { role: 'QMS' })).plan, 100)
-  assert.equal(totals(applyFilter(rows, { stream: String(dp.key) })).plan, 260, 'a stream keeps only its hours')
+  assert.equal(totals(applyFilter(rows, { ...noFilter, roles: ['QMS'] })).plan, 100)
+  assert.equal(totals(applyFilter(rows, { ...noFilter, streams: [String(dp.key)] })).plan, 260, 'a stream keeps only its hours')
+  assert.equal(totals(applyFilter(rows, { ...noFilter, streams: [String(dp.key), String(cp.key)] })).plan, 1090, 'several streams add up')
+  assert.equal(totals(applyFilter(rows, { ...noFilter, people: ['Ben', 'Cy'] })).people, 2, 'several people')
 })
 
 test('overload, persistent overload, concentration and rebalancing within role and month', () => {

@@ -107,7 +107,7 @@ function LastMonth({ month, last, azure, store, my, navigate, current, only }: {
         </tbody></table>}
         {flow.items.length > 0 && <details className="flow-items"><summary>The {flow.items.length} item{flow.items.length === 1 ? '' : 's'}</summary><ul>{flow.items.map(({ item, stream, change: kind }) => <li key={`${kind}-${item.key}`}><Pill tone={kind === 'closed' ? 'open' : 'info'}>{kind === 'closed' ? 'Closed' : 'Opened'}</Pill> <a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a> <small className="muted">{item.workItemType} · {stream}{item.assignedTo ? ` · ${item.assignedTo}` : ''}</small></li>)}</ul></details>}
       </TablePanel>
-      <MonthSections items={items} month={last} settings={settings} navigate={navigate} />
+      <MonthSections items={items} month={last} settings={settings} navigate={navigate} utilizationOnly />
       <GapsPanel gaps={gaps} month={last} />
     </>}
   </>
