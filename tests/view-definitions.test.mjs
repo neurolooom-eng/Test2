@@ -34,7 +34,7 @@ test('restore: keeps the PAT here, else the entered PAT, else one for the same s
   assert.deepEqual(second, { added: [], updated: ['Digital Platform', 'IOCC', 'Cloud X'], skipped: [], noPat: [] })
   assert.equal(loadAzureConnectionProfile('dp', fresh).token, 'own-pat', 'an existing connection keeps its PAT')
   assert.equal(loadAzureConnectionProfile('cloud', fresh).token, 'entered-pat', 'a view-only connection gets the entered PAT')
-  assert.equal(loadAzureConnectionProfile('qms', fresh).token, 'onprem-pat', 'connections not in the file are untouched')
+  assert.equal(loadAzureConnectionProfile('qms', fresh).token, 'own-pat', 'one PAT per server: a new PAT on one connection is the PAT of every connection on that server')
 })
 
 test('views file sits next to the data file and is committed with the loaded version', async () => {
