@@ -5,8 +5,8 @@ import { applySnapshots, parseSnapshot, serializeSnapshot, snapshotDigest, snaps
 import { formatDateTime } from './format'
 import { applyWindchillSnapshots, parseWindchillSnapshot, windchillDigest, windchillFolder, windchillSnapshotFile, type WindchillSnapshotFile, type WindchillSource } from './windchillSnapshots'
 import { loadWindchillViews, saveWindchillViews, type WindchillView } from './windchillViews'
-import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials'
-import { parseViews, syncViewsFromGit } from './viewDefinitions'
+import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary, listAzureConnectionProfiles } from './azureCredentials'
+import { parseViews, syncViewsFromGit, connectionKey } from './viewDefinitions'
 
 export type GitStatus = 'off' | 'loading' | 'synced' | 'empty' | 'saving' | 'error' | 'conflict'
 
@@ -177,9 +177,11 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     }
     // Connections not set up in this browser are added without a PAT, to show the data (fetching needs a PAT).
     let added = 0
-    for (const file of files) if (!loadAzureConnectionProfile(file.connection.id)) { try { saveAzureConnectionProfile({ ...file.connection, token: '' }); added += 1 } catch { failed.push(snapshotFileName(file.connection.id)) } }
-    const { applied } = applySnapshots(store.state.azureSources, files)
-    store.update((draft) => { draft.azureSources = applySnapshots(draft.azureSources, files).sources; return draft })
+    // A file whose connection duplicates one already here (same server, project, role and query) is skipped.
+    for (const file of files) if (!loadAzureConnectionProfile(file.connection.id) && !listAzureConnectionProfiles().some((profile) => connectionKey(profile) === connectionKey(file.connection))) { try { saveAzureConnectionProfile({ ...file.connection, token: '' }); added += 1 } catch { failed.push(snapshotFileName(file.connection.id)) } }
+    const usable = files.filter((file) => loadAzureConnectionProfile(file.connection.id))
+    const { applied } = applySnapshots(store.state.azureSources, usable)
+    store.update((draft) => { draft.azureSources = applySnapshots(draft.azureSources, usable).sources; return draft })
     return { files: files.length, applied, added, failed }
   }
 
