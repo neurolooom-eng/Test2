@@ -1,7 +1,7 @@
 import type { AzureWorkItem } from './domain'
 import { isPastSprint, isPending, type DatedIteration } from './myWork.ts'
 
-// Scrum Master view over the Time Writing backlog (all people): open work left in Sprints that have ended, Features
+// Backlog Health (what the Scrum Master needs) over the Time Writing backlog (all people): open work left in Sprints that have ended, Features
 // without a Definition of Done (their Description does not mention "DoD"), and open work nobody is assigned to.
 // Work under the absence Epic (PTO, sick leave, holidays) is left out of every list.
 const tracked = new Set(['Feature', 'User Story', 'Task'])
@@ -41,7 +41,7 @@ export function unassignedItems(items: AzureWorkItem[], absenceEpicId?: number) 
 export const sprintEnd = (item: Pick<AzureWorkItem, 'iterationPath'>, iterations: DatedIteration[]) => iterations.find((entry) => entry.path.trim().toLowerCase() === item.iterationPath.trim().toLowerCase())?.attributes?.finishDate?.slice(0, 10) ?? ''
 
 // CSV of the rows (quoted, comma-separated, CRLF), with the parent's title for context.
-export function scrumCsv(rows: AzureWorkItem[], all: AzureWorkItem[], iterations: DatedIteration[], list = '') {
+export function healthCsv(rows: AzureWorkItem[], all: AzureWorkItem[], iterations: DatedIteration[], list = '') {
   const byId = new Map(all.map((item) => [item.id, item]))
   const quote = (value: unknown) => { const text = String(value ?? ''); return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text }
   const header = [...(list ? ['List'] : []), 'ID', 'Type', 'Title', 'State', 'Assigned To', 'Iteration', 'Sprint end', 'Parent', 'URL']

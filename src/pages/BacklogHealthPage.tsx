@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel, type Tone } from '../components/ui'
 import { readAzureIterations, type AzureIteration } from '../azureDevOps'
-import { featuresWithoutDoD, hierarchyOf, olderSprintItems, scrumCsv, sprintEnd, unassignedCsv, unassignedItems } from '../scrumMaster'
+import { featuresWithoutDoD, hierarchyOf, olderSprintItems, healthCsv, sprintEnd, unassignedCsv, unassignedItems } from '../backlogHealth'
 import { downloadCsv } from '../download'
 import { formatDate, todayIso } from '../format'
 import type { AzureWorkItem } from '../domain'
@@ -19,9 +19,9 @@ const types = ['Feature', 'User Story', 'Task'] as const
 const stateTone = (state: string): Tone => /new|proposed|to do/i.test(state) ? 'info' : /active|in progress|committed|doing/i.test(state) ? 'open' : 'neutral'
 const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || path
 
-// Scrum Master view of the Time Writing backlog, for everyone: open Features, User Stories and Tasks left in Sprints
+// Backlog Health: what the Scrum Master needs from the Time Writing backlog, for everyone: open Features, User Stories and Tasks left in Sprints
 // that have ended, Features whose Description has no DoD, and open work nobody is assigned to; each list as CSV.
-export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store: PageProps['store'] }) {
+export function BacklogHealthPage({ azure, store }: { azure: AzureWorkspace; store: PageProps['store'] }) {
   const { config, pat } = azure
   const absenceEpicId = capacityContext(store.state).absenceEpicId
   const [iterations, setIterations] = useState<AzureIteration[] | null>(null)
@@ -44,15 +44,15 @@ export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store
   const shown = rows[list].filter((item) => shownTypes.includes(item.workItemType) && (!text || `${item.id} ${item.title} ${item.assignedTo} ${item.iterationPath}`.toLowerCase().includes(text)))
   const byId = new Map(azure.items.map((item) => [item.id, item]))
   const current = lists.find((entry) => entry.key === list)!
-  const exportList = () => downloadCsv(list === 'unassigned' ? unassignedCsv(shown, azure.items) : scrumCsv(shown, azure.items, dated), `${current.file}-${todayIso()}.csv`)
-  const exportAll = () => downloadCsv(lists.map((entry, index) => { const csv = scrumCsv(rows[entry.key], azure.items, dated, entry.label); return index ? csv.split('\r\n').slice(1).join('\r\n') : csv }).filter(Boolean).join('\r\n'), `scrum-master-${todayIso()}.csv`)
+  const exportList = () => downloadCsv(list === 'unassigned' ? unassignedCsv(shown, azure.items) : healthCsv(shown, azure.items, dated), `${current.file}-${todayIso()}.csv`)
+  const exportAll = () => downloadCsv(lists.map((entry, index) => { const csv = healthCsv(rows[entry.key], azure.items, dated, entry.label); return index ? csv.split('\r\n').slice(1).join('\r\n') : csv }).filter(Boolean).join('\r\n'), `backlog-health-${todayIso()}.csv`)
 
   if (!azure.items.length) return <Page><EmptyState title="No backlog loaded yet." detail="Fetch the Time Writing (QMS-0025) connection first; this view reads its Features, User Stories and Tasks for everyone." /></Page>
   return <Page>
     <Metrics>
       {lists.map((entry) => <Metric key={entry.key} label={entry.label} value={entry.key === 'sprints' && !iterations ? '—' : rows[entry.key].length} hint={entry.key === 'sprints' ? 'Open Features, Stories and Tasks in Sprints that have ended' : entry.key === 'dod' ? `${openOnly ? 'Open ' : ''}Features whose Description does not mention “DoD”` : 'Open Features, Stories and Tasks without an assignee'} tone={(entry.key !== 'sprints' || iterations) && rows[entry.key].length ? 'negative' : undefined} />)}
     </Metrics>
-    <div className="overview-tabs" role="tablist" aria-label="Scrum Master lists">{lists.map((entry) => <button key={entry.key} type="button" role="tab" aria-selected={list === entry.key} className={`backlog-tab${list === entry.key ? ' active' : ''}`} onClick={() => setList(entry.key)}>{entry.label} ({entry.key === 'sprints' && !iterations ? '…' : rows[entry.key].length})</button>)}</div>
+    <div className="overview-tabs" role="tablist" aria-label="Backlog Health lists">{lists.map((entry) => <button key={entry.key} type="button" role="tab" aria-selected={list === entry.key} className={`backlog-tab${list === entry.key ? ' active' : ''}`} onClick={() => setList(entry.key)}>{entry.label} ({entry.key === 'sprints' && !iterations ? '…' : rows[entry.key].length})</button>)}</div>
     {list === 'unassigned' && rows.unassigned.length > 0 && rows.unassigned.every((item) => !item.createdBy) && <Notice tone="info">Created By comes with the next refresh from Azure DevOps (↻ at the top); data fetched before this build does not have it.</Notice>}
     {list === 'sprints' && !canRead && <Notice tone="warning">Sprint dates are read from Azure DevOps: connect the Time Writing connection with its PAT (sample data has no Sprint dates).</Notice>}
     {list === 'sprints' && iterationError && <Notice tone="error">{iterationError}</Notice>}
