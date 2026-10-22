@@ -18,6 +18,7 @@ import { sharedThroughGit } from './gitSnapshots'
 import { useGitStorage } from './useGitStorage'
 import { useWindchill } from './useWindchill'
 import { WindchillExportImport, WindchillPage } from './components/WindchillViews'
+import { ScrumMasterPage } from './pages/ScrumMasterPage'
 import { useMyWork } from './useMyWork'
 import { MyWorkPage } from './pages/MyWorkPage'
 import { BulkActionsPage } from './pages/BulkActionsPage'
@@ -95,7 +96,7 @@ export default function App() {
   return <HeaderSlot.Provider value={headerSlot}><div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">DP</div><div><strong>Demand Planning</strong><span>Quality Engineering</span></div></div>
-      <nav aria-label="Primary navigation">{pageGroups.filter((group) => group !== 'I&D Board' || views.some((entry) => !entry.onPrem)).map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{group === 'Release Details' && views.filter((entry) => entry.onPrem).map((entry) => navButton(`view:${entry.id}`, pageMeta('board').icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id)))}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'windchill' ? [...windchillViews.map((entry) => navButton(entry.id, item.icon, entry.name, page === 'windchill' && windchillView?.id === entry.id, () => openWindchill(entry.id))), navButton(item.id, '＋', item.label, page === 'windchill' && !windchillView, () => openWindchill(''))] : item.id === 'board' ? views.filter((entry) => !entry.onPrem).map((entry) => navButton(`view:${entry.id}`, item.icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id))) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
+      <nav aria-label="Primary navigation">{pageGroups.map((group) => <div key={group} className="nav-section">{group !== 'Overview' && <p className="nav-group">{group.toUpperCase()}</p>}{group === 'Release Details' && views.filter((entry) => entry.onPrem).map((entry) => navButton(`view:${entry.id}`, pageMeta('board').icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id)))}{pages.filter((item) => item.group === group).flatMap((item) => item.id === 'windchill' ? [...windchillViews.map((entry) => navButton(entry.id, item.icon, entry.name, page === 'windchill' && windchillView?.id === entry.id, () => openWindchill(entry.id))), navButton(item.id, '＋', item.label, page === 'windchill' && !windchillView, () => openWindchill(''))] : item.id === 'board' ? views.filter((entry) => !entry.onPrem).map((entry) => navButton(`view:${entry.id}`, item.icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id))) : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>])}</div>)}</nav>
       <div className="sidebar-footer"><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
     </aside>
     <main>
@@ -109,6 +110,7 @@ export default function App() {
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} /> : <WindchillExportImport windchill={windchill} git={git} onImported={openWindchill} />)}
+      {page === 'scrum' && <ScrumMasterPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} onOpenBoard={() => setPage('board')} />}
