@@ -4,7 +4,7 @@ import { AssigneeConfirm } from '../components/AssigneeConfirm'
 import { EmptyState, Notice, Page, Panel, Pill } from '../components/ui'
 import { currentIndiaMonth, currentIterationPairs, ensureMonthTask, readAzureIterations, updateAzureWorkItem, type AzureIteration } from '../azureDevOps'
 import { capacityContext } from '../capacity'
-import { assignablePeople, monthTaskCandidates, moveCandidates, type MoveStates } from '../myWork'
+import { assignablePeople, monthTaskCandidates, moveCandidates, nextStateFor, stateChecks, type MoveStates, type StateCheck } from '../myWork'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -37,6 +37,20 @@ export function BulkActionsPage({ azure, store, my, assign }: { azure: AzureWork
   const toMove = (target ? moveCandidates(azure.items, my.me, target, iterations, absenceEpicId, undefined, moveStates) : []).toSorted((a, b) => a.item.id - b.item.id)
   const candidates = (my.known ? monthTaskCandidates(azure.items, my.me, month, absenceEpicId) : []).toSorted((a, b) => a.feature.id - b.feature.id)
   const missing = candidates.filter((row) => row.status === 'needs-task' || row.status === 'needs-story')
+  // State checks over the shown person's Features and User Stories (see stateChecks).
+  const checks = my.known ? stateChecks(azure.items, my.me, absenceEpicId) : []
+  const checkText: Record<StateCheck['kind'], (check: StateCheck) => string> = {
+    'close-feature': (check) => `All ${check.children.length} User Stor${check.children.length === 1 ? 'y is' : 'ies are'} Closed: the Feature should be Closed too.`,
+    'close-story': (check) => `All ${check.children.length} Task${check.children.length === 1 ? ' is' : 's are'} Closed: the User Story should be Closed too.`,
+    'feature-needs-active-story': (check) => check.children.length ? `The Feature is Active but none of its ${check.children.length} User Stor${check.children.length === 1 ? 'y is' : 'ies are'} Active: set at least one to Active.` : 'The Feature is Active but has no User Story: add one and set it to Active.',
+  }
+  async function applyState(item: AzureWorkItem, state: string) {
+    if (blocked || !config || !window.confirm(`Set ${item.workItemType} #${item.id} “${item.title}” to ${state} in Azure DevOps?`)) return
+    setBusy(`check-${item.id}`)
+    try { const updated = await updateAzureWorkItem(config, pat, item.id, { state }); azure.applyWorkItems([updated], 'State check', `#${item.id} ${item.state} → ${updated.state}`); note({ tone: 'success', text: `#${item.id} is now ${updated.state}. Refreshing data…` }); await azure.refresh() }
+    catch (failure) { note({ tone: 'error', text: `#${item.id}: ${failure instanceof Error ? failure.message : 'update failed'}` }) }
+    finally { setBusy('') }
+  }
   const note = (entry: Log) => setLog((current) => [entry, ...current].slice(0, 8))
 
   async function findSprint() {
@@ -114,6 +128,17 @@ export function BulkActionsPage({ azure, store, my, assign }: { azure: AzureWork
             <div className="button-row"><button type="button" className="primary" disabled={Boolean(blocked) || busy === 'tasks' || !missing.some((row) => !skipTask.has(row.feature.id))} onClick={() => setConfirmTasks(true)}>{busy === 'tasks' ? 'Creating…' : ((count) => `Create ${count} task${count === 1 ? '' : 's'}`)(missing.filter((row) => !skipTask.has(row.feature.id)).length)}</button></div>
           </Panel>
         </div>
+        <Panel className="action-card state-checks" eyebrow="CHECK" title="State checks" detail="Your Features and User Stories whose state does not match their children: all User Stories Closed → close the Feature; all Tasks Closed → close the User Story; an Active Feature needs at least one Active User Story. A Feature is closed only from Active.">
+          {checks.length ? <div className="azure-table"><table><thead><tr><th>Work item</th><th>State</th><th>Check</th><th /></tr></thead><tbody>{checks.map((check) => {
+            const next = check.kind === 'feature-needs-active-story' ? null : nextStateFor(check.item)
+            return <tr key={`${check.kind}-${check.item.id}`}>
+              <td><a href={check.item.url} target="_blank" rel="noreferrer">#{check.item.id}</a> {check.item.title}<small>{check.item.workItemType}</small></td>
+              <td><Pill tone={check.kind === 'feature-needs-active-story' ? 'warning' : 'danger'}>{check.item.state}</Pill></td>
+              <td>{checkText[check.kind](check)}</td>
+              <td>{next ? <button type="button" className="ghost" disabled={Boolean(blocked) || busy === `check-${check.item.id}`} onClick={() => void applyState(check.item, next.state)}>{busy === `check-${check.item.id}` ? 'Saving…' : next.label}</button> : check.kind === 'feature-needs-active-story' ? <a href={check.item.url} target="_blank" rel="noreferrer">Open in Azure DevOps</a> : null}</td>
+            </tr>
+          })}</tbody></table></div> : <EmptyState title="Nothing to fix." detail="Every Feature and User Story matches the state of its children." />}
+        </Panel>
       </>}
     {confirmTasks && <AssigneeConfirm title={`Create ${month} Time Writing tasks`} people={assignablePeople(azure.items)} me={assign.me} initial={shownEmail} canChoose={assign.canChoose} busy={busy === 'tasks'} confirmLabel="Create tasks"
       summary={<>Creates the “{month}” Time Writing Task (and the Time Writing User Story where missing) for {missing.filter((row) => !skipTask.has(row.feature.id)).length} Feature(s), assigned to the person below. Existing tasks of that person are re-checked in Azure DevOps and never duplicated.</>}

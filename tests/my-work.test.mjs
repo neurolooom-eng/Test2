@@ -145,3 +145,25 @@ test('people to assign to: everyone with an email, by name; a shared name shows 
   const items = [item(1, 'Task', 'a', { assignedTo: 'Ana', assignedToEmail: 'ana@x.com' }), item(2, 'Task', 'b', { assignedTo: 'Ana', assignedToEmail: 'ana@x.com' }), item(3, 'Task', 'c', { assignedTo: 'Ben' }), item(4, 'Task', 'd', { assignedTo: 'Chen', assignedToEmail: 'chen@x.com' }), item(5, 'Task', 'e', { assignedTo: 'Chen', assignedToEmail: 'chen2@x.com' })]
   assert.deepEqual(assignablePeople(items), [{ email: 'ana@x.com', name: 'Ana' }, { email: 'chen@x.com', name: 'Chen (chen@x.com)' }, { email: 'chen2@x.com', name: 'Chen (chen2@x.com)' }])
 })
+
+import { stateChecks, nextStateFor } from '../src/myWork.ts'
+test('state checks: closed stories close the Feature, closed tasks close the story, an Active Feature needs an Active story', () => {
+  const me = { email: 'ana@x.com' }
+  const mine = (id, type, state, parentId, extra = {}) => item(id, type, `${type} ${id}`, { state, parentId, assignedTo: 'Ana', assignedToEmail: 'ana@x.com', ...extra })
+  const items = [
+    mine(1, 'Feature', 'Active'), mine(11, 'User Story', 'Closed', 1), mine(12, 'User Story', 'Closed', 1), mine(13, 'User Story', 'Removed', 1),
+    mine(2, 'Feature', 'Active'), mine(21, 'User Story', 'New', 2), mine(22, 'User Story', 'Resolved', 2),
+    mine(3, 'Feature', 'Active'), mine(31, 'User Story', 'Active', 3), mine(311, 'Task', 'Closed', 31), mine(312, 'Task', 'Closed', 31),
+    mine(4, 'Feature', 'New'), mine(5, 'Feature', 'Active'),
+    mine(6, 'Feature', 'Closed'), mine(61, 'User Story', 'Closed', 6),
+    item(7, 'Feature', 'Ben feature', { state: 'Active', assignedTo: 'Ben', assignedToEmail: 'ben@x.com' }),
+    mine(90, 'Epic', 'Active'), mine(9, 'Feature', 'Active', 90), mine(91, 'User Story', 'Closed', 9),
+  ]
+  const checks = stateChecks(items, me, 90)
+  assert.deepEqual(checks.map((check) => [check.kind, check.item.id]), [
+    ['close-feature', 1], ['feature-needs-active-story', 2], ['feature-needs-active-story', 5], ['close-story', 31],
+  ])
+  assert.deepEqual(checks[0].children.map((child) => child.id), [11, 12], 'Removed stories are ignored')
+  assert.deepEqual([nextStateFor({ workItemType: 'Feature', state: 'New' }), nextStateFor({ workItemType: 'Feature', state: 'Active' }), nextStateFor({ workItemType: 'Feature', state: 'Resolved' }), nextStateFor({ workItemType: 'Task', state: 'New' })],
+    [{ state: 'Active', label: 'Set Feature to Active' }, { state: 'Closed', label: 'Close Feature' }, null, { state: 'Closed', label: 'Close Task' }])
+})
