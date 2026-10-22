@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { EmptyState, Notice, Panel, Pill, type Tone, Info } from './ui'
 import { formatDateTime } from '../format'
-import { defaultMatchThreshold, defaultStreams, namesStream, profileForStream, streamOfProfile } from '../streams'
+import { dataSetOfProfile, dataSets, defaultMatchThreshold, defaultStreams, namesStream, profileForDataSet, profileForStream, streamOfProfile } from '../streams'
 import { normalizeReleaseSourceSettings } from '../releaseSource'
 import { collectionUrlFrom, composeAzureUrl, forgetKnownServer, listKnownServers, loadServerPat, saveKnownServer, saveServerPat, serverKey, defaultShowInMenu, listAzureConnectionProfiles, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
@@ -66,13 +66,16 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
   const timeWritingPreset = connectionPresets.find((preset) => preset.role === 'time-tracking')
   const activeTimeWriting = connectionProfiles.find((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking') ?? connectionProfiles.find((profile) => profile.role === 'time-tracking')
   const ruleLabel = { dp: 'DP: name from Area Path, number from Iteration Path; fuzzy match', iocc: 'IOCC: Type of Release from Area Path, name from Title; fuzzy match', path: '“Release x.y.z” path segment; exact match' } as const
+  // DP's data sets (Pedestal release register, DHFI documents) sit with the streams: mapped like them, hidden from the menu.
+  const dataSetRule = { Pedestal: 'DP releases: every Release work item; Title names the release and version', DHFI: 'DP dates: documents whose Title names a Pedestal Release; Author Approval (else Closed) Date gives the month' } as Record<string, string>
   const mapping = [
     { name: 'Time Writing', timeWriting: true, windchill: false, profile: activeTimeWriting, preset: timeWritingPreset, rule: 'Team backlog (read & write)', where: activeTimeWriting ? whereOf(activeTimeWriting) : timeWritingPreset ? whereOf(placeOf(timeWritingPreset)) : '', query: activeTimeWriting?.query ?? '' },
+    ...dataSets.map((set) => { const profile = profileForDataSet(set.name, connectionProfiles), preset = set.presetKey ? connectionPresets.find((entry) => entry.key === set.presetKey) : undefined; return { name: set.name, dataSet: true, timeWriting: false, windchill: false, profile, preset, rule: dataSetRule[set.name] ?? '', where: profile ? whereOf(profile) : preset ? whereOf(placeOf(preset)) : '', query: profile?.query ?? preset?.query ?? '' } }),
     ...defaultStreams.map((stream) => { const profile = profileForStream(stream, connectionProfiles), preset = stream.source === 'azure' ? presetFor(stream.name) : undefined; return { name: stream.name, timeWriting: false, windchill: stream.source === 'windchill', profile, preset, rule: stream.source === 'windchill' ? 'Windchill export' : ruleLabel[stream.rule], where: profile ? whereOf(profile) : preset ? whereOf(placeOf(preset)) : '', query: profile?.query ?? preset?.query ?? '' } }),
   ]
   const mapped = new Set(mapping.flatMap((row) => row.profile ? [row.profile.id] : []))
   const others = connectionProfiles.filter((profile) => !mapped.has(profile.id))
-  const otherPresets = presets.filter((preset) => preset.role !== 'time-tracking' && !streamOfProfile({ viewName: preset.viewName, reason: preset.name, role: preset.role }))
+  const otherPresets = presets.filter((preset) => preset.role !== 'time-tracking' && !streamOfProfile({ viewName: preset.viewName, reason: preset.name, role: preset.role }) && !dataSets.some((set) => set.presetKey === preset.key))
   // Set up a default: saved and fetched right away when its server already has a PAT, otherwise the form asks for one.
   function setUpStream(preset: Omit<ConnectionInput, 'pat'>) {
     setFormError('')
@@ -107,7 +110,7 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
     try { id = azure.saveConnection(form); setForm(null); setFormError('') } catch (failure) { setFormError(failure instanceof Error ? failure.message : 'Unable to save the connection.'); return }
     void azure.fetchConnection(id)
     const saved = listAzureConnectionProfiles().find((profile) => profile.id === id)
-    if (saved && (saved.role === 'time-tracking' || streamOfProfile(saved))) void shareMapping(viewNameOf(saved))
+    if (saved && (saved.role === 'time-tracking' || streamOfProfile(saved) || dataSetOfProfile(saved))) void shareMapping(viewNameOf(saved))
   }
   const lastFetch = (profile: AzureConnectionProfileSummary) => {
     if (profile.role === 'time-tracking') return profile.id === activeConnectionProfileId && azure.saved.length ? `${azure.saved.length} saved work items` : ''
@@ -206,7 +209,7 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
         <div className="button-row"><button className="primary">Add server</button><button type="button" className="ghost" onClick={() => setNewServer(null)}>Cancel</button></div>
       </form>}
     </Panel>
-    <Panel className="connection-panel" eyebrow="STEP 2" title="Stream mapping" info={<ul><li>Which server, project and query feed each stream. Time Writing (QMS-0025) is the team's backlog; DP, CP, IOCC, Content and Tool Validations are queries on the on-prem DHP.Vault project; S&amp;S IT comes from the Windchill export named like it (ECP will follow).</li><li>Release rules: DP — name from the Area Path, number from the Iteration Path. IOCC — Type of Release from the Area Path segment after “IOCC”, name from the Title. Others — a “Release x.y.z” path segment. DP and IOCC are matched to QMS-0025 Features fuzzily; the best Feature counts at the threshold.</li><li>The mapping is shared with everyone through Git (azure-views.json); roles with “Manage shared settings” change it. Everyone else only enters their PAT per server.</li></ul>}
+    <Panel className="connection-panel" eyebrow="STEP 2" title="Stream mapping" info={<ul><li>Which server, project and query feed each stream. Time Writing (QMS-0025) is the team's backlog; DP, CP, IOCC, Content and Tool Validations are queries on the on-prem DHP.Vault project; S&amp;S IT comes from the Windchill export named like it (ECP will follow). Pedestal (the DHP release register) and DHFI are DP's two data sets: with both mapped, DP lists every Pedestal Release, dated by the DHFI documents whose Title names it.</li><li>Release rules: DP — name from the Area Path, number from the Iteration Path. IOCC — Type of Release from the Area Path segment after “IOCC”, name from the Title. Others — a “Release x.y.z” path segment. DP and IOCC are matched to QMS-0025 Features fuzzily; the best Feature counts at the threshold.</li><li>The mapping is shared with everyone through Git (azure-views.json); roles with “Manage shared settings” change it. Everyone else only enters their PAT per server.</li></ul>}
       action={<div className="button-row">{mapping.some((row) => !row.profile && row.preset && !row.timeWriting && presetHasPat(row.preset)) && <button type="button" className="primary" onClick={() => { for (const row of mapping) if (!row.profile && row.preset && !row.timeWriting && presetHasPat(row.preset)) setUpStream(row.preset) }}>Set up all with saved PATs</button>}<label className="inline-select">Fuzzy match threshold<input type="number" min={1} max={100} step={1} value={threshold} disabled={!canManage} aria-label="Fuzzy match threshold (%)" onChange={(event) => { const value = Math.round(Number(event.target.value)); if (value >= 1 && value <= 100) store.update((draft) => { draft.releaseSourceSettings = { ...normalizeReleaseSourceSettings(draft.releaseSourceSettings), matchThreshold: value }; return draft }) }} />%</label></div>}>
       {!canManage && <Notice tone="info">The stream mapping is managed by roles with “Manage shared settings” and comes from Git. Enter your PAT per server above.</Notice>}
       <div className="azure-table"><table><thead><tr><th>Stream</th><th>Server · project</th><th>Query</th><th>Rule</th><th>Status</th><th /></tr></thead><tbody>
@@ -218,7 +221,7 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
           <td>{row.windchill ? <small className="muted">Import on the Windchill page</small> : <><Pill tone={tone}>{label}</Pill>{status?.message && <small>{status.message}</small>}</>}</td>
           <td><div className="button-row nowrap">
             {!row.windchill && !row.profile && row.preset && <button type="button" className="primary" onClick={() => setUpStream(row.preset!)}>Set up</button>}
-            {!row.windchill && !row.profile && !row.preset && canManage && <button type="button" className="primary" onClick={() => { setFormError(''); setForm({ ...empty('release-source'), name: row.name, viewName: row.name, showInMenu: true }) }}>Add query</button>}
+            {!row.windchill && !row.profile && !row.preset && canManage && <button type="button" className="primary" onClick={() => { setFormError(''); setForm('dataSet' in row && row.dataSet ? { ...empty('reference'), name: row.name, viewName: row.name, showInMenu: false } : { ...empty('release-source'), name: row.name, viewName: row.name, showInMenu: true }) }}>Add query</button>}
             {row.profile && <button type="button" className="ghost" disabled={status?.state === 'busy' || fetchingAll} onClick={() => void azure.fetchConnection(row.profile!.id)}>Fetch</button>}
             {row.profile && (canManage || row.timeWriting) && <button type="button" className="ghost" onClick={() => edit(row.profile!)}>Edit</button>}
           </div></td>
