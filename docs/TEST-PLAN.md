@@ -491,6 +491,10 @@ Cases marked **UAT** are also run in acceptance testing.
   - The type chips filter the list and show counts.
   - The bulk panels are not on this page. "Bulk actions →" on the month-tasks metric opens the Bulk actions page, whose lists are also in ascending ID order.
 
+**TC-ATM-07 Search all assigned work and Info** — Req ATM-15, ATM-16
+- L1: `my-work.test.mjs` (blank search shows everything; ID with or without #; Feature title, Epic, Iteration Path, type and state match; every word must match).
+- Browser check on sample data: on the Feature chip, typing "task" lists the Tasks (all types searched, no chip highlighted, "N of M match, all types"); Esc clears it and the Feature chip applies again; a search with no match says “Nothing matches … in any type”. Hovering "ⓘ Info" shows the list rules; moving away hides them.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. Press Close User Story on a Story (on a New Feature: Set Feature to Active, then Close Feature).
@@ -982,6 +986,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-07…09 | TC-ATM-04 |
 | ATM-10…12 | TC-ATM-05 |
 | ATM-13, ATM-14 | TC-ATM-06 |
+| ATM-15, ATM-16 | TC-ATM-07 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03 |
