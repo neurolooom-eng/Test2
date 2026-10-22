@@ -237,7 +237,7 @@ Stakeholders:
 | FET-17 | Fetching shall not write to Azure DevOps. | I, T | M | UC-03 |
 | FET-18 | When a connection's query selects fields, the app shall store those field values per item, with identities reduced to their display name. | T | M | UC-08 |
 | FET-19 | When a query is fetched, the app shall read Azure DevOps field names through the read-only `fields` operation. On failure it shall fall back to readable reference names. | T | S | UC-08 |
-| FET-20 | At every start (opening the app, Force Update, reload), once the shared connection setup from Git is in place, the app shall fetch the active Time Writing connection and the read-only cloud (Azure DevOps Services) connections that have a PAT in this browser, one after another, with the same saving and failure rules as a manual fetch. On-prem connections shall not be fetched at start. Sample data shall not trigger it. | T | M | UC-03 |
+| FET-20 | At every start (opening the app, Force Update, reload), once the shared connection setup from Git is in place, the app shall fetch the active Time Writing connection and the read-only cloud (Azure DevOps Services) connections that have a PAT in this browser, one after another, with the same saving and failure rules as a manual fetch. On-prem connections shall not be fetched at start. Sample data shall not trigger it. A Time Writing fetch requested while one is running shall join the running fetch and report its result, not fail. | T | M | UC-03 |
 
 ### 3.4 Time Writing naming rules (TWN) — UC-04, UC-05
 
