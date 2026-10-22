@@ -481,9 +481,9 @@ Cases marked **UAT** are also run in acceptance testing.
   - The type chips filter the list and show counts.
   - The bulk panels are not on this page. "Bulk actions →" on the month-tasks metric opens the Bulk actions page, whose lists are also in ascending ID order.
 
-**TC-ATM-03 Finish an item** — Req ATM-06 — **UAT**
+**TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
-  1. Choose Resolved on a Story and press Set.
+  1. Press Close User Story on a Story.
   2. Cancel at the confirmation.
   3. Repeat and confirm.
 - Expected:
