@@ -11,6 +11,7 @@ import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
+import { settingsTabOnOpen } from './settingsTabs'
 import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace, type FetchListener, type GitDataSource } from './useAzureWorkspace'
@@ -53,15 +54,24 @@ export default function App() {
   // At start with Git storage: the shared connection setup in Git is the default for every user (connections
   // changed here are kept); the Windchill exports saved to Git are loaded too, and in the web app the on-prem view data.
   const pulled = useRef(false)
+  const [setupSynced, setSetupSynced] = useState(false)
   useEffect(() => {
     if (pulled.current || !store.ready || !git.connected || azure.isSample || git.status === 'loading') return
     pulled.current = true
     const web = !window.azureDevOps
     void git.syncViews().catch(() => null)
       .then(() => web ? git.pullSnapshots() : undefined).catch(() => { /* shown when loading from Settings */ })
-      .finally(() => azure.reloadConnectionProfiles())
+      .finally(() => { azure.reloadConnectionProfiles(); setSetupSynced(true) })
     void git.pullWindchill().then(() => windchill.reload()).catch(() => { /* shown when loading from Git on the import page */ })
   }, [store.ready, git, azure, windchill])
+  // Every start (opening the app, Force Update, reload) fetches the cloud connections once, after the shared
+  // connection setup from Git is in place.
+  const autoFetched = useRef(false)
+  useEffect(() => {
+    if (autoFetched.current || !store.ready || azure.isSample || (git.connected && !setupSynced)) return
+    autoFetched.current = true
+    void azure.fetchCloud()
+  }, [store.ready, azure, git.connected, setupSynced])
   const my = useMyWork(azure, store)
   const access = useAccess(git, azure)
   const [requested, setPage] = useState<Page>('overview')
@@ -95,7 +105,7 @@ export default function App() {
   const openWindchill = (id: string) => { setWindchillId(id); setPage('windchill') }
   const navButton = (key: string, icon: string, label: string, active: boolean, onClick: () => void) => <button key={key} className={active ? 'nav-active' : ''} aria-current={active ? 'page' : undefined} onClick={onClick}><span className="nav-icon">{icon}</span>{label}</button>
   // Azure DevOps connections live at the top of Settings.
-  const openConnection = () => setPage('admin')
+  const openConnection = () => { settingsTabOnOpen('connections'); setPage('admin') }
   const pageProps = { store, month, setMonth }
   const buildStatus = <BuildStatus pending={store.hasPendingSave} failed={store.ready && (store.cache.status === 'error' || (store.connection.mode === 'sharepoint' && ['error', 'conflict'].includes(store.connection.status)))} busy={azure.busy} preview={Boolean(azure.preview)} onBackup={store.ready ? () => exportStateJson({ ...store.state, azureWorkItems: mergeAzureWorkItems(store.state.azureWorkItems ?? [], azure.preview?.items ?? []), ...(azure.preview ? { azureBacklogScope: azure.preview.scope } : {}) }) : undefined} />
   const storageLabel = store.connection.mode === 'sharepoint' ? '● Live SharePoint' : store.cache.status === 'error' ? '⚠ Not saved locally' : store.cache.status === 'saving' ? '◌ Saving locally' : '○ Local IndexedDB'
@@ -125,7 +135,7 @@ export default function App() {
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
-      {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => setPage('admin')} canEdit={access.can('baselines.edit')} />}
+      {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => { settingsTabOnOpen('storage'); setPage('admin') }} canEdit={access.can('baselines.edit')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} /> : access.can('windchill.import') ? <WindchillExportImport windchill={windchill} git={git} onImported={openWindchill} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} />}

@@ -204,6 +204,7 @@ Stakeholders:
 | CON-42 | Roles (Admin, Product Owner, People Manager, Scrum Master, Team Member) shall be kept in the Git data repository as access.json: for each role the menu areas it sees (Overview, Assigned to Me, Bulk actions, Monthly Time Writing, I&D Board backlogs, Backlog Health, Release Details, Baselines, Snapshots, Documentation) and the actions it may take (change work items in Azure DevOps, edit baselines, import Windchill exports, manage shared settings, manage access); members by email with one or more roles; and a role for everyone else (or none). Settings shall stay available to everyone for their own connections and tokens. |
 | CON-43 | The menu shall show only the areas of the viewer's roles (union of their roles, else the everyone-else role while the email is unknown or not listed), and a page outside them shall fall back to the first allowed one. Without access.json nothing is restricted. Requests that change Azure DevOps shall be refused before sending when the viewer's roles lack that action; baselines shall be view only without "edit baselines"; the Windchill import without "import"; capacity, periods, resources, master data and the shared connection setup without "manage shared settings". |
 | CON-44 | Settings → Access shall show the viewer their email and roles, and the members and role matrix; it shall be editable only with "manage access" and a Git token that can write, saved as a commit with the loaded version (a concurrent change is refused), and shall refuse a change that removes "manage access" from the person saving it. The last policy read shall be kept in the browser and applied while Git storage is not connected. |
+| CON-45 | Settings shall show one tab at a time: Azure DevOps, Storage, Access, and, for roles that manage shared settings, Capacity & periods, Resources, Master data and Audit. The last tab shall be remembered in the browser; links to the connections or to Git storage shall open their tab. |
 
 ### 3.3 Fetching and saving Azure DevOps data (FET) — UC-03
 
@@ -230,6 +231,7 @@ Stakeholders:
 | FET-17 | Fetching shall not write to Azure DevOps. | I, T | M | UC-03 |
 | FET-18 | When a connection's query selects fields, the app shall store those field values per item, with identities reduced to their display name. | T | M | UC-08 |
 | FET-19 | When a query is fetched, the app shall read Azure DevOps field names through the read-only `fields` operation. On failure it shall fall back to readable reference names. | T | S | UC-08 |
+| FET-20 | At every start (opening the app, Force Update, reload), once the shared connection setup from Git is in place, the app shall fetch the active Time Writing connection and the read-only cloud (Azure DevOps Services) connections that have a PAT in this browser, one after another, with the same saving and failure rules as a manual fetch. On-prem connections shall not be fetched at start. Sample data shall not trigger it. | T | M | UC-03 |
 
 ### 3.4 Time Writing naming rules (TWN) — UC-04, UC-05
 
