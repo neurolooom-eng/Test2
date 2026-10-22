@@ -54,7 +54,8 @@ function azureFeatureRequest(input) {
   const feature = input.feature
   if (!feature || !Number.isSafeInteger(feature.parentId) || feature.parentId < 1 || typeof feature.title !== 'string' || !feature.title.trim() || feature.title.length > 255 || typeof feature.areaPath !== 'string' || !feature.areaPath.trim()) throw new Error('A parent Epic, title and area path are required.')
   for (const field of ['description', 'acceptanceCriteria']) if (typeof feature[field] !== 'string' || feature[field].length > 100000) throw new Error('Invalid Feature text.')
-  if (feature.assignedTo != null && (typeof feature.assignedTo !== 'string' || feature.assignedTo.length > 320)) throw new Error('Invalid assignee.')
+  // Every created work item is assigned to someone (an email); never blank.
+  if (typeof feature.assignedTo !== 'string' || feature.assignedTo.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feature.assignedTo.trim())) throw new Error('A new work item must be assigned to someone (an email). Nothing was created.')
   if (feature.targetDate && !/^\d{4}-\d{2}-\d{2}$/.test(feature.targetDate)) throw new Error('Invalid target date.')
   if (feature.iterationPath != null && (typeof feature.iterationPath !== 'string' || feature.iterationPath.length > 4096)) throw new Error('Invalid iteration path.')
   for (const field of ['taskOriginalEstimate', 'taskCompletedWork']) if (feature[field] != null && (!Number.isFinite(feature[field]) || feature[field] < 0 || feature[field] > 1000000)) throw new Error('Invalid Task effort.')

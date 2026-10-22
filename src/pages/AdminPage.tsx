@@ -10,6 +10,8 @@ import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
 import { AzureViewsGitPanel } from '../components/AzureViewsGit'
 import { AzureConnections } from '../components/AzureConnections'
 import { AccessPanel } from '../components/AccessPanel'
+import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
+import type { FeatureSetup } from '../useFeatureSetup'
 import type { Access } from '../useAccess'
 import type { PageProps } from './types'
 import { settingsTabKey as tabKey, type SettingsTab } from '../settingsTabs'
@@ -19,7 +21,7 @@ const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month:
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
 // Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
-export function AdminPage({ store, month, azure, git, access, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; access: Access; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, access, featureSetup, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; onOpenBoard: () => void }) {
   const shared = access.can('settings.manage')
   const [reason, setReason] = useState('Approved operational extension')
   const [capacityMessage, setCapacityMessage] = useState('')
@@ -99,7 +101,7 @@ export function AdminPage({ store, month, azure, git, access, onOpenBoard }: Pag
 
   const connectionFailed = store.connection.status === 'error' || store.connection.status === 'conflict'
   // One tab at a time; the shared tabs only for roles that manage shared settings. The last tab is remembered here.
-  const tabs = ([['connections', 'Azure DevOps'], ['storage', 'Storage'], ['access', 'Access'], ...(shared ? [['capacity', 'Capacity & periods'], ['resources', 'Resources'], ['masters', 'Master data'], ['audit', 'Audit']] : [])] as [SettingsTab, string][])
+  const tabs = ([['connections', 'Azure DevOps'], ['storage', 'Storage'], ['access', 'Access'], ...(shared ? [['features', 'Feature setup'], ['capacity', 'Capacity & periods'], ['resources', 'Resources'], ['masters', 'Master data'], ['audit', 'Audit']] : [])] as [SettingsTab, string][])
   const [chosen, setChosen] = useState<SettingsTab>(() => { try { return (localStorage.getItem(tabKey) as SettingsTab | null) ?? 'connections' } catch { return 'connections' } })
   const tab = tabs.some(([key]) => key === chosen) ? chosen : 'connections'
   const openTab = (key: SettingsTab) => { setChosen(key); try { localStorage.setItem(tabKey, key) } catch { /* not remembered */ } }
@@ -114,6 +116,7 @@ export function AdminPage({ store, month, azure, git, access, onOpenBoard }: Pag
         {store.connection.message && <Notice tone={connectionFailed ? 'error' : 'info'}>{store.connection.message}{store.connection.account ? ` Signed in as ${store.connection.account}.` : ''}</Notice>}
       </Panel>
     </>}
+    {tab === 'features' && <FeatureSetupPanel setup={featureSetup} git={git} items={azure.items} />}
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <div className="admin-grid">
