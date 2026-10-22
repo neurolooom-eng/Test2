@@ -208,6 +208,7 @@ Stakeholders:
 | CON-46 | A backlog view without a query on the same server, project and team as the Time Writing connection shall be flagged in Settings → Azure DevOps as reading the same backlog, and any backlog view shall offer "Use as Time Writing": after confirmation it becomes the only Time Writing connection (keeping its PAT, taking over the creator email and view name of the one it replaces when it has none), the replaced Time Writing connection is removed here, and with a Git token that can save the shared connection setup in Git is updated and the replaced connection's data file in Git (azure-data/<id>.json) is deleted; the new Time Writing connection is then fetched. |
 | CON-47 | At start, a connection that came from the shared setup in Git, was removed there and was not changed here shall be removed here too; a connection changed here, or a setup file without connections, removes nothing. When the active Time Writing connection no longer exists, the first remaining one shall become active. |
 | CON-48 | Backlog Health shall show, for In older Sprints and Unassigned, the columns ID, Work Item Type, Title, Area Path, Iteration Path, State, Created By, Updated By (System.ChangedBy), Created On and Updated On (System.ChangedDate), in the table and in Export CSV; Features without DoD shall show the Description as plain text (HTML removed) in the table and its CSV. Every tab shall offer a person filter: Assigned To on In older Sprints and Features without DoD, Created By or Updated By on Unassigned; "Everyone" shows all. |
+| CON-49 | Each Backlog Health tab shall let the viewer choose and reorder its columns from ID, Work Item Type, Title, Area Path, Iteration Path, State, Assigned To, Created By, Updated By, Created On, Updated On, Sprint end, Parent, Epic, Feature, User Story, Tags and Description (ID always shown; saved per tab in this browser; Reset defaults restores the tab's default, which includes Assigned To on every tab), sort by any shown column from its header (ascending, descending, list order; empty values last), and filter by State and Iteration Path (the values present in the tab). Export CSV shall follow the shown rows, their order and columns, plus the URL. |
 
 ### 3.3 Fetching and saving Azure DevOps data (FET) — UC-03
 
@@ -578,6 +579,6 @@ These describe as-built behaviour that is ambiguous, inconsistent, or may not ma
 | UC-18 | SMP-01…04, FET-14, GIT-09, ATM-13 |
 | UC-19 | CI-01…05, UPD-01 |
 | UC-20 | DOC-01…08 |
-| UC-21 | CON-40, CON-48 |
+| UC-21 | CON-40, CON-48, CON-49 |
 
 The forward trace, from requirement to test cases, is in [TEST-PLAN.md §7](TEST-PLAN.md#7-requirements-coverage-matrix).
