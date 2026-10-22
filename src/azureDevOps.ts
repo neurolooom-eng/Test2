@@ -220,6 +220,9 @@ export function savedBacklogItems(items: AzureWorkItem[], scope: AzureBacklogSco
   return items.filter((item) => keys.has(item.key) && item.organization.toLowerCase() === config!.organization.toLowerCase() && item.project.toLowerCase() === config!.project.toLowerCase() && item.state.trim().toLowerCase() !== 'removed')
 }
 
+// Display name of an identity field (an object with displayName, or plain text).
+const identityName = (value: unknown) => typeof value === 'string' ? value : value && typeof value === 'object' && 'displayName' in value ? String((value as { displayName: unknown }).displayName) : ''
+
 export function mapAzureWorkItem(item: RawItem, config: AzureConfig): AzureWorkItem {
   const fields = item.fields
   const text = (name: string) => typeof fields[name] === 'string' ? fields[name] as string : ''
@@ -238,6 +241,7 @@ export function mapAzureWorkItem(item: RawItem, config: AzureConfig): AzureWorkI
     completedWork: number('Microsoft.VSTS.Scheduling.CompletedWork'),
     remainingWork: number('Microsoft.VSTS.Scheduling.RemainingWork'),
     createdDate: date('System.CreatedDate'),
+    ...(identityName(fields['System.CreatedBy']) ? { createdBy: identityName(fields['System.CreatedBy']) } : {}),
     storyPoints: typeof fields['Microsoft.VSTS.Scheduling.StoryPoints'] === 'number' && Number.isFinite(fields['Microsoft.VSTS.Scheduling.StoryPoints']) ? fields['Microsoft.VSTS.Scheduling.StoryPoints'] as number : undefined,
     areaPath: text('System.AreaPath'), iterationPath: text('System.IterationPath'),
     parentId: typeof fields['System.Parent'] === 'number' ? fields['System.Parent'] : parentFromRelation(item),

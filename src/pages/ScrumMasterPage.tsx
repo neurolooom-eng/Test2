@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel, type Tone } from '../components/ui'
 import { readAzureIterations, type AzureIteration } from '../azureDevOps'
-import { featuresWithoutDoD, olderSprintItems, scrumCsv, sprintEnd, unassignedItems } from '../scrumMaster'
+import { featuresWithoutDoD, hierarchyOf, olderSprintItems, scrumCsv, sprintEnd, unassignedCsv, unassignedItems } from '../scrumMaster'
 import { downloadCsv } from '../download'
-import { todayIso } from '../format'
+import { formatDate, todayIso } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import { capacityContext } from '../capacity'
@@ -44,7 +44,7 @@ export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store
   const shown = rows[list].filter((item) => shownTypes.includes(item.workItemType) && (!text || `${item.id} ${item.title} ${item.assignedTo} ${item.iterationPath}`.toLowerCase().includes(text)))
   const byId = new Map(azure.items.map((item) => [item.id, item]))
   const current = lists.find((entry) => entry.key === list)!
-  const exportList = () => downloadCsv(scrumCsv(shown, azure.items, dated), `${current.file}-${todayIso()}.csv`)
+  const exportList = () => downloadCsv(list === 'unassigned' ? unassignedCsv(shown, azure.items) : scrumCsv(shown, azure.items, dated), `${current.file}-${todayIso()}.csv`)
   const exportAll = () => downloadCsv(lists.map((entry, index) => { const csv = scrumCsv(rows[entry.key], azure.items, dated, entry.label); return index ? csv.split('\r\n').slice(1).join('\r\n') : csv }).filter(Boolean).join('\r\n'), `scrum-master-${todayIso()}.csv`)
 
   if (!azure.items.length) return <Page><EmptyState title="No backlog loaded yet." detail="Fetch the Time Writing (QMS-0025) connection first; this view reads its Features, User Stories and Tasks for everyone." /></Page>
@@ -53,6 +53,7 @@ export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store
       {lists.map((entry) => <Metric key={entry.key} label={entry.label} value={entry.key === 'sprints' && !iterations ? '—' : rows[entry.key].length} hint={entry.key === 'sprints' ? 'Open Features, Stories and Tasks in Sprints that have ended' : entry.key === 'dod' ? `${openOnly ? 'Open ' : ''}Features whose Description does not mention “DoD”` : 'Open Features, Stories and Tasks without an assignee'} tone={(entry.key !== 'sprints' || iterations) && rows[entry.key].length ? 'negative' : undefined} />)}
     </Metrics>
     <div className="overview-tabs" role="tablist" aria-label="Scrum Master lists">{lists.map((entry) => <button key={entry.key} type="button" role="tab" aria-selected={list === entry.key} className={`backlog-tab${list === entry.key ? ' active' : ''}`} onClick={() => setList(entry.key)}>{entry.label} ({entry.key === 'sprints' && !iterations ? '…' : rows[entry.key].length})</button>)}</div>
+    {list === 'unassigned' && rows.unassigned.length > 0 && rows.unassigned.every((item) => !item.createdBy) && <Notice tone="info">Created By comes with the next refresh from Azure DevOps (↻ at the top); data fetched before this build does not have it.</Notice>}
     {list === 'sprints' && !canRead && <Notice tone="warning">Sprint dates are read from Azure DevOps: connect the Time Writing connection with its PAT (sample data has no Sprint dates).</Notice>}
     {list === 'sprints' && iterationError && <Notice tone="error">{iterationError}</Notice>}
     <div className="query-toolbar">
@@ -64,7 +65,16 @@ export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store
       <button type="button" className="ghost" onClick={exportAll}>Export all lists</button>
     </div>
     <TablePanel title={current.label} count={`${shown.length} items`} empty={shown.length ? undefined : list === 'sprints' && !iterations ? 'Waiting for the Sprint dates from Azure DevOps.' : 'Nothing here.'}>
-      <table><thead><tr><th>Work item</th><th>Type</th><th>State</th><th>Assigned to</th><th>Iteration</th><th>Parent</th></tr></thead><tbody>{shown.map((item) => {
+      {list === 'unassigned' ? <table><thead><tr><th>Epic</th><th>Feature</th><th>User Story</th><th>Task</th><th>Area Path</th><th>Iteration Path</th><th>State</th><th>Created By</th><th>Created On</th></tr></thead><tbody>{shown.map((item) => {
+        const level = hierarchyOf(item, byId), cell = (item?: AzureWorkItem) => item ? <a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a> : <span className="muted">—</span>
+        return <tr key={item.key}>
+          <td>{cell(level.Epic)}</td><td>{cell(level.Feature)}</td><td>{cell(level['User Story'])}</td><td>{cell(level.Task)}</td>
+          <td>{shortPath(item.areaPath)}</td><td>{shortPath(item.iterationPath)}</td>
+          <td><Pill tone={stateTone(item.state)}>{item.state}</Pill></td>
+          <td>{item.createdBy || <span className="muted">—</span>}</td><td>{item.createdDate ? formatDate(item.createdDate) : <span className="muted">—</span>}</td>
+        </tr>
+      })}</tbody></table>
+      : <table><thead><tr><th>Work item</th><th>Type</th><th>State</th><th>Assigned to</th><th>Iteration</th><th>Parent</th></tr></thead><tbody>{shown.map((item) => {
         const parent = item.parentId != null ? byId.get(item.parentId) : undefined, end = sprintEnd(item, dated)
         return <tr key={item.key}>
           <td><a href={item.url} target="_blank" rel="noreferrer">#{item.id} {item.title}</a></td>
@@ -74,7 +84,7 @@ export function ScrumMasterPage({ azure, store }: { azure: AzureWorkspace; store
           <td>{shortPath(item.iterationPath)}{end && <small>{end < todayIso() ? 'ended' : 'ends'} {end}</small>}</td>
           <td>{parent ? <a href={parent.url} target="_blank" rel="noreferrer">#{parent.id} {parent.title}</a> : item.parentId != null ? `#${item.parentId}` : '—'}</td>
         </tr>
-      })}</tbody></table>
+      })}</tbody></table>}
     </TablePanel>
   </Page>
 }
