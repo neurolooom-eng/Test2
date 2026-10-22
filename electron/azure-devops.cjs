@@ -12,18 +12,11 @@ function collectionBase(input) {
 const projectBase = (input) => `${collectionBase(input)}/${encodeURIComponent(input.project)}`
 const apiVersion = (input) => typeof input.apiVersion === 'string' && /^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(input.apiVersion) ? input.apiVersion : '7.1'
 
-// connectionData is a preview API: the same major version with -preview.
-const identityVersion = (input) => `${apiVersion(input).replace(/-preview.*$/, '')}-preview`
-
 function azureReadRequest(input) {
   if (!input || typeof input !== 'object') throw new Error('Invalid Azure DevOps request.')
   for (const field of ['organization', 'project', 'team', 'pat']) {
     if (typeof input[field] !== 'string' || !input[field].trim() || input[field].length > 4096) throw new Error('Invalid connection details.')
   }
-  // Who the PAT belongs to (GET, organization or collection level): the app's access roles are matched on that email.
-  if (input.operation === 'identity') return { url: `${collectionBase(input)}/_apis/connectionData?api-version=${identityVersion(input)}`, options: {
-    method: 'GET', redirect: 'error', headers: { Authorization: `Basic ${Buffer.from(`:${input.pat.trim()}`).toString('base64')}`, Accept: 'application/json' },
-  } }
   const base = projectBase(input)
   let endpoint, body
   if (input.operation === 'areas') endpoint = `${encodeURIComponent(input.team)}/_apis/work/teamsettings/teamfieldvalues`
@@ -127,7 +120,7 @@ async function requestAzureDevOps(input, fetchImpl = fetch) {
   const versions = explicit ? [input.apiVersion] : detectedVersions.has(collection) ? [detectedVersions.get(collection)] : ['7.1', '6.0', '5.0']
   let response
   for (const [attempt, version] of versions.entries()) {
-    const url = request.url.replace(/api-version=[^&]*/, `api-version=${input.operation === 'identity' ? `${version.replace(/-preview.*$/, '')}-preview` : version}`)
+    const url = request.url.replace(/api-version=[^&]*/, `api-version=${version}`)
     try { response = await fetchImpl(url, { ...request.options, redirect: 'manual', signal: AbortSignal.timeout(45000) }) }
     catch (error) {
       const detail = String(error?.cause?.code ?? error?.code ?? error?.message ?? '')

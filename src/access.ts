@@ -15,6 +15,7 @@ export const areas = [
   { key: 'health', label: 'Backlog Health' },
   { key: 'release', label: 'Release Details (on-prem views, Windchill exports)' },
   { key: 'baselines', label: 'Baselines' },
+  { key: 'qemapping', label: 'QE Mapping' },
   { key: 'snapshots', label: 'Snapshots' },
   { key: 'docs', label: 'Documentation' },
 ] as const
@@ -49,8 +50,8 @@ export function defaultPolicy(adminEmail = ''): AccessPolicy {
     defaultRole: 'Team Member',
     roles: {
       'Admin': { areas: [...allAreas], actions: [...allActions] },
-      'Product Owner': { areas: ['overview', 'board', 'health', 'release', 'baselines', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
-      'People Manager': { areas: ['overview', ...myWork, 'board', 'release', 'baselines', 'snapshots', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
+      'Product Owner': { areas: ['overview', 'board', 'health', 'release', 'baselines', 'qemapping', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
+      'People Manager': { areas: ['overview', ...myWork, 'board', 'release', 'baselines', 'qemapping', 'snapshots', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
       'Scrum Master': { areas: ['overview', ...myWork, 'board', 'health', 'release', 'docs'], actions: ['azure.write', 'azure.createForOthers'] },
       'Team Member': { areas: ['overview', ...myWork, 'board', 'release', 'docs'], actions: ['azure.write'] },
     },
