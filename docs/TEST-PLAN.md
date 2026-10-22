@@ -277,7 +277,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-21 Overview by region and roles** — Req CON-38 — L1 `capacity.test.mjs` (no filter = everyone; each region gives exactly its people; several roles; region and roles together; same holidays as the team view); browser check on sample data: India gives 2 people, India · QE + Lead gives 1 and the headline follows. **UAT**
 
-**TC-SCR-01 Scrum Master view** — Req CON-40 — L1 `scrum-master.test.mjs` (ended vs running Sprint; no Sprint dates = nothing listed; DoD in the Description, not "Dodo"; open vs closed Features; unassigned; nothing under the absence Epic; CSV quoting, parent and List column); browser check on sample data: tabs with counts, Export CSV downloads the shown list, Export all lists adds a List column. Live check needed: the older-Sprints list with the team's real Sprint dates. **UAT**
+**TC-SCR-01 Scrum Master view** — Req CON-40 — L1 `scrum-master.test.mjs` (ended vs running Sprint; no Sprint dates = nothing listed; DoD in the Description, not "Dodo"; open vs closed Features; unassigned with its Epic / Feature / User Story / Task, paths, state, Created By (mapped from System.CreatedBy) and Created On in the table and CSV; nothing under the absence Epic; CSV quoting, parent and List column); browser check on sample data: tabs with counts, Export CSV downloads the shown list, Export all lists adds a List column. Live check needed: the older-Sprints list with the team's real Sprint dates. **UAT**
 
 **TC-NAV-12 Freshness in the viewer's time zone** — Req NAV-12 — L1 `format.test.mjs` and `app-update.test.mjs` (the same instant in Asia/Kolkata, America/New_York and UTC; local "today"); browser check in America/New_York: a fetch at 09:00 UTC shows "05:00 AM EDT".
 
