@@ -49,6 +49,23 @@ export function saveServerPat(key: string, token: string, storage: Pick<Storage,
   if (clean) pats[key.toLowerCase()] = clean; else delete pats[key.toLowerCase()]
   try { storage.setItem(serverPatsKey, JSON.stringify(pats)) } catch { throw new Error('This browser could not save the PAT. Check local storage availability.') }
 }
+// Servers added in Settings (Step 1) without a connection yet, so new queries can be created on them.
+export interface KnownServer { serverUrl: string; organization: string }
+const knownServersKey = 'demand-planning-servers-v1'
+export function listKnownServers(storage: Pick<Storage, 'getItem'> = localStorage): KnownServer[] {
+  try { const raw = JSON.parse(storage.getItem(knownServersKey) ?? '[]'); return Array.isArray(raw) ? raw.filter((entry): entry is KnownServer => Boolean(entry) && typeof entry.serverUrl === 'string' && typeof entry.organization === 'string' && Boolean(entry.organization.trim())) : [] } catch { return [] }
+}
+export function saveKnownServer(server: KnownServer, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
+  const base = collectionUrlFrom(server.serverUrl, server.organization)
+  const list = listKnownServers(storage).filter((entry) => { try { return collectionUrlFrom(entry.serverUrl, entry.organization).toLowerCase() !== base.toLowerCase() } catch { return false } })
+  list.push({ serverUrl: server.serverUrl.trim(), organization: server.organization.trim() })
+  try { storage.setItem(knownServersKey, JSON.stringify(list)) } catch { throw new Error('This browser could not save the server.') }
+  return base
+}
+export function forgetKnownServer(base: string, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
+  const list = listKnownServers(storage).filter((entry) => { try { return collectionUrlFrom(entry.serverUrl, entry.organization).toLowerCase() !== base.toLowerCase() } catch { return false } })
+  try { storage.setItem(knownServersKey, JSON.stringify(list)) } catch { /* nothing to remove */ }
+}
 export function hasServerPat(key: string, storage: Pick<Storage, 'getItem'> = localStorage) { return Boolean(loadServerPat(key, storage)) }
 
 export function loadAzureConnectionProfile(id: string, storage: Pick<Storage, 'getItem'> = localStorage) {

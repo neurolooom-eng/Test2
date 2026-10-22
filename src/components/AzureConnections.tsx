@@ -3,7 +3,7 @@ import { EmptyState, Notice, Panel, Pill, type Tone, Info } from './ui'
 import { formatDateTime } from '../format'
 import { defaultMatchThreshold, defaultStreams, namesStream, profileForStream, streamOfProfile } from '../streams'
 import { normalizeReleaseSourceSettings } from '../releaseSource'
-import { collectionUrlFrom, composeAzureUrl, loadServerPat, saveServerPat, serverKey, defaultShowInMenu, listAzureConnectionProfiles, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
+import { collectionUrlFrom, composeAzureUrl, forgetKnownServer, listKnownServers, loadServerPat, saveKnownServer, saveServerPat, serverKey, defaultShowInMenu, listAzureConnectionProfiles, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
 import { isCloudBase } from '../azureDevOps'
@@ -39,22 +39,25 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
 
   const [patDrafts, setPatDrafts] = useState<Record<string, string>>({})
   const [patNote, setPatNote] = useState<{ key: string; text: string } | null>(null)
+  const [newServer, setNewServer] = useState<{ serverUrl: string; organization: string; pat: string; error?: string } | null>(null)
   // Where a preset or form points: its project URL and, on-prem, the collection base (the server's key).
   const placeOf = (input: Pick<ConnectionInput, 'serverUrl' | 'organization' | 'project'>) => { const base = collectionUrlFrom(input.serverUrl, input.organization); return { url: composeAzureUrl(base, input.project), ...(isCloudBase(base) ? {} : { baseUrl: base }) } }
   const hostLabel = (base: string) => base.replace(/^https:\/\//, '').replace(/\/tfs\//i, ' · ').replace(/^dev\.azure\.com\//, 'Cloud · ')
   const profilePat = (profile: AzureConnectionProfileSummary) => Boolean(loadAzureConnectionProfile(profile.id)?.token)
   const presetHasPat = (preset: Pick<ConnectionInput, 'serverUrl' | 'organization' | 'project'>) => Boolean(loadServerPat(serverKey(placeOf(preset))) || connectionProfiles.some((profile) => serverKey(profile) === serverKey(placeOf(preset)) && profilePat(profile)))
-  const formServerPat = form ? presetHasPat(form) : false
+  const formServerKey = form ? (() => { try { return serverKey(placeOf({ ...form, project: form.project || 'x' })) } catch { return '' } })() : ''
+  const formServerPat = (() => { try { return form ? presetHasPat(form) : false } catch { return false } })()
   // Servers: every server of a connection or a default, with its projects, what uses it and whether a PAT is saved.
   const servers = (() => {
-    const map = new Map<string, { key: string; label: string; onPrem: boolean; cloud: boolean; projects: Set<string>; uses: string[]; ids: string[]; hasPat: boolean; savedPat: boolean }>()
+    const map = new Map<string, { key: string; label: string; onPrem: boolean; cloud: boolean; serverUrl: string; organization: string; projects: Set<string>; uses: string[]; ids: string[]; hasPat: boolean; savedPat: boolean }>()
     const entry = (place: { url: string; baseUrl?: string }) => {
       const key = serverKey(place), parts = splitAzureUrl(place.url, place.baseUrl)
-      const found = map.get(key) ?? { key, label: hostLabel(parts.baseUrl), onPrem: Boolean(place.baseUrl), cloud: !place.baseUrl, projects: new Set<string>(), uses: [], ids: [], hasPat: false, savedPat: Boolean(loadServerPat(key)) }
-      found.projects.add(parts.project); map.set(key, found); return found
+      const found = map.get(key) ?? { key, label: hostLabel(parts.baseUrl), onPrem: Boolean(place.baseUrl), cloud: !place.baseUrl, ...splitCollectionUrl(parts.baseUrl), projects: new Set<string>(), uses: [], ids: [], hasPat: false, savedPat: Boolean(loadServerPat(key)) }
+      if (parts.project) found.projects.add(parts.project); map.set(key, found); return found
     }
     for (const profile of connectionProfiles) { const found = entry(profile); found.uses.push(viewNameOf(profile)); found.ids.push(profile.id); found.hasPat ||= found.savedPat || profilePat(profile) }
     for (const preset of connectionPresets) { const found = entry(placeOf(preset)); found.hasPat ||= found.savedPat }
+    for (const known of listKnownServers()) { try { const base = collectionUrlFrom(known.serverUrl, known.organization); const found = entry({ url: base, ...(isCloudBase(base) ? {} : { baseUrl: base }) }); found.hasPat ||= found.savedPat } catch { /* skipped */ } }
     return [...map.values()].map((server) => ({ ...server, projects: [...server.projects] })).sort((a, b) => Number(a.onPrem) - Number(b.onPrem) || a.label.localeCompare(b.label))
   })()
   const presetFor = (name: string) => connectionPresets.find((preset) => preset.role !== 'time-tracking' && (namesStream(preset.viewName, name) || namesStream(preset.name, name)))
@@ -167,7 +170,7 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
 
   return <section id="settings-connections" className="settings-section">
     <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps <Info>Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</Info></h2></div><button className="primary" onClick={onOpenBoard}>Open {timeWritingView(connectionProfiles, activeConnectionProfileId).name} →</button></div>
-    <Panel className="connection-panel" eyebrow="STEP 1" title="Servers and PATs" info={<ul><li>One PAT per server: an on-prem collection (e.g. tfsapac04 · DHPCollection, for DHP.Vault and DHP) or a cloud organization (dev.azure.com/ALMP-ORG-MSTP01). Every connection on the server uses it, so it is entered once.</li><li>PATs stay in this browser or desktop app only; they are never saved to Git, backups or SharePoint, and each user enters their own.</li></ul>}>
+    <Panel className="connection-panel" eyebrow="STEP 1" title="Servers and PATs" action={<button type="button" className="ghost" onClick={() => setNewServer({ serverUrl: '', organization: '', pat: '' })}>＋ Add server</button>} info={<ul><li>One PAT per server: an on-prem collection (e.g. tfsapac04 · DHPCollection, for DHP.Vault and DHP) or a cloud organization (dev.azure.com/ALMP-ORG-MSTP01). Every connection on the server uses it, so it is entered once.</li><li>PATs stay in this browser or desktop app only; they are never saved to Git, backups or SharePoint, and each user enters their own.</li></ul>}>
       <div className="azure-table"><table><thead><tr><th>Server</th><th>Projects</th><th>Used by</th><th>PAT</th><th /></tr></thead><tbody>
         {servers.map((server) => <tr key={server.key}>
           <td><strong>{server.label}</strong>{server.onPrem && <Pill tone="info">On-prem</Pill>}</td>
@@ -178,10 +181,29 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
             <input type="password" autoComplete="off" aria-label={`PAT for ${server.label}`} placeholder={server.hasPat ? 'Replace PAT' : server.cloud ? 'PAT · Work Items (Read & Write)' : 'PAT · Work Items (Read)'} value={patDrafts[server.key] ?? ''} onChange={(event) => setPatDrafts((current) => ({ ...current, [server.key]: event.target.value }))} />
             <button className="primary" disabled={!patDrafts[server.key]?.trim()}>Save PAT</button>
             {server.hasPat && server.ids.length > 0 && <button type="button" className="ghost" disabled={fetchingAll} onClick={() => { setFetchingAll(true); void (async () => { for (const id of server.ids) await azure.fetchConnection(id) })().finally(() => setFetchingAll(false)) }}>Fetch {server.ids.length}</button>}
+            {!server.ids.length && !connectionPresets.some((preset) => { try { return serverKey(placeOf(preset)) === server.key } catch { return false } }) && <button type="button" className="text-button" onClick={() => { if (!window.confirm(`Remove ${server.label} and its PAT from this browser?`)) return; forgetKnownServer(collectionUrlFrom(server.serverUrl, server.organization)); saveServerPat(server.key, ''); azure.reloadConnectionProfiles(); setPatNote(null) }}>Remove server</button>}
             {server.savedPat && <button type="button" className="text-button" onClick={() => { if (!window.confirm(`Remove the PAT for ${server.label} from this browser? Connections on it cannot fetch until a PAT is entered again. It is not revoked in Azure DevOps.`)) return; saveServerPat(server.key, ''); azure.reloadConnectionProfiles(); setPatNote({ key: server.key, text: `PAT removed for ${server.label}.` }) }}>Remove</button>}
           </form>{patNote?.key === server.key && <small className="positive">{patNote.text}</small>}</td>
         </tr>)}
       </tbody></table></div>
+      {newServer && <form className="connection-editor" onSubmit={(event) => {
+        event.preventDefault()
+        try {
+          if (!newServer.pat.trim()) throw new Error('Enter the PAT for this server.')
+          const base = saveKnownServer({ serverUrl: newServer.serverUrl, organization: newServer.organization })
+          saveServerPat(serverKey({ url: base, ...(isCloudBase(base) ? {} : { baseUrl: base }) }), newServer.pat)
+          setNewServer(null); setPatNote({ key: serverKey({ url: base, ...(isCloudBase(base) ? {} : { baseUrl: base }) }), text: 'Server added with its PAT. New queries can now be created on it.' }); azure.reloadConnectionProfiles()
+        } catch (failure) { setNewServer({ ...newServer, error: failure instanceof Error ? failure.message : String(failure) }) }
+      }}>
+        <h3>Add server</h3>
+        <div className="connection-form">
+          <label>Server URL (on-prem only)<input type="url" value={newServer.serverUrl} onChange={(event) => setNewServer({ ...newServer, serverUrl: event.target.value })} placeholder="Empty for dev.azure.com · e.g. https://tfs.company.com/tfs" /><small>Leave empty for Azure DevOps Services (cloud).</small></label>
+          <label>Organization / collection<input required value={newServer.organization} onChange={(event) => setNewServer({ ...newServer, organization: event.target.value })} placeholder={newServer.serverUrl.trim() ? 'e.g. DHPCollection' : 'Azure DevOps organization'} /></label>
+          <label>PAT<input type="password" autoComplete="off" required value={newServer.pat} onChange={(event) => setNewServer({ ...newServer, pat: event.target.value })} placeholder="Work Items (Read), or Read & Write for Time Writing" /><small>Stays in this browser or desktop app; used by every connection on this server.</small></label>
+        </div>
+        {newServer.error && <Notice tone="error">{newServer.error}</Notice>}
+        <div className="button-row"><button className="primary">Add server</button><button type="button" className="ghost" onClick={() => setNewServer(null)}>Cancel</button></div>
+      </form>}
     </Panel>
     <Panel className="connection-panel" eyebrow="STEP 2" title="Stream mapping" info={<ul><li>Which server, project and query feed each stream. Time Writing (QMS-0025) is the team's backlog; DP, CP, IOCC, Content and Tool Validations are queries on the on-prem DHP.Vault project; S&amp;S IT comes from the Windchill export named like it (ECP will follow).</li><li>Release rules: DP — name from the Area Path, number from the Iteration Path. IOCC — Type of Release from the Area Path segment after “IOCC”, name from the Title. Others — a “Release x.y.z” path segment. DP and IOCC are matched to QMS-0025 Features fuzzily; the best Feature counts at the threshold.</li><li>The mapping is shared with everyone through Git (azure-views.json); roles with “Manage shared settings” change it. Everyone else only enters their PAT per server.</li></ul>}
       action={<div className="button-row">{mapping.some((row) => !row.profile && row.preset && !row.timeWriting && presetHasPat(row.preset)) && <button type="button" className="primary" onClick={() => { for (const row of mapping) if (!row.profile && row.preset && !row.timeWriting && presetHasPat(row.preset)) setUpStream(row.preset) }}>Set up all with saved PATs</button>}<label className="inline-select">Fuzzy match threshold<input type="number" min={1} max={100} step={1} value={threshold} disabled={!canManage} aria-label="Fuzzy match threshold (%)" onChange={(event) => { const value = Math.round(Number(event.target.value)); if (value >= 1 && value <= 100) store.update((draft) => { draft.releaseSourceSettings = { ...normalizeReleaseSourceSettings(draft.releaseSourceSettings), matchThreshold: value }; return draft }) }} />%</label></div>}>
@@ -232,9 +254,8 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
           <label>View name (optional)<input value={form.viewName} maxLength={80} onChange={(event) => setForm({ ...form, viewName: event.target.value })} placeholder={form.name.trim() || 'Same as the connection name'} /><small>Name in the Azure DevOps menu and on its tab, e.g. QMS-0025.</small></label>
           <label className="checkbox-label menu-toggle"><input type="checkbox" checked={form.showInMenu} onChange={(event) => setForm({ ...form, showInMenu: event.target.checked })} />Show in menu<small>Off: used only in the background (data, releases, documents), not listed as a view.</small></label>
           <label>Used for<select value={form.role} onChange={(event) => { const role = event.target.value as AzureConnectionRole; setForm({ ...form, role, showInMenu: defaultShowInMenu(role) }) }}>{(Object.keys(roleLabel) as AzureConnectionRole[]).map((role) => <option key={role} value={role}>{roleLabel[role]}</option>)}</select></label>
-          <label>Server URL (on-prem only)<input type="url" value={form.serverUrl} onChange={(event) => setForm({ ...form, serverUrl: event.target.value })} placeholder="Empty for dev.azure.com · e.g. https://tfs.company.com/tfs" /><small>Leave empty for Azure DevOps Services. On-prem: the server address without the collection.</small></label>
-          <label>Organization / collection<input required value={form.organization} onChange={(event) => setForm({ ...form, organization: event.target.value })} placeholder={form.serverUrl.trim() ? 'e.g. DHPCollection' : 'Azure DevOps organization'} /><small>{form.serverUrl.trim() ? 'On-prem this is the collection name.' : 'The name after dev.azure.com/.'}</small></label>
-          <label>Project<input required value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /></label>
+          <label>Server<select required value={formServerKey} onChange={(event) => { const server = servers.find((entry) => entry.key === event.target.value); if (server) setForm({ ...form, serverUrl: server.serverUrl, organization: server.organization }) }}><option value="" disabled>Choose a server…</option>{servers.map((server) => <option key={server.key} value={server.key}>{server.label}{server.hasPat ? '' : ' (no PAT yet)'}</option>)}</select><small>Only servers from Step 1, so the right PAT is used. A new server is added in Step 1 with its PAT.</small></label>
+          <label>Project<input required list="server-projects" value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value })} placeholder="Project name" /><datalist id="server-projects">{(servers.find((server) => server.key === formServerKey)?.projects ?? []).map((project) => <option key={project} value={project} />)}</datalist></label>
           {(form.role === 'time-tracking' || form.role === 'backlog-view') && <label>Team{form.query.trim() ? ' (optional with a query)' : ''}<input value={form.team} onChange={(event) => setForm({ ...form, team: event.target.value })} placeholder="Team whose Epic backlog is read" /></label>}
           <label>API version (optional)<input value={form.apiVersion} onChange={(event) => setForm({ ...form, apiVersion: event.target.value })} placeholder="Automatic" /><small>Leave empty to detect it: 7.1, then 6.0 and 5.0 for older Azure DevOps Server.</small></label>
           <label>PAT for this server{formServerPat ? ' (leave empty: the saved server PAT is used)' : form.id ? ' (leave empty to keep the saved one)' : clonedFrom ? ` (leave empty to use the PAT of “${clonedFrom}”)` : ''}<input type="password" autoComplete="off" required={!formServerPat && (form.id ? !loadAzureConnectionProfile(form.id)?.token : !(form.cloneOf && loadAzureConnectionProfile(form.cloneOf)?.token))} value={form.pat} onChange={(event) => setForm({ ...form, pat: event.target.value })} placeholder={form.role === 'time-tracking' ? 'Work Items (Read & Write)' : 'Work Items (Read)'} /><small>One PAT per server: a PAT entered here is used by every connection on the same server.</small></label>
