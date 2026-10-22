@@ -43,7 +43,7 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
   return <Page>
     <section className="me-bar">
       <div><span className="eyebrow">WORK ASSIGNED TO</span><strong>{my.me.name ?? my.me.email ?? 'Not set'}</strong>{my.me.email && <small>{my.me.email}</small>}</div>
-      <label>Show work for<PersonPicker label="Show work for" value={my.chosenName} people={my.people} onChange={my.setName} placeholder={my.me.email ? 'Me (connection email) — type a name' : 'Type a name…'} /></label>
+      <label>Show work for<PersonPicker label="Show work for" value={my.chosenName} people={my.people} onChange={my.setName} meLabel={my.me.email ? 'Me (connection email)' : 'Choose a person…'} /></label>
     </section>
     {!my.known ? <EmptyState title="Who are you in Azure DevOps?" detail="Set the Feature creator email on your Time Writing connection, or choose your name above." />
       : <>
