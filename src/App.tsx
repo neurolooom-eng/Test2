@@ -54,8 +54,9 @@ export default function App() {
     },
   }
   const windchill = useWindchill(store, git)
-  // Desktop app: every on-prem read-only fetch is saved to Git, so the web app can show it.
-  onFetched.current = (profile, source) => { if (window.azureDevOps && git.connected && !azure.isSample && sharedThroughGit(profile)) void git.pushSnapshot(profile, source) }
+  // Every fresh fetch of on-prem data (desktop app, or the browser where the server is reachable) is saved to Git
+  // storage automatically, so everyone sees it.
+  onFetched.current = (profile, source) => { if (git.connected && !git.readOnly && !azure.isSample && sharedThroughGit(profile)) void git.pushSnapshot(profile, source) }
   // At start with Git storage: the shared connection setup in Git is the default for every user (connections
   // changed here are kept); the Windchill exports saved to Git are loaded too, and in the web app the on-prem view data.
   const pulled = useRef(false)

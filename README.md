@@ -182,7 +182,7 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 |---|---|---|---|
 | `planning-data.json` | baseline rules, release scopes, region / role mapping | Save to Git (Baselines, Settings) | every app at start, Load latest from Git |
 | `azure-views.json` | the connection setup — view names, queries, URLs, roles, never PATs | Settings → Views in Git → Save N connections to Git | every app at start (the default for everyone), Restore from Git |
-| `azure-data/<connection>.json` | the last fetch of each on-prem view | the desktop app at each fetch whose data changed | the web app at start, **Load from Git** on the view |
+| `azure-data/<connection>.json` | the last fetch of each on-prem view | automatically at every fresh fetch (also when the data is unchanged: the fetch time is new) | the web app at start, **Load from Git** on the view |
 | `windchill-data/<export>.json` | each imported Windchill export | each import | every app at start, **Load from Git** / **Load all exports from Git** |
 
 - **Load everything from Git** (Settings → Storage) loads all of it at once — planning data, the connection setup, on-prem view data, Windchill exports, access roles and the Feature setup — and lists what was loaded and what failed. Data here is replaced only by newer data from Git; connections changed here are kept.
