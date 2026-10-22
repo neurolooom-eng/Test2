@@ -12,7 +12,7 @@ export function ReleaseQuadrants({ streams, month }: { streams: ReleaseStream[];
       <ul>{streams.map((stream) => <li key={stream.id}><strong>{stream.name} [{stream.releases.length}]</strong> : {stream.releases.length ? stream.releases.map((entry) => `${entry.name} ${entry.release}`).join(', ') : <span className="muted">—</span>}</li>)}</ul>
     </Panel>
     <section className="release-quadrants" aria-label={`Release counts in ${monthName(month)}`}>
-      {streams.map((stream) => <Panel key={stream.id} className="release-quadrant" eyebrow="STREAM" title={stream.name} detail={stream.notSetUp ? `Not set up: add a connection named “${stream.name}” (Settings → Azure DevOps → Default streams)` : stream.fetchedAt ? `Data fetched ${formatDateTime(stream.fetchedAt)}` : 'Not fetched yet'}>
+      {streams.map((stream) => <Panel key={stream.id} className="release-quadrant" eyebrow="STREAM" title={stream.name} detail={stream.notSetUp ? `Not set up: add a connection named “${stream.name}” (Settings → Azure DevOps → Default connections)` : stream.fetchedAt ? `Data fetched ${formatDateTime(stream.fetchedAt)}` : 'Not fetched yet'}>
         <div className="quadrant-counts"><div><strong>{stream.releases.length}</strong><span>release{stream.releases.length === 1 ? '' : 's'}</span></div><div><strong>{stream.documents}</strong><span>document{stream.documents === 1 ? '' : 's'}</span></div></div>
         {stream.titles.length ? <ul className="quadrant-titles">{stream.titles.map((doc) => <li key={doc.id}><a href={doc.url} target="_blank" rel="noreferrer">{doc.title}</a><small>{doc.release}{doc.approvalDate ? ` · ${formatDate(doc.approvalDate)}` : ''}</small></li>)}</ul> : <p className="muted">No documents approved in {monthName(month)}.</p>}
       </Panel>)}
