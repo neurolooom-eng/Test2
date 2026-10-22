@@ -47,3 +47,24 @@ export function scrumCsv(rows: AzureWorkItem[], all: AzureWorkItem[], iterations
   const header = [...(list ? ['List'] : []), 'ID', 'Type', 'Title', 'State', 'Assigned To', 'Iteration', 'Sprint end', 'Parent', 'URL']
   return [header, ...rows.map((item) => [...(list ? [list] : []), item.id, item.workItemType, item.title, item.state, item.assignedTo, item.iterationPath, sprintEnd(item, iterations), item.parentId != null ? `#${item.parentId} ${byId.get(item.parentId)?.title ?? ''}`.trim() : '', item.url])].map((row) => row.map(quote).join(',')).join('\r\n')
 }
+
+// The Epic, Feature, User Story and Task an item belongs to (the item itself at its own level), following parents.
+export function hierarchyOf(item: AzureWorkItem, byId: Map<number, AzureWorkItem>) {
+  const levels: Partial<Record<'Epic' | 'Feature' | 'User Story' | 'Task', AzureWorkItem>> = {}
+  const seen = new Set<number>()
+  for (let current: AzureWorkItem | undefined = item; current && !seen.has(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId)) {
+    seen.add(current.id)
+    const type = current.workItemType as keyof typeof levels
+    if (['Epic', 'Feature', 'User Story', 'Task'].includes(type) && !levels[type]) levels[type] = current
+  }
+  return levels
+}
+
+// Unassigned list as CSV: the hierarchy columns, then where the item sits and who created it when.
+export function unassignedCsv(rows: AzureWorkItem[], all: AzureWorkItem[]) {
+  const byId = new Map(all.map((item) => [item.id, item]))
+  const quote = (value: unknown) => { const text = String(value ?? ''); return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text }
+  const label = (item?: AzureWorkItem) => item ? `#${item.id} ${item.title}` : ''
+  const header = ['ID', 'Type', 'Epic', 'Feature', 'User Story', 'Task', 'Area Path', 'Iteration Path', 'State', 'Created By', 'Created On', 'URL']
+  return [header, ...rows.map((item) => { const level = hierarchyOf(item, byId); return [item.id, item.workItemType, label(level.Epic), label(level.Feature), label(level['User Story']), label(level.Task), item.areaPath, item.iterationPath, item.state, item.createdBy ?? '', item.createdDate?.slice(0, 10) ?? '', item.url] })].map((row) => row.map(quote).join(',')).join('\r\n')
+}

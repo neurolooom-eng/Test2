@@ -144,7 +144,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 ### Scrum Master view
 
-**I&D Board → Scrum Master** reads the Time Writing backlog for everyone and lists, leaving out work under the absence Epic: (1) open Features, User Stories and Tasks whose Sprint has ended (Sprint dates read from Azure DevOps with the Time Writing connection), (2) Features whose Description does not mention "DoD" (open only by default), (3) open Features, User Stories and Tasks nobody is assigned to. Each list has type filters and search; **Export CSV** downloads the shown list (ID, type, title, state, assigned to, iteration, Sprint end, parent, URL) and **Export all lists** writes the three lists into one CSV with a List column.
+**I&D Board → Scrum Master** reads the Time Writing backlog for everyone and lists, leaving out work under the absence Epic: (1) open Features, User Stories and Tasks whose Sprint has ended (Sprint dates read from Azure DevOps with the Time Writing connection), (2) Features whose Description does not mention "DoD" (open only by default), (3) open Features, User Stories and Tasks nobody is assigned to, with their Epic, Feature, User Story and Task, Area Path, Iteration Path, State, Created By and Created On (Created By is read from the next refresh on). Each list has type filters and search; **Export CSV** downloads the shown list (ID, type, title, state, assigned to, iteration, Sprint end, parent, URL) and **Export all lists** writes the three lists into one CSV with a List column.
 
 ### Sharing through Git
 
