@@ -345,6 +345,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-FET-06 Unscoped cache hidden** — Req FET-16
 - L1: `azure-devops.test.mjs` (scoped cache, no project fallback).
 
+**TC-FET-08 Cloud fetch at start** — Req FET-20, CON-45 — browser check with Azure DevOps mocked: with a cloud Time Writing connection and an on-prem connection, opening the app sends the cloud fetch once and nothing to the on-prem server; a rejected PAT shows the usual error and keeps the saved data. Settings shows one tab at a time, the shared tabs only with "manage shared settings", and reopens on the last tab; "Fetch work items from Azure DevOps →" opens the Azure DevOps tab. Live check needed: the QMS-0025 data refreshes after Force Update. **UAT**
+
 **TC-FET-07 Query fields and names** — Req FET-18, FET-19, QV-04
 - L1: `query-view.test.mjs` (`pickFields`, `columnName`).
 - L3:
