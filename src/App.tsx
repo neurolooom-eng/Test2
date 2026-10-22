@@ -22,6 +22,7 @@ import { WindchillExportImport, WindchillPage } from './components/WindchillView
 import { BacklogHealthPage } from './pages/BacklogHealthPage'
 import { PulseCheckPage } from './pages/PulseCheckPage'
 import { PiReviewPage } from './pages/PiReviewPage'
+import { QeMappingPage } from './pages/QeMappingPage'
 import { useAccess } from './useAccess'
 import { useFeatureSetup } from './useFeatureSetup'
 import type { Area } from './access'
@@ -76,10 +77,23 @@ export default function App() {
     void azure.fetchCloud()
   }, [store.ready, azure, git.connected, setupSynced])
   const my = useMyWork(azure, store)
+  // Settings → Storage: everything shared through Git, loaded now (as at start, plus the planning data, roles and
+  // Feature setup); each part reports separately so one failure does not hide the rest.
+  async function loadEverything() {
+    const loaded: string[] = [], failed: string[] = []
+    const step = async (label: string, run: () => Promise<string>) => { try { loaded.push(await run()) } catch (failure) { failed.push(`${label}: ${failure instanceof Error ? failure.message : String(failure)}`) } }
+    await step('Planning data', async () => { await git.load(); return 'planning data (baselines, release scope, region / role mapping)' })
+    await step('Connection setup', async () => { const result = await git.syncViews(); azure.reloadConnectionProfiles(); return result ? `connection setup (${result.added.length} added, ${result.updated.length} updated, ${result.removed.length} removed, ${result.kept.length} kept as changed here)` : 'no connection setup in Git' })
+    await step('On-prem view data', async () => { const result = await git.pullSnapshots(); return `${result.files} on-prem view data file${result.files === 1 ? '' : 's'} (${result.applied.length} newer than here)` })
+    await step('Windchill exports', async () => { const result = await git.pullWindchill(); await windchill.reload(); return `${result.files} Windchill export${result.files === 1 ? '' : 's'} (${result.applied.length} newer)` })
+    await step('Access roles', async () => { await access.reload(); return 'access roles' })
+    await step('Feature setup', async () => { await featureSetup.reload(); return 'Feature setup' })
+    return { loaded, failed }
+  }
   const access = useAccess(git, azure)
   const featureSetup = useFeatureSetup(git)
-  // Who creates new work items (the connection's creator email, else the PAT's email) and whether they may assign them to others.
-  const assign = { me: (azure.creatorEmail.trim() || access.email).toLowerCase(), canChoose: access.can('azure.createForOthers') }
+  // Who creates new work items (the email on the Time Writing connection) and whether they may assign them to others.
+  const assign = { me: azure.creatorEmail.trim().toLowerCase(), canChoose: access.can('azure.createForOthers') }
   const [requested, setPage] = useState<Page>('overview')
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   // The selected month starts on the viewer's current month (their time zone).
@@ -155,6 +169,7 @@ export default function App() {
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} />}
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} />}
       {page === 'pireview' && <PiReviewPage />}
+      {page === 'qemapping' && <QeMappingPage />}
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
@@ -163,7 +178,7 @@ export default function App() {
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.file} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} onOpenBoard={() => setPage('board')} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
   </div></HeaderSlot.Provider>
