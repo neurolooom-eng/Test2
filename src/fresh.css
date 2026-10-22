@@ -173,3 +173,11 @@ td small{color:var(--text-3)}
 .sidebar nav .nav-subsection>.nav-items{margin-left:20px;padding-left:6px;border-left:1px solid #ffffff1f}
 .sidebar nav .nav-subsection>.nav-items button{font-size:13px;padding-top:6px;padding-bottom:6px}
 @media(max-width:1000px){.sidebar nav .nav-section+.nav-section{border-top:0;padding-top:0}.sidebar nav .nav-subsection>.nav-items{margin-left:0;padding-left:0;border-left:0}}
+/* Menu level colours: headings warm gold, sub-headings soft sky blue; teal stays for the open page. */
+.sidebar{--nav-heading:#f2c46d;--nav-subheading:#8ec5ff}
+.sidebar nav button.nav-group{color:var(--nav-heading)}
+.sidebar nav button.nav-subgroup{color:var(--nav-subheading)}
+.sidebar nav button.nav-group:hover{color:#ffe2a6}
+.sidebar nav button.nav-subgroup:hover{color:#c4e0ff}
+.sidebar nav .nav-subsection>.nav-items{border-left-color:#8ec5ff40}
+.sidebar nav button.nav-group-active{color:var(--teal-light)}
