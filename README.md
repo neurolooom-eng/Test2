@@ -8,6 +8,13 @@ The repository contains a working React/TypeScript application with an Electron 
 
 Implemented in the MVP UI:
 
+- Menu: **Overview** · **My Work** (Assigned to Me, Bulk actions, Monthly Time Writing) · **I&D Board** (the QMS-0025 Time Writing backlog and other cloud views, **Scrum Master**) · **Release Details** (the on-prem views such as DP, CP and IOCC, and imported Windchill exports) · **Data & governance** (Baselines, Snapshots, Settings, Documentation)
+- Overview for the team narrowed by **Region** (All, India, Netherlands, US) and one or more **Roles**; a **Releases** tab with the month's approved releases per stream
+- **Scrum Master** view: open work in Sprints that have ended, Features without DoD, unassigned work — for everyone, with CSV export
+- **Bulk actions**: move my User Stories (New, Active or both) from past Sprints to the current one; create this month's Time Writing tasks
+- Person boxes (Assigned to Me, Bulk actions, Team / Individual) that list everyone on click and narrow as you type
+- **Sharing through a private Git repository**: planning data, the shared connection setup (default for every user), on-prem view data and Windchill exports, with **Load from Git** and an automatic fallback when a fetch fails; read-only tokens see Baselines as view only
+- **Windchill exports**: a Windchill search exported to CSV becomes a page under Release Details
 - Separate Board view for the parent/child tree, state filters and release Feature/Story/Task creation; Azure DevOps handles connection settings, saved PAT and data fetch ([setup](docs/azure-devops-connection.md)).
 - Capacity Overview from Azure Time Writing Tasks: who is overloaded or has capacity, hours per stream (Epic), person × stream matrix, absence split into PTO / Sick Leave / Unplanned Leave / regional public holidays under a configurable absence Epic
 - Compact header (page title, one data status with Refresh, month where used, theme) and data notices shown once, not per page
@@ -129,7 +136,35 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 ### Shared layout, themes and clock
 
-**Layout.** The sidebar groups pages as **Overview**; **My Work** (*Assigned to Me*, *Monthly Time Writing*); **Azure DevOps** (the views shown in the menu); and **Data & governance** (*Baselines*, *Snapshots*, *Settings*). The header holds only the page title (its purpose as a tooltip), one data status chip with **↻ Refresh** (refreshes every connection and saves locally), the month where the page uses it, and the theme. Notices about the data (sample data, no data, an empty result to confirm, errors, messages) appear once under the header instead of on every page; where data is saved (browser / SharePoint) is shown in the sidebar footer. **Overview** has two tabs — **This month** (top numbers, who has capacity, streams of work, hours by Epic, funded hours and absence, person × stream matrix, and how utilization is calculated) and **Trends** (hours and utilization by month, the person × month heatmap, Epic mix by month, and the overrun / ad-hoc Pareto charts, over 6 or 12 months); the last tab opened is remembered. **Overview** and **Monthly Time Writing** have a **Team / Individual** switch (Overview defaults to Team, Monthly to Individual = me, each remembered in this browser; any other person can be picked); **Assigned to Me** shows one person, me by default, with a picker. The former Work items list and Feature milestones page were removed (the backlog views show the same items; a release source can be shown as a view).
+**Layout.** The sidebar groups pages as **Overview**; **My Work** (*Assigned to Me*, *Bulk actions*, *Monthly Time Writing*); **I&D Board** (the cloud Azure DevOps views shown in the menu — the QMS-0025 Time Writing backlog — and *Scrum Master*); **Release Details** (the on-prem Azure DevOps Server views shown in the menu, the imported Windchill exports and *Import Windchill export*); and **Data & governance** (*Baselines*, *Snapshots*, *Settings*, *Documentation*). The header holds only the page title (its purpose as a tooltip), one data status chip with **↻ Refresh** (refreshes every connection and saves locally), the month where the page uses it, and the theme. Notices about the data (sample data, no data, an empty result to confirm, errors, messages) appear once under the header instead of on every page; where data is saved (browser / SharePoint) is shown in the sidebar footer. **Overview** has three tabs — **This month** (top numbers, who has capacity, streams of work, hours by Epic, funded hours and absence, person × stream matrix, and how utilization is calculated) and **Trends** (hours and utilization by month, the person × month heatmap, Epic mix by month, and the overrun / ad-hoc Pareto charts, over 6 or 12 months) and **Releases** (per stream: the releases approved in the month and their documents); the last tab opened is remembered. In **Team** view, **Region** (All, India, Netherlands, US) and **Roles** (All, or any combination of QE, QMS, CAPA, Lead, Manager) narrow every number to the people mapped that way under **Settings → Resources**, with the chosen region's public holidays; people without a mapping drop out while a filter is on, and the choice is remembered in this browser. **Overview** and **Monthly Time Writing** have a **Team / Individual** switch (Overview defaults to Team, Monthly to Individual = me, each remembered in this browser; any other person can be picked); **Assigned to Me** shows one person, me by default. Every person box shows the full list of people (me first) as soon as it is clicked and narrows it as you type; pick with a click, Enter or the arrow keys. The former Work items list and Feature milestones page were removed (the backlog views show the same items; a release source can be shown as a view).
+
+### Bulk actions
+
+**Move to current PI + Sprint** finds today's Sprint (and its PI) from the team's iteration dates and offers my User Stories still in a past Sprint, in the chosen states — **New**, **Active** or **Both** (other open states are left alone). **This month's Time Writing tasks** adds `<Feature> - Time Writing` where missing and a `<Month YYYY> | <Feature>` Task for each of my pending Features, re-checking Azure first so nothing is duplicated. Both ask for confirmation and refresh the backlog afterwards.
+
+### Scrum Master view
+
+**I&D Board → Scrum Master** reads the Time Writing backlog for everyone and lists, leaving out work under the absence Epic: (1) open Features, User Stories and Tasks whose Sprint has ended (Sprint dates read from Azure DevOps with the Time Writing connection), (2) Features whose Description does not mention "DoD" (open only by default), (3) open Features, User Stories and Tasks nobody is assigned to. Each list has type filters and search; **Export CSV** downloads the shown list (ID, type, title, state, assigned to, iteration, Sprint end, parent, URL) and **Export all lists** writes the three lists into one CSV with a List column.
+
+### Sharing through Git
+
+A **separate private GitHub repository** (Settings → Storage → Git storage: owner, repository, branch, data file, token) holds:
+
+| File | Content | Written by | Read by |
+|---|---|---|---|
+| `planning-data.json` | baseline rules, release scopes, region / role mapping | Save to Git (Baselines, Settings) | every app at start, Load latest from Git |
+| `azure-views.json` | the connection setup — view names, queries, URLs, roles, never PATs | Settings → Views in Git → Save N connections to Git | every app at start (the default for everyone), Restore from Git |
+| `azure-data/<connection>.json` | the last fetch of each on-prem view | the desktop app at each fetch whose data changed | the web app at start, **Load from Git** on the view |
+| `windchill-data/<export>.json` | each imported Windchill export | each import | every app at start, **Load from Git** / **Load all exports from Git** |
+
+- **Default connection setup.** At start, connections missing here are added (with the PAT of a connection to the same server, else view only); connections not changed here since the last sync follow Git; connections changed here are kept. Restore from Git or Save to Git makes them follow Git again. Nothing is deleted.
+- **Fetch falls back to Git.** When an on-prem fetch fails or there is no PAT in the browser, the view loads its data from Git and says why and when it was fetched.
+- **Tokens.** Each user needs a fine-grained GitHub token for this repository: **Contents: Read-only** for viewers (a shared read-only token is possible), **Read and write** for those who save (e.g. People Managers editing baselines). With a read-only token, Baselines is view only. Tokens stay in the browser and are never written to Git. A token cannot be kept as a GitHub secret of the app repository or in a work item: anything the app reads at run time can be read by every user.
+- **Duplicates.** If there is more than one Time Writing (QMS-0025) connection, Settings → Connections offers to keep the active one and remove the others, here and in Git.
+
+### Release Details and Windchill exports
+
+The on-prem views (Azure DevOps Server, e.g. DP, CP, IOCC) are listed under **Release Details**. **Import Windchill export** takes a Windchill search (e.g. a saved search) exported to CSV — comma, semicolon or tab separated; a title line above the header is skipped; columns are kept as in the file — and makes it a page there with search and CSV export; **Import newer export** replaces it. Excel files must be saved as CSV first. Direct Windchill access is not used: the desktop sign-in window is refused by the company sign-in, the browser is blocked by CORS, and bookmarks with code are blocked by browser policy, so the Windchill host and views setup is hidden (the code is kept).
 
 ### Monthly locking and ad-hoc Tasks
 
@@ -195,7 +230,7 @@ The central-data MVP uses Microsoft identity delegated authentication and one ve
 
 - `IndexedDBStateRepository` — offline/local app cache with legacy localStorage migration and JSON recovery
 - `SharePointStateClient` — central JSON state with Microsoft sign-in and optimistic concurrency
-- `ReleaseImportAdapter` — mapped CSV/Excel exports from TFS and Windchill
+- `ReleaseImportAdapter` — mapped CSV/Excel exports from TFS and Windchill (Windchill CSV exports are imported under Release Details; mapping them to releases is still to come)
 - `ReportingAdapter` — PDF, PNG and 2-slide PowerPoint generation
 - `InsightsAdapter` — governed AI summaries with source traceability
 
