@@ -17,6 +17,8 @@ test('default streams in order; connections and exports found by name', () => {
   assert.equal(streamOfProfile(profiles[0]), undefined, 'the Time Writing connection is never a stream')
   assert.equal(exportForStream(defaultStreams[5], [{ name: 'S & S IT', exportFile: 'x.csv' }]).name, 'S & S IT')
   assert.ok(sameStream('S&S IT', 'ss it'))
+  assert.equal(profileForStream(defaultStreams[2], [{ id: 'i', reason: 'IOCC_Completed', viewName: 'IOCC [Completed Releases]', role: 'release-source' }]).id, 'i', 'a name starting with the stream as whole words')
+  assert.equal(profileForStream(defaultStreams[1], [{ id: 'c', reason: 'CPx', viewName: 'CPx view', role: 'release-source' }]), undefined, 'not a different word')
 })
 
 test('DP: name from the Area Path, number from the Iteration Path; IOCC: group after IOCC, name from the Title', () => {

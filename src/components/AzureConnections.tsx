@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { EmptyState, Notice, Panel, Pill, type Tone, Info } from './ui'
 import { formatDateTime } from '../format'
-import { defaultMatchThreshold, defaultStreams, profileForStream } from '../streams'
+import { defaultMatchThreshold, defaultStreams, namesStream, profileForStream } from '../streams'
 import { normalizeReleaseSourceSettings } from '../releaseSource'
 import { defaultShowInMenu, listAzureConnectionProfiles, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
-import { loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
+import { connectionPresets, loadDismissedPresets, pendingPresets, saveDismissedPresets } from '../connectionPresets'
 import { timeWritingView } from '../backlogViews'
 import { viewSource } from '../viewSources'
 import type { PageProps } from '../pages/types'
@@ -127,14 +127,14 @@ export function AzureConnections({ azure, store, git, onOpenBoard }: { azure: Az
           <td>{stream.source === 'azure' ? 'Azure DevOps connection' : 'Windchill export'}</td>
           <td><small className="plain">{stream.rule === 'dp' ? 'Area Path = name, Iteration Path = number; fuzzy Feature match' : stream.rule === 'iocc' ? 'Group = Area Path after IOCC, name from Title; fuzzy Feature match' : 'Release x.y.z path segment; exact Feature match'}</small></td>
           <td>{stream.source === 'windchill' ? <small className="muted">Import a Windchill export named “{stream.name}”</small> : profile ? <><Pill tone="open">Set up</Pill><small>{profile.reason}{showsInMenu(profile) ? '' : ' · hidden from menu'}</small></> : <Pill tone="warning">Not set up</Pill>}</td>
-          <td>{stream.source === 'azure' && !profile && <button type="button" className="primary" onClick={() => { setFormError(''); setForm({ ...empty('release-source'), name: stream.name, viewName: stream.name, showInMenu: true }) }}>Set up</button>}{profile && <button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button>}</td>
+          <td>{stream.source === 'azure' && !profile && <button type="button" className="primary" onClick={() => { setFormError(''); const preset = connectionPresets.find((entry) => entry.role !== 'time-tracking' && (namesStream(entry.viewName, stream.name) || namesStream(entry.name, stream.name))); setForm(preset ? { ...preset, pat: '' } : { ...empty('release-source'), name: stream.name, viewName: stream.name, showInMenu: true }) }}>Set up</button>}{profile && <button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button>}</td>
         </tr> })}
       </tbody></table></div>
     </Panel>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" info="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
-        <div><strong>{preset.name}</strong><small>{preset.serverUrl ? `${preset.serverUrl.replace('https://', '')}/${preset.organization}` : `dev.azure.com/${preset.organization}`} · {preset.project}{preset.team ? ` · team ${preset.team}` : ''}</small></div>
+        <div><strong>{preset.viewName || preset.name}</strong><small>{preset.serverUrl ? `${preset.serverUrl.replace('https://', '')}/${preset.organization}` : `dev.azure.com/${preset.organization}`} · {preset.project}{preset.team ? ` · team ${preset.team}` : ''}</small></div>
         <Pill tone="warning">Needs PAT</Pill>
         <div className="button-row nowrap"><button type="button" className="primary" onClick={() => { setFormError(''); setForm({ ...preset, pat: '' }) }}>Set up</button><button type="button" className="text-button" onClick={() => { const next = [...dismissed, preset.key]; setDismissed(next); saveDismissedPresets(next) }}>Dismiss</button></div>
       </div>)}</div>}

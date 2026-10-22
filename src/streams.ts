@@ -19,17 +19,25 @@ export const defaultStreams: StreamDef[] = [
 export const defaultMatchThreshold = 80
 
 const key = (text: string | undefined) => (text ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+const tokens = (text: string | undefined) => (text ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
 export const sameStream = (a: string | undefined, b: string | undefined) => Boolean(key(a)) && key(a) === key(b)
+// A connection or export belongs to a stream when its name is the stream's name, or starts with it as whole words —
+// e.g. "DP [Completed Releases]", "DP_Completed" or "S&S IT export" — ignoring case and punctuation.
+export function namesStream(name: string | undefined, stream: string) {
+  if (sameStream(name, stream)) return true
+  const words = tokens(name), wanted = tokens(stream)
+  return wanted.length > 0 && words.length > wanted.length && wanted.every((word, index) => words[index] === word)
+}
 export const streamNamed = (name: string | undefined) => defaultStreams.find((stream) => sameStream(stream.name, name))
 
 // The connection of an Azure stream: a non-Time-Writing connection whose view name (or name) is the stream's name.
 export function profileForStream(stream: StreamDef, profiles: AzureConnectionProfileSummary[]) {
   if (stream.source !== 'azure') return undefined
-  return profiles.find((profile) => profile.role !== 'time-tracking' && (sameStream(profile.viewName, stream.name) || sameStream(profile.reason, stream.name)))
+  return profiles.find((profile) => profile.role !== 'time-tracking' && (namesStream(profile.viewName, stream.name) || namesStream(profile.reason, stream.name)))
 }
 // The stream a connection belongs to, if any.
-export const streamOfProfile = (profile: Pick<AzureConnectionProfileSummary, 'viewName' | 'reason' | 'role'>) => profile.role === 'time-tracking' ? undefined : defaultStreams.find((stream) => stream.source === 'azure' && (sameStream(profile.viewName, stream.name) || sameStream(profile.reason, stream.name)))
+export const streamOfProfile = (profile: Pick<AzureConnectionProfileSummary, 'viewName' | 'reason' | 'role'>) => profile.role === 'time-tracking' ? undefined : defaultStreams.find((stream) => stream.source === 'azure' && (namesStream(profile.viewName, stream.name) || namesStream(profile.reason, stream.name)))
 // The Windchill export of a Windchill stream, by its name.
 export function exportForStream<T extends { name: string; exportFile?: string }>(stream: StreamDef, views: T[]) {
-  return stream.source === 'windchill' ? views.find((view) => view.exportFile && sameStream(view.name, stream.name)) : undefined
+  return stream.source === 'windchill' ? views.find((view) => view.exportFile && namesStream(view.name, stream.name)) : undefined
 }
