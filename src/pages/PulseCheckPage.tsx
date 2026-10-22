@@ -6,20 +6,21 @@ import { ScopeSwitch } from '../components/ScopeSwitch'
 import { TeamFilterBar } from '../components/TeamFilterBar'
 import { releaseStreams } from '../releaseOverview'
 import { backlogViews } from '../backlogViews'
-import { formatDateTime, monthName } from '../format'
+import { formatDate, formatDateTime, formatHours, monthName, todayIso } from '../format'
 import type { WindchillWorkspace } from '../useWindchill'
-import { flowTypes, previousMonth, releaseComparison, workFlow } from '../pulseCheck'
-import { timeWritingGaps } from '../azureInsights'
+import { ongoingWork, previousMonth, releaseComparison, workFlow } from '../pulseCheck'
+import { timeWritingGaps, timeWritingMonth } from '../azureInsights'
 import { capacityContext, capacityModel, inTeam, itemsForPerson, itemsForTeam, teamFiltered } from '../capacity'
 import { isMine } from '../myWork'
 import { usePersonScope, useTeamFilter } from '../usePersonScope'
-import { EmptyState, Page, Pill, TablePanel } from '../components/ui'
+import { EmptyState, Metric, Metrics, Page, Pill, TablePanel } from '../components/ui'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
 
-type Tab = 'releases' | 'last'
+type Tab = 'releases' | 'last' | 'ongoing' | 'current'
+const tabKeys: Tab[] = ['releases', 'last', 'ongoing', 'current']
 const tabKey = 'demand-planning-pulse-tab-v1'
 const change = (now: number, before: number) => now === before ? <span className="muted">±0</span> : <span className={now > before ? 'positive' : 'negative'}>{now > before ? '+' : '−'}{Math.abs(now - before)}</span>
 
@@ -27,24 +28,51 @@ const change = (now: number, before: number) => now === before ? <span className
 // before the selected one: Overview's "This month" picture for it, its releases next to the selected month's, the
 // Features and User Stories created and closed, and its Time Writing gaps.
 export function PulseCheckPage({ month, azure, store, my, navigate, windchill, openWindchill }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; windchill: WindchillWorkspace; openWindchill: (id: string) => void }) {
-  const [tab, setTabState] = useState<Tab>(() => { try { return localStorage.getItem(tabKey) === 'last' ? 'last' : 'releases' } catch { return 'releases' } })
+  const [tab, setTabState] = useState<Tab>(() => { try { const saved = localStorage.getItem(tabKey) as Tab; return tabKeys.includes(saved) ? saved : 'releases' } catch { return 'releases' } })
   const setTab = (next: Tab) => { setTabState(next); try { localStorage.setItem(tabKey, next) } catch { /* convenience only */ } }
   const last = previousMonth(month)
   // Exactly the pages under Release Details: the Azure DevOps Server views shown in the menu and the Windchill exports.
   const serverViews = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId).filter((view) => view.onPrem && view.readOnly).map((view) => view.id)
   const exports = windchill.views.filter((view) => view.exportFile && view.showInMenu)
   const streams = releaseStreams(store.state, azure.connectionProfiles, month, undefined, serverViews)
+  const lastStreams = releaseStreams(store.state, azure.connectionProfiles, last, undefined, serverViews)
+  const releases = (shown: ReturnType<typeof releaseStreams>, at: string) => <>
+    {shown.length ? <ReleaseQuadrants streams={shown} month={at} /> : <EmptyState title="No Azure DevOps Server views under Release Details." detail="Add an on-prem connection shown in the menu (Settings → Azure DevOps); fetch it in the desktop app or load its data from Git." />}
+    {exports.length > 0 && <TablePanel title="Windchill exports" info={<p>The Windchill exports under Release Details: rows as last imported. Open one for its columns, search and filters.</p>} count={`${exports.length} export${exports.length === 1 ? '' : 's'}`}>
+      <table><thead><tr><th>Export</th><th>Rows</th><th>Imported</th><th /></tr></thead><tbody>{exports.map((view) => { const source = windchill.sources.find((entry) => entry.viewId === view.id); return <tr key={view.id}><td><strong>{view.name}</strong>{view.exportFile && <small>{view.exportFile}</small>}</td><td>{source ? source.rows.length : '—'}</td><td>{source ? formatDateTime(source.fetchedAt) : 'Not imported yet'}</td><td><button type="button" className="text-button" onClick={() => openWindchill(view.id)}>Open →</button></td></tr> })}</tbody></table>
+    </TablePanel>}
+  </>
+  const tabLabels: [Tab, string][] = [['releases', `Releases · ${monthName(last)}`], ['last', `Last month · ${monthName(last)}`], ['ongoing', 'Ongoing activities'], ['current', `Current month releases · ${monthName(month)}`]]
   return <Page>
-    <div className="overview-tabs" role="tablist" aria-label="Pulse Check sections">{([['releases', `Releases · ${monthName(month)}`], ['last', `Last month · ${monthName(last)}`]] as const).map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
-    {tab === 'releases'
-      ? <>
-        {streams.length ? <ReleaseQuadrants streams={streams} month={month} /> : <EmptyState title="No Azure DevOps Server views under Release Details." detail="Add an on-prem connection shown in the menu (Settings → Azure DevOps); fetch it in the desktop app or load its data from Git." />}
-        {exports.length > 0 && <TablePanel title="Windchill exports" info={<p>The Windchill exports under Release Details: rows as last imported. Open one for its columns, search and filters.</p>} count={`${exports.length} export${exports.length === 1 ? '' : 's'}`}>
-          <table><thead><tr><th>Export</th><th>Rows</th><th>Imported</th><th /></tr></thead><tbody>{exports.map((view) => { const source = windchill.sources.find((entry) => entry.viewId === view.id); return <tr key={view.id}><td><strong>{view.name}</strong>{view.exportFile && <small>{view.exportFile}</small>}</td><td>{source ? source.rows.length : '—'}</td><td>{source ? formatDateTime(source.fetchedAt) : 'Not imported yet'}</td><td><button type="button" className="text-button" onClick={() => openWindchill(view.id)}>Open →</button></td></tr> })}</tbody></table>
-        </TablePanel>}
-      </>
-      : <LastMonth month={month} last={last} azure={azure} store={store} my={my} navigate={navigate} current={streams} only={serverViews} />}
+    <div className="overview-tabs" role="tablist" aria-label="Pulse Check sections">{tabLabels.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
+    {tab === 'releases' && releases(lastStreams, last)}
+    {tab === 'last' && <LastMonth month={month} last={last} azure={azure} store={store} my={my} navigate={navigate} current={streams} only={serverViews} />}
+    {tab === 'ongoing' && <Ongoing azure={azure} month={month} absenceEpicId={capacityContext(store.state).absenceEpicId} />}
+    {tab === 'current' && releases(streams, month)}
   </Page>
+}
+
+// Features and User Stories in progress now, per stream, with this month's booked hours and overdue Target Dates.
+function Ongoing({ azure, month, absenceEpicId }: { azure: AzureWorkspace; month: string; absenceEpicId: number }) {
+  const today = todayIso()
+  const work = ongoingWork(azure.items, month, today, timeWritingMonth, absenceEpicId)
+  const [stream, setStream] = useState('')
+  const shown = stream ? work.items.filter((entry) => entry.stream === stream) : work.items
+  return <>
+    <Metrics>
+      <Metric label="Features in progress" value={work.features} />
+      <Metric label="User Stories in progress" value={work.stories} />
+      <Metric label="People" value={work.people} hint="Assigned to in-progress items" />
+      <Metric label="Past Target Date" value={work.overdue} tone={work.overdue ? 'negative' : undefined} hint="Still in progress after their Target Date" />
+    </Metrics>
+    <TablePanel title="Ongoing activities" info={<ul><li>Features and User Stories whose State is Active, In Progress, Committed or Doing, per stream (the Epic above them); work under the absence Epic is left out.</li><li>Booked = Completed Work in {monthName(month)} on the month's Time Writing Tasks below the item.</li><li>Past Target Date = still in progress after the Target Date.</li></ul>}
+      count={`${shown.length} of ${work.items.length}`} action={<label className="inline-select">Stream<select value={stream} onChange={(event) => setStream(event.target.value)}><option value="">All streams</option>{work.streams.map((name) => <option key={name}>{name}</option>)}</select></label>}
+      empty={shown.length ? undefined : 'Nothing in progress.'}>
+      {shown.length > 0 && <table><thead><tr><th>Stream</th><th>Item</th><th>State</th><th>Assigned to</th><th>Iteration</th><th>Target date</th><th>Booked {monthName(month)}</th></tr></thead><tbody>
+        {shown.map(({ item, stream: name, feature, booked, overdue }) => <tr key={item.key}><td>{name}</td><td><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> <strong className="inline">{item.title}</strong><small>{item.workItemType}{item.workItemType === 'User Story' && feature ? ` · ${feature.title}` : ''}</small></td><td><Pill tone="open">{item.state}</Pill></td><td>{item.assignedTo || <span className="muted">Unassigned</span>}</td><td><small className="plain">{item.iterationPath.split('\\').slice(1).join(' › ') || item.iterationPath}</small></td><td className={overdue ? 'negative' : ''}>{item.targetDate ? formatDate(item.targetDate) : '—'}{overdue && <small>past</small>}</td><td>{booked ? formatHours(booked) : '—'}</td></tr>)}
+      </tbody></table>}
+    </TablePanel>
+  </>
 }
 
 function LastMonth({ month, last, azure, store, my, navigate, current, only }: { month: string; last: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; current: ReturnType<typeof releaseStreams>; only: string[] }) {
@@ -72,7 +100,7 @@ function LastMonth({ month, last, azure, store, my, navigate, current, only }: {
         </tbody></table>}
       </TablePanel>
       <TablePanel title={`Work closed and opened · ${lastName}`} info={<ul><li>Features and User Stories created in {lastName} (Created Date) and closed in it (Closed Date; an item in a finished state without one counts by its last change), per stream — the Epic above them — in your time zone.</li><li>Removed items and work under the absence Epic are left out.</li><li>Team counts the assignees in the team filter; Individual counts the person’s own items.</li></ul>}
-        count={flowTypes.map((type) => `${type}s +${flow.totals[type].created} / ✓${flow.totals[type].closed}`).join(' · ')} empty={flow.streams.length ? undefined : `No Features or User Stories created or closed in ${lastName}.`}>
+        count={`Features +${flow.totals.Feature.created} / ✓${flow.totals.Feature.closed} · Stories +${flow.totals['User Story'].created} / ✓${flow.totals['User Story'].closed}`} empty={flow.streams.length ? undefined : `No Features or User Stories created or closed in ${lastName}.`}>
         {flow.streams.length > 0 && <table><thead><tr><th>Stream (Epic)</th><th>Features opened</th><th>Features closed</th><th>Stories opened</th><th>Stories closed</th></tr></thead><tbody>
           {flow.streams.map((stream) => <tr key={stream.key}><td>{stream.epic ? <a href={stream.epic.url} target="_blank" rel="noreferrer">#{stream.epic.id} {stream.title}</a> : stream.title}</td><td>{stream.counts.Feature.created}</td><td>{stream.counts.Feature.closed}</td><td>{stream.counts['User Story'].created}</td><td>{stream.counts['User Story'].closed}</td></tr>)}
           <tr className="matrix-total"><td>Total</td><td>{flow.totals.Feature.created}</td><td>{flow.totals.Feature.closed}</td><td>{flow.totals['User Story'].created}</td><td>{flow.totals['User Story'].closed}</td></tr>
