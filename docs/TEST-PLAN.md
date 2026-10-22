@@ -257,6 +257,28 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-11 Windchill views** — Req CON-27, CON-28 — L1 `windchill-views.test.mjs` (filter rows → OData query with escaped values and dates, validation, nested cells; desktop query paging on the same host only, errors with Windchill's message, sign-in redirect; Git snapshot without credentials, newer-only apply); browser check with a simulated desktop bridge: a view created in Settings appears under Windchill in the menu, Fetch sends `DocMgmt/Documents?$filter=startswith(Number,'DHF') and State/Value eq 'RELEASED'&$select=Number,Name,State` and shows the two results.
 
+**TC-CON-12 Windchill sign-in window (desktop)** — Req CON-29 — L1 `windchill.test.mjs` (a login page or 401 sets the sign-in flag; Settings path in the hints) and `windchill-views.test.mjs` (a search answered with a web page reports the sign-in hint). Live result: the company sign-in refuses the app's window ("sensitive data"); setup hidden since build 144.
+
+**TC-CON-13 Windchill search opened in the browser and imported** — Req CON-30 — L1 `windchill-views.test.mjs` (search address, result list with BOM and nulls, next-page link kept only on the same https service, web page / domain list / Windchill error reported); browser check: a sign-in page is rejected, page 1 shows Open next page, page 2 adds to 2 results.
+
+**TC-CON-14 Windchill from the browser itself** — Req CON-31 — L1 `windchill-browser.test.mjs` (credentials sent, domain list, CORS/network failure message, sign-in page, 401, paging, OData error). Live result: blocked by CORS on the company Windchill.
+
+**TC-CON-15 Windchill tab bookmark** — Req CON-32 — L1 `windchill-bridge.test.mjs` (one-line bookmark bound to the app origin, result checks: one-time code, known views only); browser check with a cross-origin fake Windchill: the tab returns 2 rows over 2 pages. Live result: bookmarks with code are blocked by browser policy.
+
+**TC-CON-16 Release Details menu and Windchill exports** — Req CON-33, CON-36 — L1 `connections.test.mjs` (on-prem views marked), `windchill-export.test.mjs` (header below a title line, quoted cells, comma / semicolon / tab, repeated column names, Excel / HTML / empty files reported); browser checks: the menu shows I&D Board (QMS-0025, Scrum Master) and Release Details (DP, CP, Import Windchill export); a CSV becomes a page with the file's columns; Settings has no Windchill sections; with a mocked GitHub, Load all exports from Git adds the export and Load from Git loads a newer version or says it is the latest. **UAT**
+
+**TC-CON-17 Load from Git, fetch fallback and the shared connection setup** — Req CON-34 — L1 `view-definitions.test.mjs` (missing connections added with the same-server PAT or view only, unchanged ones follow Git, ones changed here kept, restore makes them follow again); browser check with a mocked GitHub and an unreachable server: a fresh browser gets CP and DP from Git, Fetch without a PAT says "loaded the data saved to Git (fetched …)". **UAT**
+
+**TC-CON-18 Baselines read-only with a read-only Git token** — Req CON-35 — L1 `git-storage.test.mjs` (no push permission, read-only fine-grained token (403 on an empty write), writable (422), unknown; the probe carries no content); browser check with a mocked GitHub: 403 shows the view-only bar and greyed-out rules without Save; 422 stays editable. **UAT**
+
+**TC-CON-19 Duplicate Time Writing connections** — Req CON-39 — browser check with a mocked GitHub: two QMS-0025 connections show the warning; Keep … remove the other leaves QMS-0025 and DP and writes azure-views.json without the duplicate. **UAT**
+
+**TC-CON-20 Bulk move states and person search** — Req CON-37 — L1 `my-work.test.mjs` (New only, Active only, both; other pending states left alone); browser check on sample data: the person box lists everyone on click, "ch" narrows to Chen Wei and Enter picks him; ✕ returns to me.
+
+**TC-CON-21 Overview by region and roles** — Req CON-38 — L1 `capacity.test.mjs` (no filter = everyone; each region gives exactly its people; several roles; region and roles together; same holidays as the team view); browser check on sample data: India gives 2 people, India · QE + Lead gives 1 and the headline follows. **UAT**
+
+**TC-SCR-01 Scrum Master view** — Req CON-40 — L1 `scrum-master.test.mjs` (ended vs running Sprint; no Sprint dates = nothing listed; DoD in the Description, not "Dodo"; open vs closed Features; unassigned; nothing under the absence Epic; CSV quoting, parent and List column); browser check on sample data: tabs with counts, Export CSV downloads the shown list, Export all lists adds a List column. Live check needed: the older-Sprints list with the team's real Sprint dates. **UAT**
+
 **TC-NAV-12 Freshness in the viewer's time zone** — Req NAV-12 — L1 `format.test.mjs` and `app-update.test.mjs` (the same instant in Asia/Kolkata, America/New_York and UTC; local "today"); browser check in America/New_York: a fetch at 09:00 UTC shows "05:00 AM EDT".
 
 **TC-OV-10 Releases summary, tracking Feature and local approval dates** — Req QV-18, QV-19, OV-10 — L1 `release-overview.test.mjs`, `format.test.mjs`, `release-source.test.mjs` (the same UTC instant is 30 September in New York and 1 October in India); browser check in Asia/Kolkata with CP, DP and IOCC loaded from Git: October shows three stream quadrants and the total (3 releases, 4 documents); September shows the CP release approved 29 Sep 18:30 UTC as “September 30, 2026”, in both the quadrant and the CP view.
@@ -904,6 +926,17 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-23, CON-24 | TC-CON-09 |
 | CON-25, CON-26 | TC-CON-10 |
 | CON-27, CON-28 | TC-CON-11 |
+| CON-29 | TC-CON-12 |
+| CON-30 | TC-CON-13 |
+| CON-31 | TC-CON-14 |
+| CON-32 | TC-CON-15 |
+| CON-33, CON-36 | TC-CON-16 |
+| CON-34 | TC-CON-17 |
+| CON-35 | TC-CON-18 |
+| CON-37 | TC-CON-20 |
+| CON-38 | TC-CON-21 |
+| CON-39 | TC-CON-19 |
+| CON-40 | TC-SCR-01 |
 | FET-01, FET-04 | TC-CON-03 |
 | FET-02, FET-03 | TC-FET-01 |
 | FET-05, FET-06, FET-13 | TC-FET-02 |
@@ -990,14 +1023,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-UI-01 |
-| UC-02 | TC-CON-01…07, TC-NAV-02 |
+| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-NAV-02 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…06, TC-TWN-03 |
+| UC-06 | TC-ATM-01…06, TC-TWN-03, TC-CON-20 |
 | UC-07 | TC-BKL-01…03 |
-| UC-08 | TC-QV-01…05, TC-FET-07 |
-| UC-09 | TC-OVR-01, TC-OVR-02, TC-CAP-01 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
+| UC-09 | TC-OVR-01, TC-OVR-02, TC-CAP-01, TC-CON-21 |
 | UC-10 | TC-OVR-03 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04 |
@@ -1009,6 +1042,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04 |
 | UC-19 | TC-INS-04, TC-CI-01 |
 | UC-20 | TC-DOC-01, TC-DOC-02 |
+| UC-21 | TC-SCR-01 |
 
 ## 8. Result record
 
