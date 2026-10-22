@@ -156,11 +156,15 @@ export function tracksRelease(title: string, name: string, release: string) {
 // The Feature title the app creates for a release, in the exact form tracksRelease maps back.
 export const releaseFeatureTitle = (stream: string, name: string, release: string) => release.trim() ? `${stream.trim()} | ${name.trim()} | v${release.trim()}` : `${stream.trim()} | ${name.trim()}`
 
-// Fuzzy match of a QMS-0025 Feature title to a release, 0–100: how well the name (and group) is found in the title —
-// the best of bigram similarity to the title or one of its "|" parts and the share of the name's words in the title —
-// weighed 60/40 with the version: the exact version 1, the same major.minor 0.6, the same major 0.3. The version only
-// counts when the name scores at least 50%; without a release number only the name counts.
-const bigrams = (text: string) => { const clean = text.toLowerCase().replace(/[^a-z0-9]+/g, ''); const list: string[] = []; for (let index = 0; index < clean.length - 1; index += 1) list.push(clean.slice(index, index + 2)); return list }
+// Fuzzy match of a QMS-0025 Feature title to a release, 0–100. Name score: 1 when the name is found whole in the title
+// or one of its "|" parts ignoring spaces and punctuation ("RSGMS" in "RS GMS Viewer", "RS-GMS" in "RSGMS"), else the
+// best bigram similarity to the title or a part; then scaled by the share of the name's telling words found in the
+// title, so a name with words the title lacks ("Dose Planning Lite" vs "Dose Planning") cannot score as a full match.
+// Weighed 60/40 with the version: the exact version 1, the same major.minor 0.25, the same major 0.1 — a Feature of
+// the right name but another version stays below the threshold. The version only counts when the name scores at
+// least 50%; without a release number only the name counts.
+const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '')
+const bigrams = (text: string) => { const clean = squash(text); const list: string[] = []; for (let index = 0; index < clean.length - 1; index += 1) list.push(clean.slice(index, index + 2)); return list }
 export function similarity(a: string, b: string) {
   const x = bigrams(a), y = bigrams(b)
   if (!x.length || !y.length) return a.trim().toLowerCase() === b.trim().toLowerCase() && a.trim() ? 1 : 0
@@ -169,24 +173,37 @@ export function similarity(a: string, b: string) {
   return 2 * both / (x.length + y.length)
 }
 const commonWords = new Set(['release', 'releases', 'notes', 'note', 'project', 'name', 'version', 'the', 'and', 'for', 'of', 'verification', 'specification', 'report', 'document', 'design', 'history', 'file', 'index', 'dhfi', 'time', 'writing', 'feature'])
+// Words that tell releases apart: not numbers, not one or two letters, not common words of document and Feature titles.
+const tellingWords = (text: string) => words(text).trim().split(' ').filter((word) => word.length > 2 && !/^\d+$/.test(word) && !commonWords.has(word))
+const versionPattern = /\bv?\d+(\.\d+)+\b/gi
+export function nameScore(title: string, name: string) {
+  const nameWords = tellingWords(name)
+  const parts = [title, ...title.split('|')].map((part) => part.replace(versionPattern, ' ').trim()).filter(Boolean)
+  const wanted = squash(name.replace(versionPattern, ' '))
+  // A name of numbers, common words or one or two letters ("PM") identifies a Feature only as a whole "|" part.
+  if (!nameWords.length) return wanted.length >= 2 && parts.some((part) => squash(part) === wanted) ? 1 : 0
+  const whole = wanted.length >= 3 && parts.some((part) => squash(part).includes(wanted))
+  const base = whole ? 1 : Math.max(...parts.map((part) => similarity(name, part)))
+  const flat = squash(title)
+  const coverage = nameWords.filter((word) => flat.includes(word)).length / nameWords.length
+  // Extra telling words in the title's closest part count a little against it: "Dose Planning Lite" is not the first
+  // choice for Dose Planning when a plain "Dose Planning" Feature exists.
+  const holding = whole ? parts.filter((part) => squash(part).includes(wanted)) : parts
+  const closest = holding.map((part) => ({ part, extra: tellingWords(part).filter((word) => !wanted.includes(word)).length })).sort((a, b) => a.extra - b.extra)[0]
+  return base * coverage * Math.max(0.8, 1 - 0.05 * (closest?.extra ?? 0))
+}
 export function matchScore(title: string, name: string, release: string, group?: string) {
   const label = [group, name].filter(Boolean).join(' ')
-  // Words that tell releases apart: not numbers, not one or two letters, not common words of document and Feature titles.
-  const telling = (text: string) => words(text).trim().split(' ').filter((word) => word.length > 2 && !/^\d+$/.test(word) && !commonWords.has(word))
-  const titleWords = new Set(telling(title)), nameWords = telling(label)
-  // A name made only of numbers or common words cannot identify a Feature.
-  if (!nameWords.length) return 0
-  const parts = [title, ...title.split('|')].map((part) => part.replace(/\bv?\d+(\.\d+)+\b/gi, ' ').trim()).filter(Boolean)
-  const nameScore = Math.max(...parts.map((part) => similarity(label, part)), nameWords.length ? nameWords.filter((word) => titleWords.has(word)).length / nameWords.length : 0)
-  if (!release.trim()) return Math.round(nameScore * 100)
+  const score = nameScore(title, label)
+  if (!release.trim()) return Math.round(score * 100)
   // The version only counts once the name matches: a shared version number alone never makes a match.
-  if (nameScore < 0.5) return Math.round(nameScore * 60)
+  if (score < 0.5) return Math.round(score * 60)
   const wanted = normalizeVersion(release).split('.')
   const versionScore = Math.max(0, ...[...title.matchAll(versionToken)].map((match) => {
     const found = normalizeVersion(match[2]).split('.')
-    return found.join('.') === wanted.join('.') ? 1 : found[0] === wanted[0] && (found[1] ?? '0') === (wanted[1] ?? '0') ? 0.6 : found[0] === wanted[0] ? 0.3 : 0
+    return found.join('.') === wanted.join('.') ? 1 : found[0] === wanted[0] && (found[1] ?? '0') === (wanted[1] ?? '0') ? 0.25 : found[0] === wanted[0] ? 0.1 : 0
   }))
-  return Math.round((nameScore * 0.6 + versionScore * 0.4) * 100)
+  return Math.round((score * 0.6 + versionScore * 0.4) * 100)
 }
 
 // rule: how the stream reads its releases (streams.ts); fuzzy: match Features by matchScore, the best one tracking the
@@ -203,6 +220,12 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
     if (item.approvalDate && (!entry.approvalDate || item.approvalDate > entry.approvalDate)) { entry.approvalDate = item.approvalDate; entry.approvalMonth = approvalMonthOf(item.approvalDate) }
     entries.set(key, entry)
   }
+  return attachFeatures([...entries.values()], backlog, options)
+}
+
+// The Features tracking each release (exact rule, or the best fuzzy match at the threshold) and their Time Writing
+// hours, for release entries read from any source (document paths, or the Pedestal register — see dpReleases).
+export function attachFeatures(entries: ReleaseEntry[], backlog: AzureWorkItem[], options: RegisterOptions = {}): ReleaseEntry[] {
   // Exact match: a Feature title in segments split by "|" with one segment equal to the name and one equal to the
   // release ("v", "Release" or "Rel" in front allowed), e.g. "DP | Dose Planning | v1.1.0.1". No partial or nearby
   // numbers, and stories or tasks naming a release do not attach it to whatever Feature they sit under.
@@ -216,9 +239,9 @@ export function releaseRegister(source: AzureWorkItem[] | undefined, backlog: Az
   // Each Feature counts for the release(s) with the longest name its title matches.
   const features = live.filter((item) => item.workItemType === 'Feature')
   const bestNameLength = new Map<number, number>()
-  for (const feature of features) for (const entry of entries.values()) if (names(feature.title, entry)) bestNameLength.set(feature.id, Math.max(bestNameLength.get(feature.id) ?? 0, entry.name.trim().length))
+  for (const feature of features) for (const entry of entries) if (names(feature.title, entry)) bestNameLength.set(feature.id, Math.max(bestNameLength.get(feature.id) ?? 0, entry.name.trim().length))
   const threshold = options.threshold ?? 80
-  return [...entries.values()].map((entry) => {
+  return entries.map((entry) => {
     const best = options.fuzzy ? features.map((feature) => ({ feature, score: matchScore(feature.title, entry.name, entry.release, entry.group) })).sort((a, b) => b.score - a.score || a.feature.id - b.feature.id)[0] : undefined
     const tracking = options.fuzzy ? best && best.score >= threshold ? [best.feature] : [] : features.filter((feature) => names(feature.title, entry) && bestNameLength.get(feature.id) === entry.name.trim().length).sort((a, b) => a.id - b.id)
     const trackedBy = tracking
