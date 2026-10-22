@@ -7,7 +7,7 @@ export const roles = ['Admin', 'Product Owner', 'People Manager', 'Scrum Master'
 export type Role = typeof roles[number]
 
 export const areas = [
-  { key: 'overview', label: 'Overview' },
+  { key: 'overview', label: 'Data Insights (Overview, Pulse Check, PI Review)' },
   { key: 'mywork', label: 'Assigned to Me' },
   { key: 'bulk', label: 'Bulk actions' },
   { key: 'monthly', label: 'Monthly Time Writing' },
