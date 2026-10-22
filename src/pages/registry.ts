@@ -1,5 +1,5 @@
 // Single source for navigation labels, header text and grouping so the sidebar and page header always agree.
-export type Page = 'overview' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'snapshots' | 'admin' | 'docs'
+export type Page = 'overview' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'snapshots' | 'qemapping' | 'admin' | 'docs'
 export type PageGroup = 'Data Insights' | 'My Work' | 'I&D Board' | 'Release Details' | 'Data & governance'
 
 export interface PageMeta { id: Page; label: string; icon: string; group: PageGroup; detail: string; usesMonth: boolean }
@@ -15,6 +15,7 @@ export const pages: PageMeta[] = [
   { id: 'board', label: 'Backlogs', icon: '▤', group: 'I&D Board', detail: 'Plan and track the team’s work in an expandable Epic → Feature → User Story → Task backlog.', usesMonth: false },
   { id: 'health', label: 'Backlog Health', icon: '◎', group: 'I&D Board', detail: 'What the Scrum Master needs from the backlog, for everyone in Time Writing: open work in Sprints that have ended, Features without DoD, unassigned work; each list as CSV.', usesMonth: false },
   { id: 'windchill', label: 'Import Windchill export', icon: '◇', group: 'Release Details', detail: 'A Windchill search exported to CSV and imported here: its results with the file’s columns.', usesMonth: false },
+  { id: 'qemapping', label: 'QE Mapping', icon: '⇄', group: 'Data & governance', detail: 'QE mapping (planned).', usesMonth: false },
   { id: 'snapshots', label: 'Snapshots', icon: '▣', group: 'Data & governance', detail: 'Save point-in-time app data to SharePoint for LTE and PI Review; manage browser backups.', usesMonth: true },
   { id: 'admin', label: 'Settings', icon: '⚙', group: 'Data & governance', detail: 'Azure DevOps connections, Git and SharePoint storage, capacity, periods, resources, master data and audit.', usesMonth: true },
   { id: 'docs', label: 'Documentation', icon: '☰', group: 'Data & governance', detail: 'Requirements, test plan and the other project documents of this build.', usesMonth: false },
