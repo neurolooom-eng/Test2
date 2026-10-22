@@ -4,8 +4,8 @@ import { CapacityMetrics, MonthSections } from '../components/MonthOverview'
 import { GapsPanel } from '../components/GapsPanel'
 import { ScopeSwitch } from '../components/ScopeSwitch'
 import { TeamFilterBar } from '../components/TeamFilterBar'
-import { releaseStreams } from '../releaseOverview'
-import { backlogViews } from '../backlogViews'
+import { defaultStreamReleases, type ReleaseStream } from '../releaseOverview'
+import { defaultStreams, exportForStream } from '../streams'
 import { formatDate, formatDateTime, formatHours, monthName, todayIso } from '../format'
 import type { WindchillWorkspace } from '../useWindchill'
 import { ongoingWork, previousMonth, releaseComparison, workFlow } from '../pulseCheck'
@@ -31,22 +31,22 @@ export function PulseCheckPage({ month, azure, store, my, navigate, windchill, o
   const [tab, setTabState] = useState<Tab>(() => { try { const saved = localStorage.getItem(tabKey) as Tab; return tabKeys.includes(saved) ? saved : 'releases' } catch { return 'releases' } })
   const setTab = (next: Tab) => { setTabState(next); try { localStorage.setItem(tabKey, next) } catch { /* convenience only */ } }
   const last = previousMonth(month)
-  // Exactly the pages under Release Details: the Azure DevOps Server views shown in the menu and the Windchill exports.
-  const serverViews = backlogViews(azure.connectionProfiles, azure.activeConnectionProfileId).filter((view) => view.onPrem && view.readOnly).map((view) => view.id)
-  const exports = windchill.views.filter((view) => view.exportFile && view.showInMenu)
-  const streams = releaseStreams(store.state, azure.connectionProfiles, month, undefined, serverViews)
-  const lastStreams = releaseStreams(store.state, azure.connectionProfiles, last, undefined, serverViews)
-  const releases = (shown: ReturnType<typeof releaseStreams>, at: string) => <>
+  // The default streams, in order: DP, CP, IOCC, Content and Tool Validations from their connections, S&S IT (and
+  // later ECP) from their Windchill exports.
+  const exports = defaultStreams.filter((stream) => stream.source === 'windchill').map((stream) => ({ stream, view: exportForStream(stream, windchill.views) }))
+  const streams = defaultStreamReleases(store.state, azure.connectionProfiles, month)
+  const lastStreams = defaultStreamReleases(store.state, azure.connectionProfiles, last)
+  const releases = (shown: ReleaseStream[], at: string) => <>
     {shown.length ? <ReleaseQuadrants streams={shown} month={at} /> : <EmptyState title="No Azure DevOps Server views under Release Details." detail="Add an on-prem connection shown in the menu (Settings → Azure DevOps); fetch it in the desktop app or load its data from Git." />}
-    {exports.length > 0 && <TablePanel title="Windchill exports" info={<p>The Windchill exports under Release Details: rows as last imported. Open one for its columns, search and filters.</p>} count={`${exports.length} export${exports.length === 1 ? '' : 's'}`}>
-      <table><thead><tr><th>Export</th><th>Rows</th><th>Imported</th><th /></tr></thead><tbody>{exports.map((view) => { const source = windchill.sources.find((entry) => entry.viewId === view.id); return <tr key={view.id}><td><strong>{view.name}</strong>{view.exportFile && <small>{view.exportFile}</small>}</td><td>{source ? source.rows.length : '—'}</td><td>{source ? formatDateTime(source.fetchedAt) : 'Not imported yet'}</td><td><button type="button" className="text-button" onClick={() => openWindchill(view.id)}>Open →</button></td></tr> })}</tbody></table>
+    {exports.length > 0 && <TablePanel title="Windchill exports" info={<p>The Windchill streams (S&amp;S IT; ECP later): the export named like the stream, rows as last imported. Open one for its columns, search and filters.</p>} count={`${exports.length} stream${exports.length === 1 ? '' : 's'}`}>
+      <table><thead><tr><th>Stream</th><th>Rows</th><th>Imported</th><th /></tr></thead><tbody>{exports.map(({ stream, view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return <tr key={stream.name}><td><strong>{stream.name}</strong>{view?.exportFile && <small>{view.exportFile}</small>}</td><td>{source ? source.rows.length : '—'}</td><td>{view ? source ? formatDateTime(source.fetchedAt) : 'Not imported yet' : 'No export named like the stream yet'}</td><td><button type="button" className="text-button" onClick={() => openWindchill(view?.id ?? '')}>{view ? 'Open →' : 'Import →'}</button></td></tr> })}</tbody></table>
     </TablePanel>}
   </>
   const tabLabels: [Tab, string][] = [['releases', `Releases · ${monthName(last)}`], ['last', `Last month · ${monthName(last)}`], ['ongoing', 'Ongoing activities'], ['current', `Current month releases · ${monthName(month)}`]]
   return <Page>
     <div className="overview-tabs" role="tablist" aria-label="Pulse Check sections">{tabLabels.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={`backlog-tab ${tab === key ? 'backlog-tab-active' : ''}`} onClick={() => setTab(key)}>{label}</button>)}</div>
     {tab === 'releases' && releases(lastStreams, last)}
-    {tab === 'last' && <LastMonth month={month} last={last} azure={azure} store={store} my={my} navigate={navigate} current={streams} only={serverViews} />}
+    {tab === 'last' && <LastMonth month={month} last={last} azure={azure} store={store} my={my} navigate={navigate} current={streams} />}
     {tab === 'ongoing' && <Ongoing azure={azure} month={month} absenceEpicId={capacityContext(store.state).absenceEpicId} />}
     {tab === 'current' && releases(streams, month)}
   </Page>
@@ -75,7 +75,7 @@ function Ongoing({ azure, month, absenceEpicId }: { azure: AzureWorkspace; month
   </>
 }
 
-function LastMonth({ month, last, azure, store, my, navigate, current, only }: { month: string; last: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; current: ReturnType<typeof releaseStreams>; only: string[] }) {
+function LastMonth({ month, last, azure, store, my, navigate, current }: { month: string; last: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; current: ReleaseStream[] }) {
   const settings = capacityContext(store.state)
   // Same Team / Individual choice and team filter as Overview (shared in this browser).
   const personScope = usePersonScope('demand-planning-overview-view-v1', 'team', my)
@@ -84,7 +84,7 @@ function LastMonth({ month, last, azure, store, my, navigate, current, only }: {
   const teamLabel = teamFiltered(teamFilter) ? [teamFilter.region, teamFilter.roles.join(', ')].filter(Boolean).join(' · ') : 'Team'
   const items = scope ? itemsForPerson(azure.items, scope, settings) : individual ? [] : itemsForTeam(azure.items, teamFilter, settings)
   const model = capacityModel(items, last, settings)
-  const releases = releaseComparison(current, releaseStreams(store.state, azure.connectionProfiles, last, undefined, only))
+  const releases = releaseComparison(current, defaultStreamReleases(store.state, azure.connectionProfiles, last))
   const flow = workFlow(azure.items, last, settings.absenceEpicId, undefined, (item) => scope ? isMine(item, scope) : !individual && inTeam(item.assignedTo, teamFilter, settings))
   const allGaps = timeWritingGaps(items, last)
   const gaps = scope ? { ...allGaps, storiesWithoutTask: allGaps.storiesWithoutTask.filter((story) => isMine(story, scope) || items.some((item) => item.parentId === story.id && item.workItemType === 'Task')) } : allGaps
