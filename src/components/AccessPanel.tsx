@@ -47,7 +47,7 @@ export function AccessPanel({ access, git, people }: { access: Access; git: GitS
   return <Panel className="admin-section" eyebrow="ACCESS" title="Roles and access" detail={<>Which menu areas each role sees and what it may do, and who has which role (by the email of their Azure DevOps PAT). Stored in Git as {access.path || 'access.json'}, so only people who can write to the data repository can change it.{access.history && <> <a href={access.history} target="_blank" rel="noreferrer">History</a></>}</>}
     action={access.policy && editable ? <button type="button" className="ghost" onClick={() => { setDraft(null); setResult(null); void access.reload() }}>Reload from Git</button> : undefined}>
     <Notice tone={access.identityError ? 'warning' : 'info'}>{you}</Notice>
-    {!git.connected && <Notice tone="info">Connect Git storage (above) to use access roles. {access.policy ? 'The roles last loaded in this browser still apply.' : 'Without them, everyone sees every page.'}</Notice>}
+    {!git.connected && <Notice tone="info">Connect Git storage (Storage tab) to use access roles. {access.policy ? 'The roles last loaded in this browser still apply.' : 'Without them, everyone sees every page.'}</Notice>}
     {access.error && <Notice tone="error">{access.path}: {access.error}</Notice>}
     {git.connected && access.loaded && !shown && <Notice tone="info">No access roles yet: everyone sees every page and may do everything. {editable ? <button type="button" className="text-button" onClick={() => setDraft(defaultPolicy(access.email))}>Set up roles →</button> : 'Someone who can write to the data repository can set them up here.'}</Notice>}
     {shown && <>
