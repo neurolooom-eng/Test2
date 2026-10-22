@@ -1,4 +1,5 @@
-import { forgetAzureConnectionProfile, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary } from './azureCredentials.ts'
+import { forgetAzureConnectionProfile, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, serverKey, type AzureConnectionProfileSummary } from './azureCredentials.ts'
+export { serverKey }
 
 export { clean as cleanView }
 
@@ -26,12 +27,6 @@ export function parseViews(text: string): AzureConnectionProfileSummary[] {
   const file = raw as Partial<ViewsFile>
   if (!file || file.schema !== 1 || file.kind !== kind || !Array.isArray(file.views)) throw new Error('The file in Git is not a Demand Planning views file. Nothing was restored.')
   return file.views.filter((view): view is AzureConnectionProfileSummary => Boolean(view && typeof view.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(view.id) && typeof view.url === 'string' && typeof view.reason === 'string' && view.reason.trim())).map(clean)
-}
-
-// Organisation (cloud) or server (on-prem) of a connection, to reuse a PAT saved here for the same place.
-export function serverKey(view: Pick<AzureConnectionProfileSummary, 'url' | 'baseUrl'>) {
-  if (view.baseUrl) return view.baseUrl.replace(/\/+$/, '').toLowerCase()
-  try { const url = new URL(view.url); return `${url.origin}/${url.pathname.split('/').filter(Boolean)[0] ?? ''}`.toLowerCase() } catch { return '' }
 }
 
 export interface RestoreResult { added: string[]; updated: string[]; skipped: string[]; noPat: string[] }

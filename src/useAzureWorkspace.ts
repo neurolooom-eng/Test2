@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { fetchAzureWorkItems, isCloudBase, mapAzureWorkItem, mergeAzureWorkItems, parseAzureProjectUrl, readFieldNames, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
-import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, collectionUrlFrom, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole } from './azureCredentials'
+import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, collectionUrlFrom, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole, loadServerPat, serverKey } from './azureCredentials'
 import { approvalDateFrom, defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, releaseQueryWhere, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
@@ -200,8 +200,11 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
     const url = composeAzureUrl(base, input.project, input.team)
     if (apiVersion && !/^\d{1,2}\.\d(-preview(\.\d)?)?$/.test(apiVersion)) throw new Error('API version looks like 7.1, 6.0 or 5.0.')
     const existing = input.id ? loadAzureConnectionProfile(input.id) : input.cloneOf ? loadAzureConnectionProfile(input.cloneOf) : null
-    const token = input.pat.trim() || existing?.token || ''
-    if (!token) throw new Error('Enter the PAT for this connection.')
+    // One PAT per server: a new PAT here becomes the server's PAT; without one, the server's saved PAT is used.
+    const serverPat = loadServerPat(serverKey({ url, ...(isCloudBase(base) ? {} : { baseUrl: base }) }))
+    // Stored on the connection only when typed here (it then also becomes the server's PAT) or when the server has none.
+    const token = input.pat.trim() || (serverPat ? '' : existing?.token ?? '')
+    if (!token && !serverPat) throw new Error('Enter the PAT for this server (it is then used by every connection on it).')
     const query = input.query.trim()
     if (query) releaseQueryWhere(query)
     if (input.role === 'time-tracking' && !input.team.trim() && !query) throw new Error('A Time Writing connection needs a team (its Epic backlog is read) or a query.')

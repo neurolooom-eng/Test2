@@ -207,3 +207,21 @@ test('View name and Show in menu are saved with the connection', () => {
   assert.equal(viewNameOf(summary), 'Digital Platform'); assert.equal(showsInMenu(summary), false)
   assert.equal(viewNameOf({ reason: 'DHFI' }), 'DHFI'); assert.equal(showsInMenu({ role: 'reference' }), false); assert.equal(showsInMenu({ role: 'backlog-view' }), true)
 })
+
+import { saveAzureConnectionProfile as saveProfile, loadAzureConnectionProfile as loadProfile, loadServerPat, saveServerPat, serverKey as keyOf } from '../src/azureCredentials.ts'
+test('one PAT per server: entered once, used by every connection on that server (collection or cloud organization)', () => {
+  const data = new Map(); const storage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) }
+  const base = 'https://tfs.example/tfs/DHPCollection'
+  saveProfile({ id: 'dp', url: `${base}/DHP.Vault`, baseUrl: base, reason: 'DP', role: 'release-source', token: 'pat-1' }, storage)
+  saveProfile({ id: 'ped', url: `${base}/DHP`, baseUrl: base, reason: 'Pedestal', role: 'reference', token: '' }, storage)
+  saveProfile({ id: 'tw', url: 'https://dev.azure.com/Org/Project', reason: 'Time Writing', role: 'time-tracking', token: 'cloud-pat' }, storage)
+  assert.equal(keyOf({ url: `${base}/DHP`, baseUrl: base }), base.toLowerCase())
+  assert.equal(loadProfile('ped', storage).token, 'pat-1', 'another project on the same collection uses the server PAT')
+  assert.equal(loadProfile('tw', storage).token, 'cloud-pat')
+  saveServerPat(base, 'pat-2', storage)
+  assert.deepEqual(['dp', 'ped'].map((id) => loadProfile(id, storage).token), ['pat-2', 'pat-2'], 'changing the server PAT changes it for all')
+  assert.equal(loadProfile('tw', storage).token, 'cloud-pat', 'other servers untouched')
+  saveServerPat(base, '', storage)
+  assert.equal(loadServerPat(base, storage), '')
+  assert.equal(loadProfile('dp', storage).token, 'pat-1', 'without a server PAT the connection falls back to its own')
+})
