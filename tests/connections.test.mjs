@@ -225,3 +225,15 @@ test('one PAT per server: entered once, used by every connection on that server 
   assert.equal(loadServerPat(base, storage), '')
   assert.equal(loadProfile('dp', storage).token, 'pat-1', 'without a server PAT the connection falls back to its own')
 })
+
+import { listKnownServers, saveKnownServer, forgetKnownServer } from '../src/azureCredentials.ts'
+test('servers added in Settings without a connection are kept once, by their collection', () => {
+  const data = new Map(); const storage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) }
+  assert.equal(saveKnownServer({ serverUrl: 'https://tfs.example/tfs', organization: 'QualityCollection' }, storage), 'https://tfs.example/tfs/QualityCollection')
+  saveKnownServer({ serverUrl: 'https://tfs.example/tfs/', organization: ' QualityCollection ' }, storage)
+  saveKnownServer({ serverUrl: '', organization: 'Org' }, storage)
+  assert.deepEqual(listKnownServers(storage).map((server) => server.organization), ['QualityCollection', 'Org'], 'the same collection is kept once')
+  assert.throws(() => saveKnownServer({ serverUrl: '', organization: '' }, storage), /organization/)
+  forgetKnownServer('https://dev.azure.com/Org', storage)
+  assert.deepEqual(listKnownServers(storage).map((server) => server.organization), ['QualityCollection'])
+})
