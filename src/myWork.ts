@@ -14,7 +14,6 @@ export function isMine(item: Pick<AzureWorkItem, 'assignedTo' | 'assignedToEmail
 export const workTypes = ['Feature', 'User Story', 'Bug', 'Task'] as const
 // The states offered for finishing an item. Azure DevOps rejects a state the item's process does not allow
 // (for example Resolved on an Agile Task); the error is shown as returned.
-export const finishStates: Record<string, string[]> = { Feature: ['Resolved', 'Closed'], 'User Story': ['Resolved', 'Closed'], Bug: ['Resolved', 'Closed'], Task: ['Closed'] }
 
 function ancestry(items: AzureWorkItem[]) {
   const byId = new Map(items.map((item) => [item.id, item]))

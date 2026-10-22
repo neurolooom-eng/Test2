@@ -283,6 +283,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-SCR-02 Backlog Health columns, Description and person filter** — Req CON-48 — L1 `backlog-health.test.mjs` (columns and order of the Older Sprints / Unassigned CSV; Updated By mapped from System.ChangedBy; Description as plain text and its CSV column only when asked; the people of a row: Assigned To, or Created By and Updated By for unassigned work); browser check with Azure DevOps mocked: Older Sprints and Unassigned show the ten columns, Features without DoD shows the Description, the person box lists the people of the tab and narrows the rows (Ben → his 3 items in older Sprints, Ana → her Feature, Chen → the Task he updated); the box reopens on a second click after a pick. **UAT**
 
+**TC-SCR-03 Backlog Health columns, sorting, State and Iteration filters** — Req CON-49 — L1 `backlog-health.test.mjs` (unknown and repeated columns dropped, ID kept; default columns; CSV follows the chosen columns: Epic, Sprint end, Parent, Tags, Description as plain text, URL last); browser check with Azure DevOps mocked: Columns → untick Created By / Updated By, add Epic, move Assigned To first → Apply changes the table; Assigned To header sorts Ana, Ana, Ben… then Ben… first, a third click restores the order; State "New" leaves one row; the Iteration list holds the tab's iterations; Unassigned keeps its own columns; after a reload the chosen columns are still there. **UAT**
+
 **TC-ACC-01 Roles and access** — Req CON-41, CON-42, CON-43, CON-44 — L1 `access.test.mjs` (no policy = no restrictions; union of roles; default role for unknown or unlisted email; no default role = nothing; Backlog Health only for its roles; unknown roles, areas, actions and invalid emails dropped; broken file refused; the editor cannot remove their own "manage access"; the identity request is a GET to connectionData at the organization or collection level with a preview api-version, also on older servers; a role without "change work items" is refused before anything is sent while reads still work); browser check with mocked GitHub and Azure DevOps: email shown from the PAT, Set up roles → add a member, tick Scrum Master → Save to Git commits access.json once; with a cached Team Member policy the menu has no Backlog Health, Bulk actions, Release Details, Baselines or Snapshots and Settings shows only Azure DevOps, Storage and Access. Live check needed: connectionData returns the email for a real PAT in the browser and the Windows app. **UAT**
 
 **TC-NAV-12 Freshness in the viewer's time zone** — Req NAV-12 — L1 `format.test.mjs` and `app-update.test.mjs` (the same instant in Asia/Kolkata, America/New_York and UTC; local "today"); browser check in America/New_York: a fetch at 09:00 UTC shows "05:00 AM EDT".
@@ -479,9 +481,9 @@ Cases marked **UAT** are also run in acceptance testing.
   - The type chips filter the list and show counts.
   - The bulk panels are not on this page. "Bulk actions →" on the month-tasks metric opens the Bulk actions page, whose lists are also in ascending ID order.
 
-**TC-ATM-03 Finish an item** — Req ATM-06 — **UAT**
+**TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
-  1. Choose Resolved on a Story and press Set.
+  1. Press Close User Story on a Story.
   2. Cancel at the confirmation.
   3. Repeat and confirm.
 - Expected:
