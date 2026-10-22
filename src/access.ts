@@ -22,6 +22,7 @@ export type Area = typeof areas[number]['key']
 
 export const actions = [
   { key: 'azure.write', label: 'Change work items in Azure DevOps (My Work, Bulk actions, Monthly, new Features)' },
+  { key: 'azure.createForOthers', label: 'Create work items for other people (choose who they are assigned to)' },
   { key: 'baselines.edit', label: 'Edit baselines (rules and release scope)' },
   { key: 'windchill.import', label: 'Import Windchill exports' },
   { key: 'settings.manage', label: 'Manage shared settings (capacity, resources, master data, shared connection setup)' },
@@ -48,9 +49,9 @@ export function defaultPolicy(adminEmail = ''): AccessPolicy {
     defaultRole: 'Team Member',
     roles: {
       'Admin': { areas: [...allAreas], actions: [...allActions] },
-      'Product Owner': { areas: ['overview', 'board', 'health', 'release', 'baselines', 'docs'], actions: ['azure.write', 'baselines.edit'] },
-      'People Manager': { areas: ['overview', ...myWork, 'board', 'release', 'baselines', 'snapshots', 'docs'], actions: ['azure.write', 'baselines.edit'] },
-      'Scrum Master': { areas: ['overview', ...myWork, 'board', 'health', 'release', 'docs'], actions: ['azure.write'] },
+      'Product Owner': { areas: ['overview', 'board', 'health', 'release', 'baselines', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
+      'People Manager': { areas: ['overview', ...myWork, 'board', 'release', 'baselines', 'snapshots', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
+      'Scrum Master': { areas: ['overview', ...myWork, 'board', 'health', 'release', 'docs'], actions: ['azure.write', 'azure.createForOthers'] },
       'Team Member': { areas: ['overview', ...myWork, 'board', 'release', 'docs'], actions: ['azure.write'] },
     },
     members: isEmail(adminEmail) ? { [normalEmail(adminEmail)]: ['Admin'] } : {},

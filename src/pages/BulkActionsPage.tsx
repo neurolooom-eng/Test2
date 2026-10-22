@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { PersonPicker } from '../components/PersonPicker'
+import { AssigneeConfirm } from '../components/AssigneeConfirm'
 import { EmptyState, Notice, Page, Panel, Pill } from '../components/ui'
 import { currentIndiaMonth, currentIterationPairs, ensureMonthTask, readAzureIterations, updateAzureWorkItem, type AzureIteration } from '../azureDevOps'
 import { capacityContext } from '../capacity'
-import { monthTaskCandidates, moveCandidates, type MoveStates } from '../myWork'
+import { assignablePeople, monthTaskCandidates, moveCandidates, type MoveStates } from '../myWork'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -17,7 +18,9 @@ const statusTone = { exists: 'open', 'needs-task': 'warning', 'needs-story': 'wa
 
 // Bulk changes to my work in Azure DevOps: move my pending User Stories from past Sprints to the current one, and add
 // this month's Time Writing story + task for my Features. Each asks for confirmation; after it the data is refreshed.
-export function BulkActionsPage({ azure, store, my }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork }) {
+// assign: who is creating (their email) and whether they may assign new work to someone else.
+export function BulkActionsPage({ azure, store, my, assign }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; assign: { me: string; canChoose: boolean } }) {
+  const [confirmTasks, setConfirmTasks] = useState(false)
   const [busy, setBusy] = useState('')
   const [log, setLog] = useState<Log[]>([])
   const [pairs, setPairs] = useState<Pair[] | null>(null)
@@ -64,17 +67,18 @@ export function BulkActionsPage({ azure, store, my }: { azure: AzureWorkspace; s
     setBusy('')
   }
 
-  async function createTasks() {
+  // The month Tasks go to the person chosen in the confirmation (by default the person whose work is shown).
+  const shownEmail = my.me.email ?? (my.me.name ? azure.items.find((item) => item.assignedTo === my.me.name && item.assignedToEmail)?.assignedToEmail : undefined) ?? ''
+  async function createTasks(assignee: string) {
     if (blocked || !config) return
-    if (!my.me.email) { note({ tone: 'error', text: 'Month tasks are created for you only: set your Azure DevOps email as the Feature creator email on the Time Writing connection and show your own work.' }); return }
     const rows = missing.filter((row) => !skipTask.has(row.feature.id))
-    if (!rows.length || !window.confirm(`Create “${month}” Time Writing tasks for ${rows.length} Feature${rows.length === 1 ? '' : 's'}, assigned to ${my.me.email}? Existing tasks are re-checked in Azure DevOps and never duplicated.`)) return
+    if (!rows.length) return
     setBusy('tasks')
     const changed: AzureWorkItem[] = [], failed: string[] = []
     let created = 0, existed = 0
     for (const row of rows) {
       try {
-        const result = await ensureMonthTask(config, pat, row.feature.id, my.me.email, month)
+        const result = await ensureMonthTask(config, pat, row.feature.id, assignee, month)
         changed.push(result.task, ...(result.storyCreated ? [result.story] : []))
         if (result.status === 'created') created += 1; else existed += 1
       } catch (failure) { failed.push(`#${row.feature.id}: ${failure instanceof Error ? failure.message : 'failed'}`) }
@@ -82,7 +86,7 @@ export function BulkActionsPage({ azure, store, my }: { azure: AzureWorkspace; s
     azure.applyWorkItems(changed, 'Create month tasks', `${created} ${month} Time Writing task(s) created, ${existed} already existed`)
     note({ tone: failed.length ? 'error' : 'success', text: `${created} task${created === 1 ? '' : 's'} created${existed ? `, ${existed} already existed (not duplicated)` : ''}.${failed.length ? ` ${failed.length} failed — ${failed.join(' · ')}` : ''}` })
     if (changed.length) await azure.refresh()
-    setBusy('')
+    setBusy(''); setConfirmTasks(false)
   }
 
   return <Page>
@@ -107,9 +111,12 @@ export function BulkActionsPage({ azure, store, my }: { azure: AzureWorkspace; s
           </Panel>
           <Panel className="action-card" eyebrow="BULK" title={`${month} Time Writing tasks`} detail="For each of your pending Features (or Features holding your pending work): adds “<Feature> - Time Writing” if missing and a “<Month> | <Feature>” Task assigned to you. Azure is re-checked first, so nothing is duplicated.">
             {candidates.length ? <ul className="pick-list">{candidates.map((row) => <li key={row.feature.id}><label className="check"><input type="checkbox" disabled={row.status === 'exists' || row.status === 'conflict'} checked={(row.status === 'needs-task' || row.status === 'needs-story') && !skipTask.has(row.feature.id)} onChange={(event) => setSkipTask((current) => { const next = new Set(current); if (event.target.checked) next.delete(row.feature.id); else next.add(row.feature.id); return next })} /><Pill tone={statusTone[row.status]}>{statusLabel[row.status]}</Pill>#{row.feature.id} {row.feature.title}</label></li>)}</ul> : <p className="muted">No pending Features for you.</p>}
-            <div className="button-row"><button type="button" className="primary" disabled={Boolean(blocked) || busy === 'tasks' || !missing.some((row) => !skipTask.has(row.feature.id))} onClick={() => void createTasks()}>{busy === 'tasks' ? 'Creating…' : ((count) => `Create ${count} task${count === 1 ? '' : 's'}`)(missing.filter((row) => !skipTask.has(row.feature.id)).length)}</button></div>
+            <div className="button-row"><button type="button" className="primary" disabled={Boolean(blocked) || busy === 'tasks' || !missing.some((row) => !skipTask.has(row.feature.id))} onClick={() => setConfirmTasks(true)}>{busy === 'tasks' ? 'Creating…' : ((count) => `Create ${count} task${count === 1 ? '' : 's'}`)(missing.filter((row) => !skipTask.has(row.feature.id)).length)}</button></div>
           </Panel>
         </div>
       </>}
+    {confirmTasks && <AssigneeConfirm title={`Create ${month} Time Writing tasks`} people={assignablePeople(azure.items)} me={assign.me} initial={shownEmail} canChoose={assign.canChoose} busy={busy === 'tasks'} confirmLabel="Create tasks"
+      summary={<>Creates the “{month}” Time Writing Task (and the Time Writing User Story where missing) for {missing.filter((row) => !skipTask.has(row.feature.id)).length} Feature(s), assigned to the person below. Existing tasks of that person are re-checked in Azure DevOps and never duplicated.</>}
+      onCancel={() => setConfirmTasks(false)} onConfirm={(email) => void createTasks(email)} />}
   </Page>
 }

@@ -368,7 +368,8 @@ function fakeHierarchyServer() {
       if (request.feature.title === failureTitle) throw new Error('Synthetic project validation failure')
       if (request.validateOnly) return { id: 0, fields: {} }
       const source = request.feature
-      const item = { id: nextId++, fields: { 'System.Title': source.title, 'System.WorkItemType': request.operation === 'create-feature' ? 'Feature' : request.workItemType, 'System.State': 'New', 'System.Parent': source.parentId, 'System.AreaPath': source.areaPath, 'System.IterationPath': source.iterationPath || config.project, 'System.TeamProject': config.project, ...(source.assignedTo ? { 'System.AssignedTo': { id: source.assignedTo, displayName: 'Synthetic Creator' } } : {}) } }
+      assert.match(String(source.assignedTo ?? ''), /@/, 'every created item is assigned')
+      const item = { id: nextId++, fields: { 'System.Title': source.title, 'System.WorkItemType': request.operation === 'create-feature' ? 'Feature' : request.workItemType, 'System.State': 'New', 'System.Parent': source.parentId, 'System.AreaPath': source.areaPath, 'System.IterationPath': source.iterationPath || config.project, 'System.TeamProject': config.project, ...(source.assignedTo ? { 'System.AssignedTo': { id: source.assignedTo, uniqueName: source.assignedTo, displayName: 'Synthetic Creator' } } : {}) } }
       records.set(item.id, item); writes.push(item)
       return item
     }

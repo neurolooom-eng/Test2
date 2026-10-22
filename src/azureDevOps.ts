@@ -330,6 +330,9 @@ export async function updateAzureTimeWritingEffort(config: AzureConfig, pat: str
   return updated
 }
 
+// Every work item the app creates is assigned to someone: the person chosen, else the person creating it. Never blank.
+export const isAssignee = (value: unknown): value is string => typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+
 const htmlText = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')
 
 export function featurePatch(config: AzureConfig, feature: FeatureInput & { areaPath: string }) {
@@ -386,7 +389,7 @@ async function directChildren(config: AzureConfig, pat: string, parentId: number
   return items
 }
 
-async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number) {
+async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number) {
   const matches = existing.filter((item) => item.parentId === parent.id && item.workItemType === type && item.title.trim() === title)
   if (matches.length > 1) throw new Error(`Multiple matching ${type} items already exist under #${parent.id}. Review duplicates before continuing.`)
   if (matches.length === 1) {
@@ -394,8 +397,9 @@ async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkIt
     return matches[0]
   }
   if (title.length > 255) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
+  if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
   const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type,
-    feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}) } }
+    feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}) } }
   await transport({ ...request, validateOnly: true })
   const response = await transport({ ...request, validateOnly: false }) as RawItem
   if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`${type} creation could not be confirmed. Check children under #${parent.id} before retrying.`)
@@ -409,6 +413,21 @@ async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkIt
   } catch { throw new Error(`${type} #${response.id} was created but could not be verified. Check the source before using Complete children.`) }
 }
 
+// A User Story under a Feature, or a Task under a User Story, from the Backlogs: assigned to the chosen person, in the
+// iteration given (default: the parent's); the parent is re-read first.
+export async function addChildWorkItem(config: AzureConfig, pat: string, parentId: number, type: 'User Story' | 'Task', title: string, assignedTo: string, iterationPath?: string, transport: AzureTransport = requestAzure): Promise<AzureWorkItem> {
+  if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
+  const clean = title.trim()
+  if (!clean || clean.length > 255) throw new Error('Enter a title of 1–255 characters.')
+  if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
+  const source = await transport({ ...config, pat, operation: 'items', ids: [parentId] }) as { value?: RawItem[] }
+  const raw = source.value?.find((item) => item.id === parentId)
+  const expected = type === 'User Story' ? 'Feature' : 'User Story'
+  if (!raw || raw.fields['System.WorkItemType'] !== expected) throw new Error(`#${parentId} is not an accessible ${expected}; a ${type} goes under a ${expected}.`)
+  const parent = mapAzureWorkItem(raw, config)
+  return createChildItem(config, pat, parent, type, clean, iterationPath?.trim() || parent.iterationPath, assignedTo.trim().toLowerCase(), transport)
+}
+
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.
@@ -416,7 +435,7 @@ export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkIte
 export async function ensureMonthTask(config: AzureConfig, pat: string, featureId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure): Promise<MonthTaskResult> {
   if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
   const email = assignee.trim().toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Set your Azure DevOps email (Feature creator email on the Time Writing connection) first.')
+  if (!isAssignee(email)) throw new Error('Choose who the month Task is assigned to (an email), or set your Azure DevOps email (Feature creator email on the Time Writing connection).')
   const source = await transport({ ...config, pat, operation: 'items', ids: [featureId] }) as { value?: RawItem[] }
   const raw = source.value?.find((item) => item.id === featureId)
   if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') throw new Error(`#${featureId} is not an accessible Feature.`)
@@ -433,13 +452,14 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   if (plan.status === 'conflict') throw new Error(`#${feature.id} has ${plan.stories.length} possible Time Writing stories (${plan.stories.map((item) => `#${item.id}`).join(', ')}). Add your month Task under the right one in Azure DevOps.`)
   let story: AzureWorkItem, storyCreated = false
   if (plan.status === 'use') story = plan.story
-  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, feature.iterationPath, undefined, transport); storyCreated = true }
+  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, feature.iterationPath, email, transport); storyCreated = true }
   const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport)
   return { status: 'created', task, story, storyCreated }
 }
 
-async function createChildItem(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, iterationPath: string, assignedTo: string | undefined, transport: AzureTransport) {
-  const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type, feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, ...(assignedTo ? { assignedTo } : {}) } }
+async function createChildItem(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, iterationPath: string, assignedTo: string, transport: AzureTransport) {
+  if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
+  const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type, feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, assignedTo: assignedTo.trim() } }
   await transport({ ...request, validateOnly: true })
   const response = await transport({ ...request, validateOnly: false }) as RawItem
   if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`${type} creation under #${parent.id} could not be confirmed. Check it in Azure DevOps before retrying.`)
@@ -451,7 +471,8 @@ async function createChildItem(config: AzureConfig, pat: string, parent: AzureWo
   return item
 }
 
-export async function completeReleaseHierarchy(config: AzureConfig, pat: string, featureId: number, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string) {
+// The children are assigned to `assignee`, else to whoever the Feature is assigned to; never left blank.
+export async function completeReleaseHierarchy(config: AzureConfig, pat: string, featureId: number, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string) {
   const items: AzureWorkItem[] = []
   try {
     if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
@@ -460,15 +481,17 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') throw new Error('The selected item is not an accessible Feature.')
     const feature = mapAzureWorkItem(raw, config)
     items.push(feature)
+    const owner = assignee?.trim() || feature.assignedToEmail || ''
+    if (!isAssignee(owner)) throw new Error('Choose who the User Stories and Task are assigned to (an email); the Feature has no assignee with an email.')
     const titles = releaseHierarchyTitles(feature.title, kind, monthLabel)
     const selected = milestones ?? titles.reviews.map((review) => review.milestone)
     if (selected.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
     const children = await directChildren(config, pat, feature.id, transport)
-    for (const review of titles.reviews.filter((review) => selected.includes(review.milestone))) items.push(await ensureChild(config, pat, feature, 'User Story', review.title, children, transport, storyIterationPath || feature.iterationPath))
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, transport, storyIterationPath || feature.iterationPath)
+    for (const review of titles.reviews.filter((review) => selected.includes(review.milestone))) items.push(await ensureChild(config, pat, feature, 'User Story', review.title, children, owner, transport, storyIterationPath || feature.iterationPath))
+    const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, storyIterationPath || feature.iterationPath)
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, transport, config.project))
+    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project))
     return { feature, items }
   } catch (failure) {
     throw new HierarchyCreationError(failure instanceof Error ? failure.message : 'Unable to complete the release hierarchy.', items)
@@ -481,7 +504,7 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
   if (milestones?.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
   const feature = await createAzureFeature(config, pat, input, transport)
   try {
-    const bundle = await completeReleaseHierarchy(config, pat, feature.id, kind, milestones, monthLabel, transport, input.storyIterationPath)
+    const bundle = await completeReleaseHierarchy(config, pat, feature.id, kind, milestones, monthLabel, transport, input.storyIterationPath, input.assignedTo)
     // Initial effort is deliberately saved on the month-named Task, not the User Story.
     if (input.taskOriginalEstimate != null || input.taskCompletedWork != null) {
       const task = bundle.items.find((item) => item.workItemType === 'Task')
@@ -540,6 +563,7 @@ export const changesAzure = (operation: AzureRequest['operation']) => operation 
 
 export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (changesAzure(request.operation) && !writesAllowed()) throw new Error('Your role does not allow changes in Azure DevOps. An Admin can change this in Settings → Access.')
+  if ((request.operation === 'create-feature' || request.operation === 'create-child') && !isAssignee(request.feature?.assignedTo)) throw new Error('A new work item must be assigned to someone (an email). Nothing was created.')
   if (window.azureDevOps) return window.azureDevOps.request(request)
   // identity: who the PAT belongs to (connectionData, organization or collection level, a preview API).
   const identity = request.operation === 'identity'

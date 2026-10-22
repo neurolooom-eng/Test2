@@ -77,3 +77,13 @@ export const matchesMoveStates = (state: string, states: MoveStates) => { const 
 export function moveCandidates(items: AzureWorkItem[], me: Me, target: string, iterations: DatedIteration[], absenceEpicId?: number, date = new Date(), states: MoveStates = 'both') {
   return myPendingWork(items, me, absenceEpicId).filter(({ item }) => item.workItemType === 'User Story' && matchesMoveStates(item.state, states) && item.iterationPath.trim().toLowerCase() !== target.trim().toLowerCase() && isPastSprint(item.iterationPath, iterations, date))
 }
+
+// Everyone in the backlog with an Azure email (for choosing who a new work item is assigned to), sorted by name. A name
+// used with more than one email shows the email too, so the choice is never ambiguous.
+export function assignablePeople(items: AzureWorkItem[]) {
+  const byEmail = new Map<string, string>()
+  for (const item of items) if (item.assignedToEmail && item.assignedTo.trim() && !byEmail.has(item.assignedToEmail)) byEmail.set(item.assignedToEmail, item.assignedTo.trim())
+  const counts = new Map<string, number>()
+  for (const name of byEmail.values()) counts.set(name, (counts.get(name) ?? 0) + 1)
+  return [...byEmail.entries()].map(([email, name]) => ({ email, name: (counts.get(name) ?? 0) > 1 ? `${name} (${email})` : name })).sort((a, b) => a.name.localeCompare(b.name))
+}
