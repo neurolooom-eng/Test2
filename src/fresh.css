@@ -153,3 +153,4 @@ td small{color:var(--text-3)}
 .team-filter{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-bottom:14px}
 .access-table th,.access-table td{text-align:center}.access-table th:first-child,.access-table td:first-child{text-align:left}.access-table td small{display:block;color:var(--text-2)}.access-table input[type=checkbox]{width:auto}
 .description-cell{min-width:260px;max-width:420px;white-space:normal;font-size:12px;color:var(--text-2)}
+.sort-header{all:unset;cursor:pointer;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;white-space:nowrap}.sort-header:hover,.sort-header:focus-visible{color:var(--accent-text);text-decoration:underline}.inline-select{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)}.inline-select select{max-width:240px}
