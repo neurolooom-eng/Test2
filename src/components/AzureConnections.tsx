@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { EmptyState, Notice, Panel, Pill, type Tone, Info } from './ui'
 import { formatDateTime } from '../format'
+import { defaultMatchThreshold, defaultStreams, profileForStream } from '../streams'
+import { normalizeReleaseSourceSettings } from '../releaseSource'
 import { defaultShowInMenu, listAzureConnectionProfiles, loadAzureConnectionProfile, showsInMenu, splitAzureUrl, viewNameOf, splitCollectionUrl, type AzureConnectionProfileSummary, type AzureConnectionRole } from '../azureCredentials'
 import { defaultReleaseQuery, projectQuery } from '../releaseSource'
 import type { AzureWorkspace, ConnectionInput } from '../useAzureWorkspace'
@@ -24,6 +26,7 @@ const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => 
 
 // Azure DevOps connection setup, shown as the first section of Settings.
 export function AzureConnections({ azure, store, git, onOpenBoard }: { azure: AzureWorkspace; store: PageProps['store']; git?: GitStorage; onOpenBoard: () => void }) {
+  const threshold = normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold
   const { connectionProfiles, connectionStatus, activeConnectionProfileId, busy } = azure
   const [form, setForm] = useState<ConnectionInput | null>(null)
   const [formError, setFormError] = useState('')
@@ -116,6 +119,18 @@ export function AzureConnections({ azure, store, git, onOpenBoard }: { azure: Az
 
   return <section id="settings-connections" className="settings-section">
     <div className="settings-section-heading"><div><p className="eyebrow">SETTINGS</p><h2>Azure DevOps <Info>Each connection is one set: base URL (Azure DevOps Services or an on-prem Azure DevOps Server collection), project, PAT and an optional query, plus what its data is used for. Add as many as you need; Fetch all reads every connection read-only, one after another. PATs stay in this browser and are excluded from backups, SharePoint and Git.</Info></h2></div><button className="primary" onClick={onOpenBoard}>Open {timeWritingView(connectionProfiles, activeConnectionProfileId).name} →</button></div>
+    <Panel className="connection-panel" eyebrow="RELEASE STREAMS" title="Default streams" info={<ul><li>Release Details and Pulse Check show exactly these streams, in this order. DP, CP, IOCC, Content and Tool Validations come from the Azure DevOps connection named like the stream (name or view name); S&amp;S IT from the Windchill export named like it (ECP will follow as a Windchill export).</li><li>DP: release name from the Area Path, number from the Iteration Path. IOCC: grouped by the Area Path segment after “IOCC”, release name from the document Title. Others: a “Release x.y.z” path segment.</li><li>DP and IOCC releases are matched to QMS-0025 Features by a fuzzy match; the best Feature counts when its match reaches the threshold.</li></ul>}
+      action={<label className="inline-select">Fuzzy match threshold<input type="number" min={1} max={100} step={1} value={threshold} aria-label="Fuzzy match threshold (%)" onChange={(event) => { const value = Math.round(Number(event.target.value)); if (value >= 1 && value <= 100) store.update((draft) => { draft.releaseSourceSettings = { ...normalizeReleaseSourceSettings(draft.releaseSourceSettings), matchThreshold: value }; return draft }) }} />%</label>}>
+      <div className="azure-table"><table><thead><tr><th>Stream</th><th>Source</th><th>Release rule</th><th>Status</th><th /></tr></thead><tbody>
+        {defaultStreams.map((stream) => { const profile = profileForStream(stream, connectionProfiles); return <tr key={stream.name}>
+          <td><strong>{stream.name}</strong></td>
+          <td>{stream.source === 'azure' ? 'Azure DevOps connection' : 'Windchill export'}</td>
+          <td><small className="plain">{stream.rule === 'dp' ? 'Area Path = name, Iteration Path = number; fuzzy Feature match' : stream.rule === 'iocc' ? 'Group = Area Path after IOCC, name from Title; fuzzy Feature match' : 'Release x.y.z path segment; exact Feature match'}</small></td>
+          <td>{stream.source === 'windchill' ? <small className="muted">Import a Windchill export named “{stream.name}”</small> : profile ? <><Pill tone="open">Set up</Pill><small>{profile.reason}{showsInMenu(profile) ? '' : ' · hidden from menu'}</small></> : <Pill tone="warning">Not set up</Pill>}</td>
+          <td>{stream.source === 'azure' && !profile && <button type="button" className="primary" onClick={() => { setFormError(''); setForm({ ...empty('release-source'), name: stream.name, viewName: stream.name, showInMenu: true }) }}>Set up</button>}{profile && <button type="button" className="ghost" onClick={() => edit(profile)}>Edit</button>}</td>
+        </tr> })}
+      </tbody></table></div>
+    </Panel>
     <Panel className="connection-panel" eyebrow="AZURE DEVOPS" title="Connections" info="Every connection is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {presets.length > 0 && <div className="preset-list">{presets.map((preset) => <div className="preset-row" key={preset.key}>
