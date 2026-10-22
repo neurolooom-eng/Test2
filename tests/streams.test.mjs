@@ -51,5 +51,5 @@ test('Pulse Check streams: the five Azure streams in order, not-set-up ones list
   const state = { azureSources: [source('dp', [doc(1, 'DHP\\DoseNav', 'DHP\\2.1.0\\S1')]), source('io', [doc(2, 'DHP\\IOCC\\Core', '', 'Patient Monitor v1.4')])] }
   const profiles = [{ id: 'dp', reason: 'DP', role: 'reference' }, { id: 'io', reason: 'IOCC', role: 'reference' }, { id: 'ped', reason: 'Releases (Pedestal)', role: 'release-source' }]
   const streams = defaultStreamReleases(state, profiles, '2026-10', 'UTC')
-  assert.deepEqual(streams.map((stream) => [stream.name, Boolean(stream.notSetUp), stream.releases.map((entry) => `${entry.name} ${entry.release}`)]), [['DP', false, ['DoseNav 2.1.0']], ['CP', true, []], ['IOCC', false, ['Core · Patient Monitor 1.4']], ['Content', true, []], ['Tool Validations', true, []]])
+  assert.deepEqual(streams.map((stream) => [stream.name, Boolean(stream.notSetUp), stream.releases.map((entry) => `${entry.type ? `[${entry.type}] ` : ''}${entry.name} ${entry.release}`)]), [['DP', false, ['DoseNav 2.1.0']], ['CP', true, []], ['IOCC', false, ['[Core] Patient Monitor 1.4']], ['Content', true, []], ['Tool Validations', true, []]])
 })

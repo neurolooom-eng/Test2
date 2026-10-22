@@ -8,7 +8,7 @@ import { viewSource } from './viewSources.ts'
 // Overview "Releases this month": for each read-only view whose documents carry releases in their paths (DP, CP,
 // IOCC, …), the releases with documents approved (else changed) in the month, in the viewer's time zone — the same
 // month rule as the views — with the document count; plus the totals across streams.
-export interface StreamRelease { name: string; release: string; documents: number; approvalDate?: string }
+export interface StreamRelease { type?: string; name: string; release: string; documents: number; approvalDate?: string }
 export interface StreamDocument { id: number; title: string; url: string; release: string; approvalDate?: string }
 export interface ReleaseStream { id: string; name: string; fetchedAt: string; releases: StreamRelease[]; documents: number; titles: StreamDocument[]; notSetUp?: boolean }
 
@@ -16,8 +16,8 @@ export interface ReleaseStream { id: string; name: string; fetchedAt: string; re
 function streamOf(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profile: AzureConnectionProfileSummary, releaseConnections: number, month: string, timeZone?: string, rule: ReleaseRule = 'path'): ReleaseStream {
   const source = viewSource(state, profile.id, profile.role, profile.query, releaseConnections)
   const inMonth = (source?.items ?? []).filter((item) => viewMonthOf(item, timeZone) === month)
-  const label = (found: { group?: string; name: string; release: string }) => [found.group, found.name, found.release].filter(Boolean).join(' ')
-  const releases = releaseRegister(inMonth, [], { rule }).map(({ group, name, release, documents, approvalDate }) => ({ name: group ? `${group} · ${name}` : name, release, documents, ...(approvalDate ? { approvalDate } : {}) }))
+  const label = (found: { group?: string; name: string; release: string }) => `${[found.name, found.release].filter(Boolean).join(' ')}${found.group ? ` (${found.group})` : ''}`
+  const releases = releaseRegister(inMonth, [], { rule }).map(({ group, name, release, documents, approvalDate }) => ({ ...(group ? { type: group } : {}), name, release, documents, ...(approvalDate ? { approvalDate } : {}) }))
   // The month's documents of a release, by the query's Title, oldest approval first.
   const titles = inMonth.flatMap((item) => { const found = releaseFor(item, rule); return found ? [{ id: item.id, title: item.title, url: item.url, release: label(found), ...(item.approvalDate ? { approvalDate: item.approvalDate } : {}) }] : [] })
     .sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.id - b.id)
