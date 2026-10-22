@@ -158,8 +158,8 @@ export const releaseFeatureTitle = (stream: string, name: string, release: strin
 
 // Fuzzy match of a QMS-0025 Feature title to a release, 0–100: how well the name (and group) is found in the title —
 // the best of bigram similarity to the title or one of its "|" parts and the share of the name's words in the title —
-// weighed 60/40 with the version: the exact version 1, the same major.minor 0.6, the same major 0.3. Without a release
-// number only the name counts.
+// weighed 60/40 with the version: the exact version 1, the same major.minor 0.6, the same major 0.3. The version only
+// counts when the name scores at least 50%; without a release number only the name counts.
 const bigrams = (text: string) => { const clean = text.toLowerCase().replace(/[^a-z0-9]+/g, ''); const list: string[] = []; for (let index = 0; index < clean.length - 1; index += 1) list.push(clean.slice(index, index + 2)); return list }
 export function similarity(a: string, b: string) {
   const x = bigrams(a), y = bigrams(b)
@@ -168,12 +168,19 @@ export function similarity(a: string, b: string) {
   let both = 0; for (const pair of x) { const left = counts.get(pair) ?? 0; if (left) { both += 1; counts.set(pair, left - 1) } }
   return 2 * both / (x.length + y.length)
 }
+const commonWords = new Set(['release', 'releases', 'notes', 'note', 'project', 'name', 'version', 'the', 'and', 'for', 'of', 'verification', 'specification', 'report', 'document', 'design', 'history', 'file', 'index', 'dhfi', 'time', 'writing', 'feature'])
 export function matchScore(title: string, name: string, release: string, group?: string) {
   const label = [group, name].filter(Boolean).join(' ')
-  const titleWords = new Set(words(title).trim().split(' ').filter(Boolean)), nameWords = words(label).trim().split(' ').filter(Boolean)
+  // Words that tell releases apart: not numbers, not one or two letters, not common words of document and Feature titles.
+  const telling = (text: string) => words(text).trim().split(' ').filter((word) => word.length > 2 && !/^\d+$/.test(word) && !commonWords.has(word))
+  const titleWords = new Set(telling(title)), nameWords = telling(label)
+  // A name made only of numbers or common words cannot identify a Feature.
+  if (!nameWords.length) return 0
   const parts = [title, ...title.split('|')].map((part) => part.replace(/\bv?\d+(\.\d+)+\b/gi, ' ').trim()).filter(Boolean)
   const nameScore = Math.max(...parts.map((part) => similarity(label, part)), nameWords.length ? nameWords.filter((word) => titleWords.has(word)).length / nameWords.length : 0)
   if (!release.trim()) return Math.round(nameScore * 100)
+  // The version only counts once the name matches: a shared version number alone never makes a match.
+  if (nameScore < 0.5) return Math.round(nameScore * 60)
   const wanted = normalizeVersion(release).split('.')
   const versionScore = Math.max(0, ...[...title.matchAll(versionToken)].map((match) => {
     const found = normalizeVersion(match[2]).split('.')
