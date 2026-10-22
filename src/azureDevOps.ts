@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { fillTitle, missingValues, titleValues } from './featureSetup.ts'
 import { planMonthStory, timeWritingMonth } from './azureInsights.ts'
 
 // baseUrl is the organization (https://dev.azure.com/<org>) or, on premises, the Azure DevOps Server collection
@@ -389,17 +390,19 @@ async function directChildren(config: AzureConfig, pat: string, parentId: number
   return items
 }
 
-async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number) {
+// options: a Description, and an Area Path other than the parent's (both from the per-Epic Feature setup).
+async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number, options: { description?: string; areaPath?: string } = {}) {
+  const areaPath = options.areaPath?.trim() || parent.areaPath
   const matches = existing.filter((item) => item.parentId === parent.id && item.workItemType === type && item.title.trim() === title)
   if (matches.length > 1) throw new Error(`Multiple matching ${type} items already exist under #${parent.id}. Review duplicates before continuing.`)
   if (matches.length === 1) {
-    if (matches[0].areaPath !== parent.areaPath || matches[0].iterationPath !== iterationPath) throw new Error(`Existing ${type} #${matches[0].id} has a different area or iteration. Review it before continuing.`)
+    if (matches[0].areaPath !== areaPath || matches[0].iterationPath !== iterationPath) throw new Error(`Existing ${type} #${matches[0].id} has a different area or iteration. Review it before continuing.`)
     return matches[0]
   }
   if (title.length > 255) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
   if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
   const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type,
-    feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}) } }
+    feature: { parentId: parent.id, title, description: options.description ?? '', acceptanceCriteria: '', areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}) } }
   await transport({ ...request, validateOnly: true })
   const response = await transport({ ...request, validateOnly: false }) as RawItem
   if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`${type} creation could not be confirmed. Check children under #${parent.id} before retrying.`)
@@ -408,7 +411,7 @@ async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkIt
     const raw = read.value?.find((item) => item.id === response.id)
     if (!raw) throw new Error('Missing work item.')
     const item = mapAzureWorkItem(raw, config)
-    if (item.parentId !== parent.id || item.workItemType !== type || item.areaPath !== parent.areaPath || item.iterationPath !== iterationPath || (taskOriginalEstimate != null && item.originalEstimate !== taskOriginalEstimate) || (taskCompletedWork != null && item.completedWork !== taskCompletedWork)) throw new Error('Child verification failed.')
+    if (item.parentId !== parent.id || item.workItemType !== type || item.areaPath !== areaPath || item.iterationPath !== iterationPath || (taskOriginalEstimate != null && item.originalEstimate !== taskOriginalEstimate) || (taskCompletedWork != null && item.completedWork !== taskCompletedWork)) throw new Error('Child verification failed.')
     return item
   } catch { throw new Error(`${type} #${response.id} was created but could not be verified. Check the source before using Complete children.`) }
 }
@@ -518,6 +521,57 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
     const partial = failure instanceof HierarchyCreationError ? failure.createdItems : []
     const items = mergeAzureWorkItems([feature], partial)
     throw new HierarchyCreationError(`Feature #${feature.id} exists. ${failure instanceof Error ? failure.message : 'Child creation stopped.'} Use Complete children on that Feature after checking the source; do not recreate the Feature.`, items)
+  }
+}
+
+// A Feature's children from the per-Epic setup: the selected optional User Stories, the "<Feature> - Time Writing" story
+// and the month Task with the setup's defaults. Titles may carry placeholders ({feature}, {program}, {service},
+// {version}, {month}). Existing children with the same title are reused, so it can also complete a Feature.
+export interface SetupChildren { stories: { title: string; description: string }[]; task: { title: string; description: string; originalEstimate?: number; assignedTo: string; areaPath: string; iterationPath: string } }
+export async function completeFeatureFromSetup(config: AzureConfig, pat: string, featureId: number, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string) {
+  const items: AzureWorkItem[] = []
+  try {
+    if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
+    const source = await transport({ ...config, pat, operation: 'items', ids: [featureId] }) as { value: RawItem[] }
+    const raw = source.value?.find((item) => item.id === featureId)
+    if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') throw new Error('The selected item is not an accessible Feature.')
+    const feature = mapAzureWorkItem(raw, config)
+    items.push(feature)
+    const owner = assignee?.trim() || feature.assignedToEmail || ''
+    if (!isAssignee(owner)) throw new Error('Choose who the User Stories and Task are assigned to (an email); the Feature has no assignee with an email.')
+    const taskOwner = setup.task.assignedTo.trim() || owner
+    if (!isAssignee(taskOwner)) throw new Error('The Time Writing Task default assignee is not an email.')
+    const values = titleValues(feature.title, monthLabel)
+    const fill = (template: string, what: string) => {
+      const missing = missingValues(template, values)
+      if (missing.length) throw new Error(`${what} uses {${missing.join('}, {')}}, which this Feature title does not provide (use "Program | Service | vRelease"). Nothing more was created.`)
+      const title = fillTitle(template, values)
+      if (!title || title.length > 255) throw new Error(`${what} is empty or longer than 255 characters after filling in the placeholders.`)
+      return title
+    }
+    const stories = setup.stories.map((story) => ({ ...story, title: fill(story.title, `User Story "${story.title}"`) }))
+    const taskTitle = fill(setup.task.title || '{month} | {feature}', 'The Time Writing Task title')
+    const children = await directChildren(config, pat, feature.id, transport)
+    for (const story of stories) items.push(await ensureChild(config, pat, feature, 'User Story', story.title, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { description: story.description }))
+    const timeWriting = await ensureChild(config, pat, feature, 'User Story', `${feature.title.trim()} - Time Writing`, children, owner, transport, storyIterationPath || feature.iterationPath)
+    items.push(timeWriting)
+    const tasks = await directChildren(config, pat, timeWriting.id, transport)
+    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath })
+    // The default Original Estimate goes on a newly created Task only; an existing Task keeps its hours.
+    if (setup.task.originalEstimate != null && !tasks.some((entry) => entry.id === task.id)) task = await updateAzureTimeWritingEffort(config, pat, task.id, setup.task.originalEstimate, undefined, false, transport)
+    items.push(task)
+    return { feature, items }
+  } catch (failure) {
+    throw new HierarchyCreationError(failure instanceof Error ? failure.message : 'Unable to complete the Feature children.', items)
+  }
+}
+
+export async function createFeatureFromSetup(config: AzureConfig, pat: string, input: FeatureInput, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure) {
+  const feature = await createAzureFeature(config, pat, input, transport)
+  try { return await completeFeatureFromSetup(config, pat, feature.id, setup, monthLabel, transport, input.storyIterationPath, input.assignedTo) }
+  catch (failure) {
+    const partial = failure instanceof HierarchyCreationError ? failure.createdItems : []
+    throw new HierarchyCreationError(`Feature #${feature.id} exists. ${failure instanceof Error ? failure.message : 'Child creation stopped.'} Use Complete children on that Feature after checking the source; do not recreate the Feature.`, mergeAzureWorkItems([feature], partial))
   }
 }
 

@@ -23,6 +23,7 @@ import { BacklogHealthPage } from './pages/BacklogHealthPage'
 import { PulseCheckPage } from './pages/PulseCheckPage'
 import { PiReviewPage } from './pages/PiReviewPage'
 import { useAccess } from './useAccess'
+import { useFeatureSetup } from './useFeatureSetup'
 import type { Area } from './access'
 import { useMyWork } from './useMyWork'
 import { MyWorkPage } from './pages/MyWorkPage'
@@ -76,6 +77,7 @@ export default function App() {
   }, [store.ready, azure, git.connected, setupSynced])
   const my = useMyWork(azure, store)
   const access = useAccess(git, azure)
+  const featureSetup = useFeatureSetup(git)
   // Who creates new work items (the connection's creator email, else the PAT's email) and whether they may assign them to others.
   const assign = { me: (azure.creatorEmail.trim() || access.email).toLowerCase(), canChoose: access.can('azure.createForOthers') }
   const [requested, setPage] = useState<Page>('overview')
@@ -159,9 +161,9 @@ export default function App() {
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => { settingsTabOnOpen('storage'); setPage('admin') }} canEdit={access.can('baselines.edit')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} /> : access.can('windchill.import') ? <WindchillExportImport windchill={windchill} git={git} onImported={openWindchill} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
-      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.file} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} onOpenBoard={() => setPage('board')} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
   </div></HeaderSlot.Provider>

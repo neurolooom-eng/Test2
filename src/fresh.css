@@ -162,3 +162,4 @@ td small{color:var(--text-3)}
 .sidebar nav button.nav-group-active{color:var(--teal-light)}
 @media(min-width:1001px){.nav-collapsed{display:none}}
 @media(max-width:1000px){.sidebar nav button.nav-subgroup{display:none}}
+.feature-setup{display:grid;gap:10px}.setup-story{display:grid;grid-template-columns:2fr 3fr auto;gap:10px;align-items:start;border-bottom:1px solid var(--line-soft);padding-bottom:8px}.setup-story label{display:grid;gap:4px}@media(max-width:900px){.setup-story{grid-template-columns:1fr}}
