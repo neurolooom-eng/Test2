@@ -12,7 +12,7 @@ export function ScopeSwitch({ scope, label, note }: { scope: PersonScope; label:
   const control = <div className="view-switch" role="group" aria-label={label} title={note}>
     <span>{label}</span>
     <div className="segmented">{(['individual', 'team'] as const).map((value) => <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)}>{value === 'team' ? 'Team' : 'Individual'}</button>)}</div>
-    {individual && <PersonPicker label="Person" value={person} people={my.people} onChange={setPerson} placeholder={my.known ? `Me (${my.me.name ?? my.me.email}) — type a name` : 'Type a name…'} />}
+    {individual && <PersonPicker label="Person" value={person} people={my.people} onChange={setPerson} meLabel={my.known ? `Me (${my.me.name ?? my.me.email})` : 'Choose a person…'} />}
     {individual && note && !slot && <small>{note}</small>}
   </div>
   return slot ? createPortal(control, slot) : control
