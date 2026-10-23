@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { dhfiDateOf, dhfiFor, dpReleases, fieldOf, namesRelease, pedestalItems, titleRelease } from '../src/dpReleases.ts'
+import { dhfiDateOf, dhfiFor, dpReleases, fieldOf, indexDhfi, namesRelease, pedestalItems, titleRelease } from '../src/dpReleases.ts'
 import { matchScore } from '../src/releaseSource.ts'
 
 const release = (id, title, fields = {}, extra = {}) => ({ key: `org/dhp/${id}`, id, title, workItemType: 'Release', state: 'Active', assignedTo: '', areaPath: '', iterationPath: '', tags: '', url: '', organization: 'org', project: 'DHP', syncedAt: '', fields, ...extra })
@@ -69,4 +69,15 @@ test('Pedestal items come from the fetched views, each once, with values under t
   const items = pedestalItems([{ connectionId: 'dp', items: [release(9, 'own')] }, { connectionId: 'dhp', columns: [{ ref: 'Philips.ProgramIncrement', name: 'PI' }], items: [a, other] }, { connectionId: 'copy', items: [a] }], 'dp')
   assert.deepEqual(items.map((item) => item.id), [1])
   assert.equal(fieldOf(items[0], 'PI'), '26.3')
+})
+
+test('dpReleases returns the same result for the same inputs and indexes the DHFI list by version', () => {
+  const pedestal = [release(1, 'RSGMS 3.0.0.2')], dhfi = [doc(1, 'RS GMS 3.0.0.2', { approvalDate: '2026-09-02T00:00:00Z' })], backlog = []
+  const first = dpReleases(pedestal, dhfi, backlog, { threshold: 80 }, 'UTC')
+  assert.equal(dpReleases(pedestal, dhfi, backlog, { threshold: 80 }, 'UTC'), first, 'cached')
+  assert.notEqual(dpReleases(pedestal, [...dhfi], backlog, { threshold: 80 }, 'UTC'), first, 'new data, new result')
+  const index = indexDhfi([doc(1, 'RS GMS 3.0.0.2 and 3.0.0.1'), doc(2, 'Plain report')])
+  assert.deepEqual([...index.byVersion.keys()].sort(), ['3.0.0.1', '3.0.0.2'])
+  assert.deepEqual(dhfiFor('RSGMS', '3.0.0.1', index).map((item) => item.id), [1])
+  assert.deepEqual(dhfiFor('Plain', '', index).map((item) => item.id), [2], 'a release without a version scans every document')
 })

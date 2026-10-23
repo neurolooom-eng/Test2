@@ -5,6 +5,10 @@ import { defaultStreams, profileForStream, streamOfProfile, type ReleaseRule } f
 import { releaseRegister, viewMonthOf } from './releaseSource.ts'
 import { viewSource } from './viewSources.ts'
 import { dpDataSets, dpReleases } from './dpReleases.ts'
+import type { AzureWorkItem } from './domain'
+
+// Pulse Check needs no Feature match: one shared empty backlog keeps dpReleases' cache hitting.
+const noBacklog: AzureWorkItem[] = []
 
 // Overview "Releases this month": for each read-only view whose documents carry releases in their paths (DP, CP,
 // IOCC, …), the releases with documents approved (else changed) in the month, in the viewer's time zone — the same
@@ -29,7 +33,7 @@ function streamOf(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profi
 function dpStream(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profiles: AzureConnectionProfileSummary[], month: string, timeZone?: string): ReleaseStream | undefined {
   const sets = dpDataSets(state, profiles)
   if (!sets.dhfiProfile) return undefined
-  const inMonth = dpReleases(sets.pedestal, sets.dhfi, [], {}, timeZone).filter((release) => release.month === month)
+  const inMonth = dpReleases(sets.pedestal, sets.dhfi, noBacklog, {}, timeZone).filter((release) => release.month === month)
   const releases = inMonth.map(({ name, release, documents, approvalDate }) => ({ name, release, documents, ...(approvalDate ? { approvalDate } : {}) }))
   const titles = inMonth.flatMap((entry) => entry.items.map((item) => ({ id: item.id, title: item.title, url: item.url, release: [entry.name, entry.release].filter(Boolean).join(' '), ...(item.approvalDate ? { approvalDate: item.approvalDate } : {}) })))
     .sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.id - b.id)
