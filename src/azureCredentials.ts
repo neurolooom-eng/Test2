@@ -45,9 +45,20 @@ const readServerPats = (storage: Pick<Storage, 'getItem'>): Record<string, strin
 export function loadServerPat(key: string, storage: Pick<Storage, 'getItem'> = localStorage) { return readServerPats(storage)[key.toLowerCase()] ?? '' }
 export function saveServerPat(key: string, token: string, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
   if (!key) return
-  const pats = readServerPats(storage), clean = token.trim()
+  const pats = readServerPats(storage), clean = token.trim(), previous = pats[key.toLowerCase()] ?? ''
   if (clean) pats[key.toLowerCase()] = clean; else delete pats[key.toLowerCase()]
   try { storage.setItem(serverPatsKey, JSON.stringify(pats)) } catch { throw new Error('This browser could not save the PAT. Check local storage availability.') }
+  // The server holds the PAT: copies on its connections (the new PAT, or the removed one) are dropped, so removing
+  // the server's PAT really removes it from this browser.
+  dropConnectionTokens(storage, (profile) => serverKey(profile).toLowerCase() === key.toLowerCase() && (profile.token === clean || profile.token === previous))
+}
+function dropConnectionTokens(storage: Pick<Storage, 'getItem' | 'setItem'>, where: (profile: AzureConnectionProfile) => boolean) {
+  try {
+    const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]')
+    const profiles: AzureConnectionProfile[] = Array.isArray(raw) ? raw.filter(validConnection) : []
+    if (!profiles.some((profile) => profile.token && where(profile))) return
+    storage.setItem(connectionProfilesKey, JSON.stringify(profiles.map((profile) => profile.token && where(profile) ? { ...profile, token: '' } : profile)))
+  } catch { /* the server PAT is saved; a stale copy is replaced at the next save */ }
 }
 // Servers added in Settings (Step 1) without a connection yet, so new queries can be created on them.
 export interface KnownServer { serverUrl: string; organization: string }
@@ -79,9 +90,12 @@ export function loadAzureConnectionProfile(id: string, storage: Pick<Storage, 'g
 }
 export function saveAzureConnectionProfile(profile: AzureConnectionProfile, storage: Pick<Storage, 'getItem'|'setItem'> = localStorage) {
   if (!validConnection(profile)) throw new Error('Provide a valid Azure DevOps URL, reason, creator email and PAT.')
-  // A PAT entered on a connection becomes its server's PAT, for every connection on that server.
-  if (profile.token.trim() && profile.token.trim() !== loadServerPat(serverKey(profile), storage)) saveServerPat(serverKey(profile), profile.token, storage as Pick<Storage, 'getItem' | 'setItem'>)
-  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), ...(profile.baseUrl ? { baseUrl: normalizeBaseUrl(profile.baseUrl) } : {}), ...(profile.apiVersion?.trim() ? { apiVersion: profile.apiVersion.trim() } : {}), viewName: profile.viewName?.trim() || undefined, token: profile.token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
+  // A PAT entered on a connection becomes its server's PAT, for every connection on that server; the connection itself
+  // keeps no copy of the server's PAT (so a PAT removed from the server is gone), only a PAT of its own when the server has none.
+  const serverPat = loadServerPat(serverKey(profile), storage)
+  if (profile.token.trim() && profile.token.trim() !== serverPat) saveServerPat(serverKey(profile), profile.token, storage as Pick<Storage, 'getItem' | 'setItem'>)
+  const token = profile.token.trim() && profile.token.trim() === serverPat ? '' : profile.token
+  try { const raw = JSON.parse(storage.getItem(connectionProfilesKey) ?? '[]'); const profiles = Array.isArray(raw) ? raw.filter(validConnection).filter(item => item.id !== profile.id) : []; profiles.push({ ...profile, url: profile.url.trim(), reason: profile.reason.trim(), ...(profile.role ? { role: profile.role } : {}), ...(profile.creatorEmail?.trim() ? { creatorEmail: profile.creatorEmail.trim() } : {}), ...(profile.query?.trim() ? { query: profile.query.trim() } : {}), ...(profile.baseUrl ? { baseUrl: normalizeBaseUrl(profile.baseUrl) } : {}), ...(profile.apiVersion?.trim() ? { apiVersion: profile.apiVersion.trim() } : {}), viewName: profile.viewName?.trim() || undefined, token: token.trim() }); storage.setItem(connectionProfilesKey, JSON.stringify(profiles)) }
   catch { throw new Error('This browser could not save the Azure DevOps configuration. Check local storage availability.') }
 }
 // Shown in the Azure DevOps menu: the explicit choice, else on for Time Writing and backlog views, off for backend-only

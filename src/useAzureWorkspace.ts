@@ -208,6 +208,7 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
     const query = input.query.trim()
     if (query) releaseQueryWhere(query)
     if (input.role === 'time-tracking' && !input.team.trim() && !query) throw new Error('A Time Writing connection needs a team (its Epic backlog is read) or a query.')
+    if (input.role === 'time-tracking' && !isCloudBase(base)) throw new Error('Time Writing (read & write) works on Azure DevOps Services (dev.azure.com) only; on-premises servers are read-only. Choose another role for this server.')
     if (input.role === 'backlog-view' && !input.team.trim() && !query) throw new Error('A backlog view needs a team (its Epic backlog is shown) or a query.')
     const email = input.creatorEmail.trim().toLowerCase()
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
@@ -406,10 +407,12 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
 
   // After the connections changed outside this hook (Git sync): the active Time Writing connection is kept if it still
   // exists, else the first Time Writing connection becomes active.
+  // The active one is re-read so a PAT saved, replaced or removed for its server takes effect for writes at once.
   function reloadConnectionProfiles() {
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles)
-    if (!profiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking')) { const next = profiles.find((profile) => profile.role === 'time-tracking'); if (next) selectConnectionProfile(next.id) }
+    if (profiles.some((profile) => profile.id === activeConnectionProfileId && profile.role === 'time-tracking')) selectConnectionProfile(activeConnectionProfileId)
+    else { const next = profiles.find((profile) => profile.role === 'time-tracking'); if (next) selectConnectionProfile(next.id) }
   }
 
   // Makes a connection (e.g. a backlog view of the same project that loads) the only Time Writing connection; the

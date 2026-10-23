@@ -221,9 +221,21 @@ test('one PAT per server: entered once, used by every connection on that server 
   saveServerPat(base, 'pat-2', storage)
   assert.deepEqual(['dp', 'ped'].map((id) => loadProfile(id, storage).token), ['pat-2', 'pat-2'], 'changing the server PAT changes it for all')
   assert.equal(loadProfile('tw', storage).token, 'cloud-pat', 'other servers untouched')
+  assert.equal(JSON.parse(data.get('demand-planning-azure-connection-profiles-v1')).find((p) => p.id === 'dp').token, '', 'the connection keeps no copy of the server PAT')
   saveServerPat(base, '', storage)
   assert.equal(loadServerPat(base, storage), '')
-  assert.equal(loadProfile('dp', storage).token, 'pat-1', 'without a server PAT the connection falls back to its own')
+  assert.deepEqual(['dp', 'ped'].map((id) => loadProfile(id, storage).token), ['', ''], 'removing the server PAT removes it for every connection on the server')
+  assert.equal(loadProfile('tw', storage).token, 'cloud-pat')
+})
+test('a PAT copy left on a connection by an earlier version is dropped when the server PAT is saved, replaced or removed', () => {
+  const data = new Map(); const storage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) }
+  const base = 'https://tfs.example/tfs/DHPCollection'
+  data.set('demand-planning-azure-connection-profiles-v1', JSON.stringify([{ id: 'dp', url: `${base}/DHP.Vault`, baseUrl: base, reason: 'DP', role: 'release-source', token: 'old-copy' }, { id: 'own', url: `${base}/Other`, baseUrl: base, reason: 'Own', role: 'reference', token: 'different' }]))
+  saveServerPat(base, 'old-copy', storage)
+  assert.equal(JSON.parse(data.get('demand-planning-azure-connection-profiles-v1'))[0].token, '', 'the copy equal to the server PAT is dropped')
+  assert.equal(JSON.parse(data.get('demand-planning-azure-connection-profiles-v1'))[1].token, 'different', 'a PAT of its own stays')
+  saveServerPat(base, '', storage)
+  assert.equal(loadProfile('dp', storage).token, '', 'nothing comes back after removal')
 })
 
 import { listKnownServers, saveKnownServer, forgetKnownServer } from '../src/azureCredentials.ts'
