@@ -70,14 +70,39 @@ export function namesRelease(title: string, name: string, release: string) {
 
 // A DHFI document's date: Author Approval Date (any approval-date field), else Closed Date.
 export const dhfiDateOf = (item: Pick<AzureWorkItem, 'approvalDate' | 'closedDate' | 'fields'>) => item.approvalDate ?? approvalDateFrom(item.fields ?? {}) ?? item.closedDate
-export const dhfiFor = (name: string, release: string, dhfi: AzureWorkItem[]) => dhfi.filter((item) => namesRelease(item.title, name, release))
+// The DHFI list indexed once: each document's squashed Title and versions, and the documents by version, so a release
+// with a version checks only the documents carrying it.
+export interface DhfiIndex { all: { item: AzureWorkItem; flat: string }[]; byVersion: Map<string, { item: AzureWorkItem; flat: string }[]> }
+export function indexDhfi(dhfi: AzureWorkItem[]): DhfiIndex {
+  const all = dhfi.map((item) => ({ item, flat: squash(item.title) }))
+  const byVersion = new Map<string, { item: AzureWorkItem; flat: string }[]>()
+  all.forEach((entry, index) => { for (const version of new Set([...dhfi[index].title.matchAll(versionIn)].map((match) => normalizeVersion(match[1])))) { const list = byVersion.get(version) ?? []; list.push(entry); byVersion.set(version, list) } })
+  return { all, byVersion }
+}
+export function dhfiFor(name: string, release: string, dhfi: AzureWorkItem[] | DhfiIndex) {
+  const index = Array.isArray(dhfi) ? indexDhfi(dhfi) : dhfi
+  const wanted = squash(name)
+  if (!wanted) return []
+  const version = normalizeVersion(release)
+  return (version ? index.byVersion.get(version) ?? [] : index.all).filter((entry) => entry.flat.includes(wanted)).map((entry) => entry.item)
+}
 
 export interface DpRelease extends ReleaseEntry { pedestal: PedestalRelease; month?: string }
 // All Pedestal Releases, each with its DHFI documents, date and month, and its Feature match; by name, newest release first.
+// The last results are kept: the pages and Pulse Check ask for the same inputs on every render.
+const recent: { pedestal: AzureWorkItem[]; dhfi: AzureWorkItem[]; backlog: AzureWorkItem[]; threshold: number | undefined; timeZone: string | undefined; result: DpRelease[] }[] = []
 export function dpReleases(pedestal: AzureWorkItem[], dhfi: AzureWorkItem[], backlog: AzureWorkItem[], options: Omit<RegisterOptions, 'rule' | 'fuzzy'> = {}, timeZone?: string): DpRelease[] {
+  const hit = recent.find((entry) => entry.pedestal === pedestal && entry.dhfi === dhfi && entry.backlog === backlog && entry.threshold === options.threshold && entry.timeZone === timeZone)
+  if (hit) return hit.result
+  const result = computeDpReleases(pedestal, dhfi, backlog, options, timeZone)
+  recent.unshift({ pedestal, dhfi, backlog, threshold: options.threshold, timeZone, result }); recent.splice(6)
+  return result
+}
+function computeDpReleases(pedestal: AzureWorkItem[], dhfi: AzureWorkItem[], backlog: AzureWorkItem[], options: Omit<RegisterOptions, 'rule' | 'fuzzy'>, timeZone?: string): DpRelease[] {
+  const index = indexDhfi(dhfi)
   const entries: DpRelease[] = pedestal.filter(isPedestalRelease).map((item) => {
     const { name, release } = titleRelease(item.title)
-    const items = dhfiFor(name, release, dhfi)
+    const items = dhfiFor(name, release, index)
     const approvalDate = items.map(dhfiDateOf).filter((date): date is string => Boolean(date)).sort().at(-1)
     const month = approvalMonthOf(approvalDate, timeZone)
     return { key: `pedestal:${item.id}`, name, release, documents: items.length, items, tracked: false, trackedBy: [], features: [], planned: 0, booked: 0, hourTasks: 0, pedestal: pedestalRelease(item), ...(approvalDate ? { approvalDate, approvalMonth: month } : {}), ...(month ? { month } : {}) }
@@ -85,11 +110,20 @@ export function dpReleases(pedestal: AzureWorkItem[], dhfi: AzureWorkItem[], bac
   return attachFeatures(entries, backlog, { ...options, fuzzy: true }) as DpRelease[]
 }
 
+// Pedestal items are derived once per fetched source, so the same array comes back while the data is unchanged.
+const pedestalBySource = new WeakMap<object, AzureWorkItem[]>()
+function pedestalOf(source: Parameters<typeof pedestalItems>[0] extends (infer T)[] | undefined ? T : never) {
+  const cached = pedestalBySource.get(source)
+  if (cached) return cached
+  const items = pedestalItems([source]); pedestalBySource.set(source, items); return items
+}
+const none: AzureWorkItem[] = []
+
 // The DP data sets among the fetched views: the Pedestal register and the DHFI documents (Settings → Stream mapping).
 export function dpDataSets(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profiles: AzureConnectionProfileSummary[]) {
   const releaseConnections = profiles.filter((profile) => profile.role === 'release-source').length
   const dhfiProfile = profileForDataSet('DHFI', profiles), pedestalProfile = profileForDataSet('Pedestal', profiles)
   const sourceOf = (profile: AzureConnectionProfileSummary | undefined) => profile ? viewSource(state, profile.id, profile.role, profile.query, releaseConnections) : undefined
   const dhfiSource = sourceOf(dhfiProfile), pedestalSource = sourceOf(pedestalProfile)
-  return { dhfiProfile, pedestalProfile, dhfiSource, pedestalSource, dhfi: dhfiSource?.items ?? [], pedestal: pedestalSource ? pedestalItems([pedestalSource]) : [] }
+  return { dhfiProfile, pedestalProfile, dhfiSource, pedestalSource, dhfi: dhfiSource?.items ?? none, pedestal: pedestalSource ? pedestalOf(pedestalSource) : none }
 }
