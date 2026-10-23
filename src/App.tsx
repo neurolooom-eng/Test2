@@ -14,7 +14,7 @@ import { AdminPage } from './pages/AdminPage'
 import { settingsTabOnOpen } from './settingsTabs'
 import { defaultStreams, exportForStream, profileForStream } from './streams'
 import { connectionPresets } from './connectionPresets'
-import { markViewsSynced, removeDuplicateConnections, serializeViews, viewsFile } from './viewDefinitions'
+import { gitSyncedIds, markViewsSynced, removeDuplicateConnections, serializeViews, viewsFile } from './viewDefinitions'
 import { listAzureConnectionProfiles } from './azureCredentials'
 import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
@@ -80,7 +80,8 @@ export default function App() {
   useEffect(() => {
     if (deduped.current || !store.ready || (git.connected && !setupSynced)) return
     deduped.current = true
-    const removed = removeDuplicateConnections(connectionPresets.flatMap((preset) => preset.id ? [preset.id] : []))
+    // The copy kept: the one from the shared setup in Git, else from a preset, else the first saved.
+    const removed = removeDuplicateConnections([...gitSyncedIds(), ...connectionPresets.flatMap((preset) => preset.id ? [preset.id] : [])])
     if (!removed.length) return
     const ids = removed.map((profile) => profile.id)
     store.update((draft) => { draft.azureSources = (draft.azureSources ?? []).filter((source) => !ids.includes(source.connectionId)); return draft })

@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { saveAzureConnectionProfile, loadAzureConnectionProfile, listAzureConnectionProfiles } from '../src/azureCredentials.ts'
 import { saveServerPat } from '../src/azureCredentials.ts'
+import { gitSyncedIds, duplicateOf } from '../src/viewDefinitions.ts'
 import { viewsFile, serializeViews, parseViews, restoreViews, serverKey, syncViewsFromGit, markViewsSynced, promoteToTimeWriting } from '../src/viewDefinitions.ts'
 import { siblingConfig, readTextFile, writeTextFile } from '../src/gitStorage.ts'
 
@@ -128,4 +129,23 @@ test('duplicate connections: same server, project, role and query; the shared ID
   assert.equal(listAzureConnectionProfiles(store).some((profile) => profile.id === 'copy1'), false, 'a duplicate in Git is not added again')
   assert.deepEqual(again.added, [])
   assert.equal(connectionKey({ url: `${base}/DHP.Vault`, baseUrl: base, role: 'release-source', query: 'A  B' }), connectionKey({ url: `${base}/DHP.Vault/`, baseUrl: `${base}/`, role: 'release-source', query: 'a b' }))
+})
+
+test('duplicates: the copy from Git is kept over a preset copy and a local one; saving a duplicate is refused', () => {
+  const store = memory()
+  const base = 'https://tfsapac04.ta.philips.com/tfs/DHPCollection'
+  const view = (id, query = 'SELECT [System.Id] FROM WorkItems WHERE x = 1') => ({ id, url: `${base}/DHP.Vault`, baseUrl: base, reason: `View ${id}`, role: 'reference', query })
+  // Only "fromgit" came from the shared setup; "local" and "preset" (a preset's ID) were saved here later, as earlier
+  // versions allowed (a sync never adds a Git copy of a connection already here, and saving a duplicate is refused now).
+  syncViewsFromGit([view('fromgit')], store)
+  assert.deepEqual(gitSyncedIds(store), ['fromgit'])
+  saveAzureConnectionProfile({ ...view('local'), token: 'p' }, store)
+  saveAzureConnectionProfile({ ...view('preset'), token: '' }, store)
+  const preferred = [...gitSyncedIds(store), 'preset']
+  assert.deepEqual(duplicateConnections(listAzureConnectionProfiles(store), preferred).map((profile) => profile.id).sort(), ['local', 'preset'], 'the Git copy is kept, the preset and local copies go')
+  assert.deepEqual(duplicateConnections(listAzureConnectionProfiles(store), ['preset']).map((profile) => profile.id).sort(), ['fromgit', 'local'], 'without a Git copy the preset copy is kept')
+  assert.equal(duplicateOf(view('new'), listAzureConnectionProfiles(store))?.id, 'fromgit', 'a new connection with the same server, project, role and query duplicates a saved one')
+  assert.equal(duplicateOf(view('fromgit'), listAzureConnectionProfiles(store))?.id, 'local', 'editing one that still matches another is a duplicate too')
+  assert.equal(duplicateOf(view('new', 'SELECT [System.Id] FROM WorkItems WHERE x = 2'), listAzureConnectionProfiles(store)), undefined, 'another query is not')
+  assert.equal(duplicateOf({ ...view('tw'), role: 'time-tracking' }, listAzureConnectionProfiles(store)), undefined, 'Time Writing connections are handled apart')
 })
