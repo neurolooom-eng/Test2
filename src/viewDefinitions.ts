@@ -110,24 +110,35 @@ export function promoteToTimeWriting(id: string, storage: Pick<Storage, 'getItem
   return replaced
 }
 
+// The IDs of the connections that came from the shared setup in Git (synced at some start): the copies to keep when
+// a duplicate is removed, so the shared ID never gives way to a copy made here.
+export function gitSyncedIds(storage: Pick<Storage, 'getItem'> = localStorage) { return Object.keys(readBaseline(storage)) }
+
 // Two connections are the same when they read the same server, project (and team), role and query; then only one is
-// kept — the one with an ID from the shared setup (preferred), else the first — so no view is fetched, listed or
-// matched twice.
+// kept — the one with an ID from the shared setup in Git, else from a preset (preferred, in that order), else the
+// first — so no view is fetched, listed or matched twice. Saving a connection that would duplicate another is refused.
 const sameQuery = (query?: string) => (query ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 export function connectionKey(view: Pick<AzureConnectionProfileSummary, 'url' | 'baseUrl' | 'role' | 'query'>) {
   const path = (() => { try { return decodeURIComponent(new URL(view.url).pathname).replace(/\/_backlogs\/.*$/, '').replace(/\/+$/, '').toLowerCase() } catch { return view.url.toLowerCase() } })()
   return [serverKey(view), path, view.role, sameQuery(view.query)].join('|')
 }
 export function duplicateConnections(profiles: AzureConnectionProfileSummary[], preferred: string[] = []) {
+  const rank = (id: string) => { const at = preferred.indexOf(id); return at < 0 ? preferred.length : at }
   const groups = new Map<string, AzureConnectionProfileSummary[]>()
   for (const profile of profiles) { if (profile.role === 'time-tracking') continue; const key = connectionKey(profile); groups.set(key, [...(groups.get(key) ?? []), profile]) }
   const remove: AzureConnectionProfileSummary[] = []
   for (const group of groups.values()) {
     if (group.length < 2) continue
-    const keep = group.find((profile) => preferred.includes(profile.id)) ?? group[0]
+    const keep = [...group].sort((a, b) => rank(a.id) - rank(b.id))[0]
     remove.push(...group.filter((profile) => profile !== keep))
   }
   return remove
+}
+// The saved connection a new or edited one would duplicate (same server, project, role and query), if any.
+export function duplicateOf(view: Pick<AzureConnectionProfileSummary, 'url' | 'baseUrl' | 'role' | 'query'> & { id?: string }, profiles: AzureConnectionProfileSummary[]) {
+  if (view.role === 'time-tracking') return undefined
+  const key = connectionKey(view)
+  return profiles.find((profile) => profile.id !== view.id && profile.role !== 'time-tracking' && connectionKey(profile) === key)
 }
 export function removeDuplicateConnections(preferred: string[] = [], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
   const remove = duplicateConnections(listAzureConnectionProfiles(storage), preferred)

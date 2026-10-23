@@ -7,7 +7,7 @@ import { approvalDateFrom, defaultReleaseQuery, fetchReleaseSource, normalizeRel
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
 import { columnName, pickFields, queryLayout } from './queryView'
-import { promoteToTimeWriting } from './viewDefinitions'
+import { duplicateOf, promoteToTimeWriting } from './viewDefinitions'
 
 const defaultUrl = 'https://dev.azure.com/ALMP-ORG-MSTP01/Patient%20Safety%20and%20Quality/_backlogs/backlog/InD%20Quality/Epics'
 const defaultConfig = parseAzureProjectUrl(defaultUrl)
@@ -213,6 +213,9 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
     const email = input.creatorEmail.trim().toLowerCase()
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid Feature creator email, or leave it empty.')
     const id = input.id || crypto.randomUUID().replaceAll('-', '')
+    // The same server, project, role and query as a saved connection: nothing is fetched, listed or matched twice.
+    const twin = duplicateOf({ id, url, role: input.role, ...(query ? { query } : {}), ...(isCloudBase(base) ? {} : { baseUrl: base }) }, listAzureConnectionProfiles())
+    if (twin) throw new Error(`“${twin.viewName || twin.reason}” already reads this project with this query. Edit it or choose another query, so nothing is fetched twice.`)
     saveAzureConnectionProfile({ id, url, reason: name, role: input.role, ...(input.viewName.trim() ? { viewName: input.viewName.trim() } : {}), showInMenu: input.showInMenu, token, ...(email ? { creatorEmail: email } : {}), ...(query ? { query } : {}), ...(isCloudBase(base) ? {} : { baseUrl: base }), ...(apiVersion ? { apiVersion } : {}) })
     const profiles = listAzureConnectionProfiles()
     setConnectionProfiles(profiles)

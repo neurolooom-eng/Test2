@@ -191,7 +191,7 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 - **One Time Writing connection.** If a backlog view reads the same project and team as the Time Writing connection, Settings → Azure DevOps says so. **Use as Time Writing** on the backlog view makes it the Time Writing connection with its own (working) PAT, removes the old one here and — with a token that can save — from the shared setup in Git together with its data file in Git, then fetches.
 - **Fetch falls back to Git.** When an on-prem fetch fails or there is no PAT in the browser, the view loads its data from Git and says why and when it was fetched.
 - **Tokens.** Each user needs a fine-grained GitHub token for this repository: **Contents: Read-only** for viewers (a shared read-only token is possible), **Read and write** for those who save (e.g. People Managers editing baselines). With a read-only token, Baselines is view only. Tokens stay in the browser and are never written to Git. A token cannot be kept as a GitHub secret of the app repository or in a work item: anything the app reads at run time can be read by every user.
-- **Duplicates.** If there is more than one Time Writing (QMS-0025) connection, Settings → Connections offers to keep the active one and remove the others, here and in Git.
+- **Duplicates.** If there is more than one Time Writing (QMS-0025) connection, Settings → Connections offers to keep the active one and remove the others, here and in Git. Other connections reading the same server, project, role and query are removed at start, keeping the copy from the shared setup in Git, else a preset's, else the first saved; saving a new or edited connection that would duplicate a saved one is refused.
 
 ### Release Details and Windchill exports
 
