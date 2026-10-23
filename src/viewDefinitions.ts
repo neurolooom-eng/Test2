@@ -64,9 +64,9 @@ function readBaseline(storage: Pick<Storage, 'getItem'>): Record<string, string>
 export function markViewsSynced(views: AzureConnectionProfileSummary[], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage) {
   try { storage.setItem(baselineKey, JSON.stringify({ ...readBaseline(storage), ...Object.fromEntries(views.map((view) => [view.id, fingerprint(view)])) })) } catch { /* next sync compares again */ }
 }
-export interface SyncResult { added: string[]; updated: string[]; kept: string[]; noPat: string[]; removed: string[] }
+export interface SyncResult { added: string[]; updated: string[]; kept: string[]; noPat: string[]; removed: string[]; removedIds: string[] }
 export function syncViewsFromGit(views: AzureConnectionProfileSummary[], storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage): SyncResult {
-  const result: SyncResult = { added: [], updated: [], kept: [], noPat: [], removed: [] }
+  const result: SyncResult = { added: [], updated: [], kept: [], noPat: [], removed: [], removedIds: [] }
   const baseline = readBaseline(storage)
   const follow: AzureConnectionProfileSummary[] = [], synced: AzureConnectionProfileSummary[] = []
   for (const view of views) {
@@ -90,7 +90,7 @@ export function syncViewsFromGit(views: AzureConnectionProfileSummary[], storage
     if (views.some((view) => view.id === id)) continue
     gone.push(id)
     const local = listAzureConnectionProfiles(storage).find((entry) => entry.id === id)
-    if (local && fingerprint(local) === print) { try { forgetAzureConnectionProfile(id, storage); result.removed.push(local.viewName || local.reason) } catch { /* kept */ } }
+    if (local && fingerprint(local) === print) { try { forgetAzureConnectionProfile(id, storage); result.removed.push(local.viewName || local.reason); result.removedIds.push(id) } catch { /* kept */ } }
   }
   markViewsSynced(synced, storage)
   if (gone.length) { try { const next = readBaseline(storage); for (const id of gone) delete next[id]; storage.setItem(baselineKey, JSON.stringify(next)) } catch { /* compared again next time */ } }
