@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { saveAzureConnectionProfile, loadAzureConnectionProfile, listAzureConnectionProfiles } from '../src/azureCredentials.ts'
+import { saveServerPat } from '../src/azureCredentials.ts'
 import { viewsFile, serializeViews, parseViews, restoreViews, serverKey, syncViewsFromGit, markViewsSynced, promoteToTimeWriting } from '../src/viewDefinitions.ts'
 import { siblingConfig, readTextFile, writeTextFile } from '../src/gitStorage.ts'
 
@@ -35,6 +36,11 @@ test('restore: keeps the PAT here, else the entered PAT, else one for the same s
   assert.equal(loadAzureConnectionProfile('dp', fresh).token, 'own-pat', 'an existing connection keeps its PAT')
   assert.equal(loadAzureConnectionProfile('cloud', fresh).token, 'entered-pat', 'a view-only connection gets the entered PAT')
   assert.equal(loadAzureConnectionProfile('qms', fresh).token, 'own-pat', 'one PAT per server: a new PAT on one connection is the PAT of every connection on that server')
+  // The server holds the PAT; a restore (also the sync at every start) leaves no copy on the connections, so removing it removes it.
+  const stored = JSON.parse(fresh.getItem('demand-planning-azure-connection-profiles-v1'))
+  assert.deepEqual(stored.filter((profile) => profile.baseUrl).map((profile) => profile.token), ['', '', ''], 'no on-prem connection keeps a copy of the server PAT')
+  saveServerPat(serverKey(dp), '', fresh)
+  assert.deepEqual(['dp', 'iocc', 'qms'].map((id) => loadAzureConnectionProfile(id, fresh).token), ['', '', ''], 'removing the server PAT removes it from every connection, after any number of restores')
 })
 
 test('views file sits next to the data file and is committed with the loaded version', async () => {
