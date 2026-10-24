@@ -126,7 +126,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <div className="admin-grid">
-      <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Overview to compute available hours and utilization. Stored with the shared app data, not per browser.">
+      <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Dashboard to compute available hours and utilization. Stored with the shared app data, not per browser.">
         <form onSubmit={saveCapacity}>
           <div className="form-row"><label>Absence Epic ID<input name="absenceEpicId" type="number" min="1" step="1" required defaultValue={capacity.absenceEpicId} /><small>Everything under this Epic counts as absence; Feature and Task titles decide PTO, Sick Leave or Unplanned Leave.</small></label><label>Funded hours per working day<input name="hoursPerDay" type="number" min="0.25" step="0.25" required defaultValue={capacity.hoursPerDay} /></label></div>
           <div className="form-row"><label>Overloaded at or above (%)<input name="overloadedAt" type="number" min="1" step="1" required defaultValue={capacity.overloadedAt} /></label><label>Has capacity below (%)<input name="availableBelow" type="number" min="0" step="1" required defaultValue={capacity.availableBelow} /></label></div>
