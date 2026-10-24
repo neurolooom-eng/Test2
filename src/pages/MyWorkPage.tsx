@@ -3,7 +3,8 @@ import { PersonPicker } from '../components/PersonPicker'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel, type Tone } from '../components/ui'
 import { currentIndiaMonth, updateAzureWorkItem } from '../azureDevOps'
 import { capacityContext } from '../capacity'
-import { matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
+import { featureChildren, isMine, matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
+import { formatHours } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -21,6 +22,9 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
   // The search looks through all types at once; the type chips apply again when it is cleared.
   const [search, setSearch] = useState('')
   const searching = Boolean(search.trim())
+  // Features opened to show their User Stories, Bugs and Tasks (everyone's), reset by a refresh of the list.
+  const [expanded, setExpanded] = useState<string[]>([])
+  const toggle = (key: string) => setExpanded((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key])
   const { config, pat } = azure
   const month = currentIndiaMonth()
   const absenceEpicId = capacityContext(store.state).absenceEpicId
@@ -61,20 +65,32 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
         <TablePanel title="Pending work" info={<ul>
           <li>New and active items assigned to the person shown (matched by email, else by name), always in ascending ID order. Epics and work under the absence Epic are left out.</li>
           <li>Search looks through every type at once: ID (with or without #), title, type, state, Feature, Epic, Area Path, Iteration Path and tags. Every word must match, in any order and case. Esc or a type chip clears it.</li>
+          <li>▸ on a Feature opens everything under it: its User Stories, Bugs and Tasks and their Tasks, whoever they are assigned to, in ascending ID order (Removed items left out). Tasks show planned and recorded hours. Items of yours that are New or Active keep their Close action; other people's show Not mine.</li>
           <li>Close &lt;type&gt; sets the State to Closed. A Feature in New offers Set Feature to Active; only an Active Feature can be closed. Only the State is written, after confirmation, then the data is refreshed.</li>
           <li>Azure DevOps refuses a change its process does not allow; the error is shown.</li>
         </ul>} count={`${shown.length} of ${pending.length}`}
           action={<div className="chip-row">{['All', ...workTypes, 'Other'].map((type) => <button type="button" key={type} className={`chip ${!searching && typeFilter === type ? 'chip-on' : ''}`} onClick={() => { setTypeFilter(type); setSearch('') }}>{type}{type !== 'All' && type !== 'Other' ? ` ${counts[type] ?? 0}` : ''}</button>)}</div>}
           empty={shown.length ? undefined : searching ? `Nothing matches “${search.trim()}” in any type.` : pending.length ? 'Nothing of this type.' : 'No pending work assigned to you.'}>
           <div className="query-toolbar my-work-search"><input type="search" className="search" aria-label="Search all assigned work" placeholder="Search all types (ID, title, state, Feature, path…)" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setSearch('') }} />{searching && <span className="muted">{shown.length} of {pending.length} match, all types</span>}</div>
-          {shown.length > 0 && <table className="work-table"><thead><tr><th>Item</th><th>State</th><th>Feature</th><th>Iteration</th><th>Action</th></tr></thead><tbody>{shown.map(({ item, feature }) => {
-            return <tr key={item.key}>
-              <td><span className={`type-dot type-${item.workItemType.replace(/\s/g, '').toLowerCase()}`} aria-hidden="true" /><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> <strong className="inline">{item.title}</strong><small>{item.workItemType}</small></td>
+          {shown.length > 0 && <table className="work-table"><thead><tr><th>Item</th><th>State</th><th>Feature</th><th>Iteration</th><th>Action</th></tr></thead><tbody>{shown.flatMap(({ item, feature }) => {
+            const children = item.workItemType === 'Feature' ? featureChildren(azure.items, item) : []
+            const open = expanded.includes(item.key)
+            const count = children.reduce((sum, child) => sum + 1 + child.children.length, 0)
+            const action = (entry: AzureWorkItem) => { const next = nextStateFor(entry); return next ? <button type="button" className="ghost" disabled={Boolean(blocked) || busy === `state-${entry.id}`} onClick={() => void finish(entry, next.state)}>{busy === `state-${entry.id}` ? 'Saving…' : next.label}</button> : <small className="muted" title="Only an Active Feature can be closed">Set to Active first</small> }
+            const childRow = (entry: AzureWorkItem, depth: number) => <tr key={entry.key} className={`work-child work-depth-${depth}`}>
+              <td><span className="work-indent" aria-hidden="true" /><span className={`type-dot type-${entry.workItemType.replace(/\s/g, '').toLowerCase()}`} aria-hidden="true" /><a href={entry.url} target="_blank" rel="noreferrer">#{entry.id}</a> <strong className="inline">{entry.title}</strong><small>{entry.workItemType}{entry.assignedTo ? ` · ${entry.assignedTo}` : ' · Unassigned'}{entry.workItemType === 'Task' && (entry.originalEstimate != null || entry.completedWork != null) ? ` · ${formatHours(entry.originalEstimate ?? 0)}h planned, ${formatHours(entry.completedWork ?? 0)}h recorded` : ''}</small></td>
+              <td><Pill tone={stateTone(entry.state)}>{entry.state}</Pill></td>
+              <td><small className="plain">{item.title}</small></td>
+              <td><small className="plain">{shortPath(entry.iterationPath)}</small></td>
+              <td>{isMine(entry, my.me) && nextStateFor(entry) && /new|active/i.test(entry.state) ? action(entry) : <small className="muted">{isMine(entry, my.me) ? '—' : 'Not mine'}</small>}</td>
+            </tr>
+            return [<tr key={item.key} className={open ? 'work-open' : undefined}>
+              <td>{children.length ? <button type="button" className="tree-toggle work-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} Feature #${item.id}: ${count} child items`} title={`${count} ${count === 1 ? 'item' : 'items'} under this Feature`} onClick={() => toggle(item.key)}>{open ? '▾' : '▸'}</button> : item.workItemType === 'Feature' ? <span className="work-toggle work-toggle-empty" title="No User Stories or Tasks under this Feature" aria-hidden="true">·</span> : null}<span className={`type-dot type-${item.workItemType.replace(/\s/g, '').toLowerCase()}`} aria-hidden="true" /><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> <strong className="inline">{item.title}</strong><small>{item.workItemType}{children.length ? ` · ${count} ${count === 1 ? 'item' : 'items'}` : ''}</small></td>
               <td><Pill tone={stateTone(item.state)}>{item.state}</Pill></td>
               <td>{feature && feature.id !== item.id ? <small className="plain">{feature.title}</small> : '—'}</td>
               <td><small className="plain">{shortPath(item.iterationPath)}</small></td>
-              <td>{(() => { const next = nextStateFor(item); return next ? <button type="button" className="ghost" disabled={Boolean(blocked) || busy === `state-${item.id}`} onClick={() => void finish(item, next.state)}>{busy === `state-${item.id}` ? 'Saving…' : next.label}</button> : <small className="muted" title="Only an Active Feature can be closed">Set to Active first</small> })()}</td>
-            </tr>
+              <td>{action(item)}</td>
+            </tr>, ...(open ? children.flatMap((child) => [childRow(child.item, 1), ...child.children.map((grandchild) => childRow(grandchild, 2))]) : [])]
           })}</tbody></table>}
         </TablePanel>
       </>}

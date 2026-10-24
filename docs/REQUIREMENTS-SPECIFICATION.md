@@ -323,6 +323,7 @@ Stakeholders:
 | ATM-14 | The page shall keep the last 8 action results as notices. | D | C | UC-06 |
 | ATM-15 | The page shall offer one search box over the pending list that searches every type at once, ignoring the type chip: ID (with or without #), title, type, state, Feature, Epic, Area Path, Iteration Path and tags; every word must match, in any order and case. It shall show how many items match; Esc or a type chip shall clear it. | T | S | UC-06 |
 | ATM-16 | On every page, explanations of how a list, chart or rule works shall sit behind an "ⓘ Info" button next to the heading they belong to, shown on hover, keyboard focus or tap, instead of as text on the page; short status lines (counts, fetch times, totals) stay visible. | D | C | UC-01 |
+| ATM-17 | A Feature row on Assigned to Me shall expand (▸ / ▾) to show the work under it: its direct children (User Stories, Bugs, Tasks; any assignee; Removed left out) in ascending ID order, each with its own children, with type, assignee, state and iteration; Tasks shall show planned and recorded hours. My New or Active child items shall keep the Close action; other people's items shall show "Not mine". The row shall state how many items are under the Feature. | D | S | UC-06 |
 
 ### 3.7 Time Writing backlog view (BKL) — UC-07
 

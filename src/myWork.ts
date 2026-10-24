@@ -131,3 +131,13 @@ export function nextStateFor(item: Pick<AzureWorkItem, 'workItemType' | 'state'>
   if (stateIs(item, 'active')) return { state: 'Closed', label: 'Close Feature' }
   return null
 }
+
+// The work under a Feature on Assigned to Me: its direct children (User Stories, Bugs, Tasks; any state but Removed)
+// in ascending ID order, each with its own children the same way. Items of other people are included: the point is
+// to see the whole Feature.
+export interface FeatureChild { item: AzureWorkItem; children: AzureWorkItem[] }
+export function featureChildren(items: AzureWorkItem[], feature: Pick<AzureWorkItem, 'id' | 'organization' | 'project'>): FeatureChild[] {
+  const live = items.filter((item) => item.state.trim().toLowerCase() !== 'removed' && item.organization === feature.organization && item.project === feature.project)
+  const childrenOf = (id: number) => live.filter((item) => item.parentId === id && item.id !== id).sort((a, b) => a.id - b.id)
+  return childrenOf(feature.id).map((item) => ({ item, children: childrenOf(item.id) }))
+}
