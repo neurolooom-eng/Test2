@@ -262,3 +262,6 @@ td small{color:var(--text-3)}
 .dash-section .panel-heading .chip-row{margin:0}
 .dash-grid-2>*,.dash-grid-wide>*{min-width:0}.dash-grid-2 .azure-table{margin-top:8px}
 .dash-stack{display:grid;gap:18px;margin-bottom:18px}.dash-stack>*{min-width:0}
+/* Assigned to Me: Features expand to their User Stories, Bugs and Tasks. */
+.work-toggle{background:none;border:0;padding:0;margin-right:6px;width:18px;color:var(--text-2);cursor:pointer;font-size:14px;line-height:1}.work-toggle-empty{display:inline-block;text-align:center;cursor:default}
+.work-open td{border-bottom-color:transparent}.work-child td{background:var(--surface-2)}.work-child .work-indent{display:inline-block;width:26px}.work-depth-2 .work-indent{width:52px}.work-child strong.inline{font-weight:500}
