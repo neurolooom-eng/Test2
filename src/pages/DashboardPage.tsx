@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react'
-import { EmptyState, Info, Metric, Metrics, Notice, Page, Panel, TablePanel } from '../components/ui'
+import { EmptyState, Info, Metric, Metrics, Notice, Page, Panel, Pill, TablePanel } from '../components/ui'
 import { OverviewTrends } from '../components/OverviewTrends'
 import { capacityContext, regions, resourceRoles, type Region, type ResourceRole } from '../capacity'
 import { applyFilter, byPerson, byRole, byStream, change, concentration, groupBy, noFilter, periodMonths, persistentOverload, personMonths, plannedOverload, quarterOf, rebalancing, streamTotals, totals, type Dimension, type Period, type PersonMonth, type DashboardFilter } from '../dashboard'
 import { MultiSelect } from '../components/MultiSelect'
 import { timeWritingMonth } from '../azureInsights'
+import { streamCounts, type StreamCounts } from '../releaseOverview'
+import { anomalies, healthScore, monthForecast, planAccuracy, resilience, streamMomentum, type ForecastStatus, type AccuracyVerdict, type Momentum } from '../insights'
 import { formatHours, monthName, todayIso } from '../format'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -12,7 +14,7 @@ import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
 
 const tabs = [
-  ['actions', 'Overview & Actions'], ['region', 'Region & Role'], ['months', 'Utilization by month'], ['trend', 'Actuals trend'],
+  ['actions', 'Summary & Actions'], ['insights', 'Insights'], ['region', 'Region & Role'], ['months', 'Utilization by month'], ['trend', 'Actuals trend'],
   ['people', 'People & capacity'], ['streams', 'Streams & Epics'], ['charts', 'Charts'], ['definitions', 'Definitions'],
 ] as const
 type Tab = typeof tabs[number][0]
@@ -96,8 +98,9 @@ export function DashboardPage({ month, azure, store, setMonth, my }: { month: st
         <Metric label="Net capacity gap" value={signed(all.gap)} hint={all.gap >= 0 ? 'Capacity not yet allocated in the plan' : 'Plan above capacity'} />
         <Metric label="Actual / planned hours" value={all.ratio == null ? '—' : `${all.ratio.toFixed(1)}%`} hint={<>{signed(Math.round((all.actual - all.plan) * 100) / 100)} actual − plan</>} />
       </Metrics>
-      <div className="overview-tabs dash-tabs" role="tablist" aria-label="Overview sections">{tabs.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={saved.tab === key} className={`backlog-tab ${saved.tab === key ? 'backlog-tab-active' : ''}`} onClick={() => update({ tab: key })}>{label}</button>)}</div>
+      <div className="overview-tabs dash-tabs" role="tablist" aria-label="Dashboard sections">{tabs.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={saved.tab === key} className={`backlog-tab ${saved.tab === key ? 'backlog-tab-active' : ''}`} onClick={() => update({ tab: key })}>{label}</button>)}</div>
       {saved.tab === 'actions' && <ActionsTab rows={rows} months={months} />}
+      {saved.tab === 'insights' && <InsightsTab rows={rows} months={months} today={today} delivery={streamCounts(store.state, azure.connectionProfiles, months)} />}
       {saved.tab === 'region' && <RegionTab rows={rows} />}
       {saved.tab === 'months' && <MonthsTab rows={rows} months={months} />}
       {saved.tab === 'trend' && <TrendTab rows={rows} months={months} />}
@@ -314,6 +317,103 @@ function StreamsTab({ rows }: { rows: PersonMonth[] }) {
   </>
 }
 
+// Insights: what the numbers say beyond the totals — see insights.ts for every rule; the thresholds are in the Info texts.
+const forecastTone: Record<ForecastStatus, 'open' | 'warning' | 'danger' | 'neutral' | 'info'> = { 'on-track': 'open', ahead: 'info', behind: 'warning', 'over-capacity': 'danger', 'no-data': 'neutral' }
+const forecastLabel: Record<ForecastStatus, string> = { 'on-track': 'On track', ahead: 'Ahead of plan', behind: 'Behind plan', 'over-capacity': 'Heading over capacity', 'no-data': 'Nothing recorded yet' }
+const verdictTone: Record<AccuracyVerdict, 'open' | 'warning' | 'danger' | 'neutral' | 'info'> = { reliable: 'open', 'under-records': 'warning', 'over-runs': 'danger', uneven: 'info', 'no-plan': 'neutral' }
+const verdictLabel: Record<AccuracyVerdict, string> = { reliable: 'Reliable', 'under-records': 'Under-records', 'over-runs': 'Over-runs', uneven: 'Uneven', 'no-plan': 'No plan' }
+const trendLabel: Record<Momentum, string> = { rising: '↑ Rising', falling: '↓ Falling', steady: '→ Steady', new: '✦ New', gone: '○ Gone' }
+const trendTone: Record<Momentum, 'open' | 'warning' | 'danger' | 'neutral' | 'info'> = { rising: 'info', falling: 'warning', steady: 'neutral', new: 'open', gone: 'danger' }
+const scoreTone = (value: number | null) => value == null ? 'neutral' : value >= 75 ? 'open' : value >= 50 ? 'warning' : 'danger'
+const pctText = (value: number | null) => value == null ? '—' : `${value}%`
+function InsightsTab({ rows, months, today, delivery }: { rows: PersonMonth[]; months: string[]; today: string; delivery: StreamCounts[] }) {
+  const current = months.find((month) => month === today.slice(0, 7)) ?? months.filter((month) => month <= today.slice(0, 7)).at(-1) ?? months[0]
+  const forecast = monthForecast(rows, current, today)
+  const accuracy = planAccuracy(rows)
+  const momentum = streamMomentum(rows, months)
+  const strength = resilience(rows)
+  const unusual = anomalies(rows)
+  const health = healthScore(rows, months)
+  const attention = forecast.people.filter((entry) => entry.status === 'behind' || entry.status === 'over-capacity')
+  return <>
+    <Section eyebrow="HEALTH" title="How healthy is the plan?" info="One score, 0–100, as the average of the components with data: balance = share of people planned between 70% and 110% of their capacity; recording = share of planned month Tasks with a recorded actual (elapsed months); resilience = share of streams not resting on one person. It summarises; the panels below say why.">
+      <div className="dash-cards dash-cards-4">
+        <Card label="Health score" value={<Pill tone={scoreTone(health.overall.score)}>{health.overall.score ?? '—'}</Pill>} hint="Average of the three components" />
+        <Card label="Balance" value={pctText(health.overall.balance)} hint="People planned at 70–110% of capacity" />
+        <Card label="Recording" value={pctText(health.overall.recording)} hint="Planned Tasks with an actual (elapsed months)" />
+        <Card label="Resilience" value={pctText(health.overall.resilience)} hint="Streams not resting on one person" />
+      </div>
+      {health.byMonth.some((entry) => entry.score != null) && <div className="azure-table"><table className="dash-heat"><thead><tr><th>Component</th>{months.map((month) => <th key={month}>{short(month)}</th>)}</tr></thead><tbody>
+        {([['Score', 'score'], ['Balance', 'balance'], ['Recording', 'recording'], ['Resilience', 'resilience']] as const).map(([label, key]) => <tr key={key}><td><strong>{label}</strong></td>{health.byMonth.map((entry) => <td key={entry.month} className={entry[key] == null ? '' : entry[key]! >= 75 ? 'heat-under' : entry[key]! < 50 ? 'heat-over' : ''}>{pctText(entry[key])}</td>)}</tr>)}
+      </tbody></table></div>}
+    </Section>
+    <Section eyebrow="DELIVERY" title="Releases and documents per stream" info="Per stream and month of the period, as Pulse Check counts them: a release counts in the month its documents were approved (else changed); documents are the approved DHFI documents of those releases. DP uses the Pedestal and DHFI data sets when they are mapped (dated by the DHFI documents). Streams without a connection are marked not set up; S&S IT comes from Windchill exports and is not counted here.">
+      <div className="dash-cards dash-cards-4">
+        <Card label="Releases in period" value={delivery.reduce((sum, stream) => sum + stream.releases, 0)} hint={`${delivery.filter((stream) => !stream.notSetUp).length} streams counted`} />
+        <Card label="Documents in period" value={delivery.reduce((sum, stream) => sum + stream.documents, 0)} hint="Approved DHFI documents of those releases" />
+        <Card label="Busiest stream" value={[...delivery].sort((a, b) => b.releases - a.releases)[0]?.releases ? [...delivery].sort((a, b) => b.releases - a.releases)[0].name : '—'} hint="Most releases in the period" />
+        <Card label="Not set up" value={delivery.filter((stream) => stream.notSetUp).length} tone={delivery.some((stream) => stream.notSetUp) ? 'danger' : undefined} hint="Streams without a connection (Settings → Stream mapping)" />
+      </div>
+      <div className="azure-table"><table className="dash-heat"><thead><tr><th>Stream</th>{months.map((month) => <th key={month}>{short(month)}</th>)}<th>Releases</th><th>Documents</th></tr></thead><tbody>
+        {delivery.map((stream) => <tr key={stream.id}><td><strong>{stream.name}</strong>{stream.notSetUp && <small>Not set up</small>}</td>{stream.months.map((entry) => <td key={entry.month}>{stream.notSetUp ? <span className="muted">—</span> : <>{entry.releases}<small className="muted"> / {entry.documents}</small></>}</td>)}<td><strong>{stream.notSetUp ? '—' : stream.releases}</strong></td><td>{stream.notSetUp ? '—' : stream.documents}</td></tr>)}
+      </tbody></table></div>
+      <small className="muted">Cells: releases / documents in the month.</small>
+    </Section>
+    <Section eyebrow="FORECAST" title={`Where ${monthName(current)} is heading`} info="Run rate: the hours recorded so far, divided by the share of the month's weekdays already gone (today included), project each person's month-end total. On track = within ±10% of the plan; ahead / behind beyond that; heading over capacity = the projection exceeds the net capacity. Holidays and absence are already netted out of capacity. For a past month the projection equals the actual.">
+      <div className="dash-cards dash-cards-4">
+        <Card label="Month elapsed" value={`${forecast.share}%`} hint="Share of weekdays gone" />
+        <Card label="Projected hours" value={`${formatHours(forecast.projected)}h`} hint={<>{signed(forecast.vsPlan)} against {formatHours(forecast.plan)}h planned</>} />
+        <Card label="Needs attention" value={attention.length} tone={attention.length ? 'danger' : undefined} hint={`${forecast.counts.behind} behind plan · ${forecast.counts['over-capacity']} heading over capacity`} />
+        <Card label="On track" value={`${forecast.counts['on-track']} / ${forecast.people.length}`} hint={`${forecast.counts.ahead} ahead · ${forecast.counts['no-data']} nothing recorded yet`} />
+      </div>
+      {forecast.people.length ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Plan h</th><th>Recorded h</th><th>Projected h</th><th>vs plan</th><th>Capacity h</th><th>Status</th></tr></thead><tbody>
+        {forecast.people.slice(0, 12).map((entry) => <tr key={entry.person}><td><strong>{entry.person}</strong>{entry.role && <small>{entry.role}</small>}</td><td>{h(entry.plan)}</td><td>{h(entry.actual)}</td><td>{h(entry.projected)}</td><td>{signed(entry.vsPlan)}</td><td>{h(entry.capacity)}</td><td><Pill tone={forecastTone[entry.status]}>{forecastLabel[entry.status]}</Pill></td></tr>)}
+      </tbody></table></div> : <EmptyState title={`No rows for ${monthName(current)}.`} />}
+    </Section>
+    <Section eyebrow="PLAN ACCURACY" title="How well do plans predict the hours?" info="Elapsed months only. Error = Σ|actual − plan| ÷ Σplan per person: how far the recorded hours land from the plan, whichever direction. Bias = (Σactual − Σplan) ÷ Σplan: negative means less recorded than planned (time not written, or plans too generous), positive means over-runs. Reliable at an error of 15% or less; under-records at a bias of −20% or lower; over-runs at +20% or higher; uneven otherwise.">
+      <div className="dash-cards dash-cards-4">
+        <Card label="Team error" value={pctText(accuracy.team.error)} hint={`Over ${accuracy.months} elapsed month${accuracy.months === 1 ? '' : 's'}`} />
+        <Card label="Team bias" value={accuracy.team.bias == null ? '—' : `${accuracy.team.bias > 0 ? '+' : ''}${accuracy.team.bias}%`} hint={accuracy.team.bias == null ? '' : accuracy.team.bias < 0 ? 'Less recorded than planned' : 'More recorded than planned'} />
+        <Card label="Reliable planners" value={`${accuracy.people.filter((entry) => entry.verdict === 'reliable').length} / ${accuracy.people.length}`} hint="Error ≤ 15%" />
+        <Card label="Under-recording" value={accuracy.people.filter((entry) => entry.verdict === 'under-records').length} tone={accuracy.people.some((entry) => entry.verdict === 'under-records') ? 'danger' : undefined} hint="Bias ≤ −20%: time not written or plans too generous" />
+      </div>
+      {accuracy.people.length ? <div className="dash-grid-2">
+        <div className="azure-table"><table><thead><tr><th>Person</th><th>Months</th><th>Plan h</th><th>Actual h</th><th>Error</th><th>Bias</th><th>Verdict</th></tr></thead><tbody>
+          {accuracy.people.slice(0, 12).map((entry) => <tr key={entry.person}><td><strong>{entry.person}</strong>{entry.role && <small>{entry.role}</small>}</td><td>{entry.months}</td><td>{h(entry.plan)}</td><td>{h(entry.actual)}</td><td>{pctText(entry.error)}</td><td>{entry.bias == null ? '—' : `${entry.bias > 0 ? '+' : ''}${entry.bias}%`}</td><td><Pill tone={verdictTone[entry.verdict]}>{verdictLabel[entry.verdict]}</Pill></td></tr>)}
+        </tbody></table></div>
+        <div className="azure-table"><table><thead><tr><th>Month</th><th>Plan h</th><th>Actual h</th><th>Error</th><th>Bias</th></tr></thead><tbody>
+          {accuracy.byMonth.map((entry) => <tr key={entry.month}><td><strong>{short(entry.month)}</strong></td><td>{h(entry.plan)}</td><td>{h(entry.actual)}</td><td>{pctText(entry.error)}</td><td>{entry.bias == null ? '—' : `${entry.bias > 0 ? '+' : ''}${entry.bias}%`}</td></tr>)}
+        </tbody></table></div>
+      </div> : <EmptyState title="No elapsed months with a plan in the selection." detail="Plan accuracy needs at least one month that has ended." />}
+    </Section>
+    <Section eyebrow="MOMENTUM" title="Which streams gain or lose effort?" info={`Average actual hours per month over the latest up to 3 elapsed months (${momentum.recentMonths.map(short).join(', ') || 'none'}) against the up to 3 before them (${momentum.earlierMonths.map(short).join(', ') || 'none'}), with each stream's share of all actual hours in both windows. Rising / falling at a change of 20% or more and at least 8 hours; new = hours only in the recent window; gone = hours only before.`}>
+      {momentum.streams.length ? <div className="azure-table"><table><thead><tr><th>Stream (Epic)</th><th>Recent h / month</th><th>Earlier h / month</th><th>Change</th><th>Share now</th><th>Share before</th><th>People</th><th>Trend</th></tr></thead><tbody>
+        {momentum.streams.map((entry) => <tr key={entry.key}><td><strong>{entry.title}</strong></td><td>{h(entry.recent)}</td><td>{momentum.earlierMonths.length ? h(entry.earlier) : '—'}</td><td>{entry.change == null ? '—' : <span className={entry.change > 0 ? 'positive' : entry.change < 0 ? 'negative' : 'muted'}>{entry.change > 0 ? '+' : ''}{entry.change}%</span>}</td><td>{pctText(entry.shareRecent)}</td><td>{pctText(entry.shareEarlier)}</td><td>{entry.people}</td><td><Pill tone={trendTone[entry.trend]}>{trendLabel[entry.trend]}</Pill></td></tr>)}
+      </tbody></table></div> : <EmptyState title="No elapsed months with recorded hours in the selection." />}
+      {momentum.recentMonths.length > 0 && !momentum.earlierMonths.length && <p className="muted">Only {momentum.recentMonths.length} elapsed month{momentum.recentMonths.length === 1 ? '' : 's'} in the period: widen it to see a trend.</p>}
+    </Section>
+    <Section eyebrow="RESILIENCE" title="Where does the team depend on one person?" info="Elapsed months. A stream rests on one person when that person recorded 80% or more of its hours: a single point of failure if they are away. A specialist put 90% or more of their recorded hours into one stream: little room to move them. Both are facts to weigh, not faults.">
+      <div className="dash-cards dash-cards-4">
+        <Card label="Streams on one person" value={strength.singlePoints} tone={strength.singlePoints ? 'danger' : undefined} hint={`of ${strength.streams.length} with recorded hours`} />
+        <Card label="Specialists" value={strength.specialists} hint={`of ${strength.people.length} people with recorded hours`} />
+      </div>
+      <div className="dash-grid-2">
+        <div><h3>Streams and their main contributor</h3>{strength.streams.length ? <div className="azure-table"><table><thead><tr><th>Stream</th><th>Hours</th><th>People</th><th>Main contributor</th><th>Share</th></tr></thead><tbody>
+          {strength.streams.slice(0, 12).map((entry) => <tr key={entry.key}><td><strong>{entry.title}</strong></td><td>{h(entry.actual)}</td><td>{entry.people}</td><td>{entry.top}</td><td>{entry.singlePoint ? <Pill tone="danger">{entry.topShare}%</Pill> : `${entry.topShare}%`}</td></tr>)}
+        </tbody></table></div> : <EmptyState title="No recorded hours in elapsed months." />}</div>
+        <div><h3>People and their main stream</h3>{strength.people.length ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Hours</th><th>Streams</th><th>Main stream</th><th>Share</th></tr></thead><tbody>
+          {strength.people.slice(0, 12).map((entry) => <tr key={entry.person}><td><strong>{entry.person}</strong>{entry.role && <small>{entry.role}</small>}</td><td>{h(entry.actual)}</td><td>{entry.streams}</td><td>{entry.main}</td><td>{entry.specialist ? <Pill tone="warning">{entry.mainShare}%</Pill> : `${entry.mainShare}%`}</td></tr>)}
+        </tbody></table></div> : <EmptyState title="No recorded hours in elapsed months." />}</div>
+      </div>
+    </Section>
+    <Section eyebrow="UNUSUAL MONTHS" title="Which months stand out for a person?" info="Elapsed months. A person's recorded hours in a month that differ from the median of their other elapsed months by 50% or more and by at least 8 hours; at least 3 elapsed months with data are needed. A spike or a drop is a question to ask, not a verdict: leave, a release push or hours written late all look like this.">
+      {unusual.length ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Month</th><th>Recorded h</th><th>Typical h</th><th>Change</th><th></th></tr></thead><tbody>
+        {unusual.slice(0, 12).map((entry) => <tr key={`${entry.person}-${entry.month}`}><td><strong>{entry.person}</strong></td><td>{short(entry.month)}</td><td>{h(entry.actual)}</td><td>{h(entry.typical)}</td><td><span className={entry.change > 0 ? 'positive' : 'negative'}>{entry.change > 0 ? '+' : ''}{entry.change}%</span></td><td><Pill tone={entry.kind === 'spike' ? 'info' : 'warning'}>{entry.kind === 'spike' ? 'Spike' : 'Drop'}</Pill></td></tr>)}
+      </tbody></table></div> : <EmptyState title="No unusual months." detail="Nothing differs from a person's typical month by 50% or more — or fewer than 3 elapsed months with data." />}
+    </Section>
+  </>
+}
+
 function DefinitionsTab({ hoursPerDay, absenceEpicId }: { hoursPerDay: number; absenceEpicId: number }) {
   return <Panel title="Definitions, assumptions & source">
     <dl className="dash-findings">
@@ -327,6 +427,12 @@ function DefinitionsTab({ hoursPerDay, absenceEpicId }: { hoursPerDay: number; a
       <dt>Stream</dt><dd>The Epic above the Task. The stream filter keeps only that stream's hours and the people who book on it (their whole capacity still counts).</dd>
       <dt>Persistent overload</dt><dd>Above 100% of capacity in 3 or more consecutive elapsed months.</dd>
       <dt>Rebalancing</dt><dd>Overload can only move to headroom of the same role in the same month, and only in current or future months.</dd>
+      <dt>Month-end forecast</dt><dd>Actual hours so far ÷ the share of the month's weekdays gone (today included). On track within ±10% of the plan; over capacity when the projection exceeds net capacity.</dd>
+      <dt>Plan accuracy</dt><dd>Elapsed months only. Error = Σ|actual − plan| ÷ Σplan; bias = (Σactual − Σplan) ÷ Σplan. Reliable at an error ≤ 15%; under-records at a bias ≤ −20%; over-runs at ≥ +20%.</dd>
+      <dt>Stream momentum</dt><dd>Average actual hours per month over the latest up to 3 elapsed months against the up to 3 before. Rising / falling at ±20% and at least 8 hours.</dd>
+      <dt>Resilience</dt><dd>A stream rests on one person when they recorded ≥ 80% of its hours; a specialist put ≥ 90% of their hours into one stream. Elapsed months.</dd>
+      <dt>Unusual months</dt><dd>A person's recorded hours differ from the median of their other elapsed months by ≥ 50% and ≥ 8 hours (3 elapsed months with data needed).</dd>
+      <dt>Health score</dt><dd>Average of the components with data: balance (people planned at 70–110% of capacity), recording (planned Tasks with a recorded actual, elapsed months) and resilience (streams not resting on one person).</dd>
     </dl>
   </Panel>
 }
