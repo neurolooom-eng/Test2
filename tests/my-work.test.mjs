@@ -179,3 +179,11 @@ test('Assigned to Me search: every word must match, across ID, title, type, stat
   assert.deepEqual(find('sprint 1 cp'), [2, 3, 5, 7], 'Iteration Path and Epic title combine (the absence Feature has no Epic CP)')
   assert.deepEqual(find('nothing-like-this'), [])
 })
+
+test('featureChildren: stories, bugs and tasks under a Feature with their own children, any person, Removed left out', async () => {
+  const { featureChildren } = await import('../src/myWork.ts')
+  const data = [...items, item(11, 'Task', 'Removed task', { parentId: 2, ...ana, state: 'Removed' }), item(12, 'Task', 'Direct task', { parentId: 2, ...ben }), item(13, 'Feature', 'Other project', { parentId: 2, project: 'Elsewhere' })]
+  const tree = featureChildren(data, data.find((entry) => entry.id === 2))
+  assert.deepEqual(tree.map(({ item, children }) => [item.id, children.map((child) => child.id)]), [[3, [4]], [5, []], [12, []]], 'ascending ID; Ben\'s task under Ana\'s story is included; Removed and other projects are not')
+  assert.deepEqual(featureChildren(data, data.find((entry) => entry.id === 8)), [])
+})
