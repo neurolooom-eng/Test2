@@ -1,5 +1,5 @@
 import type { PersonMonth } from './dashboard.ts'
-import { groupBy } from './dashboard.ts'
+import { bandOf, defaultBands, groupBy, type Bands } from './dashboard.ts'
 
 // Dashboard insights computed from the person-month rows (dashboard.ts): what the Time Writing data says beyond the
 // totals — where the current month is heading, how reliable plans are, which streams gain or lose effort, where the
@@ -24,15 +24,16 @@ export function elapsedShare(month: string, today: string) {
 
 // Month-end forecast for one month (meant for the current, partial month): the actual hours so far, scaled by the
 // share of the month's weekdays gone, project where each person lands. On track = within ±10% of the plan; ahead and
-// behind are beyond that; over capacity = the projection exceeds the net capacity; no data = nothing recorded yet.
+// behind are beyond that; over capacity = the projection reaches the overloaded threshold (Settings → Capacity);
+// no data = nothing recorded yet.
 export type ForecastStatus = 'ahead' | 'on-track' | 'behind' | 'over-capacity' | 'no-data'
 export interface Forecast { person: string; role?: string; plan: number; capacity: number; actual: number; projected: number; vsPlan: number; status: ForecastStatus }
-export function monthForecast(rows: PersonMonth[], month: string, today: string) {
+export function monthForecast(rows: PersonMonth[], month: string, today: string, bands: Bands = defaultBands) {
   const share = elapsedShare(month, today)
   const people: Forecast[] = rows.filter((row) => row.month === month).map((row) => {
     const projected = share > 0 ? round(row.actual / share) : 0
     const vsPlan = round(projected - row.plan)
-    const status: ForecastStatus = row.actual <= 0 ? 'no-data' : projected > row.capacity && row.capacity > 0 ? 'over-capacity' : row.plan > 0 && Math.abs(vsPlan) / row.plan <= 0.1 ? 'on-track' : vsPlan > 0 ? 'ahead' : 'behind'
+    const status: ForecastStatus = row.actual <= 0 ? 'no-data' : row.capacity > 0 && bandOf(projected / row.capacity * 100, bands) === 'over' ? 'over-capacity' : row.plan > 0 && Math.abs(vsPlan) / row.plan <= 0.1 ? 'on-track' : vsPlan > 0 ? 'ahead' : 'behind'
     return { person: row.person, role: row.role, plan: row.plan, capacity: row.capacity, actual: row.actual, projected, vsPlan, status }
   }).sort((a, b) => Math.abs(b.vsPlan) - Math.abs(a.vsPlan))
   const plan = people.reduce((sum, entry) => sum + entry.plan, 0), projected = people.reduce((sum, entry) => sum + entry.projected, 0), actual = people.reduce((sum, entry) => sum + entry.actual, 0)
@@ -135,13 +136,14 @@ export function anomalies(rows: PersonMonth[]): Anomaly[] {
 }
 
 // Health score, 0–100 per month and overall: the average of the components that have data.
-// - Balance: share of people planned between 70% and 110% of their capacity.
+// - Balance: share of people whose planned utilization is in the balanced band (Settings → Capacity: at least
+//   availableBelow %, below overloadedAt %).
 // - Recording (elapsed months): share of planned month Tasks with a recorded actual.
 // - Resilience: share of streams not resting on one person (elapsed months, see resilience()).
 export interface Health { month?: string; balance: number | null; recording: number | null; resilience: number | null; score: number | null }
-function healthOf(rows: PersonMonth[], streams: StreamResilience[]): Omit<Health, 'month'> {
+function healthOf(rows: PersonMonth[], streams: StreamResilience[], bands: Bands): Omit<Health, 'month'> {
   const planned = rows.filter((row) => row.capacity > 0 && row.plan > 0)
-  const balance = planned.length ? pct(planned.filter((row) => { const util = row.plan / row.capacity * 100; return util >= 70 && util <= 110 }).length, planned.length) : null
+  const balance = planned.length ? pct(planned.filter((row) => bandOf(row.plan / row.capacity * 100, bands) === 'balanced').length, planned.length) : null
   const elapsed = rows.filter((row) => row.status === 'elapsed')
   const lines = elapsed.reduce((sum, row) => sum + row.planLines, 0)
   const recording = lines ? pct(lines - elapsed.reduce((sum, row) => sum + row.blankActuals, 0), lines) : null
@@ -149,8 +151,8 @@ function healthOf(rows: PersonMonth[], streams: StreamResilience[]): Omit<Health
   const parts = [balance, recording, strength].filter((value): value is number => value != null)
   return { balance, recording, resilience: strength, score: parts.length ? Math.round(parts.reduce((sum, value) => sum + value, 0) / parts.length) : null }
 }
-export function healthScore(rows: PersonMonth[], months: string[]): { overall: Health; byMonth: Health[] } {
-  const overall = healthOf(rows, resilience(rows).streams)
-  const byMonth = months.map((month) => { const entries = rows.filter((row) => row.month === month); return { month, ...healthOf(entries, resilience(entries).streams) } })
+export function healthScore(rows: PersonMonth[], months: string[], bands: Bands = defaultBands): { overall: Health; byMonth: Health[] } {
+  const overall = healthOf(rows, resilience(rows).streams, bands)
+  const byMonth = months.map((month) => { const entries = rows.filter((row) => row.month === month); return { month, ...healthOf(entries, resilience(entries).streams, bands) } })
   return { overall, byMonth }
 }
