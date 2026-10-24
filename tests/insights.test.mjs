@@ -83,11 +83,22 @@ test('unusual months: a spike or drop against the median of the other elapsed mo
 })
 
 test('health score averages the components that have data', () => {
-  const rows = [row('Ana', '2026-08', 160, 150), row('Ben', '2026-08', 200, 150, { blankActuals: 2 }), row('Cy', '2026-08', 40, 30, { streams: [{ key: 'dp', title: 'DP', plan: 40, actual: 30 }] })]
+  const rows = [row('Ana', '2026-08', 150, 150), row('Ben', '2026-08', 200, 150, { blankActuals: 2 }), row('Cy', '2026-08', 40, 30, { streams: [{ key: 'dp', title: 'DP', plan: 40, actual: 30 }] })]
   const health = healthScore(rows, ['2026-08'])
-  assert.equal(health.overall.balance, 33.3, 'only Ana is planned at 70–110% of 160h')
+  assert.equal(health.overall.balance, 33.3, 'only Ana (93.8%) is planned in the 80–100% band of 160h; Ben is over, Cy spare')
   assert.equal(health.overall.recording, 83.3, '10 of 12 planned Tasks have an actual')
   assert.equal(health.overall.resilience, 50, 'CP is shared by Ana and Ben (50% each); DP rests on Cy alone')
   assert.equal(health.overall.score, 56, 'round((33.3 + 83.3 + 50) / 3)')
   assert.equal(healthScore([], ['2026-08']).overall.score, null)
+})
+
+test('the Settings bands decide what counts as over capacity and balanced', () => {
+  const rows = [row('Ana', '2026-08', 150, 150), row('Ben', '2026-08', 100, 100), row('Cy', '2026-08', 176, 170)]
+  const strict = { overloadedAt: 90, availableBelow: 70 }
+  assert.equal(healthScore(rows, ['2026-08']).overall.balance, 33.3, 'default bands 80–100%: only Ana (93.8%) is balanced')
+  assert.equal(healthScore(rows, ['2026-08'], strict).overall.balance, 0, 'at 70–90% nobody is balanced: Ana and Cy are over, Ben (62.5%) spare')
+  const forecast = monthForecast([row('Cy', '2026-10', 100, 100)], '2026-10', '2026-10-16', strict)
+  assert.equal(forecast.people[0].status, 'over-capacity', '183h projected is above 90% of 160h')
+  assert.equal(monthForecast([row('Ben', '2026-10', 100, 80)], '2026-10', '2026-10-16', strict).people[0].status, 'over-capacity', '146.7h ≥ 144h (90% of 160h)')
+  assert.equal(monthForecast([row('Ben', '2026-10', 100, 80)], '2026-10', '2026-10-16').people[0].status, 'ahead', 'at the default 100% the same projection is only more than planned')
 })
