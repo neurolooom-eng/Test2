@@ -142,3 +142,13 @@ export function featureChildren(items: AzureWorkItem[], feature: Pick<AzureWorkI
   const childrenOf = (id: number) => live.filter((item) => item.parentId === id && item.id !== id).sort((a, b) => a.id - b.id)
   return childrenOf(feature.id).map((item) => ({ item, children: childrenOf(item.id) }))
 }
+
+// "Complete children" is offered only for a Feature without any optional User Story: a User Story under it (not
+// Removed) that is not its Time Writing story. Once one exists, the Feature's children were created and the action
+// is hidden; single stories are still added with ＋ User Story.
+export function hasOptionalStories(items: AzureWorkItem[], feature: Pick<AzureWorkItem, 'id' | 'organization' | 'project'>) {
+  const stories = items.filter((item) => item.workItemType === 'User Story' && item.parentId === feature.id && item.state.trim().toLowerCase() !== 'removed' && item.organization === feature.organization && item.project === feature.project)
+  if (!stories.length) return false
+  const timeWriting = timeWritingStoryIds(items)
+  return stories.some((story) => !timeWriting.has(story.id))
+}

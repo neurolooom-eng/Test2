@@ -115,7 +115,7 @@ export default function App() {
     return { loaded, failed }
   }
   const access = useAccess(git, azure)
-  const featureSetup = useFeatureSetup(git)
+  const featureSetup = useFeatureSetup(git, azure.creatorEmail)
   // Who creates new work items (the email on the Time Writing connection) and whether they may assign them to others.
   const assign = { me: azure.creatorEmail.trim().toLowerCase(), canChoose: access.can('azure.createForOthers') }
   const [requested, setPage] = useState<Page>('overview')
@@ -201,13 +201,13 @@ export default function App() {
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} />}
       {page === 'pireview' && <PiReviewPage />}
       {page === 'qemapping' && <QeMappingPage />}
-      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.file} />}
+      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => { settingsTabOnOpen('storage'); setPage('admin') }} canEdit={access.can('baselines.edit')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} /> : access.can('windchill.import') ? <WindchillExportImport windchill={windchill} git={git} onImported={openWindchill} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
-      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.file} />}
+      {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}

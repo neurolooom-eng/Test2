@@ -189,3 +189,13 @@ test('featureChildren: stories, bugs and tasks under a Feature with their own ch
   assert.deepEqual(tree.map(({ item, children }) => [item.id, children.map((child) => child.id)]), [[3, [4]], [5, []], [12, []]], 'ascending ID; Ben\'s task under Ana\'s story is included; Removed and other projects are not')
   assert.deepEqual(featureChildren(data, data.find((entry) => entry.id === 8)), [])
 })
+
+test('Complete children only for a Feature without optional User Stories (the Time Writing story does not count)', async () => {
+  const { hasOptionalStories } = await import('../src/myWork.ts')
+  const feature = items.find((entry) => entry.id === 2)
+  assert.equal(hasOptionalStories(items, feature), true, '#5 "SFV review" is an optional story')
+  const onlyTimeWriting = items.filter((entry) => entry.id !== 5)
+  assert.equal(hasOptionalStories(onlyTimeWriting, feature), false, 'only the Time Writing story #3: offer Complete children')
+  assert.equal(hasOptionalStories(items.filter((entry) => entry.id !== 3 && entry.id !== 4 && entry.id !== 5), feature), false, 'no stories at all')
+  assert.equal(hasOptionalStories([...onlyTimeWriting, item(20, 'User Story', 'Removed story', { parentId: 2, state: 'Removed' })], feature), false, 'Removed stories do not count')
+})

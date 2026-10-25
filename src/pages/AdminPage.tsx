@@ -101,8 +101,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
   }
 
   const connectionFailed = store.connection.status === 'error' || store.connection.status === 'conflict'
-  // One tab at a time; the shared tabs only for roles that manage shared settings. The last tab is remembered here.
-  const tabs = ([['connections', 'Azure DevOps'], ['storage', 'Storage'], ['access', 'Access'], ...(shared ? [['features', 'Feature setup'], ['capacity', 'Capacity & periods'], ['resources', 'Resources'], ['masters', 'Master data'], ['audit', 'Audit']] : [])] as [SettingsTab, string][])
+  // One tab at a time; the shared tabs only for roles that manage shared settings (Feature setup is for everyone: each
+  // person keeps their own and may enable it for all). The last tab is remembered here.
+  const tabs = ([['connections', 'Azure DevOps'], ['storage', 'Storage'], ['access', 'Access'], ['features', 'Feature setup'], ...(shared ? [['capacity', 'Capacity & periods'], ['resources', 'Resources'], ['masters', 'Master data'], ['audit', 'Audit']] : [])] as [SettingsTab, string][])
   const [chosen, setChosen] = useState<SettingsTab>(() => { try { return (localStorage.getItem(tabKey) as SettingsTab | null) ?? 'connections' } catch { return 'connections' } })
   const tab = tabs.some(([key]) => key === chosen) ? chosen : 'connections'
   const openTab = (key: SettingsTab) => { setChosen(key); try { localStorage.setItem(tabKey, key) } catch { /* not remembered */ } }
