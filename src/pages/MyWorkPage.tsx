@@ -9,12 +9,14 @@ import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { PageProps } from './types'
+import { FeatureEditor, type FeatureEditorMode } from '../components/FeatureEditor'
+import type { FeatureSetupFile } from '../featureSetup'
 
 type Log = { tone: 'success' | 'error' | 'info'; text: string }
 const stateTone = (state: string): Tone => /new|proposed|to do/i.test(state) ? 'info' : /active|in progress|committed|doing/i.test(state) ? 'open' : 'neutral'
 const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || path
 
-export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenBulk: () => void }) {
+export function MyWorkPage({ azure, store, my, onOpenBulk, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenBulk: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetupFile | null }) {
   const [busy, setBusy] = useState('')
   const [log, setLog] = useState<Log[]>([])
   // Opens on Features; the list is always in ascending ID order.
@@ -24,6 +26,10 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
   const searching = Boolean(search.trim())
   // Features opened to show their User Stories, Bugs and Tasks (everyone's), reset by a refresh of the list.
   const [expanded, setExpanded] = useState<string[]>([])
+  // New Feature (under an Epic, with its children) and Complete Feature children, with the board's editor.
+  const [editor, setEditor] = useState<FeatureEditorMode | null>(null)
+  const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.state.trim().toLowerCase() !== 'removed').sort((a, b) => a.id - b.id)
+  const meEmail = (assign?.me || azure.creatorEmail).trim().toLowerCase()
   const toggle = (key: string) => setExpanded((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key])
   const { config, pat } = azure
   const month = currentIndiaMonth()
@@ -66,10 +72,11 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
           <li>New and active items assigned to the person shown (matched by email, else by name), always in ascending ID order. Epics and work under the absence Epic are left out.</li>
           <li>Search looks through every type at once: ID (with or without #), title, type, state, Feature, Epic, Area Path, Iteration Path and tags. Every word must match, in any order and case. Esc or a type chip clears it.</li>
           <li>▸ on a Feature opens everything under it: its User Stories, Bugs and Tasks and their Tasks, whoever they are assigned to, in ascending ID order (Removed items left out). Tasks show planned and recorded hours. Items of yours that are New or Active keep their Close action; other people's show Not mine.</li>
+          <li>＋ New Feature creates a Feature under an Epic with its User Stories and this month's Time Writing task, as on the QMS-0025 board; Complete children adds whatever is missing under one of your Features. Both ask for the PAT and refresh the data afterwards.</li>
           <li>Close &lt;type&gt; sets the State to Closed. A Feature or User Story in New offers Set … to Active; only an Active one can be closed (other states say Set to Active first). Only the State is written, after confirmation, then the data is refreshed.</li>
           <li>Azure DevOps refuses a change its process does not allow; the error is shown.</li>
         </ul>} count={`${shown.length} of ${pending.length}`}
-          action={<div className="chip-row">{['All', ...workTypes, 'Other'].map((type) => <button type="button" key={type} className={`chip ${!searching && typeFilter === type ? 'chip-on' : ''}`} onClick={() => { setTypeFilter(type); setSearch('') }}>{type}{type !== 'All' && type !== 'Other' ? ` ${counts[type] ?? 0}` : ''}</button>)}</div>}
+          action={<div className="chip-row"><button type="button" className="primary" disabled={Boolean(blocked) || !epics.length} title={epics.length ? 'Create a Feature under an Epic with its User Stories and Time Writing task' : 'No Epic in the Time Writing backlog yet'} onClick={() => setEditor({ parent: epics[0] })}>＋ New Feature</button>{['All', ...workTypes, 'Other'].map((type) => <button type="button" key={type} className={`chip ${!searching && typeFilter === type ? 'chip-on' : ''}`} onClick={() => { setTypeFilter(type); setSearch('') }}>{type}{type !== 'All' && type !== 'Other' ? ` ${counts[type] ?? 0}` : ''}</button>)}</div>}
           empty={shown.length ? undefined : searching ? `Nothing matches “${search.trim()}” in any type.` : pending.length ? 'Nothing of this type.' : 'No pending work assigned to you.'}>
           <div className="query-toolbar my-work-search"><input type="search" className="search" aria-label="Search all assigned work" placeholder="Search all types (ID, title, state, Feature, path…)" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setSearch('') }} />{searching && <span className="muted">{shown.length} of {pending.length} match, all types</span>}</div>
           {shown.length > 0 && <table className="work-table"><thead><tr><th>Item</th><th>State</th><th>Feature</th><th>Iteration</th><th>Action</th></tr></thead><tbody>{shown.flatMap(({ item, feature }) => {
@@ -89,10 +96,13 @@ export function MyWorkPage({ azure, store, my, onOpenBulk }: { azure: AzureWorks
               <td><Pill tone={stateTone(item.state)}>{item.state}</Pill></td>
               <td>{feature && feature.id !== item.id ? <small className="plain">{feature.title}</small> : '—'}</td>
               <td><small className="plain">{shortPath(item.iterationPath)}</small></td>
-              <td>{action(item)}</td>
+              <td>{action(item)}{item.workItemType === 'Feature' && <button type="button" className="text-button" disabled={Boolean(blocked)} title="Add the missing User Stories and this month's Time Writing task under this Feature" onClick={() => setEditor({ resume: item })}>Complete children</button>}</td>
             </tr>, ...(open ? children.flatMap((child) => [childRow(child.item, 1), ...child.children.map((grandchild) => childRow(grandchild, 2))]) : [])]
           })}</tbody></table>}
         </TablePanel>
+        {editor && config && <FeatureEditor mode={editor} items={azure.items} config={config} savedPat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} featureSetup={featureSetup} onSavePat={azure.rememberPat} onCreated={azure.featureCreated} onClose={() => setEditor(null)}
+          onDone={(done) => { setEditor(null); note({ tone: 'success', text: `${done.feature.workItemType} #${done.feature.id} “${done.feature.title}”: ${done.text}` }); void azure.refresh() }}
+          onPartial={(text) => { setEditor(null); note({ tone: 'error', text }); void azure.refresh() }} />}
       </>}
   </Page>
 }

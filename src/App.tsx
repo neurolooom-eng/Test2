@@ -201,7 +201,7 @@ export default function App() {
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} />}
       {page === 'pireview' && <PiReviewPage />}
       {page === 'qemapping' && <QeMappingPage />}
-      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} />}
+      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.file} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => { settingsTabOnOpen('storage'); setPage('admin') }} canEdit={access.can('baselines.edit')} />}
