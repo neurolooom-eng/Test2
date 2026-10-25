@@ -123,12 +123,13 @@ export function stateChecks(items: AzureWorkItem[], me: Me, absenceEpicId?: numb
   return checks
 }
 
-// What may be done to a Feature from Assigned to Me: a New Feature is set to Active; only an Active Feature is Closed.
-// Other work items are closed directly.
+// What may be done to an item from Assigned to Me: a New Feature or User Story is set to Active; only an Active one
+// is Closed (nothing in any other state). Tasks and Bugs are closed directly.
+export const stagedTypes = ['Feature', 'User Story'] as const
 export function nextStateFor(item: Pick<AzureWorkItem, 'workItemType' | 'state'>): { state: 'Active' | 'Closed'; label: string } | null {
-  if (item.workItemType !== 'Feature') return { state: 'Closed', label: `Close ${item.workItemType}` }
-  if (stateIs(item, 'new')) return { state: 'Active', label: 'Set Feature to Active' }
-  if (stateIs(item, 'active')) return { state: 'Closed', label: 'Close Feature' }
+  if (!(stagedTypes as readonly string[]).includes(item.workItemType)) return { state: 'Closed', label: `Close ${item.workItemType}` }
+  if (stateIs(item, 'new')) return { state: 'Active', label: `Set ${item.workItemType} to Active` }
+  if (stateIs(item, 'active')) return { state: 'Closed', label: `Close ${item.workItemType}` }
   return null
 }
 

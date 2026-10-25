@@ -166,6 +166,8 @@ test('state checks: closed stories close the Feature, closed tasks close the sto
   assert.deepEqual(checks[0].children.map((child) => child.id), [11, 12], 'Removed stories are ignored')
   assert.deepEqual([nextStateFor({ workItemType: 'Feature', state: 'New' }), nextStateFor({ workItemType: 'Feature', state: 'Active' }), nextStateFor({ workItemType: 'Feature', state: 'Resolved' }), nextStateFor({ workItemType: 'Task', state: 'New' })],
     [{ state: 'Active', label: 'Set Feature to Active' }, { state: 'Closed', label: 'Close Feature' }, null, { state: 'Closed', label: 'Close Task' }])
+  assert.deepEqual([nextStateFor({ workItemType: 'User Story', state: 'New' }), nextStateFor({ workItemType: 'User Story', state: 'Active' }), nextStateFor({ workItemType: 'User Story', state: 'Resolved' }), nextStateFor({ workItemType: 'Bug', state: 'Active' })],
+    [{ state: 'Active', label: 'Set User Story to Active' }, { state: 'Closed', label: 'Close User Story' }, null, { state: 'Closed', label: 'Close Bug' }], 'User Stories follow the Feature logic; Bugs and Tasks close directly')
 })
 
 test('Assigned to Me search: every word must match, across ID, title, type, state, Feature, Epic, paths and tags', () => {
