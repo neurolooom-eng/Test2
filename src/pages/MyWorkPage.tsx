@@ -10,13 +10,13 @@ import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { PageProps } from './types'
 import { FeatureEditor, type FeatureEditorMode } from '../components/FeatureEditor'
-import type { FeatureSetupFile } from '../featureSetup'
+import type { FeatureSetups } from '../featureSetup'
 
 type Log = { tone: 'success' | 'error' | 'info'; text: string }
 const stateTone = (state: string): Tone => /new|proposed|to do/i.test(state) ? 'info' : /active|in progress|committed|doing/i.test(state) ? 'open' : 'neutral'
 const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || path
 
-export function MyWorkPage({ azure, store, my, onOpenBulk, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenBulk: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetupFile | null }) {
+export function MyWorkPage({ azure, store, my, onOpenBulk, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenBulk: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null }) {
   const [busy, setBusy] = useState('')
   const [log, setLog] = useState<Log[]>([])
   // Opens on Features; the list is always in ascending ID order.

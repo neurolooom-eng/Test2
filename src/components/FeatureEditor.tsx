@@ -4,14 +4,14 @@ import { completeFeatureFromSetup, createFeatureFromSetup, updateAzureTimeWritin
 import { Modal, Info } from './ui'
 import { PersonPicker } from './PersonPicker'
 import { assignablePeople } from '../myWork'
-import { fillTitle, missingValues, setupFor, titleValues, type FeatureSetupFile } from '../featureSetup'
+import { chooseSetup, fillTitle, missingValues, setupFor, titleValues, type FeatureSetups } from '../featureSetup'
 
 // The "Add Feature under an Epic" / "Complete Feature children" modal, shared by the QMS-0025 board and Assigned to
 // Me. mode.parent: create a Feature (the Epic can still be changed) with its children; mode.resume: add the missing
 // children of an existing Feature. The Feature and every new child are assigned to the person chosen, else to me.
 export type FeatureEditorMode = { parent: AzureWorkItem; resume?: undefined } | { resume: AzureWorkItem; parent?: undefined }
 export interface FeatureEditorResult { feature: AzureWorkItem; items: AzureWorkItem[]; text: string; parent?: AzureWorkItem }
-export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoose, featureSetup, onSavePat, onCreated, onDone, onPartial, onClose }: { mode: FeatureEditorMode; items: AzureWorkItem[]; config: AzureConfig; savedPat?: string; me: string; canChoose: boolean; featureSetup?: FeatureSetupFile | null; onSavePat?: (pat: string) => void; onCreated?: (items: AzureWorkItem[]) => void; onDone: (result: FeatureEditorResult) => void; onPartial: (text: string, items: AzureWorkItem[], parent?: AzureWorkItem) => void; onClose: () => void }) {
+export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoose, featureSetup, onSavePat, onCreated, onDone, onPartial, onClose }: { mode: FeatureEditorMode; items: AzureWorkItem[]; config: AzureConfig; savedPat?: string; me: string; canChoose: boolean; featureSetup?: FeatureSetups | null; onSavePat?: (pat: string) => void; onCreated?: (items: AzureWorkItem[]) => void; onDone: (result: FeatureEditorResult) => void; onPartial: (text: string, items: AzureWorkItem[], parent?: AzureWorkItem) => void; onClose: () => void }) {
   const people = useMemo(() => assignablePeople(items), [items])
   const resumeFeature = mode.resume ?? null
   const scoped = useMemo(() => items.filter((item) => item.state.trim().toLowerCase() !== 'removed' && item.organization.toLowerCase() === config.organization.toLowerCase() && item.project.toLowerCase() === config.project.toLowerCase()), [items, config.organization, config.project])
@@ -42,7 +42,11 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   try { plan = releaseHierarchyTitles(title.trim(), releaseKind, monthLabel) } catch { plan = null }
   // The Epic's own setup (Settings → Feature setup), if any: its optional User Stories replace the PU / Full Release
   // milestones (all ticked by default) and its Task defaults apply.
-  const epicSetup = setupFor(featureSetup ?? null, parent?.id ?? resumeFeature?.parentId)
+  // My own setup of the Epic first, else the shared one; the switch below picks the shared one instead.
+  const [preferShared, setPreferShared] = useState(false)
+  const epicId = parent?.id ?? resumeFeature?.parentId
+  const { setup: epicSetup, source: setupSource } = chooseSetup(featureSetup, epicId, preferShared)
+  const bothSetups = Boolean(setupFor(featureSetup?.personal ?? null, epicId) && setupFor(featureSetup?.shared ?? null, epicId))
   const [skipStories, setSkipStories] = useState<number[]>([])
   const values = titleValues(title, monthLabel)
   const filled = (template: string) => missingValues(template, values).length ? `${template} (needs “Program | Service | vRelease”)` : fillTitle(template, values)
@@ -113,6 +117,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
       {parent && <div className="form-row"><label>Time Writing Task — Original Estimate (hours)<input type="number" min="0" max="1000000" step="0.25" value={taskOriginalEstimate} onChange={(event) => setTaskOriginalEstimate(event.target.value)} disabled={creating} placeholder={epicSetup?.task.originalEstimate != null ? `${epicSetup.task.originalEstimate} (Epic setup)` : "Optional"} /></label><label>Time Writing Task — Completed Work (hours)<input type="number" min="0" max="1000000" step="0.25" value={taskCompletedWork} onChange={(event) => setTaskCompletedWork(event.target.value)} disabled={creating} placeholder="Optional" /></label></div>}
       {canChoose ? <label>Assigned to (Feature and all its new children)<PersonPicker label="Assigned to" value={assigneeName} people={people.filter((person) => person.email !== me).map((person) => person.name)} onChange={setAssigneeName} meLabel={me ? `Me (${me})` : 'Choose a person…'} /></label>
         : <p className="muted">Assigned to: {me || 'configure the creator email'} (you).</p>}
+      {epicSetup && <p className="muted setup-source">Using {setupSource === 'personal' ? 'your own' : 'the shared'} Feature setup of Epic #{epicSetup.epicId}.{bothSetups && <> <button type="button" className="text-button" disabled={creating} onClick={() => { setPreferShared(!preferShared); setSkipStories([]) }}>{preferShared ? 'Use my own setup' : 'Use the shared setup instead'}</button></>}</p>}
       {epicSetup ? <>
         <fieldset className="milestone-choices" disabled={creating}><legend>Optional User Stories (setup of Epic #{epicSetup.epicId})</legend>
           {epicSetup.stories.length ? <><div className="button-row"><button type="button" className="text-button" onClick={() => setSkipStories([])}>Select all</button><button type="button" className="text-button" onClick={() => setSkipStories(epicSetup.stories.map((_, index) => index))}>Skip all</button></div>

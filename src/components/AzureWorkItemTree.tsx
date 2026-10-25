@@ -6,12 +6,12 @@ import { BacklogTable } from './BacklogTable'
 import { FeatureEditor } from './FeatureEditor'
 import { AssigneeConfirm } from './AssigneeConfirm'
 import { assignablePeople, hasOptionalStories } from '../myWork'
-import type { FeatureSetupFile } from '../featureSetup'
+import type { FeatureSetups } from '../featureSetup'
 
 // readOnly: a backlog view from another connection — no Feature creation or child completion, nothing written to Azure.
 // assign: who is creating (their email) and whether they may assign new work to someone else. New Features and their
 // children, and User Stories / Tasks added here, are assigned to the person chosen, else to the creator; never blank.
-export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat, readOnly = false, tabs, assign, featureSetup }: { items: AzureWorkItem[]; config: AzureConfig; onCreated?: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void; readOnly?: boolean; tabs?: React.ReactNode; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetupFile | null }) {
+export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', creatorEmail = '', onSavePat, readOnly = false, tabs, assign, featureSetup }: { items: AzureWorkItem[]; config: AzureConfig; onCreated?: (items: AzureWorkItem[]) => void; savedPat?: string; creatorEmail?: string; onSavePat?: (pat: string) => void; readOnly?: boolean; tabs?: React.ReactNode; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null }) {
   const me = (assign?.me || creatorEmail).trim().toLowerCase(), canChoose = Boolean(assign?.canChoose)
   const people = useMemo(() => assignablePeople(items), [items])
   const [childOf, setChildOf] = useState<AzureWorkItem | null>(null)
