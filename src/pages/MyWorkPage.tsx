@@ -3,7 +3,7 @@ import { PersonPicker } from '../components/PersonPicker'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel, type Tone } from '../components/ui'
 import { currentIndiaMonth, updateAzureWorkItem } from '../azureDevOps'
 import { capacityContext } from '../capacity'
-import { featureChildren, isMine, matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
+import { featureChildren, hasOptionalStories, isMine, matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
 import { formatHours } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
@@ -72,7 +72,7 @@ export function MyWorkPage({ azure, store, my, onOpenBulk, assign, featureSetup 
           <li>New and active items assigned to the person shown (matched by email, else by name), always in ascending ID order. Epics and work under the absence Epic are left out.</li>
           <li>Search looks through every type at once: ID (with or without #), title, type, state, Feature, Epic, Area Path, Iteration Path and tags. Every word must match, in any order and case. Esc or a type chip clears it.</li>
           <li>▸ on a Feature opens everything under it: its User Stories, Bugs and Tasks and their Tasks, whoever they are assigned to, in ascending ID order (Removed items left out). Tasks show planned and recorded hours. Items of yours that are New or Active keep their Close action; other people's show Not mine.</li>
-          <li>＋ New Feature creates a Feature under an Epic with its User Stories and this month's Time Writing task, as on the QMS-0025 board; Complete children adds whatever is missing under one of your Features. Both ask for the PAT and refresh the data afterwards.</li>
+          <li>＋ New Feature creates a Feature under an Epic with its User Stories and this month's Time Writing task, as on the QMS-0025 board; Complete children appears only on a Feature with no optional User Story yet (the Time Writing story does not count) and adds what is missing. Both ask for the PAT and refresh the data afterwards.</li>
           <li>Close &lt;type&gt; sets the State to Closed. A Feature or User Story in New offers Set … to Active; only an Active one can be closed (other states say Set to Active first). Only the State is written, after confirmation, then the data is refreshed.</li>
           <li>Azure DevOps refuses a change its process does not allow; the error is shown.</li>
         </ul>} count={`${shown.length} of ${pending.length}`}
@@ -96,7 +96,7 @@ export function MyWorkPage({ azure, store, my, onOpenBulk, assign, featureSetup 
               <td><Pill tone={stateTone(item.state)}>{item.state}</Pill></td>
               <td>{feature && feature.id !== item.id ? <small className="plain">{feature.title}</small> : '—'}</td>
               <td><small className="plain">{shortPath(item.iterationPath)}</small></td>
-              <td>{action(item)}{item.workItemType === 'Feature' && <button type="button" className="text-button" disabled={Boolean(blocked)} title="Add the missing User Stories and this month's Time Writing task under this Feature" onClick={() => setEditor({ resume: item })}>Complete children</button>}</td>
+              <td>{action(item)}{item.workItemType === 'Feature' && !hasOptionalStories(azure.items, item) && <button type="button" className="text-button" disabled={Boolean(blocked)} title="Add the missing User Stories and this month's Time Writing task under this Feature" onClick={() => setEditor({ resume: item })}>Complete children</button>}</td>
             </tr>, ...(open ? children.flatMap((child) => [childRow(child.item, 1), ...child.children.map((grandchild) => childRow(grandchild, 2))]) : [])]
           })}</tbody></table>}
         </TablePanel>

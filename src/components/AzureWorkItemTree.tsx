@@ -5,7 +5,7 @@ import { addChildWorkItem, type AzureConfig } from '../azureDevOps'
 import { BacklogTable } from './BacklogTable'
 import { FeatureEditor } from './FeatureEditor'
 import { AssigneeConfirm } from './AssigneeConfirm'
-import { assignablePeople } from '../myWork'
+import { assignablePeople, hasOptionalStories } from '../myWork'
 import type { FeatureSetupFile } from '../featureSetup'
 
 // readOnly: a backlog view from another connection — no Feature creation or child completion, nothing written to Azure.
@@ -70,7 +70,7 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
     <p className="muted tree-help">Select multiple states. Default: New + Active. Matching children retain their ancestors as context, even when the parent has another state. All Epics remain available in the New Feature selector.</p>
     {result && <div className="notice success" role="status"><a href={result.url} target="_blank" rel="noreferrer">{result.workItemType} #{result.id}: {result.title}</a> — {resultText}</div>}
     {partialError && <div className="notice error" role="alert">{partialError}</div>}
-    <BacklogTable key={`${config.organization}/${config.project}/${config.team}`} scope={`${config.organization}/${config.project}/${config.team}`} tree={tree} expanded={expanded} expandAll={expandAll} searching={filtering} onToggle={toggle} onExpand={(value) => { setExpandAll(value); setExpanded(new Set()) }} onNewFeature={readOnly ? undefined : openEditor} onComplete={readOnly ? undefined : openResume} onAddChild={readOnly ? undefined : openChild} tabs={tabs} />
+    <BacklogTable key={`${config.organization}/${config.project}/${config.team}`} scope={`${config.organization}/${config.project}/${config.team}`} tree={tree} expanded={expanded} expandAll={expandAll} searching={filtering} onToggle={toggle} onExpand={(value) => { setExpandAll(value); setExpanded(new Set()) }} onNewFeature={readOnly ? undefined : openEditor} onComplete={readOnly ? undefined : openResume} canComplete={(feature) => !hasOptionalStories(scoped, feature)} onAddChild={readOnly ? undefined : openChild} tabs={tabs} />
     {(parent || resumeFeature) && <FeatureEditor mode={resumeFeature ? { resume: resumeFeature } : { parent: parent! }} items={items} config={config} savedPat={savedPat} me={me} canChoose={canChoose} featureSetup={featureSetup} onSavePat={onSavePat} onCreated={onCreated} onClose={closeEditor} onDone={(done) => { setResult(done.feature); setResultText(done.text); setPartialError(''); setParent(null); setResumeFeature(null); setExpanded((current) => new Set([...current, done.feature.key, ...done.items.filter((item) => item.workItemType === 'User Story').map((item) => item.key), ...(done.parent ? [done.parent.key] : [])])) }} onPartial={(text) => { setPartialError(text); setParent(null); setResumeFeature(null) }} />}
     {childOf && <AssigneeConfirm title={`Add a ${childType} under #${childOf.id}`} people={people} me={me} initial={childOf.assignedToEmail ?? ''} canChoose={canChoose} busy={childBusy} confirmLabel={`Create ${childType}`}
       summary={<>Creates a {childType} under {childOf.workItemType} #{childOf.id} “{childOf.title}” in {config.organization} / {config.project}, in its Area Path. Project validation runs before saving.</>}

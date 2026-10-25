@@ -340,7 +340,7 @@ Stakeholders:
 | BKL-07 | Creation shall always add a "{Feature} - Time Writing" story in the selected Sprint and a "{Month YYYY} \| {Feature}" Task. The Feature shall be assigned to the creator email, and the children shall not be assigned. | T | M | UC-07 |
 | BKL-08 | Creation shall require a dated PI → Sprint selection, and shall refuse if the selection is no longer current, with "The selected PI/Sprint is no longer current. Reload the schedule and review it before creating. No write was attempted." | T | M | UC-07 |
 | BKL-09 | Creation shall be refused without a creator email, with "Configure the Feature creator email in Azure DevOps settings before creating a Feature." | T | M | UC-07 |
-| BKL-10 | "Complete Feature children" shall add only the missing children of an existing Feature, without recreating the Feature. | T | M | UC-07 |
+| BKL-10 | "Complete Feature children" shall add only the missing children of an existing Feature, without recreating the Feature. It shall be offered (on the board and on Assigned to Me) only for a Feature with no optional User Story: no User Story under it other than its Time Writing story (Removed ones ignored). | T | M | UC-07 |
 | BKL-11 | After creation, the app shall read every created item back and report "Hierarchy complete: {n} milestone stories, Time Writing story and {month} task verified." | T | M | UC-07 |
 | BKL-12 | The view shall offer a collapsible "Source details and dates" table, with search, counts by type, and at most 100 rows. | D | C | UC-07 |
 
