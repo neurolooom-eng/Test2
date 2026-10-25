@@ -374,16 +374,18 @@ Stakeholders:
 
 ### 3.9 Dashboard (OVR) — UC-09, UC-10
 
+OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This month" and "Trends" tabs). They are **retired**: the Dashboard rebuild replaced them with OV-11 to OV-14 (§3.3), and the month capacity view moved to Pulse Check → Last month. OVR-09 still applies (Dashboard → Streams). The rows are kept for traceability.
+
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
-| OVR-01 | The Dashboard shall provide, in the page header, a Team/Individual switch labelled "Dashboard for", defaulting to Team. The choice shall be remembered in localStorage `demand-planning-overview-view-v1`. | D | M | UC-09 |
-| OVR-02 | In Individual mode the Dashboard shall use only the chosen person's Tasks, while still applying regional holidays by region. With no person chosen it shall show "Choose whose overview to show." | T | M | UC-09 |
-| OVR-03 | The Dashboard shall show the metrics: utilization (team, or "{person} · utilization"), "Overloaded", "Has capacity" and "Absence". | D | M | UC-09 |
-| OVR-04 | The Dashboard shall provide the tabs "This month · {Month YYYY}" and "Trends", remembering the selection in localStorage `demand-planning-overview-tab-v1`. | D | M | UC-09, UC-10 |
-| OVR-05 | "This month" shall show: "Who has capacity" (person, status, available, planned, booked, utilization, main stream); "Streams of work"; "Hours by Epic"; the "Funded hours" and "Absence" donuts; "Hours by person and stream" (top 8 streams, the rest as Other); and a collapsed "How utilization is calculated". | D | M | UC-09 |
-| OVR-06 | "Trends" shall offer "6 months" or "12 months". It shall show "Hours by month", "Utilization by month", "Utilization by person and month", "Epic mix by month", and Pareto charts for "Overrun hours" and "Ad-hoc hours", each grouped by Feature or Epic. | D | M | UC-10 |
-| OVR-07 | Clicking a month in a Trends chart shall set the selected month. | D | S | UC-10 |
-| OVR-08 | An Epic's colour shall not change when switching between 6 and 12 months. | T | S | UC-10 |
+| OVR-01 | *(Retired — see OV-11…OV-14.)* The Dashboard shall provide, in the page header, a Team/Individual switch labelled "Dashboard for", defaulting to Team. The choice shall be remembered in localStorage `demand-planning-overview-view-v1`. | D | M | UC-09 |
+| OVR-02 | *(Retired — see OV-11…OV-14.)* In Individual mode the Dashboard shall use only the chosen person's Tasks, while still applying regional holidays by region. With no person chosen it shall show "Choose whose overview to show." | T | M | UC-09 |
+| OVR-03 | *(Retired — see OV-11…OV-14.)* The Dashboard shall show the metrics: utilization (team, or "{person} · utilization"), "Overloaded", "Has capacity" and "Absence". | D | M | UC-09 |
+| OVR-04 | *(Retired — see OV-11…OV-14.)* The Dashboard shall provide the tabs "This month · {Month YYYY}" and "Trends", remembering the selection in localStorage `demand-planning-overview-tab-v1`. | D | M | UC-09, UC-10 |
+| OVR-05 | *(Retired — see OV-11…OV-14.)* "This month" shall show: "Who has capacity" (person, status, available, planned, booked, utilization, main stream); "Streams of work"; "Hours by Epic"; the "Funded hours" and "Absence" donuts; "Hours by person and stream" (top 8 streams, the rest as Other); and a collapsed "How utilization is calculated". | D | M | UC-09 |
+| OVR-06 | *(Retired — see OV-11…OV-14.)* "Trends" shall offer "6 months" or "12 months". It shall show "Hours by month", "Utilization by month", "Utilization by person and month", "Epic mix by month", and Pareto charts for "Overrun hours" and "Ad-hoc hours", each grouped by Feature or Epic. | D | M | UC-10 |
+| OVR-07 | *(Retired — see OV-11…OV-14.)* Clicking a month in a Trends chart shall set the selected month. | D | S | UC-10 |
+| OVR-08 | *(Retired — see OV-11…OV-14.)* An Epic's colour shall not change when switching between 6 and 12 months. | T | S | UC-10 |
 | OVR-09 | Overrun hours shall be Completed Work above Original Estimate on Tasks that have an estimate. Ad-hoc hours shall be Completed Work on Tasks tagged `ad-hoc`. | T | M | UC-10 |
 
 ### 3.10 Capacity model (CAP) — UC-09, UC-14
