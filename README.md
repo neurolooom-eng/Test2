@@ -152,7 +152,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 **Work email.** The Time Writing connection needs **your work email** (as Azure DevOps shows it): it finds your work on *Assigned to Me* and is assigned to the Features you create. Saving without it is refused; the Stream mapping shows *Work email missing* until it is set.
 
-**Pop-ups.** In Settings, adding or editing opens a pop-up over the page: Azure DevOps connections and servers, Git storage, SharePoint, the capacity settings, holiday and common-activity mappings, and the Feature setup of an Epic. The page keeps the lists and a summary of the saved values. A click beside a pop-up does not close it (× and Cancel do), so nothing typed is lost.
+**Pop-ups.** In Settings, adding or editing opens a pop-up over the page: Azure DevOps connections and servers, Git storage, SharePoint, the capacity settings, holiday and common-activity mappings, and the Feature setup of an Epic. The page keeps the lists and a summary of the saved values. Every pop-up form reads top to bottom: one field per row, its explanation under it, Cancel and the main action at the bottom right. A click beside a pop-up does not close it (× and Cancel do), so nothing typed is lost.
 
 ### Shared layout, themes and clock
 
