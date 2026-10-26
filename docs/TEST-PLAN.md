@@ -351,7 +351,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-08 State checks and Feature / User Story states** — Req CON-54, ATM-06 — L1 `my-work.test.mjs` (all stories Closed → close the Feature, Removed ignored; all Tasks Closed → close the story; Active Feature without an Active story, or without stories → flagged; Closed Features, other people's work and the absence Epic left out; Feature New → Set to Active, Active → Close, other states → none; other types → Close); browser check with Azure DevOps mocked: Bulk actions for Ben lists his two Active Features without User Stories with a link to Azure DevOps; Assigned to Me shows Close Feature for Active Features. **UAT**
 
-**TC-CON-24 Load everything from Git; roles by the connection email; QE Mapping** — Req CON-55, CON-41, NAV-19 — browser check with GitHub mocked: Settings → Storage → Load everything from Git reads planning-data.json, azure-views.json, azure-data, windchill-data, access.json and feature-setup.json once each and lists what was loaded; Settings → Access says "You are me@x.com (the email on your Time Writing connection)"; QE Mapping appears under Data & governance with its planned notice. **UAT**
+**TC-CON-24 Load everything from Git; roles by the connection email; QE Mapping** — Req CON-55, CON-41, NAV-19 — browser check with GitHub mocked: Settings → Storage → Load everything from Git reads planning-data.json, azure-views.json, azure-data, windchill-data, access.json and feature-setup.json once each and lists what was loaded; Settings → Access says "You are me@x.com (the email on your Time Writing connection)"; QE Mapping appears under Data & governance (its content: TC-QEM-04). **UAT**
 
 **TC-ACC-01 Roles and access** — Req CON-41, CON-42, CON-43, CON-44 — L1 `access.test.mjs` (no policy = no restrictions; union of roles; default role for unknown or unlisted email; no default role = nothing; Backlog Health only for its roles; unknown roles, areas, actions and invalid emails dropped; broken file refused; the editor cannot remove their own "manage access"; a role without "change work items" is refused before anything is sent while reads still work); browser check with mocked GitHub and Azure DevOps: email shown from the connection's email field, Set up roles → add a member, tick Scrum Master → Save to Git commits access.json once; with a cached Team Member policy the menu has no Backlog Health, Bulk actions, Release Details, Baselines or Snapshots and Settings shows only Azure DevOps, Storage and Access. **UAT**
 
@@ -1015,6 +1015,16 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
   - `desktop-latest/latest.json` has the same buildNumber;
   - its SHA-256 values equal SHA256SUMS.
 
+### 6.21 QE Mapping
+
+**TC-QEM-01 Read an Excel as it is** — Req QEM-02 — L1 `qe-mapping.test.mjs` ("reads an Excel workbook as it is: every sheet, shared / rich / inline strings, dates, numbers, booleans, formulas"; "reads CSV with commas, semicolons or tabs, quotes and line breaks in fields"; "a sheet becomes a table as it is: header from the first non-empty row, names made unique, empty rows and columns dropped").
+
+**TC-QEM-02 Edit, filter, group** — Req QEM-03…QEM-06 — L1 `qe-mapping.test.mjs` ("editing: cells, rows and columns keep their ids; filter, group and export").
+
+**TC-QEM-03 Git file and export** — Req QEM-01, QEM-07 — L1 `qe-mapping.test.mjs` ("writes a workbook that reads back the same, sheet names made valid and unique"; "the Git file: round trip, unknown cells dropped, broken files refused, too large refused").
+
+**TC-QEM-04 QE Mapping end to end** — Req QEM-01…QEM-07 — browser check with GitHub mocked (writable token, no qe-mapping.json yet): QE Mapping shows "No QE Mapping yet."; Upload Excel… with a two-sheet workbook (Mapping: Process, QE Owner, Area, Due Date with date cells, 12 rows; Owners: 1 row) → tabs "Mapping 12" and "Owners 1", dates as YYYY-MM-DD; edit a cell to "Dana"; Add row and fill it; select and delete 2 rows → 11; Add column "Status"; rename "QE Owner" to "Owner"; move Status left; hide Due Date → "Columns (4 of 5)"; Group by Area → groups CP 3, DP 3, IOCC 4, (blank) 1; Filter Area "cp" → "3 of 11 rows"; delete the column Owner; Export CSV → the shown columns; Export Excel → both tabs read back; Save to Git → one PUT of qe-mapping.json "Update the QE Mapping (qe-sample.xlsx)" with 11 rows and the new columns; after a reload the mapping comes from Git and the hidden column stays hidden; no page errors. **UAT**
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1162,6 +1172,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UI-05 | TC-UI-02 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
+| QEM-01 | TC-QEM-03, TC-QEM-04 |
+| QEM-02 | TC-QEM-01, TC-QEM-04 |
+| QEM-03…QEM-06 | TC-QEM-02, TC-QEM-04 |
+| QEM-07 | TC-QEM-03, TC-QEM-04 |
 | NFR-01 | TC-INS-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
@@ -1196,6 +1210,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-20 | TC-DOC-01, TC-DOC-02 |
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
+| UC-23 | TC-QEM-01…04 |
 
 ## 8. Result record
 
