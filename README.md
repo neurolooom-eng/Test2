@@ -219,7 +219,7 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 
 ### Release Details and Windchill exports
 
-**DP.** Release Details → DP shows only the DP connection's own query as a table — every column of the query, and **Columns (n of m)** to choose which to show (remembered in this browser). No Feature matching, Create Feature, Pedestal or DHFI on this page; those are in the backlog (Project plan). CP, IOCC and Content are unchanged.
+**DP.** Release Details → DP shows only the DP connection's own query as a table — every column of the query, and **Columns (n of m)** to choose which to show (remembered in this browser). No Feature matching, Create Feature, Pedestal or DHFI on this page; those are in the backlog (Project plan). CP, IOCC and Content are unchanged. A query column written as a bare name such as `[SourceProgram]` shows the values of its prefixed field (`Custom.SourceProgram`) when exactly one field ends with that name.
 
 The on-prem views (Azure DevOps Server, e.g. DP, CP, IOCC) are listed under **Release Details**. **Import Windchill export** takes a Windchill search (e.g. a saved search) exported to CSV — comma, semicolon or tab separated; a title line above the header is skipped; columns are kept as in the file — and makes it a page there with search and CSV export; **Import newer export** replaces it. Excel files must be saved as CSV first. Direct Windchill access is not used: the desktop sign-in window is refused by the company sign-in, the browser is blocked by CORS, and bookmarks with code are blocked by browser policy, so the Windchill host and views setup is hidden (the code is kept).
 
