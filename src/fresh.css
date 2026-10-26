@@ -297,3 +297,4 @@ td small{color:var(--text-3)}
 .setup-all-estimate{margin-top:8px;font-weight:600}.setup-all-estimate input{width:110px}.setup-all-actions{flex-wrap:wrap;justify-content:flex-end}.setup-all .git-bar{margin-top:10px}
 .setup-all-dod{width:100%;min-width:180px;font:inherit;font-size:12px}.setup-dod textarea{min-height:56px}
 .setup-summary .danger-text{color:var(--danger-text)}
+.item-link{color:var(--link);font-weight:600;text-decoration:none}.item-link:hover{text-decoration:underline}

@@ -329,6 +329,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-32 Delete a Feature setup** — Req CON-64 — browser check (same mock): Delete on row #13946 (view mode) → one row left, saved with Save to Git in one commit with #37810 only; "Delete setup" next to Epic #50000's summary → confirmation → commit "Delete the shared Feature setup of Epic #50000" leaving only #37810. **UAT**
 
+**TC-CON-33 Links in Bulk actions** — Req CON-65 — browser check with the synthetic sample: Bulk actions, choose a person with a pending Feature → its row in the Time Writing tasks shows "#100002" as a link to …/_workitems/edit/100002 (target _blank); clicking it opens a new tab and leaves the checkbox unchanged; State checks and Move to current PI + Sprint rows use the same link; no page errors.
+
 **TC-CON-27 Map a Feature setup to an Epic** — Req CON-59 — L1 `feature-setup.test.mjs` ("built-in stories as a setup give exactly the titles of the built-in creation"; "copy a setup to another Epic: replaces the target, keeps the source, no-op without a source"); browser check with a writable Git store holding a personal setup of another Epic: My setup shows it with "applies now" on step 1; "Copy this setup to Epic #" 13946 → the four stories appear under #13946 and the panel says "changed here, not saved yet"; Save to Git commits `feature-setup/<email>.json` holding both Epics and the panel then marks My setup as applying to #13946; "Go to Epic #" another number with no setup offers the two built-in buttons. **UAT**
 
 **TC-CON-26 Personal and shared Feature setup** — Req CON-58, CON-52 — L1 `feature-setup.test.mjs` (one file per email with unsafe characters and runs of dots replaced; my setup of an Epic wins for me, the shared one otherwise, and the form can switch; Enable for everyone replaces only that Epic, as a copy); browser check: Settings → Feature setup opens for every role; with an email on the Time Writing connection it shows My setup and Shared (everyone), else only Shared with a notice; "Start my own from the shared one", "Remove my setup" and "Enable for everyone" save to Git with a writable token. **UAT**
@@ -1042,6 +1044,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-62 | TC-CON-30 |
 | CON-63 | TC-CON-31 |
 | CON-64 | TC-CON-32 |
+| CON-65 | TC-CON-33 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1158,7 +1161,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20 |
+| UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33 |
 | UC-07 | TC-BKL-01…04, TC-CON-23, TC-CON-25…27, TC-CON-29…32 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
