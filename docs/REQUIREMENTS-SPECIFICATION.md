@@ -1,4 +1,4 @@
-# Demand Planning Hub — System Requirements Specification
+# I&D Quality Demand Planning — System Requirements Specification
 
 | | |
 |---|---|
@@ -12,14 +12,14 @@
 
 ### 1.1 Purpose
 
-This specification records, as verifiable requirements, what the Demand Planning Hub does in the build named above. It is the reference for verification ([TEST-PLAN.md](TEST-PLAN.md)), for UAT, and for judging later changes.
+This specification records, as verifiable requirements, what I&D Quality Demand Planning (formerly the Demand Planning Hub) does in the build named above. It is the reference for verification ([TEST-PLAN.md](TEST-PLAN.md)), for UAT, and for judging later changes.
 
 ### 1.2 Scope and system boundary
 
-The **system** ("the app") is the Demand Planning Hub single-page web application. It runs:
+The **system** ("the app") is the I&D Quality Demand Planning single-page web application. It runs:
 
 - in a browser from GitHub Pages; and
-- inside the Demand Planning Hub desktop shell (Electron) on Windows and macOS.
+- inside the desktop shell (Electron; installer and update feed still named Demand-Planning-Hub) on Windows and macOS.
 
 External systems, which the system uses but does not control:
 
@@ -429,6 +429,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | CAP-10 | Settings → Capacity shall offer "Holidays and common activities": map an Epic or Feature by ID (also one not in the fetched data) as Holidays (absence) or Common activity (reserved time), for Everyone or Everyone in a region (India, Netherlands, US), with an optional name. Each mapping shall list, for the header month, the hours per person, the number of Tasks and of people in scope; name-based holiday Features found automatically shall be listed too. Mappings shall be saved with the capacity settings, audited, kept when the capacity numbers are saved, and shared through the Git planning file (GIT-03) so everyone who loads it gets them. | T | S | UC-14 |
 | CAP-11 | Every Month Task under a mapped Epic or Feature shall apply to each person in its scope (people in the month mapped to that region in Settings → Resources, or everyone) instead of to its assignee: Holidays as absence (Public holiday), Common activities as reserved time; both lower available capacity, neither counts as booked or planned work. Hours per Task: Original Estimate, else Completed Work, else one working day. The nearest mapped item above a Task decides. | T | S | UC-09, UC-14 |
 | CAP-12 | Region and person views shall keep shared-time Tasks whose scope is everyone or the chosen region; the month capacity view shall show common activities per person, in the Absence metric and as their own part of the funded-hours ring; Dashboard definitions and heatmap tooltips shall name them. | D | S | UC-09 |
+| CAP-13 | **NPRA** (non-project related activities: internal meetings such as stand-up, special projects and town hall; trainings such as white belt, AI and Cornerstone) shall be the Time Writing Tasks that carry, themselves or on a Story / Feature / Epic above them, a tag starting with "NPRA" (e.g. "NPRA", "NPRA Hours"; the absence Epic and mapped shared time take precedence). Their hours are not project work: they count in no stream, utilization or plan line. Each person has an **NPRA allowance** per month (Settings → Capacity, default 20 h — the maximum per person per month) reserved from the funded hours: available = funded − absence − shared time − max(allowance, NPRA booked), so hours over the allowance come off the available hours too; 0 keeps the tracking without reserving. The month view shall show an NPRA metric (booked hours, the allowance, how many people are over it), per person "NPRA booked / allowance" with the hours over the maximum flagged, and an NPRA table (booked, planned, allowance, left, status). Unplanned sick leave is not NPRA: it is booked under the absence Epic by the end of the month at the latest and deducted from the available hours (CAP-02); the view says so. | T | M | UC-09, UC-14 |
 
 ### 3.11 Baselines (BAS) — UC-11
 
@@ -567,6 +568,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | UI-03 | Every icon-only button shall have an accessible label. | I | S | UC-01 |
 | UI-04 | Tab rows shall use `role="tablist"`/`role="tab"` with `aria-selected`, and sortable headings shall carry `aria-sort`. | I | S | UC-08, UC-09 |
 | UI-05 | Every action button shall be clearly visible: raised (shadow, lifting slightly on hover) and coloured by what it does — solid indigo with white text for the main action, white with an indigo outline for secondary actions, a tinted pill for small inline actions, green for Save to Git, red for Delete / Remove — in light and dark theme; disabled buttons shall be flat and grey (not-allowed cursor). Toggle groups and filter chips keep their own look. | D | S | UC-01 |
+| UI-06 | The app shall be named **I&D Quality Demand Planning**: the sidebar shows the mark (three rising bars under a check) with "I&D Quality / Demand Planning", the window and browser tab title and the favicon carry the same name and mark. The desktop installer, its update feed and the Git / SharePoint file kinds keep their former "Demand Planning Hub" names so installed apps and saved data keep working. | T | S | UC-01 |
 
 ### 3.21 Build and deployment (CI) — UC-19
 

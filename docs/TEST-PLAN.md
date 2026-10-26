@@ -1,4 +1,4 @@
-# Demand Planning Hub — Test Plan
+# I&D Quality Demand Planning — Test Plan
 
 | | |
 |---|---|
@@ -726,6 +726,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-02 Holidays and common activities** — Req CAP-04, CAP-05, CAP-10…12 — L1 `capacity.test.mjs` ("holidays and common activities: mapped Epics / Features apply their month Tasks to everyone in scope": PI Planning for everyone lowers each person's available hours and is not their booked work; a region-scoped audit applies to that region only and the nearest mapping wins; a name-based holiday Feature still applies; mapping it explicitly replaces the name rule without counting twice; invalid mappings are dropped); browser check: Settings → Capacity → Holidays and common activities: enter the PI Planning Feature ID, Common activity, Everyone → it is listed with its hours and people for the header month; Pulse Check → Last month shows "… h common activities" per person and a Common activities part of the funded-hours ring; saving the capacity numbers keeps the mapping; Remove restores the Task to its assignee. **UAT**
 
+**TC-CAP-03 NPRA allowance and tracking** — Req CAP-13 — L1 `capacity.test.mjs` ("NPRA: tagged Tasks tracked against the per-person allowance; the allowance is reserved and the excess deducted": a Task tagged npra and a Task under a Feature tagged "NPRA Hours"; within the allowance the 20 h are reserved, 10 h over it the 30 h are reserved; NPRA is no stream and not booked work; allowance 0 tracks only; settings without the field take 20 h; normalisation), `dashboard.test.mjs` (settings with allowance 0 keep the former numbers); browser check (Pulse Check → Last month with the synthetic sample, whose CP / IOCC / QMS first Features carry "NPRA Hours"): the NPRA metric shows the booked hours and "allowance 20h per person"; the NPRA table lists each person with booked / planned / allowance / left and "Within 20h" or "n h over the maximum"; "Who has capacity" shows "NPRA nh / 20h" under the person; Settings → Capacity → Edit shows "NPRA hours per person per month" and saving 0 removes the reservation; no page errors. **UAT**
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1002,6 +1004,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-UI-01 Theme** — Req UI-01, UI-02 — L1 `theme.test.mjs`.
 
 **TC-UI-02 Buttons** — Req UI-05 — browser check in light and dark theme: Settings → Azure DevOps shows "Open QMS-0025 →" solid indigo with white text and a shadow, "＋ Add server" and "Fetch 1" outlined, disabled "Save PAT" flat grey; Settings → Feature setup list: Edit indigo, Delete red, the Save to Git bar's button green (grey while disabled); every text action in a notice is a tinted pill; the row buttons stay in view.
+
+**TC-UI-03 App name and mark** — Req UI-06 — browser check: the sidebar shows the bars-and-check mark with "I&D Quality" over "Demand Planning"; the tab title reads "I&D Quality Demand Planning"; the favicon is the mark on the teal-to-indigo tile; the desktop update feed still names Demand-Planning-Hub-Setup.exe (`scripts/desktop-manifest.cjs`, build-and-deploy.yml unchanged).
 - L3 steps:
   1. Click the toggle three times.
   2. Load `?theme=dark` and then reload without the parameter.
@@ -1156,6 +1160,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | OV-14 | TC-OV-14 |
 | OVR-09, CAP-01…09 | TC-CAP-01 |
 | CAP-04, CAP-05, CAP-10…12 | TC-CAP-02 |
+| CAP-13 | TC-CAP-03 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1191,6 +1196,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UI-01, UI-02 | TC-UI-01 |
 | UI-03, UI-04 | TC-INS-03 |
 | UI-05 | TC-UI-02 |
+| UI-06 | TC-UI-03 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
 | QEM-01 | TC-QEM-03, TC-QEM-04 |
@@ -1217,12 +1223,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21, TC-QV-10, TC-QV-11 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…04, TC-CAP-02, TC-NAV-34 |
+| UC-14 | TC-SET-01…04, TC-CAP-02, TC-CAP-03, TC-NAV-34 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
