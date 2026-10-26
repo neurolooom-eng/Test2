@@ -79,6 +79,17 @@ export function chooseSetup(setups: FeatureSetups | null | undefined, epicId: nu
   if (personal && !(preferShared && shared)) return { setup: personal, source: 'personal' }
   return shared ? { setup: shared, source: 'shared' } : {}
 }
+// Every shared setup at a glance, by Epic number: what a Feature under the Epic gets, and whether my own setup of the
+// Epic replaces it for me.
+export interface SharedSetupRow { epicId: number; epicTitle: string; stories: string[]; timeWritingStory: string; task: string; originalEstimate?: number; mineInstead: boolean }
+export function sharedSetupRows(setups: FeatureSetups | null | undefined): SharedSetupRow[] {
+  return [...(setups?.shared?.epics ?? [])].sort((a, b) => a.epicId - b.epicId).map((entry) => ({
+    epicId: entry.epicId, epicTitle: entry.epicTitle, stories: entry.stories.map((story) => story.title),
+    timeWritingStory: (entry.timeWritingStory ?? defaultTimeWritingStory).title, task: entry.task.title,
+    ...(entry.task.originalEstimate != null ? { originalEstimate: entry.task.originalEstimate } : {}),
+    mineInstead: Boolean(setupFor(setups?.personal ?? null, entry.epicId)),
+  }))
+}
 // Enable for everyone: the shared file with this Epic's entry replaced by (a copy of) the given one.
 export function publishSetup(shared: FeatureSetupFile | null, entry: EpicSetup): FeatureSetupFile {
   const epics = (shared?.epics ?? []).filter((item) => item.epicId !== entry.epicId)
