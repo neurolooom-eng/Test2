@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { chooseSetup, emptySetup, personalSetupPath, publishSetup } from '../src/featureSetup.ts'
+import { chooseSetup, emptySetup, personalSetupPath, publishSetup, sharedSetupRows } from '../src/featureSetup.ts'
 
 const file = (...epics) => ({ schema: 1, kind: 'feature-setup', epics })
 const withStory = (epicId, title) => ({ ...emptySetup(epicId, `Epic ${epicId}`), stories: [{ title, description: '' }] })
@@ -57,4 +57,16 @@ test('copy a setup to another Epic: replaces the target, keeps the source, no-op
   assert.equal(source.epics[0].stories[0].title, 'Mine', 'the copy is independent')
   assert.equal(copySetup(source, 99, 13946), source)
   assert.equal(copySetup(source, 5, 5), source)
+})
+
+test('all shared setups: by Epic number, with stories, Time Writing story, Task and whether mine replaces it', () => {
+  const later = { ...emptySetup(37810, 'Later'), stories: [{ title: 'SFV : Review', description: '' }, { title: 'DT', description: '' }], task: { ...emptySetup(1).task, title: '{month} | {feature}', originalEstimate: 4 } }
+  const earlier = emptySetup(13946, 'Earlier')
+  const rows = sharedSetupRows({ shared: file(later, earlier), personal: file(emptySetup(37810)) })
+  assert.deepEqual(rows.map((row) => row.epicId), [13946, 37810])
+  assert.deepEqual(rows[1], { epicId: 37810, epicTitle: 'Later', stories: ['SFV : Review', 'DT'], timeWritingStory: '{feature} - Time Writing', task: '{month} | {feature}', originalEstimate: 4, mineInstead: true })
+  assert.equal(rows[0].mineInstead, false)
+  assert.equal('originalEstimate' in rows[0], false)
+  assert.deepEqual(sharedSetupRows({ shared: null, personal: null }), [])
+  assert.deepEqual(sharedSetupRows(null), [])
 })
