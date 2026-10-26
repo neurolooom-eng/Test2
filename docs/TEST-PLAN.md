@@ -331,6 +331,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-33 Links in Bulk actions** — Req CON-65 — browser check with the synthetic sample: Bulk actions, choose a person with a pending Feature → its row in the Time Writing tasks shows "#100002" as a link to …/_workitems/edit/100002 (target _blank); clicking it opens a new tab and leaves the checkbox unchanged; State checks and Move to current PI + Sprint rows use the same link; no page errors.
 
+**TC-CON-34 Time Writing story paths in the setup** — Req CON-66 — L1 `feature-setup.test.mjs` (rows carry the story's Area and Iteration Path); browser check with GitHub mocked: the row of #37810 shows "Area: the Feature’s · Iteration: project root"; Edit → set Area Path "QMS\Quality Engineering" and Iteration Path "QMS" (with the DoD) → Save to Git → the saved story holds both and the row shows them; the setup pop-up's placeholders say "Empty: the Feature's Area Path" and "Empty: the project root … (no PI, Sprint or year)".
+
 **TC-CON-27 Map a Feature setup to an Epic** — Req CON-59 — L1 `feature-setup.test.mjs` ("built-in stories as a setup give exactly the titles of the built-in creation"; "copy a setup to another Epic: replaces the target, keeps the source, no-op without a source"); browser check with a writable Git store holding a personal setup of another Epic: My setup shows it with "applies now" on step 1; "Copy this setup to Epic #" 13946 → the four stories appear under #13946 and the panel says "changed here, not saved yet"; Save to Git commits `feature-setup/<email>.json` holding both Epics and the panel then marks My setup as applying to #13946; "Go to Epic #" another number with no setup offers the two built-in buttons. **UAT**
 
 **TC-CON-26 Personal and shared Feature setup** — Req CON-58, CON-52 — L1 `feature-setup.test.mjs` (one file per email with unsafe characters and runs of dots replaced; my setup of an Epic wins for me, the shared one otherwise, and the form can switch; Enable for everyone replaces only that Epic, as a copy); browser check: Settings → Feature setup opens for every role; with an email on the Time Writing connection it shows My setup and Shared (everyone), else only Shared with a notice; "Start my own from the shared one", "Remove my setup" and "Enable for everyone" save to Git with a writable token. **UAT**
@@ -620,6 +622,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-BKL-03 Complete children** — Req BKL-10 — L1 `my-work.test.mjs` ("Complete children only for a Feature without optional User Stories")
 
 **TC-BKL-04 Feature DoD mandatory** — Req BKL-13 — L1 `azure-devops.test.mjs` ("the Feature DoD is mandatory: composed into the Description, and creation is refused without one"), `feature-setup.test.mjs` ("Feature DoD in a setup: kept through save, built-in defaults, and required for new or changed setups"); browser check with Azure DevOps mocked (Time Writing connection with email and PAT, one Epic): Assigned to Me → ＋ New Feature opens "Add Feature under an Epic" with "Feature DoD" = "DT finished. This is a PU release."; clearing it disables "Create Feature and children" with the title "Enter the Feature DoD first"; the release view's Create Feature is disabled until a DoD is typed. **UAT**
+
+**TC-BKL-05 Time Writing story not tied to a Sprint** — Req BKL-14 — L1 `azure-devops.test.mjs` ("… always creates Time Writing and the month task" for PU and Release: review stories in the PI, the Time Writing story at the project root; "new Feature is assigned to the configured creator email, review stories to the Sprint, the Time Writing story and task to the project root"; "the Time Writing story without set paths: the project root iteration (no PI, Sprint or year) and the Feature area; an existing one is reused wherever it is"), `my-work.test.mjs` (a new Time Writing story from Bulk actions at the project root; "move candidates …": Time Writing stories are never moved); browser check: New Feature shows "Time Writing User Story → QMS (not the PI or Sprint)" in Dates and paths. **UAT**
 - Steps:
   1. On a Feature with only its Time Writing story (or no story), choose "Complete children".
   2. Look at a Feature that already has an optional User Story (SFV, DT, a setup story, …).
@@ -1047,6 +1051,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-63 | TC-CON-31 |
 | CON-64 | TC-CON-32 |
 | CON-65 | TC-CON-33 |
+| CON-66 | TC-CON-34 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1097,6 +1102,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
 | BKL-13 | TC-BKL-04 |
+| BKL-14 | TC-BKL-05 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1164,8 +1170,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33 |
-| UC-07 | TC-BKL-01…04, TC-CON-23, TC-CON-25…27, TC-CON-29…32 |
+| UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
+| UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |

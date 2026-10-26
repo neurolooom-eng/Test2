@@ -64,7 +64,7 @@ test('all shared setups: by Epic number, with stories, Time Writing story, Task 
   const earlier = emptySetup(13946, 'Earlier')
   const rows = sharedSetupRows({ shared: file(later, earlier), personal: file(emptySetup(37810)) })
   assert.deepEqual(rows.map((row) => row.epicId), [13946, 37810])
-  assert.deepEqual(rows[1], { epicId: 37810, epicTitle: 'Later', featureDoD: '', stories: ['SFV : Review', 'DT'], timeWritingStory: '{feature} - Time Writing', task: '{month} | {feature}', originalEstimate: 4, mineInstead: true })
+  assert.deepEqual(rows[1], { epicId: 37810, epicTitle: 'Later', featureDoD: '', stories: ['SFV : Review', 'DT'], timeWritingStory: '{feature} - Time Writing', storyAreaPath: '', storyIterationPath: '', task: '{month} | {feature}', originalEstimate: 4, mineInstead: true })
   assert.equal(rows[0].mineInstead, false)
   assert.equal('originalEstimate' in rows[0], false)
   assert.deepEqual(sharedSetupRows({ shared: null, personal: null }), [])

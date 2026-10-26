@@ -86,11 +86,11 @@ export function chooseSetup(setups: FeatureSetups | null | undefined, epicId: nu
 }
 // Every shared setup at a glance, by Epic number: what a Feature under the Epic gets, and whether my own setup of the
 // Epic replaces it for me.
-export interface SharedSetupRow { epicId: number; epicTitle: string; featureDoD: string; stories: string[]; timeWritingStory: string; task: string; originalEstimate?: number; mineInstead: boolean }
+export interface SharedSetupRow { epicId: number; epicTitle: string; featureDoD: string; stories: string[]; timeWritingStory: string; storyAreaPath: string; storyIterationPath: string; task: string; originalEstimate?: number; mineInstead: boolean }
 export function sharedSetupRows(setups: FeatureSetups | null | undefined): SharedSetupRow[] {
   return [...(setups?.shared?.epics ?? [])].sort((a, b) => a.epicId - b.epicId).map((entry) => ({
     epicId: entry.epicId, epicTitle: entry.epicTitle, featureDoD: entry.featureDoD ?? '', stories: entry.stories.map((story) => story.title),
-    timeWritingStory: (entry.timeWritingStory ?? defaultTimeWritingStory).title, task: entry.task.title,
+    timeWritingStory: (entry.timeWritingStory ?? defaultTimeWritingStory).title, storyAreaPath: entry.timeWritingStory?.areaPath ?? '', storyIterationPath: entry.timeWritingStory?.iterationPath ?? '', task: entry.task.title,
     ...(entry.task.originalEstimate != null ? { originalEstimate: entry.task.originalEstimate } : {}),
     mineInstead: Boolean(setupFor(setups?.personal ?? null, entry.epicId)),
   }))

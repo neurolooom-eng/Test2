@@ -389,11 +389,13 @@ async function directChildren(config: AzureConfig, pat: string, parentId: number
 }
 
 // options: a Description, and an Area Path other than the parent's (both from the per-Epic Feature setup).
-async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number, options: { description?: string; areaPath?: string } = {}) {
+async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number, options: { anyPlace?: boolean; description?: string; areaPath?: string } = {}) {
   const areaPath = options.areaPath?.trim() || parent.areaPath
   const matches = existing.filter((item) => item.parentId === parent.id && item.workItemType === type && item.title.trim() === title)
   if (matches.length > 1) throw new Error(`Multiple matching ${type} items already exist under #${parent.id}. Review duplicates before continuing.`)
   if (matches.length === 1) {
+    // The Time Writing story is not tied to a PI or Sprint: an existing one is used wherever it is.
+    if (options.anyPlace) return matches[0]
     if (matches[0].areaPath !== areaPath || matches[0].iterationPath !== iterationPath) throw new Error(`Existing ${type} #${matches[0].id} has a different area or iteration. Review it before continuing.`)
     return matches[0]
   }
@@ -453,7 +455,7 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   if (plan.status === 'conflict') throw new Error(`#${feature.id} has ${plan.stories.length} possible Time Writing stories (${plan.stories.map((item) => `#${item.id}`).join(', ')}). Add your month Task under the right one in Azure DevOps.`)
   let story: AzureWorkItem, storyCreated = false
   if (plan.status === 'use') story = plan.story
-  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, feature.iterationPath, email, transport); storyCreated = true }
+  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
   const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport)
   return { status: 'created', task, story, storyCreated }
 }
@@ -489,7 +491,8 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     if (selected.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
     const children = await directChildren(config, pat, feature.id, transport)
     for (const review of titles.reviews.filter((review) => selected.includes(review.milestone))) items.push(await ensureChild(config, pat, feature, 'User Story', review.title, children, owner, transport, storyIterationPath || feature.iterationPath))
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, storyIterationPath || feature.iterationPath)
+    // The Time Writing story is not tied to a PI, Sprint or year: it sits at the project's root iteration.
+    const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, config.project, undefined, undefined, { anyPlace: true })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
     items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project))
@@ -556,7 +559,7 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
     const taskTitle = fill(setup.task.title || '{month} | {feature}', 'The Time Writing Task title')
     const children = await directChildren(config, pat, feature.id, transport)
     for (const story of stories) items.push(await ensureChild(config, pat, feature, 'User Story', story.title, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { description: story.description }))
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || storyIterationPath || feature.iterationPath, undefined, undefined, { description: storySetup?.description ?? '', areaPath: storySetup?.areaPath ?? '' })
+    const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath ?? '' })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
     let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath })

@@ -405,7 +405,7 @@ for (const [kind, milestones, expectedStories] of [['PU', undefined, 4], ['Relea
     assert.equal(tasks[0].title, 'October 2026 | Example | Service | v1.0')
     assert.equal(tasks[0].iterationPath, config.project)
     for (const story of stories) {
-      assert.equal(story.iterationPath, 'Quality Project\\Current PI')
+      assert.equal(story.iterationPath, story.id === timeWriting.id ? config.project : 'Quality Project\\Current PI', 'the Time Writing story sits at the project root, not in a PI or Sprint')
       assert.equal(story.areaPath, result.feature.areaPath)
     }
     const writesBefore = server.writes.length
@@ -486,12 +486,14 @@ test('overlapping branches stay ambiguous unless configured team Sprint narrows 
   assert.equal(currentIterationPairs(values, date).length, 1)
 })
 
-test('new Feature is assigned to the configured creator email, all stories to Sprint, and task remains project-root', async () => {
+test('new Feature is assigned to the configured creator email, review stories to the Sprint, the Time Writing story and task to the project root', async () => {
   const server = fakeHierarchyServer()
   const result = await createAzureReleaseHierarchy(config, pat, { ...feature, iterationPath: 'Quality Project\\PI A', storyIterationPath: 'Quality Project\\PI A\\Sprint 1', assignedTo: 'creator@example.test' }, 'PU', undefined, 'October 2026', server.transport)
   assert.equal(result.feature.iterationPath, 'Quality Project\\PI A')
   assert.equal(server.records.get(result.feature.id).fields['System.AssignedTo'].id, 'creator@example.test')
-  assert.ok(result.items.filter((item) => item.workItemType === 'User Story').every((item) => item.iterationPath === 'Quality Project\\PI A\\Sprint 1'))
+  const timeWritingStory = result.items.find((item) => item.workItemType === 'User Story' && item.title.endsWith('- Time Writing'))
+  assert.equal(timeWritingStory.iterationPath, config.project, 'not the Sprint, PI or a year')
+  assert.ok(result.items.filter((item) => item.workItemType === 'User Story' && item !== timeWritingStory).every((item) => item.iterationPath === 'Quality Project\\PI A\\Sprint 1'))
   assert.equal(result.items.find((item) => item.workItemType === 'Task').iterationPath, config.project)
   const writes = server.writes.length
   await completeReleaseHierarchy(config, pat, result.feature.id, 'PU', undefined, 'October 2026', server.transport, 'Quality Project\\PI A\\Sprint 1')
@@ -590,6 +592,23 @@ test('Feature setup: the Time Writing User Story is configurable per Epic (title
   const task = result.items.find((item) => item.workItemType === 'Task')
   assert.equal(task.parentId, story.id, 'the month Task goes under the configured story')
   assert.equal(task.assignedToEmail, feature.assignedTo, 'the Task still defaults to the Feature assignee')
+})
+
+test('the Time Writing story without set paths: the project root iteration (no PI, Sprint or year) and the Feature area; an existing one is reused wherever it is', async () => {
+  const server = fakeHierarchyServer()
+  const plain = { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: '', iterationPath: '' }
+  const task = { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' }
+  const result = await createFeatureFromSetup(config, pat, { ...feature, iterationPath: 'Current PI', storyIterationPath: 'Quality Project\\Current PI\\Sprint 4' }, { stories: [{ title: 'Review', description: '' }], timeWritingStory: plain, task }, 'October 2026', server.transport)
+  const story = result.items.find((item) => item.title.endsWith('- Time Writing')), review = result.items.find((item) => item.title === 'Review')
+  assert.equal(story.iterationPath, config.project)
+  assert.equal(story.areaPath, result.feature.areaPath)
+  assert.equal(review.iterationPath, 'Quality Project\\Current PI\\Sprint 4', 'optional stories still go to the chosen Sprint')
+  // A Time Writing story created earlier in a Sprint is used as it is, not refused or duplicated.
+  server.records.get(story.id).fields['System.IterationPath'] = 'Quality Project\\Old PI\\Sprint 1'
+  const writes = server.writes.length
+  const again = await completeFeatureFromSetup(config, pat, result.feature.id, { stories: [], timeWritingStory: plain, task }, 'October 2026', server.transport)
+  assert.equal(again.items.find((item) => item.title.endsWith('- Time Writing')).id, story.id)
+  assert.equal(server.writes.length, writes, 'nothing new was written')
 })
 
 import { assertWritableBase } from '../src/azureDevOps.ts'
