@@ -27,3 +27,10 @@ test('the DP table month is the DDT Date month; a row without DDT Date has none;
   assert.deepEqual(dpReleaseName(items[0]), { name: 'RSGMS', release: '3.0.0.2' })
   assert.deepEqual(dpReleaseName(items[1]), { name: 'Release 2', release: '' })
 })
+
+test('DP milestones carry the team names: DT, SFV, PRD, RPE', async () => {
+  const { dpMilestoneNames, dpMilestoneLabel } = await import('../src/dpMilestones.ts')
+  assert.deepEqual(Object.fromEntries(Object.entries(dpMilestoneNames).map(([key, value]) => [key, value.short])), { DDT: 'DT', DRfH: 'SFV', DRPC: 'PRD', DRPE: 'RPE' })
+  assert.equal(dpMilestoneNames.DRfH.long, 'Start of Verification / Start of Hardening')
+  assert.equal(dpMilestoneLabel('DRPE'), 'RPE')
+})

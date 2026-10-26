@@ -10,6 +10,14 @@ import { approvalMonthOf } from './releaseSource.ts'
 // viewer's time zone, as everywhere else.
 export const dpMilestones = [['DDT', 'DDTDate', 'DDTStatus'], ['DRfH', 'DRfHDate', 'DRfHStatus'], ['DRPC', 'DRPCDate', 'DRPCStatus'], ['DRPE', 'DRPEDate', 'DRPEStatus']] as const
 export type DpMilestone = typeof dpMilestones[number][0]
+// What the DP team calls each milestone (the field names stay DDT / DRfH / DRPC / DRPE).
+export const dpMilestoneNames: Record<DpMilestone, { short: string; long: string }> = {
+  DDT: { short: 'DT', long: 'Design Transfer' },
+  DRfH: { short: 'SFV', long: 'Start of Verification / Start of Hardening' },
+  DRPC: { short: 'PRD', long: 'PRD Milestone' },
+  DRPE: { short: 'RPE', long: 'Release Planning Event' },
+}
+export const dpMilestoneLabel = (milestone: DpMilestone) => dpMilestoneNames[milestone].short
 export interface CountedMilestone { item: AzureWorkItem; milestone: DpMilestone; date: string; status: string }
 
 export const ddtMonthOf = (item: Pick<AzureWorkItem, 'fields'>, timeZone?: string) => approvalMonthOf(fieldOf(item, 'DDTDate'), timeZone)
