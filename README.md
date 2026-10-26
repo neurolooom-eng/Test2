@@ -223,6 +223,8 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 
 ### Release Details and Windchill exports
 
+**Rearrange columns.** In the DP view, drag a column heading onto another to move it, or open **Columns** and drag a column in the list or use ← →. The order (and which columns are shown) is remembered per view in this browser and used by the CSV; **Query order** resets it.
+
 **DP → QMS-0025 match.** The DP table ends with a **QMS-0025 match** column: the Feature and the User Story on your Time Writing board whose title matches the row's **SourceProgram + Title** (or the Title alone, as not everyone writes the SourceProgram) by fuzzy match at 80% (the match threshold in Settings). The Title carries the name and the version, and **both must match**: a board item with another version, or none, stays below 80%. They link to Azure DevOps. With no match you see the closest item and **Create Feature**, which opens a pop-up pre-filled with Program (SourceProgram) · Service (Title) · Release; the Feature DoD is required. Load the QMS-0025 board first (Refresh on the Time Writing connection).
 
 **View notes.** On a Release Details view, notes about the view (month filter, the DP milestone legend, Git load and save notes) are behind the **ⓘ Info** next to its name; only errors and warnings show as banners.
