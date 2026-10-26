@@ -744,6 +744,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 ### 6.11 Git storage
 
 **TC-GIT-01 Config validation** — Req GIT-01 — L1 `git-storage.test.mjs`.
+
+**TC-GIT-05 Capacity settings and mappings in Git** — Req GIT-03, GIT-04, GIT-08, CAP-10 — L1 `git-storage.test.mjs` ("capacity settings, holidays and common activities travel in the Git planning file": round-trip without change, mappings sorted by ID, an older file without them loads as before and makes Save to Git appear, invalid mappings dropped); browser check: add a mapping on Settings → Capacity → the sync bar there says "Unsaved changes"; Save to Git; on a second browser Load latest shows the same mapping. **UAT**
 - L3 expected:
   - `my org` is rejected (owner).
   - `a..b` is rejected (branch).
@@ -1084,6 +1086,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BAS-08…10 | TC-BAS-03 |
 | BAS-11 | TC-BAS-04 |
 | GIT-01 | TC-GIT-01 |
+| GIT-03, GIT-04, GIT-08 | TC-GIT-02, TC-GIT-05 |
 | GIT-02…04, GIT-06, GIT-08, GIT-12 | TC-GIT-02 |
 | GIT-05, GIT-07, GIT-11 | TC-GIT-03 |
 | GIT-09, GIT-10 | TC-GIT-04 |
@@ -1137,7 +1140,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
-| UC-12 | TC-GIT-01…04 |
+| UC-12 | TC-GIT-01…04, TC-GIT-05 |
 | UC-13 | TC-SNP-01…03 |
 | UC-14 | TC-SET-01…04, TC-CAP-02 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |

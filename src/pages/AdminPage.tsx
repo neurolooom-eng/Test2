@@ -94,7 +94,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'capacity', detail: `Absence Epic #${next.absenceEpicId}, ${next.hoursPerDay}h/day, overloaded ≥ ${next.overloadedAt}%, capacity < ${next.availableBelow}%` })
       return draft
     })
-    setCapacityMessage('Capacity settings saved with the shared app data.')
+    setCapacityMessage('Capacity settings saved here. Save to Git (bar below) so everyone gets them.')
   }
 
   // Holidays and common activities: saved with the capacity settings (shared app data), audited.
@@ -105,7 +105,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'shared-time', detail })
       return draft
     })
-    setCapacityMessage(`${detail}. Saved with the shared app data.`)
+    setCapacityMessage(`${detail}. Save to Git (bar above) so everyone gets it.`)
   }
 
   async function connectSharePoint(event: React.FormEvent<HTMLFormElement>) {
@@ -140,7 +140,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <div className="admin-grid">
-      <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Dashboard to compute available hours and utilization. Stored with the shared app data, not per browser.">
+      <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Dashboard to compute available hours and utilization. Saved with the planning data in Git (with the holidays and common activities), so everyone who loads from Git gets the same settings.">
         <form onSubmit={saveCapacity}>
           <div className="form-row"><label>Absence Epic ID<input name="absenceEpicId" type="number" min="1" step="1" required defaultValue={capacity.absenceEpicId} /><small>Everything under this Epic counts as absence; Feature and Task titles decide PTO, Sick Leave or Unplanned Leave.</small></label><label>Funded hours per working day<input name="hoursPerDay" type="number" min="0.25" step="0.25" required defaultValue={capacity.hoursPerDay} /></label></div>
           <div className="form-row"><label>Overloaded at or above (%)<input name="overloadedAt" type="number" min="1" step="1" required defaultValue={capacity.overloadedAt} /></label><label>Has capacity below (%)<input name="availableBelow" type="number" min="0" step="1" required defaultValue={capacity.availableBelow} /></label></div>
@@ -148,6 +148,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
         </form>
         {capacityMessage && <Notice tone="success">{capacityMessage}</Notice>}
       </Panel>
+      <div className="shared-time-panel"><GitSyncBar git={git} /></div>
       <SharedTimePanel settings={capacity} items={azure.items} month={month} onSave={saveSharedTime} />
       <Panel eyebrow="PERIOD CONTROL" title={monthName(month)}>
         <label>Reason for change<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label>

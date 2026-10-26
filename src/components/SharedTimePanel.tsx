@@ -6,7 +6,8 @@ import { Notice, Panel, Pill } from './ui'
 
 // Settings → Capacity: map an Epic or Feature (by ID) as regional / company holidays or as a common activity everyone
 // (or one region) attends, such as PI Planning or an audit. Its month Tasks then apply to every person in scope:
-// holidays as absence, activities as reserved time; both lower available capacity. Saved with the capacity settings.
+// holidays as absence, activities as reserved time; both lower available capacity. Saved with the capacity settings,
+// which go to Git with the planning data (Save to Git), so everyone gets the same mappings.
 const kindLabel: Record<SharedTimeKind, string> = { holiday: 'Holidays (absence)', activity: 'Common activity (reserved time)' }
 const scopeLabel = (scope: SharedTimeScope) => scope === 'everyone' ? 'Everyone' : `Everyone in ${scope}`
 
@@ -39,7 +40,7 @@ export function SharedTimePanel({ settings, items, month, onSave }: { settings: 
     onSave(rules.filter((entry) => entry.id !== rule.id), `Removed the mapping of #${rule.id}`)
   }
 
-  return <Panel className="admin-section shared-time-panel" eyebrow="SHARED TIME" title="Holidays and common activities" info={<>Map the Epic or Feature that holds the month Tasks of regional holidays, or of a common activity such as PI Planning or an audit. Each of its month Tasks (“{monthName(month)} | PI Planning”) then applies to every person in scope instead of to its assignee: holidays count as absence, common activities as reserved time, and both lower available capacity. Hours per Task: Original Estimate, else Completed Work, else one working day ({settings.hoursPerDay}h). Scope “Everyone in a region” uses the region of each person in Settings → Resources. The nearest mapped Epic or Feature above a Task decides. A Feature under the absence Epic named like “Public Holidays - India” still counts as that region’s holidays without a mapping.</>}
+  return <Panel className="admin-section shared-time-panel" eyebrow="SHARED TIME" title="Holidays and common activities" info={<>Map the Epic or Feature that holds the month Tasks of regional holidays, or of a common activity such as PI Planning or an audit. Each of its month Tasks (“{monthName(month)} | PI Planning”) then applies to every person in scope instead of to its assignee: holidays count as absence, common activities as reserved time, and both lower available capacity. Hours per Task: Original Estimate, else Completed Work, else one working day ({settings.hoursPerDay}h). Scope “Everyone in a region” uses the region of each person in Settings → Resources. The nearest mapped Epic or Feature above a Task decides. A Feature under the absence Epic named like “Public Holidays - India” still counts as that region’s holidays without a mapping. Mappings are saved with the planning data in Git: press Save to Git so everyone gets them.</>}
     action={<Pill tone={rules.length ? 'open' : 'neutral'}>{rules.length} mapped</Pill>}>
     <form className="shared-time-form" onSubmit={add}>
       <label>Epic or Feature ID<input inputMode="numeric" value={id} placeholder="e.g. 37810" onChange={(event) => { setId(event.target.value); setError('') }} /><small className={target || !id.trim() ? 'muted' : 'warning-text'}>{!id.trim() ? 'Its month Tasks hold the hours.' : target ? `${target.workItemType} · ${target.title}` : 'Not in the fetched data (can still be mapped)'}</small></label>
