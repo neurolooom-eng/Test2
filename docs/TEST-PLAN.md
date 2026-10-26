@@ -682,6 +682,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
   - Epic colours are unchanged between 6 and 12 months.
   - The click changes the header month.
 
+**TC-CAP-02 Holidays and common activities** — Req CAP-04, CAP-05, CAP-10…12 — L1 `capacity.test.mjs` ("holidays and common activities: mapped Epics / Features apply their month Tasks to everyone in scope": PI Planning for everyone lowers each person's available hours and is not their booked work; a region-scoped audit applies to that region only and the nearest mapping wins; a name-based holiday Feature still applies; mapping it explicitly replaces the name rule without counting twice; invalid mappings are dropped); browser check: Settings → Capacity → Holidays and common activities: enter the PI Planning Feature ID, Common activity, Everyone → it is listed with its hours and people for the header month; Pulse Check → Last month shows "… h common activities" per person and a Common activities part of the funded-hours ring; saving the capacity numbers keeps the mapping; Remove restores the Task to its assignee. **UAT**
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1076,6 +1078,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | OV-13 | TC-OV-13 |
 | OV-14 | TC-OV-14 |
 | OVR-09, CAP-01…09 | TC-CAP-01 |
+| CAP-04, CAP-05, CAP-10…12 | TC-CAP-02 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1131,12 +1134,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20 |
 | UC-07 | TC-BKL-01…03, TC-CON-23, TC-CON-25…27 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CON-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…04 |
+| UC-14 | TC-SET-01…04, TC-CAP-02 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
