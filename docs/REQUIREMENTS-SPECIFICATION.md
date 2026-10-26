@@ -552,6 +552,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | UI-02 | `?theme=dark\|light\|system` shall apply that theme once and remember it. | T | C | UC-01 |
 | UI-03 | Every icon-only button shall have an accessible label. | I | S | UC-01 |
 | UI-04 | Tab rows shall use `role="tablist"`/`role="tab"` with `aria-selected`, and sortable headings shall carry `aria-sort`. | I | S | UC-08, UC-09 |
+| UI-05 | Every action button shall be clearly visible: raised (shadow, lifting slightly on hover) and coloured by what it does — solid indigo with white text for the main action, white with an indigo outline for secondary actions, a tinted pill for small inline actions, green for Save to Git, red for Delete / Remove — in light and dark theme; disabled buttons shall be flat and grey (not-allowed cursor). Toggle groups and filter chips keep their own look. | D | S | UC-01 |
 
 ### 3.21 Build and deployment (CI) — UC-19
 

@@ -976,6 +976,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 ### 6.19 User interface
 
 **TC-UI-01 Theme** — Req UI-01, UI-02 — L1 `theme.test.mjs`.
+
+**TC-UI-02 Buttons** — Req UI-05 — browser check in light and dark theme: Settings → Azure DevOps shows "Open QMS-0025 →" solid indigo with white text and a shadow, "＋ Add server" and "Fetch 1" outlined, disabled "Save PAT" flat grey; Settings → Feature setup list: Edit indigo, Delete red, the Save to Git bar's button green (grey while disabled); every text action in a notice is a tinted pill; the row buttons stay in view.
 - L3 steps:
   1. Click the toggle three times.
   2. Load `?theme=dark` and then reload without the parameter.
@@ -1142,6 +1144,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DOC-04, DOC-06…08 | TC-DOC-02 |
 | UI-01, UI-02 | TC-UI-01 |
 | UI-03, UI-04 | TC-INS-03 |
+| UI-05 | TC-UI-02 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
 | NFR-01 | TC-INS-04 |
@@ -1156,7 +1159,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01, TC-UI-02 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-28, TC-NAV-02, TC-NAV-34 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
