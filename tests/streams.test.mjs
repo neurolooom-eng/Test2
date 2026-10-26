@@ -58,7 +58,7 @@ test('Pulse Check streams: the five Azure streams in order, not-set-up ones list
   const profiles = [{ id: 'dp', reason: 'DP', role: 'reference' }, { id: 'io', reason: 'IOCC', role: 'reference' }, { id: 'ped', reason: 'Releases (Pedestal)', role: 'release-source' }]
   const streams = defaultStreamReleases(state, profiles, '2026-10', 'UTC')
   assert.deepEqual(streams.map((stream) => [stream.name, Boolean(stream.notSetUp), stream.releases.map((entry) => `${entry.type ? `[${entry.type}] ` : ''}${entry.name} ${entry.release}`)]), [['DP', false, ['DoseNav 2.1.0']], ['CP', true, []], ['IOCC', false, ['[Core] Patient Monitor 1.4']], ['Content', true, []], ['Tool Validations', true, []]])
-  assert.deepEqual([streams[0].supported, streams[0].documents, streams[0].titles.map((entry) => entry.release)], [2, 0, ['DRfH Done', 'DDT Done']], 'DP: Supported Releases = DDT + DRfH Done in October')
+  assert.deepEqual([streams[0].supported, streams[0].documents, streams[0].titles.map((entry) => entry.release)], [2, 0, ['SFV Done', 'DT Done']], 'DP: Supported Releases = DDT + DRfH Done in October')
   assert.equal(streams[2].supported, undefined, 'other streams keep documents')
   // The Dashboard's delivery table: DP per month and over the period.
   const counts = streamCounts(state, profiles, ['2026-09', '2026-10'], 'UTC')

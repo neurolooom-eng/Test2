@@ -4,7 +4,7 @@ import { releaseFor, releaseOf } from './releasePath.ts'
 import { defaultStreams, profileForStream, streamOfProfile, type ReleaseRule } from './streams.ts'
 import { releaseRegister, viewMonthOf } from './releaseSource.ts'
 import { viewSource } from './viewSources.ts'
-import { dpMonthCounts, dpReleaseName } from './dpMilestones.ts'
+import { dpMilestoneLabel, dpMonthCounts, dpReleaseName } from './dpMilestones.ts'
 
 // Overview "Releases this month": for each read-only view whose documents carry releases in their paths (DP, CP,
 // IOCC, …), the releases with documents approved (else changed) in the month, in the viewer's time zone — the same
@@ -27,13 +27,13 @@ function streamOf(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profi
   return { id: profile.id, name: profile.viewName || profile.reason, fetchedAt: source?.fetchedAt ?? '', releases, documents: releases.reduce((sum, entry) => sum + entry.documents, 0), titles }
 }
 
-// DP from its own query: Completed Releases = DDT Done in the month, Supported Releases = DDT, DRfH, DRPC and DRPE
+// DP from its own query: Completed Releases = DT (DDT) Done in the month, Supported Releases = DT, SFV, PRD and RPE
 // Done in the month (dpMilestones); the milestones counted are listed as its titles.
 function dpStream(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profile: AzureConnectionProfileSummary, releaseConnections: number, month: string, timeZone?: string): ReleaseStream {
   const source = viewSource(state, profile.id, profile.role, profile.query, releaseConnections)
   const counts = dpMonthCounts(source?.items ?? [], month, timeZone)
   const releases = counts.completed.map(({ item, date }) => ({ ...dpReleaseName(item), documents: 0, approvalDate: date }))
-  const titles = counts.supported.map(({ item, milestone, date }) => ({ id: item.id, title: item.title, url: item.url, release: `${milestone} Done`, approvalDate: date }))
+  const titles = counts.supported.map(({ item, milestone, date }) => ({ id: item.id, title: item.title, url: item.url, release: `${dpMilestoneLabel(milestone)} Done`, approvalDate: date }))
   return { id: profile.id, name: 'DP', fetchedAt: source?.fetchedAt ?? '', releases, documents: 0, titles, supported: counts.supported.length }
 }
 
