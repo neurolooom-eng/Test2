@@ -110,3 +110,14 @@ export function copySetup(file: FeatureSetupFile, fromEpicId: number, toEpicId: 
   const copy = { ...structuredClone(source), epicId: toEpicId, epicTitle: toEpicTitle }
   return { ...file, epics: [...file.epics.filter((entry) => entry.epicId !== toEpicId), copy].sort((a, b) => a.epicId - b.epicId) }
 }
+// Editing the shared setups in their list: a copy of the file with one Epic's entry changed (nothing happens for an
+// Epic without a setup), or without it.
+export function editSetup(file: FeatureSetupFile, epicId: number, update: (entry: EpicSetup) => void): FeatureSetupFile {
+  if (!setupFor(file, epicId)) return file
+  const next = structuredClone(file)
+  const entry = next.epics.find((item) => item.epicId === epicId)!
+  entry.timeWritingStory ??= { ...defaultTimeWritingStory }
+  update(entry)
+  return next
+}
+export const removeSetup = (file: FeatureSetupFile, epicId: number): FeatureSetupFile => ({ ...file, epics: file.epics.filter((entry) => entry.epicId !== epicId) })

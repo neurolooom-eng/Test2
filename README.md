@@ -154,7 +154,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 **Pop-ups.** In Settings, adding or editing opens a pop-up over the page: Azure DevOps connections and servers, Git storage, SharePoint, the capacity settings, holiday and common-activity mappings, and the Feature setup of an Epic. The page keeps the lists and a summary of the saved values. Every pop-up form reads top to bottom: one field per row, its explanation under it, Cancel and the main action at the bottom right. A click beside a pop-up does not close it (× and Cancel do), so nothing typed is lost.
 
-**All shared Feature setups.** Settings → Feature setup lists every shared setup at once — per Epic its optional User Stories, the Time Writing story and the month Task (with its estimate), and whether your own setup replaces it for you — with **Open** to see or edit one in its pop-up.
+**All shared Feature setups.** Settings → Feature setup lists every shared setup at once — per Epic its optional User Stories, the Time Writing story and the month Task (with its estimate), and whether your own setup replaces it for you — with **Open** to see or edit one in its pop-up. With a Git token that can save, **Edit** on a row edits it in place — the User Story titles (add, remove, reorder), the Time Writing story, the month Task and its estimate — and **Remove** drops an Epic's shared setup; changed rows are marked and one **Save to Git** commits them all. Descriptions, assignees and paths are kept and edited with **All fields…**.
 
 ### Shared layout, themes and clock
 

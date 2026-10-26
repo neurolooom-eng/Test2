@@ -323,6 +323,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-29 All shared Feature setups** — Req CON-61 — L1 `feature-setup.test.mjs` ("all shared setups: by Epic number, with stories, Time Writing story, Task and whether mine replaces it"); browser check with a shared setup of Epics #37810 (two stories, 8h estimate) and #13946 (no stories) in this browser and no Git: "All shared setups (2 Epics, as last loaded in this browser)" lists #13946 first with None, then #37810 with both stories in order and "8h estimate"; Open on #37810 shows "Shared Feature setup · Epic #37810 Digital Platform" with two User Story rows; no page errors.
 
+**TC-CON-30 Edit shared setups in the list** — Req CON-62 — L1 `feature-setup.test.mjs` ("editing in the list: change one Epic in a copy, remove one, leave Epics without a setup alone"); browser check with GitHub mocked (writable token, feature-setup.json with #13946 and #37810, whose first story has a description): both rows offer Edit; on #37810 change story 1, add "IQOQ : Review" and move it up, set the Task title and estimate 6, Done → the row shows the new values and "Changed · not yet in Git"; Edit and Remove #13946 → one row left; Save to Git → one PUT of feature-setup.json "Update the shared Feature setup of Epics #37810, #13946" with only #37810, stories PRD (description kept), IQOQ, SFV, Task "{month} | {service}" 6h; "saved to Git (2 Epics)" with View commit; the bar disappears; no page errors. **UAT**
+
 **TC-CON-27 Map a Feature setup to an Epic** — Req CON-59 — L1 `feature-setup.test.mjs` ("built-in stories as a setup give exactly the titles of the built-in creation"; "copy a setup to another Epic: replaces the target, keeps the source, no-op without a source"); browser check with a writable Git store holding a personal setup of another Epic: My setup shows it with "applies now" on step 1; "Copy this setup to Epic #" 13946 → the four stories appear under #13946 and the panel says "changed here, not saved yet"; Save to Git commits `feature-setup/<email>.json` holding both Epics and the panel then marks My setup as applying to #13946; "Go to Epic #" another number with no setup offers the two built-in buttons. **UAT**
 
 **TC-CON-26 Personal and shared Feature setup** — Req CON-58, CON-52 — L1 `feature-setup.test.mjs` (one file per email with unsafe characters and runs of dots replaced; my setup of an Epic wins for me, the shared one otherwise, and the form can switch; Enable for everyone replaces only that Epic, as a copy); browser check: Settings → Feature setup opens for every role; with an email on the Time Writing connection it shows My setup and Shared (everyone), else only Shared with a notice; "Start my own from the shared one", "Remove my setup" and "Enable for everyone" save to Git with a writable token. **UAT**
@@ -1031,6 +1033,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-59 | TC-CON-27 |
 | CON-60 | TC-CON-28 |
 | CON-61 | TC-CON-29 |
+| CON-62 | TC-CON-30 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1147,7 +1150,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20 |
-| UC-07 | TC-BKL-01…03, TC-CON-23, TC-CON-25…27, TC-CON-29 |
+| UC-07 | TC-BKL-01…03, TC-CON-23, TC-CON-25…27, TC-CON-29, TC-CON-30 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
