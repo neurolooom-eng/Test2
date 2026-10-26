@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { builtinMilestones, builtinSetup, copySetup, defaultTimeWritingStory, emptySetup, fillTitle, missingValues, placeholders, setupFor, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
+import { builtinMilestones, builtinSetup, copySetup, defaultTimeWritingStory, emptySetup, fillTitle, missingValues, placeholders, setupFor, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
 import { currentIndiaMonth } from '../azureDevOps'
 import { assignablePeople } from '../myWork'
 import type { FeatureSetup } from '../useFeatureSetup'
@@ -33,6 +33,9 @@ export function FeatureSetupPanel({ setup, git, items }: { setup: FeatureSetup; 
   const chosen = epicId || base?.epics[0]?.epicId || setup.shared?.epics[0]?.epicId || epics[0]?.id || 0
   const sharedEntry = setupFor(setup.shared, chosen), myEntry = setupFor(setup.personal, chosen)
   const switchLayer = (next: 'mine' | 'shared') => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer(next) }
+  // Every shared setup at once; Open shows that Epic's shared setup in the pop-up.
+  const sharedRows = sharedSetupRows(setup)
+  const openShared = (id: number) => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer('shared'); setEpicId(id); setEditing(true) }
   // The editor is a pop-up; closing it with unsaved changes asks first.
   const closeEditor = () => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setEditing(false) }
   const epic = epics.find((item) => item.id === chosen)
@@ -84,6 +87,18 @@ export function FeatureSetupPanel({ setup, git, items }: { setup: FeatureSetup; 
     {!git.connected && <Notice tone="info">Connect Git storage (Storage tab) to share the Feature setup.{setup.shared || setup.personal ? ' The setup last loaded in this browser is used meanwhile.' : ''}</Notice>}
     {git.connected && git.readOnly && <Notice tone="info">View only: your Git token can read but not save.</Notice>}
     {setup.error && <Notice tone="error">Feature setup: {setup.error}</Notice>}
+    <details className="setup-all" open={sharedRows.length > 0 && sharedRows.length <= 12}>
+      <summary><strong>All shared setups</strong> <span className="muted">({sharedRows.length} Epic{sharedRows.length === 1 ? '' : 's'}{git.connected ? '' : ', as last loaded in this browser'})</span></summary>
+      {sharedRows.length ? <div className="azure-table"><table><thead><tr><th>Epic</th><th>Optional User Stories</th><th>Time Writing story</th><th>Month Task</th><th /></tr></thead><tbody>
+        {sharedRows.map((row) => { const title = epics.find((item) => item.id === row.epicId)?.title || row.epicTitle; return <tr key={row.epicId}>
+          <td><strong>#{row.epicId}</strong>{title && <small>{title}</small>}{row.mineInstead && <small className="warning-text">Your own setup replaces it for you</small>}</td>
+          <td>{row.stories.length ? <ol className="setup-all-stories">{row.stories.map((story, index) => <li key={index}>{story || '(untitled)'}</li>)}</ol> : <span className="muted">None</span>}</td>
+          <td>{row.timeWritingStory}</td>
+          <td>{row.task}{row.originalEstimate != null && <small>{row.originalEstimate}h estimate</small>}</td>
+          <td><button type="button" className="ghost" onClick={() => openShared(row.epicId)}>Open</button></td>
+        </tr> })}
+      </tbody></table></div> : <p className="muted">{git.connected && !setup.loaded ? 'Loading from Git…' : 'No shared setup yet: every Epic uses the built-in milestones unless someone has a setup of their own.'}</p>}
+    </details>
     <div className="setup-jump"><label>Go to Epic #<input inputMode="numeric" value={goTo} placeholder="e.g. 13946" onChange={(event) => setGoTo(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); jump() } }} /></label><button type="button" className="ghost" disabled={!idOf(goTo)} onClick={jump}>Open</button></div>
     {chosen > 0 && <div className="setup-flow" role="group" aria-label={`Which setup applies to Epic #${chosen}`}>
       <p><strong>When you create a Feature under Epic {epicLabel}</strong>, the first of these that exists is used:</p>

@@ -154,6 +154,8 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 **Pop-ups.** In Settings, adding or editing opens a pop-up over the page: Azure DevOps connections and servers, Git storage, SharePoint, the capacity settings, holiday and common-activity mappings, and the Feature setup of an Epic. The page keeps the lists and a summary of the saved values. Every pop-up form reads top to bottom: one field per row, its explanation under it, Cancel and the main action at the bottom right. A click beside a pop-up does not close it (× and Cancel do), so nothing typed is lost.
 
+**All shared Feature setups.** Settings → Feature setup lists every shared setup at once — per Epic its optional User Stories, the Time Writing story and the month Task (with its estimate), and whether your own setup replaces it for you — with **Open** to see or edit one in its pop-up.
+
 ### Shared layout, themes and clock
 
 **Dashboard tabs.** The Dashboard has six tabs — **Summary** (demand against capacity, findings, rebalancing, workload monitor, planning horizon), **Insights**, **Months** (utilization by month with a Recorded / Planned switch and the month-on-month comparison), **People** (by person, role or region), **Streams** (Epic totals and assignments, Epic mix by month, overrun and ad-hoc Pareto over the period) and **Definitions** — and one utilization model everywhere, from Settings → Capacity: ↑ red at or above the overloaded threshold, ↓ blue below the available threshold, green between. Differences in hours carry no colour. The header adds *Elapsed months: recorded vs planned* and *This month: projected vs plan*.
