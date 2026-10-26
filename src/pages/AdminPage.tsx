@@ -3,7 +3,7 @@ import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
 import { EmptyState, Notice, Page, Panel, Pill, type Tone } from '../components/ui'
 import { formatDate, formatDateTime, formatHours, formatPercent, monthName } from '../format'
-import { azureResources, capacityContext, capacityModel, normalizeCapacitySettings, normalizeProfiles, regions, resourceRoles, type LoadStatus, type ResourceProfile } from '../capacity'
+import { azureResources, capacityContext, capacityModel, normalizeCapacitySettings, normalizeProfiles, regions, resourceRoles, type LoadStatus, type ResourceProfile, type SharedTimeRule } from '../capacity'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
@@ -11,6 +11,7 @@ import { AzureViewsGitPanel } from '../components/AzureViewsGit'
 import { AzureConnections } from '../components/AzureConnections'
 import { AccessPanel } from '../components/AccessPanel'
 import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
+import { SharedTimePanel } from '../components/SharedTimePanel'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { Access } from '../useAccess'
 import type { PageProps } from './types'
@@ -88,11 +89,23 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
     const next = normalizeCapacitySettings({ absenceEpicId: data.get('absenceEpicId'), hoursPerDay: data.get('hoursPerDay'), overloadedAt: data.get('overloadedAt'), availableBelow: data.get('availableBelow') })
     const now = new Date().toISOString()
     store.update((draft) => {
-      draft.capacitySettings = next
+      // The holiday and activity mappings are kept: this form edits the numbers only.
+      draft.capacitySettings = normalizeCapacitySettings({ ...next, sharedTime: normalizeCapacitySettings(draft.capacitySettings).sharedTime })
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'capacity', detail: `Absence Epic #${next.absenceEpicId}, ${next.hoursPerDay}h/day, overloaded ≥ ${next.overloadedAt}%, capacity < ${next.availableBelow}%` })
       return draft
     })
     setCapacityMessage('Capacity settings saved with the shared app data.')
+  }
+
+  // Holidays and common activities: saved with the capacity settings (shared app data), audited.
+  function saveSharedTime(rules: SharedTimeRule[], detail: string) {
+    const now = new Date().toISOString()
+    store.update((draft) => {
+      draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), sharedTime: rules })
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'shared-time', detail })
+      return draft
+    })
+    setCapacityMessage(`${detail}. Saved with the shared app data.`)
   }
 
   async function connectSharePoint(event: React.FormEvent<HTMLFormElement>) {
@@ -135,6 +148,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
         </form>
         {capacityMessage && <Notice tone="success">{capacityMessage}</Notice>}
       </Panel>
+      <SharedTimePanel settings={capacity} items={azure.items} month={month} onSave={saveSharedTime} />
       <Panel eyebrow="PERIOD CONTROL" title={monthName(month)}>
         <label>Reason for change<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label>
         <div className="control-card"><div><strong>Planning</strong><p>Deadline: {formatDate(period?.planningDeadline, `${month}-05 (default)`)}</p></div><Pill tone={period?.planningLocked ? 'locked' : 'open'}>{period?.planningLocked ? 'Locked' : 'Open'}</Pill><button className="primary" onClick={() => toggle('planning')}>{period?.planningLocked ? 'Unlock' : 'Lock'}</button><label>Extend until<input type="date" onChange={(event) => extend('planning', event.target.value)} /></label></div>

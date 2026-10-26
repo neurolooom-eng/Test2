@@ -397,12 +397,15 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | CAP-01 | Working days of a month shall be its Monday–Friday dates. | T | M | UC-09 |
 | CAP-02 | Funded hours per person shall be working days × hours per day (default 8). | T | M | UC-09 |
 | CAP-03 | Absence shall be the Completed Work on Month Tasks under the Absence Epic, split into PTO, Sick Leave, Unplanned Leave and public holidays by Feature and Task titles. | T | M | UC-09 |
-| CAP-04 | A public holiday booked under a Feature titled "Public Holidays - {India\|Netherlands\|US}" shall count as absence for every person mapped to that region. | T | M | UC-09 |
-| CAP-05 | Available hours shall be funded − absence. | T | M | UC-09 |
+| CAP-04 | A public holiday booked under a Feature titled "Public Holidays - {India\|Netherlands\|US}" under the Absence Epic shall count as absence for every person mapped to that region, unless the Feature (or an Epic above it) is mapped under CAP-10, which then decides. | T | M | UC-09 |
+| CAP-05 | Available hours shall be funded − absence − reserved time (common activities, CAP-11). | T | M | UC-09 |
 | CAP-06 | Utilization shall be booked hours (Completed Work on Month Tasks outside the Absence Epic) ÷ available × 100. | T | M | UC-09 |
 | CAP-07 | Status shall be: "No bookings" when utilization is undefined; "Overloaded" when ≥ the overloaded threshold (default 100%); "Has capacity" when < the capacity threshold (default 80%); otherwise "Balanced". | T | M | UC-09 |
 | CAP-08 | Streams shall be the Epics above the booked Month Tasks, excluding the Absence Epic. | T | M | UC-09 |
 | CAP-09 | People shall be the assignees of Month Tasks, excluding "Unassigned". | T | M | UC-09, UC-14 |
+| CAP-10 | Settings → Capacity shall offer "Holidays and common activities": map an Epic or Feature by ID (also one not in the fetched data) as Holidays (absence) or Common activity (reserved time), for Everyone or Everyone in a region (India, Netherlands, US), with an optional name. Each mapping shall list, for the header month, the hours per person, the number of Tasks and of people in scope; name-based holiday Features found automatically shall be listed too. Mappings shall be saved with the capacity settings (shared app data), audited, and kept when the capacity numbers are saved. | T | S | UC-14 |
+| CAP-11 | Every Month Task under a mapped Epic or Feature shall apply to each person in its scope (people in the month mapped to that region in Settings → Resources, or everyone) instead of to its assignee: Holidays as absence (Public holiday), Common activities as reserved time; both lower available capacity, neither counts as booked or planned work. Hours per Task: Original Estimate, else Completed Work, else one working day. The nearest mapped item above a Task decides. | T | S | UC-09, UC-14 |
+| CAP-12 | Region and person views shall keep shared-time Tasks whose scope is everyone or the chosen region; the month capacity view shall show common activities per person, in the Absence metric and as their own part of the funded-hours ring; Dashboard definitions and heatmap tooltips shall name them. | D | S | UC-09 |
 
 ### 3.11 Baselines (BAS) — UC-11
 
