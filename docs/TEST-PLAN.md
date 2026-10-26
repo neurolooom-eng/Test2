@@ -680,6 +680,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-07 Create Feature title parts** — Req QV-21 — L1 `release-source.test.mjs` ("Create Feature title parts: Program · Service · Release for DP, Platform · Name · Release for CP, free elsewhere"); browser check (needs a DP and a CP connection): DP shows Program, Service and Release, giving "DP | <name> | v<release>"; CP shows a Platform list with Platform 1.0 and Platform 2.0, and "Add…" adds a platform kept in this browser; changing a part rebuilds the title, which stays editable.
 
+**TC-QV-08 DP shows only its query** — Req QV-22 — L1 `query-view.test.mjs` ("column chooser: hidden columns left out in the query order, never all of them, remembered per view"); browser check with Azure DevOps mocked (a release-source connection "DP" whose query selects ID, Title, State, Custom.ReleaseType, Target Date and Area Path; three Release items): Release Details → DP → Fetch → the table has exactly ID, Title, State, Release Type, Target Date, Area Path; no "Time Writing Feature", DHFI or Pedestal text; "Columns (6 of 6)" → untick Area Path → "Columns (5 of 6)" and the column is gone; after a reload it stays hidden; CP still shows its Releases list. **UAT**
+
 ### 6.9 Dashboard and capacity
 
 TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-01 to OVR-08; the Dashboard is tested by TC-OV-11 to TC-OV-14 (§6.2).
@@ -1112,6 +1114,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-06…10 | TC-QV-03 |
 | QV-11 | TC-QV-04 |
 | QV-12…17 | TC-QV-05 |
+| QV-22 | TC-QV-08 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
 | OV-12 | TC-OV-12 |
@@ -1175,7 +1178,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CON-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
