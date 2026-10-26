@@ -333,3 +333,4 @@ td small{color:var(--text-3)}
 .setup-all-table .setup-all-actions{flex-direction:column;align-items:stretch;gap:6px}
 .setup-all-table .setup-all-actions button{width:100%;justify-content:center}
 .setup-all-edit li input{min-width:0}.setup-all-table td>input,.setup-all-estimate input{width:100%}
+.setup-fill-dod{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 10px;padding:10px 12px;border:1px solid var(--warning-line);border-radius:10px;background:var(--warning-soft)}.setup-fill-dod small{flex-basis:100%}
