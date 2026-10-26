@@ -295,3 +295,5 @@ td small{color:var(--text-3)}
 .setup-all .danger-text{color:var(--danger-text)}.setup-all-table td{vertical-align:top}.setup-all-editing td{background:var(--accent-soft)}.setup-all-table td>input{width:100%}
 .setup-all-edit{list-style:decimal;padding-left:20px}.setup-all-edit li{display:flex;gap:4px;align-items:center;margin:0 0 6px}.setup-all-edit li input{flex:1;min-width:160px}.setup-all-edit li button{padding:6px 8px}
 .setup-all-estimate{margin-top:8px;font-weight:600}.setup-all-estimate input{width:110px}.setup-all-actions{flex-wrap:wrap;justify-content:flex-end}.setup-all .git-bar{margin-top:10px}
+.setup-all-dod{width:100%;min-width:180px;font:inherit;font-size:12px}.setup-dod textarea{min-height:56px}
+.setup-summary .danger-text{color:var(--danger-text)}

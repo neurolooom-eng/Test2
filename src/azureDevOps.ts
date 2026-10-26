@@ -1,5 +1,5 @@
 import type { AzureWorkItem } from './domain'
-import { fillTitle, missingValues, titleValues } from './featureSetup.ts'
+import { featureDoD, fillTitle, missingValues, titleValues } from './featureSetup.ts'
 import { planMonthStory, timeWritingMonth } from './azureInsights.ts'
 
 // baseUrl is the organization (https://dev.azure.com/<org>) or, on premises, the Azure DevOps Server collection
@@ -41,9 +41,18 @@ export interface AzureRequest extends AzureConfig {
   iterationPath?: string
 }
 export interface FeatureInput { parentId: number; title: string; description: string; acceptanceCriteria: string; areaPath?: string; iterationPath?: string; assignedTo?: string; targetDate?: string; assignToCreator?: boolean; storyIterationPath?: string; taskOriginalEstimate?: number; taskCompletedWork?: number }
-export function featureDescription(kind: 'PU' | 'Release') {
-  return kind === 'PU' ? 'Feature DoD: DT finished. This is a PU release.' : 'Feature DoD: IQOQ finished and Checklist uploaded into the Feature.'
+// The Feature DoD (Definition of Done) is mandatory. It opens the Feature's Description as "Feature DoD: …", where
+// Backlog Health looks for it; these are the defaults per release classification.
+export { featureDoD }
+export const featureDescription = (kind: 'PU' | 'Release') => `Feature DoD: ${featureDoD(kind)}`
+export const missingDoDMessage = 'Enter the Feature DoD (Definition of Done): a Feature is not created without it.'
+// The Description sent for a new Feature: the DoD first ("Feature DoD: " added unless typed), then any other text.
+export function withFeatureDoD(dod: string, description = '') {
+  const value = dod.trim().replace(/^feature\s+dod\s*:\s*/i, '').trim()
+  if (!value) throw new Error(missingDoDMessage)
+  return [`Feature DoD: ${value}`, description.trim()].filter(Boolean).join('\n\n')
 }
+const hasFeatureDoD = (description: string) => /\bDoD\b\s*:?\s*[^\s:]/i.test(description.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '))
 
 export interface AzureIteration { name: string; path: string; attributes?: { startDate?: string; finishDate?: string }; teamConfigured?: boolean }
 interface IterationNode { name: string; path?: string; attributes?: AzureIteration['attributes']; children?: IterationNode[] }
@@ -265,6 +274,7 @@ export async function createAzureFeature(config: AzureConfig, pat: string, featu
   if (!Number.isSafeInteger(feature.parentId) || feature.parentId < 1 || !feature.title.trim() || feature.title.trim().length > 255) throw new Error('Choose a parent Epic and enter a title of 1–255 characters.')
   if (feature.assignToCreator) throw new Error('Configure a Feature creator email in the ADS configuration. Azure DevOps does not accept the PAT identity GUID as Assigned To.')
   if (!feature.assignedTo?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feature.assignedTo.trim())) throw new Error('A valid Feature creator email is required for Assigned To.')
+  if (!hasFeatureDoD(feature.description)) throw new Error(missingDoDMessage)
   const parentResponse = await transport({ ...config, pat, operation: 'items', ids: [feature.parentId] }) as { value: RawItem[] }
   const parent = parentResponse.value?.find((item) => item.id === feature.parentId)
   if (!parent || parent.fields['System.WorkItemType'] !== 'Epic') throw new Error('The selected parent is not an accessible Epic. Refresh and select an Epic.')

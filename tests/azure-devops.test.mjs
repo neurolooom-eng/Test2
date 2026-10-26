@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { parseAzureProjectUrl, fetchAzureWorkItems, mergeAzureWorkItems, buildWorkItemQuery, createAzureFeature, featurePatch, featureDescription, releaseHierarchyTitles, currentIndiaMonth, createAzureReleaseHierarchy, completeReleaseHierarchy, HierarchyCreationError, readAzureIterations, projectIterationPaths, currentIterationPairs, futureIterationPairs, mapAzureWorkItem, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort } from '../src/azureDevOps.ts'
+import { parseAzureProjectUrl, fetchAzureWorkItems, mergeAzureWorkItems, buildWorkItemQuery, createAzureFeature, featurePatch, featureDescription, withFeatureDoD, releaseHierarchyTitles, currentIndiaMonth, createAzureReleaseHierarchy, completeReleaseHierarchy, HierarchyCreationError, readAzureIterations, projectIterationPaths, currentIterationPairs, futureIterationPairs, mapAzureWorkItem, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort } from '../src/azureDevOps.ts'
 import { buildWorkItemTree } from '../src/azureHierarchy.ts'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzurePatProfiles, loadAzurePatProfile, saveAzurePatProfile, forgetAzurePatProfile, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile } from '../src/azureCredentials.ts'
 import { normalizeBacklogColumns, defaultBacklogColumns, plainAzureText, visibleBacklogRows } from '../src/backlogView.ts'
@@ -212,7 +212,7 @@ test('desktop bridge constrains credentials to Azure DevOps and rejects writes a
   assert.throws(() => azureReadRequest({ ...config, pat, operation: 'query', query: 'DELETE FROM WorkItems' }))
 })
 
-const feature = { parentId: 10, title: 'Example | Service | v1.0', description: 'Example <text>\nNext line', acceptanceCriteria: 'Meets example criteria', assignedTo: 'example@example.invalid', targetDate: '2026-10-30' }
+const feature = { parentId: 10, title: 'Example | Service | v1.0', description: 'Feature DoD: Example <text>\nNext line', acceptanceCriteria: 'Meets example criteria', assignedTo: 'example@example.invalid', targetDate: '2026-10-30' }
 
 test('Feature creation validates first, links to Epic, then verifies persisted parent', async () => {
   const operations = []
@@ -609,4 +609,15 @@ test('writes go to dev.azure.com only: on-premises servers are read-only in the 
   await assert.rejects(requestAzureDevOps({ ...onPrem, pat, operation: 'update-work-item', workItemId: 5, state: 'Closed' }, fetchStub), /read-only/)
   await assert.rejects(requestAzureDevOps({ ...onPrem, pat, operation: 'create-feature', validateOnly: true, feature: { ...feature, areaPath: 'DHP' } }, fetchStub), /read-only/)
   assert.equal(calls.length, 1, 'nothing was sent for the writes')
+})
+
+test('the Feature DoD is mandatory: composed into the Description, and creation is refused without one', async () => {
+  assert.equal(withFeatureDoD('IQOQ finished', 'Scope: X'), 'Feature DoD: IQOQ finished\n\nScope: X')
+  assert.equal(withFeatureDoD('feature dod:  DT finished '), 'Feature DoD: DT finished', 'a typed prefix is not doubled')
+  assert.throws(() => withFeatureDoD('  '), /Feature DoD/)
+  assert.throws(() => withFeatureDoD('Feature DoD:'), /Feature DoD/)
+  const requests = [], transport = async (request) => { requests.push(request); throw new Error('nothing may be sent') }
+  await assert.rejects(createAzureFeature(config, pat, { ...feature, description: 'Release scope only' }, transport), /Feature DoD/)
+  await assert.rejects(createAzureFeature(config, pat, { ...feature, description: '<p>Feature DoD: </p>' }, transport), /Feature DoD/)
+  assert.equal(requests.length, 0, 'refused before anything is sent')
 })
