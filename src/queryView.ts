@@ -145,8 +145,9 @@ export function viewSummary(items: AzureWorkItem[], today: string) {
 }
 
 const csvCell = (value: string) => /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value
-export function viewCsv(items: AzureWorkItem[], columns: QueryColumn[]) {
-  return [columns.map((column) => csvCell(column.name)).join(','), ...items.map((item) => columns.map((column) => csvCell(formatCell(cellValue(item, column.ref)))).join(','))].join('\r\n')
+// extra: one more column after the query's (DP: the board match), by its text.
+export function viewCsv(items: AzureWorkItem[], columns: QueryColumn[], extra?: { name: string; text: (item: AzureWorkItem) => string }) {
+  return [[...columns.map((column) => column.name), ...(extra ? [extra.name] : [])].map(csvCell).join(','), ...items.map((item) => [...columns.map((column) => formatCell(cellValue(item, column.ref))), ...(extra ? [extra.text(item)] : [])].map(csvCell).join(','))].join('\r\n')
 }
 // The column chooser of a query view: the columns not hidden, in the query's order (never none: with every column
 // hidden, the first one stays), and the hidden ones remembered per view in this browser.

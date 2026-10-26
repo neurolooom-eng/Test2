@@ -223,6 +223,8 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 
 ### Release Details and Windchill exports
 
+**DP → QMS-0025 match.** The DP table ends with a **QMS-0025 match** column: the Feature and the User Story on your Time Writing board whose title matches the row's **SourceProgram + Title** (or the Title alone, as not everyone writes the SourceProgram) by fuzzy match at 80% (the match threshold in Settings). They link to Azure DevOps. With no match you see the closest item and **Create Feature**, which opens a pop-up pre-filled with Program (SourceProgram) · Service (Title) · Release; the Feature DoD is required. Load the QMS-0025 board first (Refresh on the Time Writing connection).
+
 **View notes.** On a Release Details view, notes about the view (month filter, the DP milestone legend, Git load and save notes) are behind the **ⓘ Info** next to its name; only errors and warnings show as banners.
 
 **Rich-text fields.** In every query view, a field Azure DevOps stores as HTML (Acceptance Criteria, Description, …) shows as plain text — tags removed, paragraphs and list items joined with “ · ” — with the full text on hover and in the CSV.
