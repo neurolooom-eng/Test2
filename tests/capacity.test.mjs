@@ -88,7 +88,7 @@ test('regional holidays apply to everyone mapped to the region, not to the assig
     const expected = sampleProfiles[person.name]?.region === 'India' ? 8 : 0
     assert.equal(person.absence - before.absence, expected, person.name)
     assert.equal(person.absenceByKind['Public holiday'], expected)
-    assert.equal(person.available, Math.max(0, person.funded - person.absence - person.reserved - person.npraReserved))
+    assert.equal(person.available, Math.max(0, person.funded - person.absence - person.reserved - person.npraDeducted))
   }
   assert.equal(withProfiles.totals.absenceByKind['Public holiday'], 16)
   assert.equal(without.totals.absenceByKind['Public holiday'], 0, 'no region mapped, nothing applied')
@@ -164,9 +164,9 @@ test('holidays and common activities: mapped Epics / Features apply their month 
   assert.deepEqual([india.includes(703), india.includes(713), india.includes(62)], [true, false, true])
 })
 
-// NPRA: Tasks tagged NPRA (or under a tagged Feature) are not project work; each person's allowance is reserved from
-// the funded hours, booked NPRA hours are tracked against it, and hours over it come off the available hours too.
-test('NPRA: tagged Tasks tracked against the per-person allowance; the allowance is reserved and the excess deducted', () => {
+// NPRA: Tasks tagged NPRA (or under a tagged Feature) are not project work; only the booked NPRA hours come off the
+// available hours, and they are tracked against the per-person maximum (hours over it are flagged).
+test('NPRA: only booked hours are deducted; tracked against the per-person maximum, hours over it flagged', () => {
   const withNpra = [...backlog,
     item(12, { workItemType: 'Feature', parentId: 2, title: 'Trainings', tags: 'NPRA Hours; Training' }), item(22, { parentId: 12 }),
     item(60, { workItemType: 'Task', parentId: 20, title: 'October 2026 | Stand-ups', assignedTo: 'Ana', tags: 'npra', originalEstimate: 10, completedWork: 12 }),
@@ -174,16 +174,22 @@ test('NPRA: tagged Tasks tracked against the per-person allowance; the allowance
   ]
   const model = capacityModel(withNpra, '2026-10', { ...settings, npraHoursPerMonth: 20 })
   const ana = model.people.find((person) => person.name === 'Ana'), ben = model.people.find((person) => person.name === 'Ben')
-  assert.deepEqual([ana.npra, ana.npraPlanned, ana.npraTasks, ana.npraAllowance, ana.npraOver, ana.npraReserved], [12, 10, 1, 20, 0, 20], 'Ana: within the 20h allowance, which is reserved')
-  assert.equal(ana.available, 176 - 24 - 20); assert.equal(ana.work, 160, 'NPRA hours are not project work')
-  assert.deepEqual([ben.npra, ben.npraOver, ben.npraReserved], [30, 10, 30], 'Ben: 10h over the maximum, the 30h come off the funded hours')
+  assert.deepEqual([ana.npra, ana.npraPlanned, ana.npraTasks, ana.npraAllowance, ana.npraOver, ana.npraDeducted], [12, 10, 1, 20, 0, 12], 'Ana: within the 20h maximum; only the 12h booked are deducted')
+  assert.equal(ana.available, 176 - 24 - 12); assert.equal(ana.work, 160, 'NPRA hours are not project work')
+  assert.deepEqual([ben.npra, ben.npraOver, ben.npraDeducted], [30, 10, 30], 'Ben: 10h over the maximum is flagged, the 30h booked come off the funded hours')
   assert.equal(ben.available, 176 - 30); assert.equal(ben.work, 50)
-  assert.deepEqual([model.totals.npra, model.totals.npraReserved, model.totals.npraOver, model.counts.npraOver], [42, 50, 10, 1])
-  assert.equal(model.totals.available, 176 * 2 - 24 - 50)
+  assert.deepEqual([model.totals.npra, model.totals.npraDeducted, model.totals.npraOver, model.counts.npraOver], [42, 42, 10, 1])
+  assert.equal(model.totals.available, 176 * 2 - 24 - 42)
   assert.ok(!model.streams.some((stream) => stream.title === 'Trainings'), 'NPRA is not a stream')
   const tracked = capacityModel(withNpra, '2026-10', { ...settings, npraHoursPerMonth: 0 })
   const anaTracked = tracked.people.find((person) => person.name === 'Ana')
-  assert.deepEqual([anaTracked.npra, anaTracked.npraAllowance, anaTracked.npraOver, anaTracked.npraReserved, anaTracked.available], [12, 0, 0, 12, 176 - 24 - 12], 'allowance 0: tracked only, booked NPRA hours still come off the available hours')
+  assert.deepEqual([anaTracked.npra, anaTracked.npraAllowance, anaTracked.npraOver, anaTracked.npraDeducted, anaTracked.available], [12, 0, 0, 12, 176 - 24 - 12], 'maximum 0: no maximum to exceed, booked NPRA hours still come off the available hours')
   assert.equal(capacityModel(withNpra, '2026-10', { absenceEpicId: 900, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80 }).people.find((person) => person.name === 'Ana').npraAllowance, 20, 'settings without the field take the default 20h')
   assert.equal(normalizeCapacitySettings({ npraHoursPerMonth: -5 }).npraHoursPerMonth, 20); assert.equal(normalizeCapacitySettings({ npraHoursPerMonth: 0 }).npraHoursPerMonth, 0)
+})
+
+test('NPRA: nobody is charged for NPRA they did not book', () => {
+  const model = capacityModel(backlog, '2026-10', { ...settings, npraHoursPerMonth: 20 })
+  for (const person of model.people) { assert.equal(person.npraDeducted, 0, person.name); assert.equal(person.available, person.funded - person.absence - person.reserved) }
+  assert.equal(model.totals.npraDeducted, 0)
 })
