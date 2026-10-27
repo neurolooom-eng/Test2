@@ -16,7 +16,7 @@ import { windchillCell } from './windchillViews.ts'
 // (space, - _ | / : ; , + & "and", brackets) are dropped. The unique releases are name + number, ignoring case and
 // spaces in the name and trailing zero parts in the number (3.1 = 3.1.0).
 export interface DocumentRelease { name: string; release: string; raw: string; document: string }
-export interface WindchillRelease { key: string; name: string; release: string; documents: { name: string; row: Record<string, unknown> }[]; latest: string; locations: string[] }
+export interface WindchillRelease { key: string; name: string; release: string; documents: { name: string; row: Record<string, unknown> }[]; latest: string; latestAt?: number; locations: string[] }
 export type ReleaseSource = 'location' | 'name'
 export interface LocationRelease { name: string; release: string; folder: string }
 export interface UniqueLocation { location: string; count: number; releases: LocationRelease[] }
@@ -85,6 +85,34 @@ export function documentNameColumn(columns: string[]) {
   return columns.find((column) => column.trim().toLowerCase() === 'name') ?? columns.find((column) => /name/i.test(column) && !/organi[sz]ation|context|creator|modifier/i.test(column)) ?? columns[0] ?? ''
 }
 const dateColumn = (columns: string[]) => columns.find((column) => /last modified|modified|released|date/i.test(column))
+const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+// A date as a Windchill export writes it, as a UTC timestamp: ISO (2026-10-01, 2026-10-01T09:15), day-month-year with
+// the month as a word (27-Oct-2026, 27 Oct 2026 09:15, Oct 27, 2026), dotted (27.10.2026) or slashed (27/10/2026,
+// 10/27/2026: the part above 12 is the day; when both could be the month, month/day/year is assumed), each with an
+// optional time. Undefined when the text is not a date, so that it is never mistaken for one.
+export function parseExportDate(text: string): number | undefined {
+  const value = text.trim()
+  if (!value) return undefined
+  const time = (hours = '0', minutes = '0', seconds = '0') => [Number(hours), Number(minutes), Number(seconds)]
+  const stamp = (year: number, month: number, day: number, parts: number[] = [0, 0, 0]) => {
+    if (month < 1 || month > 12 || day < 1 || day > 31) return undefined
+    const at = Date.UTC(year, month - 1, day, ...parts)
+    return new Date(at).getUTCDate() === day ? at : undefined
+  }
+  const clock = String.raw`(?:[\sT]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?\s*(?:(AM|PM))?\s*(?:Z|UTC|[+-]\d{2}:?\d{2})?)?`
+  const pm = (hours: string | undefined, marker: string | undefined) => { let h = Number(hours ?? 0); if (marker?.toUpperCase() === 'PM' && h < 12) h += 12; if (marker?.toUpperCase() === 'AM' && h === 12) h = 0; return String(h) }
+  let m = new RegExp(String.raw`^(\d{4})-(\d{2})-(\d{2})${clock}$`, 'i').exec(value)
+  if (m) return stamp(Number(m[1]), Number(m[2]), Number(m[3]), time(pm(m[4], m[7]), m[5], m[6]))
+  m = new RegExp(String.raw`^(\d{1,2})[-\s.]([A-Za-z]{3})[A-Za-z]*[-\s.,]+(\d{4})${clock}$`, 'i').exec(value)
+  if (m) { const month = monthNames.indexOf(m[2].toLowerCase()) + 1; return month ? stamp(Number(m[3]), month, Number(m[1]), time(pm(m[4], m[7]), m[5], m[6])) : undefined }
+  m = new RegExp(String.raw`^([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2}),?\s+(\d{4})${clock}$`, 'i').exec(value)
+  if (m) { const month = monthNames.indexOf(m[1].toLowerCase()) + 1; return month ? stamp(Number(m[3]), month, Number(m[2]), time(pm(m[4], m[7]), m[5], m[6])) : undefined }
+  m = new RegExp(String.raw`^(\d{1,2})\.(\d{1,2})\.(\d{4})${clock}$`, 'i').exec(value)
+  if (m) return stamp(Number(m[3]), Number(m[2]), Number(m[1]), time(pm(m[4], m[7]), m[5], m[6]))
+  m = new RegExp(String.raw`^(\d{1,2})/(\d{1,2})/(\d{4})${clock}$`, 'i').exec(value)
+  if (m) { const a = Number(m[1]), b = Number(m[2]); const [month, day] = a > 12 ? [b, a] : [a, b]; return stamp(Number(m[3]), month, day, time(pm(m[4], m[7]), m[5], m[6])) }
+  return undefined
+}
 
 export interface ReleaseOptions { source?: ReleaseSource | 'auto'; nameColumn?: string; locationColumn?: string }
 // Unique releases of an export. Source 'location' reads the Location column, 'name' the document names, 'auto' (the
@@ -115,11 +143,14 @@ export function windchillReleases(rows: Record<string, unknown>[], columns: stri
       if (entry.documents.some((doc) => doc.row === row)) continue
       entry.documents.push({ name: release.document || text, row })
       if (folder && !entry.locations.includes(folder)) entry.locations.push(folder)
-      if (when > entry.latest) entry.latest = when
+      // The latest date by value; text that is not a date is compared as text, only among such texts.
+      const at = parseExportDate(when)
+      if (at !== undefined ? entry.latestAt === undefined || at > entry.latestAt : entry.latestAt === undefined && when > entry.latest) { entry.latest = when; entry.latestAt = at }
       byKey.set(key, entry)
     }
   }
-  const releases = [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || b.release.localeCompare(a.release, undefined, { numeric: true }))
+  // Newest first by the latest date (releases without a readable date last), then by name and version.
+  const releases = [...byKey.values()].sort((a, b) => (b.latestAt ?? -Infinity) - (a.latestAt ?? -Infinity) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || b.release.localeCompare(a.release, undefined, { numeric: true }))
   const locations = source === 'location' && location ? uniqueLocations(rows, location) : []
   return { releases, unmatched, clubbed, nameColumn, locationColumn: location, source, locations, dateColumn: date }
 }

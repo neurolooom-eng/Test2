@@ -98,6 +98,7 @@ test('TC-CON-40: an export with a Location column reads its releases from Locati
   assert.match(body, /5 releases · 6 of 7 documents · from Location/)
   for (const row of ['CareLink R3.2', 'Remote Diagnostics 1.7', 'Remote Diagnostics 1.6 ▸ 2 documents 1', 'Service1 1.0']) assert.ok(body.includes(row), row)
   assert.match(body, /1 document without a release in the Location/)
+  assert.deepEqual(await releases.locator('tbody tr td:first-child strong').allInnerTexts(), ['Service1', 'IntelliSpace Portal', 'Remote Diagnostics', 'Remote Diagnostics', 'CareLink'], 'newest Last Modified first')
   await releases.locator('summary', { hasText: /unique locations/ }).click()
   body = await text(releases)
   assert.match(body, /6 unique locations/)
