@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { releaseFromDocumentName, releasesFromDocumentName, releaseFromLocation, releasesFromLocation, locationColumn, windchillReleases, windchillLocationsFile, documentNameColumn, parseExportDate } from '../src/windchillReleases.ts'
+import { releaseFromDocumentName, releasesFromDocumentName, releaseFromLocation, releasesFromLocation, locationColumn, windchillReleases, windchillLocationsFile, documentNameColumn, parseExportDate, releaseMonth, releasesInMonth } from '../src/windchillReleases.ts'
 
 test('a document name splits at its first version: release name, release number, document name', () => {
   assert.deepEqual(releaseFromDocumentName('Remote Diagnostics 1.6 Verification Report'), { name: 'Remote Diagnostics', release: '1.6', raw: '1.6', document: 'Verification Report', span: 'Remote Diagnostics 1.6' })
@@ -135,4 +135,19 @@ test('export dates are read in the formats Windchill writes, and the list is new
   ]
   const { releases } = windchillReleases(rows, ['Name', 'Last Modified'])
   assert.deepEqual(releases.map((entry) => `${entry.name} ${entry.release} ${entry.latest}`), ['B 2.0 10/27/2026 9:15 AM', 'D 4.0 3-Oct-2026', 'A 1.0 9/5/2026', 'C 3.0 n/a'], 'by date value, not by text; D keeps its later document date')
+})
+
+test('the header month filter keeps the releases whose latest date falls in that month (CON-73)', () => {
+  const rows = [
+    { Name: 'A 1.0 Plan', 'Last Modified': '2026-10-03' },
+    { Name: 'A 1.0 Report', 'Last Modified': '2026-08-20' },
+    { Name: 'B 2.0 Plan', 'Last Modified': '27-Sep-2026 09:15' },
+    { Name: 'C 3.0 Plan', 'Last Modified': 'n/a' },
+  ]
+  const { releases } = windchillReleases(rows, ['Name', 'Last Modified'])
+  assert.deepEqual(releases.map((entry) => [`${entry.name} ${entry.release}`, releaseMonth(entry)]), [['A 1.0', '2026-10'], ['B 2.0', '2026-09'], ['C 3.0', undefined]], 'the month comes from the latest document, A is October not August')
+  assert.deepEqual(releasesInMonth(releases, '2026-10').map((entry) => entry.name), ['A'])
+  assert.deepEqual(releasesInMonth(releases, '2026-09').map((entry) => entry.name), ['B'])
+  assert.deepEqual(releasesInMonth(releases, '2026-08'), [], 'A moved to October with its newer document')
+  assert.deepEqual(releasesInMonth(releases, '2026-11'), [])
 })
