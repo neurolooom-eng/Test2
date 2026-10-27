@@ -1,13 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { releaseFromDocumentName, releasesFromDocumentName, releaseFromLocation, locationColumn, windchillReleases, windchillLocationsFile, documentNameColumn } from '../src/windchillReleases.ts'
+import { releaseFromDocumentName, releasesFromDocumentName, releaseFromLocation, releasesFromLocation, locationColumn, windchillReleases, windchillLocationsFile, documentNameColumn } from '../src/windchillReleases.ts'
 
 test('a document name splits at its first version: release name, release number, document name', () => {
-  assert.deepEqual(releaseFromDocumentName('Remote Diagnostics 1.6 Verification Report'), { name: 'Remote Diagnostics', release: '1.6', document: 'Verification Report' })
-  assert.deepEqual(releaseFromDocumentName('IntelliSpace Portal - v12.1 - Test Plan'), { name: 'IntelliSpace Portal', release: '12.1', document: 'Test Plan' })
-  assert.deepEqual(releaseFromDocumentName('CareLink_R3.2_SRS'), { name: 'CareLink', release: '3.2', document: 'SRS' })
-  assert.deepEqual(releaseFromDocumentName('Field Service Tool Release 5 Release Notes'), { name: 'Field Service Tool', release: '5', document: 'Release Notes' })
-  assert.deepEqual(releaseFromDocumentName('Dose Viewer | 3.0.0.2 | DHF Index (v2)'), { name: 'Dose Viewer', release: '3.0.0.2', document: 'DHF Index (v2)' }, 'a version in brackets is the document revision')
+  assert.deepEqual(releaseFromDocumentName('Remote Diagnostics 1.6 Verification Report'), { name: 'Remote Diagnostics', release: '1.6', raw: '1.6', document: 'Verification Report' })
+  assert.deepEqual(releaseFromDocumentName('IntelliSpace Portal - v12.1 - Test Plan'), { name: 'IntelliSpace Portal', release: '12.1', raw: 'v12.1', document: 'Test Plan' })
+  assert.deepEqual(releaseFromDocumentName('CareLink_R3.2_SRS'), { name: 'CareLink', release: '3.2', raw: 'R3.2', document: 'SRS' })
+  assert.deepEqual(releaseFromDocumentName('Field Service Tool Release 5 Release Notes'), { name: 'Field Service Tool', release: '5', raw: 'Release 5', document: 'Release Notes' })
+  assert.deepEqual(releaseFromDocumentName('Dose Viewer | 3.0.0.2 | DHF Index (v2)'), { name: 'Dose Viewer', release: '3.0.0.2', raw: '3.0.0.2', document: 'DHF Index (v2)' }, 'a version in brackets is the document revision')
   assert.equal(releaseFromDocumentName('Quality Manual'), undefined, 'no version: no release')
   assert.equal(releaseFromDocumentName('2.1 Test Plan'), undefined, 'a version with no name before it: no release')
   assert.equal(releaseFromDocumentName('Plan for 2026 audits'), undefined, 'a lone number is not a version')
@@ -55,9 +55,12 @@ test('Location: the release is read from the deepest folder that holds a version
   const read = (location) => { const found = releaseFromLocation(location); return found ? `${found.name} ${found.release} @ ${found.folder}` : undefined }
   assert.equal(read('/Products/Remote Diagnostics 1.6/DHF'), 'Remote Diagnostics 1.6 @ Products/Remote Diagnostics 1.6')
   assert.equal(read('/Products/Remote Diagnostics/1.7/Design Inputs'), 'Remote Diagnostics 1.7 @ Products/Remote Diagnostics/1.7')
-  assert.equal(read('/Products/CareLink/R3.2/DHF'), 'CareLink 3.2 @ Products/CareLink/R3.2')
-  assert.equal(read('\\Products\\IntelliSpace Portal - v12.1\\Test Reports'), 'IntelliSpace Portal 12.1 @ Products/IntelliSpace Portal - v12.1')
+  assert.equal(read('/Products/CareLink/R3.2/DHF'), 'CareLink R3.2 @ Products/CareLink/R3.2', 'the number is kept as the folder writes it')
+  assert.equal(read('\\Products\\IntelliSpace Portal - v12.1\\Test Reports'), 'IntelliSpace Portal v12.1 @ Products/IntelliSpace Portal - v12.1')
   assert.equal(read('/Products/Viewer 2.0/Patches/2.0.3/DHF'), 'Patches 2.0.3 @ Products/Viewer 2.0/Patches/2.0.3', 'the deepest version wins, with the folder above it as the name')
+  assert.deepEqual(releasesFromLocation('/Products/Service1_rel1_Service2_rel2/DHF').map((entry) => `${entry.name} ${entry.release}`), ['Service1 rel1', 'Service2 rel2'], 'a clubbed folder names every release, numbers as written')
+  assert.deepEqual(releasesFromLocation('/Products/Viewer 1.6 & 1.7/SRS').map((entry) => `${entry.name} ${entry.release}`), ['Viewer 1.6', 'Viewer 1.7'])
+  assert.deepEqual(releasesFromLocation('/Products/Viewer 1.6.0/DHF').map((entry) => entry.release), ['1.6.0'])
   assert.equal(read('/Quality/Manuals'), undefined)
   assert.equal(read(''), undefined)
   assert.equal(locationColumn(['Number', 'Name', 'Location']), 'Location')
@@ -77,12 +80,12 @@ test('Location source: unique releases and unique locations of an export, with t
   const result = windchillReleases(rows, columns)
   assert.equal(result.source, 'location'); assert.equal(result.locationColumn, 'Location')
   assert.deepEqual(result.releases.map((entry) => [entry.name, entry.release, entry.documents.map((doc) => doc.name), entry.locations]), [
-    ['CareLink', '3.2', ['CareLink_R3.2_SRS'], ['/Products/CareLink/R3.2/DHF']],
+    ['CareLink', 'R3.2', ['CareLink_R3.2_SRS'], ['/Products/CareLink/R3.2/DHF']],
     ['Remote Diagnostics', '1.7', ['SRS'], ['/Products/Remote Diagnostics/1.7/Design Inputs']],
     ['Remote Diagnostics', '1.6', ['Verification Report', 'Test Plan'], ['/Products/Remote Diagnostics 1.6/DHF']],
   ])
   assert.deepEqual(result.unmatched, ['/Quality/Manuals'])
-  assert.deepEqual(result.locations.map((entry) => [entry.location, entry.count, entry.release?.release]), [['/Products/Remote Diagnostics 1.6/DHF', 2, '1.6'], ['/Products/CareLink/R3.2/DHF', 1, '3.2'], ['/Products/Remote Diagnostics/1.7/Design Inputs', 1, '1.7'], ['/Quality/Manuals', 1, undefined]])
+  assert.deepEqual(result.locations.map((entry) => [entry.location, entry.count, entry.releases.map((release) => release.release)]), [['/Products/Remote Diagnostics 1.6/DHF', 2, ['1.6']], ['/Products/CareLink/R3.2/DHF', 1, ['R3.2']], ['/Products/Remote Diagnostics/1.7/Design Inputs', 1, ['1.7']], ['/Quality/Manuals', 1, []]])
   const byName = windchillReleases(rows, columns, { source: 'name' })
   assert.equal(byName.source, 'name')
   assert.deepEqual(byName.releases.map((entry) => `${entry.name} ${entry.release}`), ['CareLink 3.2'])
@@ -92,4 +95,15 @@ test('Location source: unique releases and unique locations of an export, with t
   assert.equal(file.kind, 'windchill-locations'); assert.equal(file.documents, 5); assert.equal(file.locations.length, 4)
   assert.deepEqual(file.releases[2], { name: 'Remote Diagnostics', release: '1.6', documents: 2, locations: ['/Products/Remote Diagnostics 1.6/DHF'] })
   assert.equal(JSON.stringify(file).includes('"row"'), false, 'the analysis file holds no document rows')
+})
+
+test('Location: a clubbed folder counts its documents for each release, and numbers written differently stay different releases', () => {
+  const rows = [
+    { Name: 'Test Plan', Location: '/Products/Service1_rel1_Service2_rel2/DHF' },
+    { Name: 'SRS', Location: '/Products/Service1/rel1/DHF' },
+    { Name: 'Report', Location: '/Products/Service1 1.0/DHF' },
+  ]
+  const { releases, clubbed } = windchillReleases(rows, ['Name', 'Location'])
+  assert.equal(clubbed, 1)
+  assert.deepEqual(releases.map((entry) => [entry.name, entry.release, entry.documents.map((doc) => doc.name)]), [['Service1', 'rel1', ['Test Plan', 'SRS']], ['Service1', '1.0', ['Report']], ['Service2', 'rel2', ['Test Plan']]])
 })

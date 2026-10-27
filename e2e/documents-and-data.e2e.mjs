@@ -96,7 +96,7 @@ test('TC-CON-40: an export with a Location column reads its releases from Locati
   await releases.waitFor()
   let body = await text(releases)
   assert.match(body, /5 releases · 6 of 7 documents · from Location/)
-  for (const row of ['CareLink 3.2', 'Remote Diagnostics 1.7', 'Remote Diagnostics 1.6 ▸ 2 documents 1', 'Service1 1.0']) assert.ok(body.includes(row), row)
+  for (const row of ['CareLink R3.2', 'Remote Diagnostics 1.7', 'Remote Diagnostics 1.6 ▸ 2 documents 1', 'Service1 1.0']) assert.ok(body.includes(row), row)
   assert.match(body, /1 document without a release in the Location/)
   await releases.locator('summary', { hasText: /unique locations/ }).click()
   body = await text(releases)
@@ -107,8 +107,8 @@ test('TC-CON-40: an export with a Location column reads its releases from Locati
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export locations CSV' }).click()])
   // The CSV starts with a UTF-8 byte-order mark so that Excel reads it as UTF-8.
   const csv = readFileSync(await download.path(), 'utf8').replace(/^\uFEFF/, '').split('\r\n')
-  assert.equal(csv[0], 'Location,Documents,Release name,Release,Release folder')
-  assert.equal(csv[1], '/Products/Remote Diagnostics 1.6/DHF,2,Remote Diagnostics,1.6,Products/Remote Diagnostics 1.6')
+  assert.equal(csv[0], 'Location,Documents,Releases,Release folder')
+  assert.equal(csv[1], '/Products/Remote Diagnostics 1.6/DHF,2,Remote Diagnostics 1.6,Products/Remote Diagnostics 1.6')
   await releases.locator('select').first().selectOption('name')
   // The names in this fixture are plain document names: only the clubbed one holds releases.
   assert.match(await text(releases), /2 releases · 1 of 7 documents · 1 clubbed · from Document name/)

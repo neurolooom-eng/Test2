@@ -15,11 +15,11 @@ import { windchillCell } from './windchillViews.ts'
 // document's revision and is skipped. Delimiters around names and versions
 // (space, - _ | / : ; , + & "and", brackets) are dropped. The unique releases are name + number, ignoring case and
 // spaces in the name and trailing zero parts in the number (3.1 = 3.1.0).
-export interface DocumentRelease { name: string; release: string; document: string }
+export interface DocumentRelease { name: string; release: string; raw: string; document: string }
 export interface WindchillRelease { key: string; name: string; release: string; documents: { name: string; row: Record<string, unknown> }[]; latest: string; locations: string[] }
 export type ReleaseSource = 'location' | 'name'
 export interface LocationRelease { name: string; release: string; folder: string }
-export interface UniqueLocation { location: string; count: number; release?: LocationRelease }
+export interface UniqueLocation { location: string; count: number; releases: LocationRelease[] }
 
 const sep = String.raw`[\s_\-|/:;,+&([{]`
 const prefix = String.raw`(?:v|ver\.?|version|r|rel\.?|release)[\s_.:-]*`
@@ -29,14 +29,16 @@ const trimSeparators = (text: string) => text.replace(/^(?:[\s_\-|/:;,.+&()[\]{}
 // Every release a document name names, in order, with the document name (the text after the last version).
 export function releasesFromDocumentName(text: string): DocumentRelease[] {
   const value = text.replace(/\s+/g, ' ').trim()
-  const found: { name: string; release: string }[] = []
+  const found: { name: string; release: string; raw: string }[] = []
   let from = 0, end = 0
   for (const match of value.matchAll(versionToken)) {
     const lead = match[1] ?? match[3] ?? '', release = match[2] ?? match[4], at = match.index + lead.length
+    // The version as written (prefix included: "rel1", "R3.2", "v12.1"), kept as is for the Location source.
+    const raw = match[0].slice(lead.length)
     // A version in brackets is the document's revision ("DHF Index (v2)"), not a release.
     if (/[([{]\s*$/.test(lead) && /^\s*[)\]}]/.test(value.slice(match.index + match[0].length))) continue
     const name = trimSeparators(value.slice(from, at)) || found.at(-1)?.name || ''
-    if (name) found.push({ name, release })
+    if (name) found.push({ name, release, raw })
     from = end = match.index + match[0].length
   }
   const document = trimSeparators(value.slice(end))
@@ -50,29 +52,32 @@ export function locationColumn(columns: string[]) {
   return columns.find((column) => column.trim().toLowerCase() === 'location') ?? columns.find((column) => /location|folder|path/i.test(column))
 }
 const pureVersion = /^(?:v|ver\.?|version|r|rel\.?|release)?[\s_.:-]*(\d+(?:\.\d+)*)$/i
-// The release a folder path names: the deepest folder that holds a name and a version ("Remote Diagnostics 1.6"), or a
-// folder that is only a version under a folder that is the name ("Remote Diagnostics/1.6"). Folders after it (the
-// document type, "DHF", "Test Reports") are ignored. Undefined when no folder holds a version.
-export function releaseFromLocation(location: string): LocationRelease | undefined {
+// The releases a folder path names: from the deepest folder that holds a version — the name and version in one folder
+// ("Remote Diagnostics 1.6"), a clubbed folder naming several ("Service1_rel1_Service2_rel2", "Viewer 1.6 & 1.7"), or a
+// folder that is only a version under the folder that is the name ("Remote Diagnostics/1.6", "CareLink/R3.2"). The
+// folders after it (the document type, "DHF", "Test Reports") are ignored. The release number is kept exactly as the
+// folder writes it ("R3.2", "rel1", "1.6.0"): different texts are different releases. Empty when no folder holds a version.
+export function releasesFromLocation(location: string): LocationRelease[] {
   const folders = location.split(/[\\/]+/).map((folder) => folder.trim()).filter(Boolean)
   for (let index = folders.length - 1; index >= 0; index -= 1) {
-    const folder = folders[index]
+    const folder = folders[index], path = folders.slice(0, index + 1).join('/')
     const bare = pureVersion.exec(folder)
     if (bare && /\d/.test(bare[1])) {
       const parent = folders[index - 1]
-      if (parent && !pureVersion.test(parent) && !releasesFromDocumentName(parent).length) return { name: trimSeparators(parent), release: bare[1], folder: folders.slice(0, index + 1).join('/') }
+      if (parent && !pureVersion.test(parent) && !releasesFromDocumentName(parent).length) return [{ name: trimSeparators(parent), release: folder, folder: path }]
       continue
     }
     const found = releasesFromDocumentName(folder)
-    if (found.length) return { name: found[0].name, release: found[0].release, folder: folders.slice(0, index + 1).join('/') }
+    if (found.length) return found.map((entry) => ({ name: entry.name, release: entry.raw, folder: path }))
   }
-  return undefined
+  return []
 }
+export const releaseFromLocation = (location: string): LocationRelease | undefined => releasesFromLocation(location)[0]
 // Every distinct Location value with its document count and the release read from it, most documents first.
 export function uniqueLocations(rows: Record<string, unknown>[], column: string): UniqueLocation[] {
   const counts = new Map<string, number>()
   for (const row of rows) { const location = windchillCell(row, column).trim(); if (location) counts.set(location, (counts.get(location) ?? 0) + 1) }
-  return [...counts].map(([location, count]) => ({ location, count, release: releaseFromLocation(location) })).sort((a, b) => b.count - a.count || a.location.localeCompare(b.location))
+  return [...counts].map(([location, count]) => ({ location, count, releases: releasesFromLocation(location) })).sort((a, b) => b.count - a.count || a.location.localeCompare(b.location))
 }
 
 // The column holding the document names: "Name" if the export has it, else the first column whose name contains "name".
@@ -96,14 +101,16 @@ export function windchillReleases(rows: Record<string, unknown>[], columns: stri
   for (const row of rows) {
     const text = windchillCell(row, nameColumn).trim()
     const folder = source === 'location' && location ? windchillCell(row, location).trim() : ''
-    const fromLocation = source === 'location' ? releaseFromLocation(folder) : undefined
-    const found: { name: string; release: string; document: string }[] = source === 'location' ? (fromLocation ? [{ ...fromLocation, document: text }] : []) : releasesFromDocumentName(text)
+    // From Location the number is kept as written (CON-72); from the names trailing zeros are ignored (CON-71).
+    const found: { name: string; release: string; document: string; key: string }[] = source === 'location'
+      ? releasesFromLocation(folder).map((entry) => ({ ...entry, document: text, key: entry.release.toLowerCase() }))
+      : releasesFromDocumentName(text).map((entry) => ({ ...entry, key: normalizeVersion(entry.release) }))
     if (!found.length) { if (text || folder) unmatched.push(source === 'location' ? folder || text : text); continue }
     if (found.length > 1) clubbed += 1
     const when = date ? windchillCell(row, date) : ''
     // A clubbed document counts for each release it names (once per release).
     for (const release of found) {
-      const key = `${release.name.toLowerCase().replace(/[^a-z0-9]+/g, '')}\u0000${normalizeVersion(release.release)}`
+      const key = `${release.name.toLowerCase().replace(/[^a-z0-9]+/g, '')}\u0000${release.key}`
       const entry = byKey.get(key) ?? { key, name: release.name, release: release.release, documents: [], latest: '', locations: [] }
       if (entry.documents.some((doc) => doc.row === row)) continue
       entry.documents.push({ name: release.document || text, row })
