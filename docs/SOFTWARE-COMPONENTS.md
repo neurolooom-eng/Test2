@@ -110,7 +110,7 @@ This document lists every software component of the system: the in-house source 
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY, field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream, with counts and totals. | OVR |
-| releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP and IOCC stream rules. | QV |
+| releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC and Tool Validations (one entry per tool) stream rules. | QV |
 | rules | `src/rules.ts` | Period lock rules, demand classification, baseline lookup, variance flag and capacity utilization. | SET, BAS |
 | setupGuide | `src/setupGuide.ts` | "Get started" setup steps with live status and required-step logic. | NAV |
 | streams | `src/streams.ts` | Release stream definitions and data sets, name matching and connection/export lookup per stream. | QV, OVR |
