@@ -341,6 +341,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-38 No blank app on bad data; desktop navigation guards** — Req CON-70 — L1 `query-view.test.mjs` (the entity &#1114112; stays as written, &#65; becomes A); browser check: a Description holding "&#1114112;" renders in the query view; the ErrorBoundary page (throw inside a page in dev) shows Reload and Try to continue; a QE Mapping upload of a zip bomb .xlsx is refused with "too large"; desktop: dragging a link onto the window opens it in the browser and the window keeps the app.
 
+**TC-CON-39 Unique releases from a Windchill export** — Req CON-71 — L1 `windchill-releases.test.mjs` ("a document name splits at its first version: release name, release number, document name"; "unique releases from an export: name + number, case and trailing zeros ignored; documents and latest date kept"); browser check: import an S&S IT export with "Remote Diagnostics 1.6 Verification Report", "remote diagnostics 1.6.0 - Test Plan", "Remote Diagnostics 1.7 SRS", "CareLink_R3.2_SRS", "IntelliSpace Portal - v12.1 - Test Plan" and "Quality Manual" → Releases shows "4 releases · 5 of 6 documents" (Remote Diagnostics 1.6 with 2 documents), "1 document without a release number in the name", Export releases CSV; Pulse Check → Windchill exports shows Releases 4; no page errors. **UAT**
+
 **TC-CON-27 Map a Feature setup to an Epic** — Req CON-59 — L1 `feature-setup.test.mjs` ("built-in stories as a setup give exactly the titles of the built-in creation"; "copy a setup to another Epic: replaces the target, keeps the source, no-op without a source"); browser check with a writable Git store holding a personal setup of another Epic: My setup shows it with "applies now" on step 1; "Copy this setup to Epic #" 13946 → the four stories appear under #13946 and the panel says "changed here, not saved yet"; Save to Git commits `feature-setup/<email>.json` holding both Epics and the panel then marks My setup as applying to #13946; "Go to Epic #" another number with no setup offers the two built-in buttons. **UAT**
 
 **TC-CON-26 Personal and shared Feature setup** — Req CON-58, CON-52 — L1 `feature-setup.test.mjs` (one file per email with unsafe characters and runs of dots replaced; my setup of an Epic wins for me, the shared one otherwise, and the form can switch; Enable for everyone replaces only that Epic, as a copy); browser check: Settings → Feature setup opens for every role; with an email on the Time Writing connection it shows My setup and Shared (everyone), else only Shared with a notice; "Start my own from the shared one", "Remove my setup" and "Enable for everyone" save to Git with a writable token. **UAT**
@@ -1098,6 +1100,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-68 | TC-CON-36 |
 | CON-69 | TC-CON-37 |
 | CON-70 | TC-CON-38 |
+| CON-71 | TC-CON-39 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1234,7 +1237,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
