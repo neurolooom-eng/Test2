@@ -44,6 +44,7 @@ This document lists every software component of the system: the in-house source 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
+| UsagePanel | `src/components/UsagePanel.tsx` | Settings → Access → Usage: who used the app and when from the usage/ records (people, active 7/30 days, per person, per month) and the Admin on/off switch. | CON |
 | AccessPanel | `src/components/AccessPanel.tsx` | Settings → Access: shows roles and per-role rights; editable and saved to Git (access.json) only by a role that may manage access. | CON |
 | AssigneeConfirm | `src/components/AssigneeConfirm.tsx` | Confirmation before creating work items: what is created and to whom it is assigned; never blank. | CON, ATM |
 | AzureConnections | `src/components/AzureConnections.tsx` | Settings → Azure DevOps connection setup: servers, presets, add/clone/edit connections, PATs, stream mapping and duplicate clean-up. | CON |
@@ -86,6 +87,7 @@ This document lists every software component of the system: the in-house source 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
+| usageLog | `src/usageLog.ts` | Usage records (usage/<email>.json): file name, parse, once-a-day update, serialise, summary per person and per month, browser mark. | CON |
 | access | `src/access.ts` | Role-based access policy (access.json): roles, areas, actions, parsing/serialising and rights per person email. | CON |
 | azureHierarchy | `src/azureHierarchy.ts` | Builds the filtered Epic→Task work-item tree with ancestor context, missing-parent and cycle handling. | CON |
 | azureInsights | `src/azureInsights.ts` | Time Writing month-task detection, month story plans, working days, Azure insights and Time Writing gaps. | MON, TWN, CAP |
@@ -157,6 +159,7 @@ This document lists every software component of the system: the in-house source 
 | useAccess | `src/useAccess.ts` | Access policy from Git, cached in this browser, and the viewer's rights. | CON |
 | useAzureWorkspace | `src/useAzureWorkspace.ts` | Azure connections state: fetch, save, preview, sample data, Git-backed on-prem data and fetch listeners. | CON, FET, SMP |
 | useDpBoardColumn | `src/useDpBoardColumn.tsx` | DP table "QMS-0025 match" column with search/export text and Create Feature. | QV |
+| useUsageLog | `src/useUsageLog.ts` | Records today's use once a day to Git when allowed (writable token, email, no sample, policy on), the first-time notice, and loads everyone's records. | CON |
 | useFeatureSetup | `src/useFeatureSetup.ts` | Shared and personal Feature setup from Git, cached locally, saved with a writable token. | CON |
 | useGitStorage | `src/useGitStorage.ts` | Git storage state: load/save planning data, views file, access, Feature setup, QE Mapping and Windchill files, including the windchill-analysis locations file. | GIT, CON, QEM |
 | useMyWork | `src/useMyWork.ts` | Who "me" is: Time Writing connection email plus a remembered display name. | ATM |
@@ -193,6 +196,7 @@ This document lists every software component of the system: the in-house source 
 |---|---|---|---|
 | traceability.test | `tests/traceability.test.mjs` | Validation Package consistency: requirement levels, test-case and UAT traces, component list, current matrix. | DOC, CI |
 | validation-package.test | `tests/validation-package.test.mjs` | Validation Package documents: required sections, unique IDs, mitigations and DFMEA controls traced to existing requirements. | DOC |
+| usage-log.test | `tests/usage-log.test.mjs` | Usage records: file name, once-a-day update, parse round trip, summary, access.json switch. | CON |
 | access.test | `tests/access.test.mjs` | Access policy: no-policy defaults, role union, file round trip, refusing writes for roles without Azure changes. | CON |
 | app-update.test | `tests/app-update.test.mjs` | Build metadata validation, cache-busting URLs, update checks and reload blocking, release version check. | UPD, CI |
 | azure-devops.test | `tests/azure-devops.test.mjs` | PAT persistence/profiles, work-item mapping, tree, backlog view, constrained writes and Feature DoD templates. | CON, FET, ATM, MON |
@@ -242,6 +246,7 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 |---|---|---|---|
 | helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate, load sample). | CI |
 | shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog (TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02). | NAV, UI, SMP, UPD |
+| usage.e2e | `e2e/usage.e2e.mjs` | Usage log with GitHub mocked: one record on start with the notice, the Usage summary, no second request on a reload (TC-CON-41). | CON |
 | documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01). | DOC, CON, STO, NFR |
 
 ## 2. Third-party components (SOUP)

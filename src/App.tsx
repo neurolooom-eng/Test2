@@ -30,6 +30,7 @@ import { PiReviewPage } from './pages/PiReviewPage'
 import { QeMappingPage } from './pages/QeMappingPage'
 import { useAccess } from './useAccess'
 import { useFeatureSetup } from './useFeatureSetup'
+import { useUsageLog } from './useUsageLog'
 import { useQeMapping } from './useQeMapping'
 import type { Area } from './access'
 import { useMyWork } from './useMyWork'
@@ -122,6 +123,8 @@ export default function App() {
   }
   const access = useAccess(git, azure)
   const featureSetup = useFeatureSetup(git, azure.creatorEmail)
+  // Who uses the app and when (CON-73): recorded once a day to the Git data repository, with a one-time notice.
+  const usage = useUsageLog(git, access)
   const qeMapping = useQeMapping(git)
   // Who creates new work items (the email on the Time Writing connection) and whether they may assign them to others.
   const assign = { me: azure.creatorEmail.trim().toLowerCase(), canChoose: access.can('azure.createForOthers') }
@@ -225,6 +228,7 @@ export default function App() {
       {guideOpen && <SetupGuide steps={steps} busy={azure.busy} onClose={() => setGuideOpen(false)} onDismiss={dismissGuide} onOpenTab={(tab) => { settingsTabOnOpen(tab); setPage('admin'); setGuideOpen(false) }} onFetch={() => void azure.refresh()} />}
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
+      {usage.notice && <Notice tone="info" className="notice-dismissible"><span>{usage.notice}</span><button type="button" className="notice-close" aria-label="Dismiss message" onClick={usage.dismissNotice}>×</button></Notice>}
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} />}
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} />}
       {page === 'pireview' && <PiReviewPage />}
@@ -237,7 +241,7 @@ export default function App() {
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
+      {page === 'admin' && <AdminPage {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} usage={usage} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
   </div></HeaderSlot.Provider>

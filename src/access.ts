@@ -32,7 +32,8 @@ export const actions = [
 export type Action = typeof actions[number]['key']
 
 export interface RoleRights { areas: Area[]; actions: Action[] }
-export interface AccessPolicy { schema: 1; defaultRole: Role | null; roles: Record<Role, RoleRights>; members: Record<string, Role[]> }
+// usageLog: whether every app records who uses it and when (usage/<email>.json, CON-73); on unless set to false.
+export interface AccessPolicy { schema: 1; defaultRole: Role | null; roles: Record<Role, RoleRights>; members: Record<string, Role[]>; usageLog: boolean }
 export interface Rights { areas: Set<Area>; actions: Set<Action>; roles: Role[]; restricted: boolean }
 
 const allAreas = areas.map((entry) => entry.key) as Area[]
@@ -56,6 +57,7 @@ export function defaultPolicy(adminEmail = ''): AccessPolicy {
       'Team Member': { areas: ['overview', ...myWork, 'board', 'release', 'docs'], actions: ['azure.write'] },
     },
     members: isEmail(adminEmail) ? { [normalEmail(adminEmail)]: ['Admin'] } : {},
+    usageLog: true,
   }
 }
 
@@ -79,12 +81,13 @@ export function parseAccess(text: string): AccessPolicy {
     defaultRole: roles.includes(input.defaultRole as Role) ? input.defaultRole as Role : null,
     roles: Object.fromEntries(roles.map((role) => [role, { areas: pick(rolesIn[role]?.areas, allAreas), actions: pick(rolesIn[role]?.actions, allActions) }])) as Record<Role, RoleRights>,
     members,
+    usageLog: input.usageLog !== false,
   }
 }
 
 export function serializeAccess(policy: AccessPolicy) {
   const members = Object.fromEntries(Object.entries(policy.members).filter(([email, assigned]) => isEmail(email) && assigned.length).sort(([a], [b]) => a.localeCompare(b)).map(([email, assigned]) => [normalEmail(email), roles.filter((role) => assigned.includes(role))]))
-  return `${JSON.stringify({ schema: 1, defaultRole: policy.defaultRole, roles: Object.fromEntries(roles.map((role) => [role, { areas: allAreas.filter((area) => policy.roles[role].areas.includes(area)), actions: allActions.filter((action) => policy.roles[role].actions.includes(action)) }])), members }, null, 2)}\n`
+  return `${JSON.stringify({ schema: 1, defaultRole: policy.defaultRole, roles: Object.fromEntries(roles.map((role) => [role, { areas: allAreas.filter((area) => policy.roles[role].areas.includes(area)), actions: allActions.filter((action) => policy.roles[role].actions.includes(action)) }])), members, usageLog: policy.usageLog !== false }, null, 2)}\n`
 }
 
 // A person's rights: the union of their roles, or the default role when their email is not listed (or not known yet).

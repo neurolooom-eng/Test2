@@ -391,6 +391,22 @@ Cases marked **UAT** are also run in acceptance testing.
   - PAT inputs are `type="password"`.
   - No secret is in the repository.
 
+**TC-CON-41 Usage log: who uses the app and when** — Req CON-73, CON-74 — **UAT** — L1 `usage-log.test.mjs` ("a record names the file by the email, holds the days used, and is written at most once a day"; "the summary gives active people in the last 7 and 30 days, newest first, and person-days per month"; "access.json carries the usage-log switch: on unless set to false, kept through a round trip"); E2E `usage.e2e.mjs` (GitHub mocked: opening the app writes `usage/dana_at_example.com.json` once with today's day, the version and "web", shows the notice; Settings → Access → Usage → Load usage lists 2 people newest first with the 7-day and 30-day counts; a reload the same day sends no usage request).
+- Pre: Git storage connected with a writable token (TD-03); a Time Writing connection with your email; a second person's record in `usage/` (or a colleague who opened the app).
+- Steps:
+  1. Open the app; read the notice; dismiss it.
+  2. Open the data repository → `usage/`.
+  3. Settings → Access → Usage → Load usage; open "Per month".
+  4. Reload the app.
+  5. As an Admin, press "Switch off for everyone"; open the app in another browser profile with another email.
+- Expected:
+  - The notice says that your email, the day, the version and web/desktop are recorded in usage/ of the data repository; it is shown once per browser.
+  - `usage/<your email>.json` holds schema 1, your email, today in `days`, firstSeen = lastSeen = today, the version and the platform; no token; one commit "Usage: <email> on <day> (v…, web)".
+  - The Usage section shows People, Active last 7 days, Active last 30 days, your row first (today, 1 day, 1, 1), the other person's row, and the month table; History in Git opens the folder's commits.
+  - After the reload no second commit is made; the next day one is.
+  - After the switch, access.json has `usageLog: false`, the section says "Recording is off", and the other browser records nothing and shows no notice.
+
+
 ### 6.3 Fetch and auto-save
 
 **TC-FET-01 Query fetch with parents** — Req FET-02, FET-03
@@ -1140,6 +1156,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-70 | TC-CON-38 |
 | CON-71 | TC-CON-39 |
 | CON-72 | TC-CON-40 |
+| CON-73, CON-74 | TC-CON-41 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1293,7 +1310,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
-| UC-22 | TC-ACC-01, TC-ACC-02 |
+| UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-41 |
 | UC-23 | TC-QEM-01…04 |
 
 ## 8. Result record

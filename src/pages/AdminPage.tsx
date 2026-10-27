@@ -10,6 +10,8 @@ import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
 import { AzureViewsGitPanel } from '../components/AzureViewsGit'
 import { AzureConnections } from '../components/AzureConnections'
 import { AccessPanel } from '../components/AccessPanel'
+import { UsagePanel } from '../components/UsagePanel'
+import type { UsageLog } from '../useUsageLog'
 import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
 import { SharedTimePanel } from '../components/SharedTimePanel'
 import type { FeatureSetup } from '../useFeatureSetup'
@@ -22,7 +24,7 @@ const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month:
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
 // Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
-export function AdminPage({ store, month, azure, git, access, featureSetup, loadEverything, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, access, featureSetup, usage, loadEverything, onOpenBoard }: PageProps & { azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; usage: UsageLog; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
   const [everything, setEverything] = useState<{ busy: boolean; loaded?: string[]; failed?: string[] }>({ busy: false })
   const shared = access.can('settings.manage')
   const [reason, setReason] = useState('Approved operational extension')
@@ -142,6 +144,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, load
     </>}
     {tab === 'features' && <FeatureSetupPanel setup={featureSetup} git={git} items={azure.items} />}
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
+    {tab === 'access' && <UsagePanel usage={usage} access={access} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <div className="admin-grid">
       <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Dashboard to compute available hours and utilization. Saved with the planning data in Git (with the holidays and common activities), so everyone who loads from Git gets the same settings.">

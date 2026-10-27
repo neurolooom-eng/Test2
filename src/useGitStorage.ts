@@ -6,6 +6,7 @@ import { formatDateTime } from './format'
 import { applyWindchillSnapshots, parseWindchillSnapshot, windchillDigest, windchillFolder, windchillSnapshotFile, type WindchillSnapshotFile, type WindchillSource } from './windchillSnapshots'
 import { loadWindchillViews, saveWindchillViews, type WindchillView } from './windchillViews'
 import { windchillAnalysisFolder } from './windchillReleases'
+import { parseUsageRecord, usageFileName, usageFolder, type UsageRecord } from './usageLog'
 import { loadAzureConnectionProfile, saveAzureConnectionProfile, type AzureConnectionProfileSummary, listAzureConnectionProfiles } from './azureCredentials'
 import { parseViews, syncViewsFromGit, connectionKey } from './viewDefinitions'
 import { personalSetupPath } from './featureSetup'
@@ -251,6 +252,26 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
   }
   // One Windchill export (or view) from Git: Load from Git on its page. Null when Git has none; the results here are
   // replaced only by newer ones, and an export not set up here is added.
+  // Usage records (usage/<email>.json, CON-73): everyone's, read for the Usage summary; one's own, written once a day.
+  const readUsageRecords = useCallback(async () => {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    const files = await listFolder(siblingConfig(config, usageFolder), token)
+    const records: UsageRecord[] = []
+    for (const file of files.filter((entry) => entry.name.endsWith('.json'))) {
+      const text = await readRawFile(siblingConfig(config, `${usageFolder}/${file.name}`), token)
+      if (text != null) { try { records.push(parseUsageRecord(text)) } catch { /* a broken record is left out of the summary */ } }
+    }
+    return records
+  }, [config, token])
+  const readUsageRecord = useCallback(async (email: string) => {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    return readTextFile(siblingConfig(config, usageFileName(email)), token)
+  }, [config, token])
+  async function writeUsageRecord(email: string, text: string, sha: string | null, commitMessage: string) {
+    if (!config || !token) throw new Error('Connect Git storage first.')
+    if (isSample) throw new Error('Synthetic sample data is loaded. Saving to Git is disabled.')
+    return writeTextFile(siblingConfig(config, usageFileName(email)), token, text, sha, commitMessage)
+  }
   // The Location analysis of an export (windchillLocationsFile) to windchill-analysis/<export>-locations.json.
   async function pushWindchillAnalysis(viewId: string, text: string, message: string): Promise<string> {
     if (!config || !token) throw new Error('Connect Git storage (Settings → Storage) first.')
@@ -291,6 +312,6 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     setConfig(null); setToken(''); setSynced(null); setStatus('off'); setMessage('Git storage disconnected in this browser. The data stays in the app and in the repository.'); sha.current = null
   }
 
-  return { config, connected, readOnly, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, syncViews, pushWindchillAnalysis, accessScope: accessConfig && token ? `${accessConfig.owner}/${accessConfig.repo}@${accessConfig.branch}:${accessConfig.path}` : '', accessPath: accessConfig?.path ?? '', accessHistory: accessConfig ? historyUrl(accessConfig) : '', readAccess, writeAccess, readFeatureSetup, writeFeatureSetup, readPersonalFeatureSetup, writePersonalFeatureSetup, featureSetupHistory: config ? historyUrl(siblingConfig(config, 'feature-setup.json')) : '', readQeMapping, writeQeMapping, qeMappingHistory: config ? historyUrl(siblingConfig(config, 'qe-mapping.json')) : '', removeSnapshots, viewsSync, snapshotNotes, pushSnapshot, pullSnapshot, pullSnapshots, pushWindchill, pullWindchill, pullWindchillOne, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
+  return { config, connected, readOnly, status, message, dirty, commitUrl, history: config ? historyUrl(config) : '', isSample, load: () => load(), connect, save, disconnect, viewsPath: viewsConfig?.path ?? '', viewsHistory: viewsConfig ? historyUrl(viewsConfig) : '', readViews, writeViews, syncViews, pushWindchillAnalysis, readUsageRecords, readUsageRecord, writeUsageRecord, usageHistory: config ? historyUrl(siblingConfig(config, usageFolder)) : '', accessScope: accessConfig && token ? `${accessConfig.owner}/${accessConfig.repo}@${accessConfig.branch}:${accessConfig.path}` : '', accessPath: accessConfig?.path ?? '', accessHistory: accessConfig ? historyUrl(accessConfig) : '', readAccess, writeAccess, readFeatureSetup, writeFeatureSetup, readPersonalFeatureSetup, writePersonalFeatureSetup, featureSetupHistory: config ? historyUrl(siblingConfig(config, 'feature-setup.json')) : '', readQeMapping, writeQeMapping, qeMappingHistory: config ? historyUrl(siblingConfig(config, 'qe-mapping.json')) : '', removeSnapshots, viewsSync, snapshotNotes, pushSnapshot, pullSnapshot, pullSnapshots, pushWindchill, pullWindchill, pullWindchillOne, snapshotsHistory: config ? historyUrl(siblingConfig(config, snapshotFolder)) : '' }
 }
 export type GitStorage = ReturnType<typeof useGitStorage>

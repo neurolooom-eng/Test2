@@ -22,6 +22,7 @@ This document holds (1) the **code analysis and penetration test** of the build,
 | A2 GitHub fine-grained token | localStorage `demand-planning-git-token-v1` | Read/write of the private data repository (planning data, setup, exports) |
 | A3 Microsoft Entra session (MSAL, sessionStorage) | Browser | Access to the SharePoint site |
 | A4 Planning data, time bookings, release data, QE mapping | IndexedDB; the data repository; SharePoint | Integrity of time writing and planning decisions; confidentiality of names and effort |
+| A8 Usage records (who used the app on which days, version, platform) | `usage/` in the data repository | Personal data of employees: must stay minimal, transparent and inside the governed repository |
 | A5 Work items in Azure DevOps Services | dev.azure.com | Unintended writes (the Critical severity of TEST-PLAN.md §5) |
 | A6 The published app and installers | GitHub Pages; `desktop-latest` release | Code execution on every user's machine (supply chain) |
 | A7 The source repository and CI | GitHub | Everything above |
@@ -101,6 +102,7 @@ Each line is a test that passed; together they are the evidence that the securit
 | R-15 | Local data loss or corruption that hides a failed save (Repudiation of effort data) | — / A4 | 2 | 4 | 8 | SM-21 | 1 × 4 = 4 | — |
 | R-16 | Roles are enforced in the client only; a user bypasses the menu (Elevation) | — / A4, A5 | 3 | 2 | 6 | SM-22 | 6 | Accepted (LIM-07): the user's own token is the real limit |
 | R-17 | A known vulnerability in a dependency is shipped (Tampering) | B5 / A6 | 2 | 4 | 8 | SM-17 | 1 × 4 = 4 | — |
+| R-18 | Usage records reveal more than needed, are written where they should not be, or are recorded without the person knowing (Information disclosure, Repudiation) | B4 / A8 | 2 | 3 | 6 | SM-23 | 1 × 3 = 3 | Privacy / works-council check by the product owner before wide roll-out (LIM-08) |
 
 No high residual risk remains. R-06, R-07 and R-08 are medium residual risks that the product owner accepts for this release with the open actions scheduled (they need a code-signing certificate, verified action SHAs and a browser check of the CSP, none of which this pull request can supply); they stay in [KNOWN-ISSUES.md](KNOWN-ISSUES.md) until closed.
 
@@ -132,6 +134,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 | SM-20 | A rendering error is contained by the ErrorBoundary with a way back; imports and snapshots have size limits (200 MB backups, 100 MB inflate, 1000 rows shown). | CON-70, STO-07, QV-10 | TC-CON-38, TC-STO-03, TC-QV-05 |
 | SM-21 | Saves are automatic and failures are shown with an immediate backup offer; restore is validated and confirmed; unsaved work blocks a reload. | STO-01, STO-03, STO-04, STO-08, UPD-03 | TC-STO-01, TC-STO-02, TC-STO-04, TC-UPD-02 |
 | SM-22 | Roles decide what the app shows and offers; the policy is kept in Git and applied per email; the user's own tokens remain the real limit (documented). | CON-41, CON-42, CON-43, CON-51 | TC-ACC-01, TC-ACC-02, TC-CON-24 |
+| SM-23 | The usage log holds only the email, the days used, the version and the platform — no page contents, no data, no credential — in the governed data repository, written by the person's own token at most once a day; a notice tells the person what is recorded; an Admin switch turns it off for everyone. | CON-73, CON-74, GIT-02 | TC-CON-41 |
 
 ## 5. Re-assessment
 

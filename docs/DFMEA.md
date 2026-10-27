@@ -76,13 +76,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-28 | CI build and publish | Dependency code in CI replaces the published installers (SM-16) | Code execution on every desktop | Compromised dependency with a write token | 5 | 1 | 4 | 20 | Read-only token for jobs that run dependency code; publishing jobs only download artefacts (CI-07) | 5×1×1 = 5 | TC-CI-03 | PT-02 fixed in this pull request; R-07 SHA pinning open |
 | DF-29 | Web update | Users keep running an old build, or reload while a fetch is running | Stale behaviour; interrupted save | Browser cache | 2 | 3 | 2 | 12 | Build id in the HTML, manifest check, reload blocked while busy (UPD-01…UPD-05) | 2×1×1 = 2 | TC-UPD-01, TC-UPD-02 | — |
 | DF-31 | Save the Windchill locations analysis to Git | The file goes to the wrong repository or carries document contents | Data in the wrong place | Wrong Git configuration | 3 | 2 | 2 | 12 | Written only to the configured data repository next to the planning data, under windchill-analysis/; holds unique folders, counts and releases only, no rows, no credentials; refused in sample mode and with a read-only token (CON-72, GIT-02, GIT-09) | 3×1×1 = 3 | TC-CON-40 | — |
+| DF-32 | Record who uses the app and when | A record holds more than agreed, is written on every reload, or recording continues after it was switched off | Personal data beyond the agreed minimum; noisy repository history; loss of trust | Over-eager recording; stale policy | 3 | 2 | 3 | 18 | Fixed record fields (email, days, version, platform), one commit per person per day with a browser mark, policy switch read from access.json at start, notice on the first record (CON-73, CON-74; SM-23) | 3×1×1 = 3 | TC-CON-41 | Privacy check before wide roll-out (LIM-08) |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 31 |
+| Failure modes analysed | 32 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 3 (DF-01, DF-02, DF-23) — all reduced to 5 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |
