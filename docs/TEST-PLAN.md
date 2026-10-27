@@ -690,7 +690,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-09 Bare field names with a prefix** — Req QV-23 — L1 `query-view.test.mjs` ("a bare field name finds its prefixed reference name (\"SourceProgram\" → Custom.SourceProgram), only when exactly one field ends with it"); browser check with Azure DevOps mocked: a DP query selecting [SourceProgram] over items whose field is Custom.SourceProgram shows RSGMS, RSGMS, DHP in that column, with and without the project's field list (before the fix the column was blank).
 
-**TC-QV-10 DP: DDT month, Completed and Supported Releases** — Req QV-24, QV-25 — L1 `dp-milestones.test.mjs` ("DP counts for a month: Completed = DDT Done in the month; Supported = DDT + DRfH + DRPC + DRPE Done in the month"; "the DP table month is the DDT Date month; a row without DDT Date has none; release name from PsName and Release"), `streams.test.mjs` ("Pulse Check streams: …": DP supported 2, titles "SFV Done", "DT Done"; the Dashboard's streamCounts per month and in total); browser check with Azure DevOps mocked (DP query with PsName, Release and the eight milestone fields; #501 DDT Done 5 Oct + DRfH Done 2 Oct, #502 DDT In Progress 20 Oct + DRPC Done 21 Oct, #503 DDT Done 3 Nov + DRPE Done 8 Oct, #504 DDT Done 10 Sep): DP in October shows "Month filter: by DDT Date", rows 501 and 502, "Completed Releases · October 2026: 1", "Supported Releases: 4 — DT 1 · SFV 1 · PRD 1 · RPE 1" and the four milestones counted in date order; Pulse Check → September: DP 1 completed · 1 supported (Release 504, DT Done); Current month (October): DP 1 completed · 4 supported with four titles; no page errors. **UAT**
+**TC-QV-10 DP: DDT month, Completed and Supported Releases** — Req QV-24, QV-25 — L1 `dp-milestones.test.mjs` ("DP counts for a month: Completed = releases with DDT Done in the month; Supported = unique releases with any milestone Done in the month"; "Supported Releases are unique by PsName + Release: two rows of the same release count once; rows without them by work item"; "the DP table month is the DDT Date month; a row without DDT Date has none; release name from PsName and Release"), `streams.test.mjs` ("Pulse Check streams: …": DP supported 1, title "SFV · DT Done"; the same release supported in two months counts once over the period; the Dashboard's streamCounts per month and in total); browser check with Azure DevOps mocked (DP query with PsName, Release and the eight milestone fields; #501 DDT Done 5 Oct + DRfH Done 2 Oct, #502 DDT In Progress 20 Oct + DRPC Done 21 Oct, #503 DDT Done 3 Nov + DRPE Done 8 Oct, #504 DDT Done 10 Sep): DP in October shows "Month filter: by DDT Date", rows 501 and 502, "Completed Releases · October 2026: 1", "Supported Releases: 3" with "4 milestones: DT 1 · SFV 1 · PRD 1 · RPE 1" and the three releases counted, #501 once with SFV and DT; Pulse Check → September: DP 1 completed · 1 supported (Release 504, DT Done); Current month (October): DP 1 completed · 3 supported with three titles; no page errors. **UAT**
 
 **TC-QV-11 DP milestone names and query scope** — Req QV-26 — L1 `dp-milestones.test.mjs` ("DP milestones carry the team names: DT, SFV, PRD, RPE"), `streams.test.mjs` (titles "SFV Done", "DT Done"); browser check with Azure DevOps mocked (DP query rows from two projects): the Supported Releases hint reads "DT n · SFV n · PRD n · RPE n", "What was counted" shows "DT · Design Transfer · Completed", "SFV · Start of Verification / Start of Hardening", the legend lists all four names, and rows of both projects are shown and counted.
 
@@ -703,6 +703,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-QV-15 Rearrange the DP columns** — Req QV-30 — L1 `query-view.test.mjs` ("column order: saved order first, new query columns keep their place; move by drag or one step"); browser check with Azure DevOps mocked (DP view): dragging the Title heading onto the first heading makes Title the first column; dragging "QMS-0025 match" onto the second heading puts it second with its cells; Columns → "Move ID right" moves ID one step; the order is kept after a reload; "Query order" restores the query's order with QMS-0025 match last; no page errors.
 
 **TC-QV-16 Create Feature from Release Details opens the default form** — Req QV-31 — L1 `dp-board-match.test.mjs` ("Create Feature from a DP row: Program (SourceProgram, else DP) | PsName | vRelease, falling back to the Title"), `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | vRelease\", mapping back to the release"); browser check with Azure DevOps mocked (QMS-0025 board with Epic #700 "DP"; DP row #502 SourceProgram DHP, PsName DoseNav, Release 2.1, no match): Create Feature opens "Add Feature under an Epic" with Parent Epic "#700 · DP" and the title "DHP | DoseNav | v2.1"; without a Time Writing connection the button is disabled and says so; no page errors. **UAT**
+
+**TC-QV-17 Supported Releases section in Pulse Check** — Req QV-32, QV-24, QV-25 — L1 `dp-milestones.test.mjs` (the two unique-release tests), `streams.test.mjs` ("Pulse Check streams: …"); browser check with Azure DevOps mocked (the TC-QV-10 data): Pulse Check → Current month releases (October) shows "Supported Releases · DP · October 2026" with "3 releases · 4 milestones", #501 RSGMS 3.0.0.2 once with SFV and DT chips and "Completed (DT)"; the Releases tab (September) shows #504 with DT; no page errors.
 
 ### 6.9 Dashboard and capacity
 
@@ -1162,6 +1164,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-29 | TC-QV-14 |
 | QV-30 | TC-QV-15 |
 | QV-31 | TC-QV-16 |
+| QV-32 | TC-QV-17 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
 | OV-12 | TC-OV-12 |
@@ -1232,7 +1235,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CON-21, TC-QV-10, TC-QV-11 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05 |
