@@ -738,7 +738,9 @@ Cases marked **UAT** are also run in acceptance testing.
   - Next to the RELEASES summary a SUPPORTED summary lists, per stream and in the same format, "DP [n] : name release, …" (its Supported Releases) and "S&S IT [n] : name number, …" (the export's releases whose latest Last Modified is in the month), with the total in the title; a stream without any shows "none".
 
 
-**TC-QV-19 Tool Validations: unique tools in the month** — Req QV-34 — L1 `streams.test.mjs` ("Tool Validations: one entry per tool, whatever the number of its documents (QV-34)"); browser check with the Tool Validations connection fetched (TD-02 fixture: five documents in October — Minitab Validation Plan / Protocol / Report under Area Path "…\Tool Validations\Minitab", "JIRA Cloud v9.4 Validation Protocol" and "… Report" under "…\Tool Validations") → Pulse Check → Releases shows "Tool Validations [2] : JIRA Cloud 9.4, Minitab", the Supported summary the same line, the quadrant 2 releases · 5 documents, and the Dashboard delivery table 2 for the month.
+**TC-QV-19 Tool Validations: unique tools in the month** — Req QV-34 — L1 `streams.test.mjs` ("Tool Validations: one entry per tool, whatever the number of its documents (QV-34)"); browser check with the Tool Validations connection fetched (TD-02 fixture: five documents in October — Minitab Validation Plan / Protocol / Report under Area Path "…\Tool Validations\Minitab", "JIRA Cloud v9.4 Validation Protocol" and "… Report" under "…\Tool Validations") → Pulse Check → Releases (header month November, the tab shows October) shows "Tool Validations [2] : JIRA Cloud 9.4, Minitab", the quadrant 2 releases · 5 documents, and the Dashboard delivery table 2 for October; the Supported summary's Tool Validations line lists November's tools (the header month, "· November 2026" after the name — 0 with this fixture), and with the header month set to October it lists "JIRA Cloud 9.4, Minitab" without a month note; the Current month releases tab shows the same two tools in both summaries.
+
+**TC-QV-20 Tool Validations view without the summary strip** — Req QV-35 — browser check: Release Details → Tool Validations (TD-02 fixture) shows the Releases table and the query table with the search box, sortable headings, resize handles and Export CSV, but no State / Type chips and no People row; Release Details → CP still shows the strip.
 - Expected:
   - A tool with several documents in the month is one entry; its document count is the number of documents.
   - A document whose Area Path has no tool folder is named by its Title before the version or the document word.
@@ -1234,6 +1236,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-32 | TC-QV-17 |
 | QV-33 | TC-QV-18 |
 | QV-34 | TC-QV-19 |
+| QV-35 | TC-QV-20 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
 | OV-12 | TC-OV-12 |
@@ -1306,7 +1309,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
