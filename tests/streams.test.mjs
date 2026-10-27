@@ -73,6 +73,9 @@ test('Tool Validations: one entry per tool, whatever the number of its documents
   assert.equal(tool('DHP\\Tool Validations\\Minitab', 'DHP', 'Minitab Validation Report'), 'Minitab|')
   assert.equal(tool('DHP\\Tool Validations', 'DHP', 'JIRA Cloud v9.4 Validation Protocol'), 'JIRA Cloud|9.4', 'no tool folder: the Title before its version')
   assert.equal(tool('DHP', 'DHP', 'Polarion Validation Summary Report'), 'Polarion|', 'no version: the Title before its document word')
+  // The real query: Iteration Path "DHP.Vault\\Validation" holds no release; a "Validation" folder is not a tool.
+  assert.equal(tool('DHP.Vault\\Validation\\Minitab', 'DHP.Vault\\Validation', 'Minitab Validation Report'), 'Minitab|')
+  assert.equal(tool('DHP.Vault\\Validation', 'DHP.Vault\\Validation', 'Minitab 21.1 Validation Report'), 'Minitab|21.1')
   assert.equal(tool('DHP', 'DHP', 'Polarion - IQ OQ Checklist'), 'Polarion|')
   assert.equal(tool('DHP', 'DHP', ''), undefined)
   const items = [doc(1, 'DHP\\Tool Validations\\Minitab', 'DHP', 'Minitab Validation Plan'), doc(2, 'DHP\\Tool Validations\\Minitab', 'DHP', 'Minitab Validation Protocol'), doc(3, 'DHP\\Tool Validations\\Minitab', 'DHP', 'Minitab Validation Report'), doc(4, 'DHP\\Tool Validations', 'DHP', 'JIRA Cloud v9.4 Validation Protocol'), doc(5, 'DHP\\Tool Validations', 'DHP', 'JIRA Cloud v9.4 Validation Report')]
