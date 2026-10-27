@@ -5,7 +5,7 @@ import { idsIn, readKnownIssues, readRequirements, readTestCases } from '../scri
 
 // The Validation Package documents (DOC-09, DOC-11): each has its required sections, its own IDs are unique, and every
 // requirement, test case, mitigation, DFMEA row, finding, risk or issue it cites exists in the document that owns it.
-const doc = (file) => readFileSync(new URL(`../docs/${file}`, import.meta.url), 'utf8')
+const doc = (file) => readFileSync(new URL(`../docs/${file}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 const rowIds = (text, prefix) => [...text.matchAll(new RegExp(String.raw`^\| (${prefix}-\d+) \|`, 'gm'))].map((m) => m[1])
 const unique = (ids, what) => assert.deepEqual(ids.filter((id, i) => ids.indexOf(id) !== i), [], `${what} IDs are unique`)
 
@@ -61,7 +61,7 @@ test('every ID cited in the package exists where it is defined', () => {
 
 test('the package index lists every document in docs/, and the app bundles them all', () => {
   const index = doc('VALIDATION-PACKAGE.md')
-  const bundled = readFileSync(new URL('../src/docs/index.ts', import.meta.url), 'utf8')
+  const bundled = readFileSync(new URL('../src/docs/index.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
   for (const file of Object.keys(sections)) {
     if (file !== 'VALIDATION-PACKAGE.md') assert.ok(index.includes(`[${file}](${file})`), `VALIDATION-PACKAGE.md lists ${file}`)
     assert.ok(bundled.includes(`docs/${file}?raw`), `${file} is bundled for the Documentation page`)

@@ -6,7 +6,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const docs = new URL('../docs/', import.meta.url)
-const read = (file) => readFileSync(new URL(file, docs), 'utf8')
+// Line endings are normalised: a Windows checkout (CI) may have CRLF.
+const read = (file) => readFileSync(new URL(file, docs), 'utf8').replace(/\r\n/g, '\n')
 const out = fileURLToPath(new URL('TRACEABILITY-MATRIX.md', docs))
 
 const cells = (line) => line.slice(1, -1).split(/(?<!\\)\|/).map((cell) => cell.trim())
@@ -187,7 +188,7 @@ if (isMain) {
   const { text, gaps } = build()
   if (process.argv.includes('--check')) {
     let current = ''
-    try { current = readFileSync(out, 'utf8') } catch { /* missing: reported below */ }
+    try { current = readFileSync(out, 'utf8').replace(/\r\n/g, '\n') } catch { /* missing: reported below */ }
     const problems = [...gaps]
     if (current !== text) problems.push('docs/TRACEABILITY-MATRIX.md is out of date: run `node scripts/traceability.mjs`')
     if (problems.length) { console.error(problems.join('\n')); process.exit(1) }

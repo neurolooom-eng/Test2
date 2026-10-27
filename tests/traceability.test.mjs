@@ -65,5 +65,5 @@ test('the committed traceability matrix is complete and current', () => {
   const { text, gaps, untested } = build()
   assert.deepEqual(gaps, [], 'no trace gap')
   assert.deepEqual(untested.map((req) => req.id), [], 'every requirement in force has a test case')
-  assert.equal(readFileSync(new URL('../docs/TRACEABILITY-MATRIX.md', import.meta.url), 'utf8'), text, 'docs/TRACEABILITY-MATRIX.md is current: run `node scripts/traceability.mjs`')
+  assert.equal(readFileSync(new URL('../docs/TRACEABILITY-MATRIX.md', import.meta.url), 'utf8').replace(/\r\n/g, '\n'), text, 'docs/TRACEABILITY-MATRIX.md is current: run `node scripts/traceability.mjs`')
 })
