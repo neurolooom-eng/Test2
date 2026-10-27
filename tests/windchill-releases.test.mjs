@@ -3,11 +3,11 @@ import assert from 'node:assert/strict'
 import { releaseFromDocumentName, releasesFromDocumentName, releaseFromLocation, releasesFromLocation, locationColumn, windchillReleases, windchillLocationsFile, documentNameColumn, parseExportDate } from '../src/windchillReleases.ts'
 
 test('a document name splits at its first version: release name, release number, document name', () => {
-  assert.deepEqual(releaseFromDocumentName('Remote Diagnostics 1.6 Verification Report'), { name: 'Remote Diagnostics', release: '1.6', raw: '1.6', document: 'Verification Report' })
-  assert.deepEqual(releaseFromDocumentName('IntelliSpace Portal - v12.1 - Test Plan'), { name: 'IntelliSpace Portal', release: '12.1', raw: 'v12.1', document: 'Test Plan' })
-  assert.deepEqual(releaseFromDocumentName('CareLink_R3.2_SRS'), { name: 'CareLink', release: '3.2', raw: 'R3.2', document: 'SRS' })
-  assert.deepEqual(releaseFromDocumentName('Field Service Tool Release 5 Release Notes'), { name: 'Field Service Tool', release: '5', raw: 'Release 5', document: 'Release Notes' })
-  assert.deepEqual(releaseFromDocumentName('Dose Viewer | 3.0.0.2 | DHF Index (v2)'), { name: 'Dose Viewer', release: '3.0.0.2', raw: '3.0.0.2', document: 'DHF Index (v2)' }, 'a version in brackets is the document revision')
+  assert.deepEqual(releaseFromDocumentName('Remote Diagnostics 1.6 Verification Report'), { name: 'Remote Diagnostics', release: '1.6', raw: '1.6', document: 'Verification Report', span: 'Remote Diagnostics 1.6' })
+  assert.deepEqual(releaseFromDocumentName('IntelliSpace Portal - v12.1 - Test Plan'), { name: 'IntelliSpace Portal', release: '12.1', raw: 'v12.1', document: 'Test Plan', span: 'IntelliSpace Portal - v12.1' })
+  assert.deepEqual(releaseFromDocumentName('CareLink_R3.2_SRS'), { name: 'CareLink', release: '3.2', raw: 'R3.2', document: 'SRS', span: 'CareLink_R3.2' })
+  assert.deepEqual(releaseFromDocumentName('Field Service Tool Release 5 Release Notes'), { name: 'Field Service Tool', release: '5', raw: 'Release 5', document: 'Release Notes', span: 'Field Service Tool Release 5' })
+  assert.deepEqual(releaseFromDocumentName('Dose Viewer | 3.0.0.2 | DHF Index (v2)'), { name: 'Dose Viewer', release: '3.0.0.2', raw: '3.0.0.2', document: 'DHF Index (v2)', span: 'Dose Viewer | 3.0.0.2' }, 'a version in brackets is the document revision')
   assert.equal(releaseFromDocumentName('Quality Manual'), undefined, 'no version: no release')
   assert.equal(releaseFromDocumentName('2.1 Test Plan'), undefined, 'a version with no name before it: no release')
   assert.equal(releaseFromDocumentName('Plan for 2026 audits'), undefined, 'a lone number is not a version')
@@ -29,7 +29,7 @@ test('unique releases from an export: name + number, case and trailing zeros ign
   assert.equal(documentNameColumn(['Number', 'Organization Name', 'Document Name']), 'Document Name')
 })
 
-test('clubbed names: every name + release pair is a release, whatever the delimiters; the rest is the document name', () => {
+test('clubbed names: every name + version pair is a part, whatever the delimiters; the rest is the document name', () => {
   const pairs = (text) => releasesFromDocumentName(text).map((entry) => `${entry.name} ${entry.release} | ${entry.document}`)
   assert.deepEqual(pairs('Service1_rel1.0_Service2_rel2.3_Test Plan'), ['Service1 1.0 | Test Plan', 'Service2 2.3 | Test Plan'])
   assert.deepEqual(pairs('Service1_rel1_service2_rel2'), ['Service1 1 | ', 'service2 2 | '])
@@ -38,17 +38,22 @@ test('clubbed names: every name + release pair is a release, whatever the delimi
   assert.deepEqual(pairs('Viewer 1.6 & 1.7 SRS'), ['Viewer 1.6 | SRS', 'Viewer 1.7 | SRS'], 'a version with no name before it keeps the previous name')
   assert.deepEqual(pairs('Viewer_1.6_and_2.0_Test Report'), ['Viewer 1.6 | Test Report', 'Viewer 2.0 | Test Report'])
   assert.deepEqual(pairs('Service2 rel2 + Service3 Release 3 DHF Index (v4)'), ['Service2 2 | DHF Index (v4)', 'Service3 3 | DHF Index (v4)'])
+  assert.equal(releasesFromDocumentName('Ser 1 Rel1_Ser2 Rel2_Test Plan')[0].span, 'Ser 1 Rel1_Ser2 Rel2', 'the span is the clubbed text as written')
 })
 
-test('a clubbed document counts once for each release it names', () => {
+test('a clubbed name is one release, kept as written and counted once; a part written on its own is another release', () => {
   const rows = [
-    { Name: 'Service1_rel1.0_Service2_rel2.3_Test Plan', Modified: '2026-10-02' },
-    { Name: 'Service1-1.0-SRS', Modified: '2026-10-05' },
-    { Name: 'service2 v2.3.0 Verification Report', Modified: '2026-09-01' },
+    { Name: 'Ser 1 Rel1_Ser2 Rel2_Test Plan', Modified: '2026-10-02' },
+    { Name: 'Ser 1 Rel1 _ Ser2 Rel2 - SRS', Modified: '2026-10-05' },
+    { Name: 'Ser 1 Rel1 Verification Report', Modified: '2026-09-01' },
   ]
   const { releases, clubbed } = windchillReleases(rows, ['Name', 'Modified'])
-  assert.equal(clubbed, 1)
-  assert.deepEqual(releases.map((entry) => [entry.name, entry.release, entry.documents.map((doc) => doc.name), entry.latest]), [['Service1', '1.0', ['Test Plan', 'SRS'], '2026-10-05'], ['Service2', '2.3', ['Test Plan', 'Verification Report'], '2026-10-02']])
+  assert.equal(clubbed, 1, 'one clubbed release, however many documents')
+  assert.deepEqual(releases.map((entry) => [entry.name, entry.release, entry.clubbed, entry.documents.map((doc) => doc.name), entry.latest]), [
+    ['Ser 1 Rel1_Ser2 Rel2', '1 + 2', true, ['Test Plan', 'SRS'], '2026-10-05'],
+    ['Ser 1', '1', false, ['Verification Report'], '2026-09-01'],
+  ], 'spacing and delimiter variants of the same clubbed text merge; the single part stays its own release')
+  assert.deepEqual(releases[0].parts.map((part) => `${part.name} ${part.release}`), ['Ser 1 1', 'Ser2 2'])
 })
 
 test('Location: the release is read from the deepest folder that holds a version, in one folder or in name/version folders (CON-72)', () => {
@@ -58,8 +63,8 @@ test('Location: the release is read from the deepest folder that holds a version
   assert.equal(read('/Products/CareLink/R3.2/DHF'), 'CareLink R3.2 @ Products/CareLink/R3.2', 'the number is kept as the folder writes it')
   assert.equal(read('\\Products\\IntelliSpace Portal - v12.1\\Test Reports'), 'IntelliSpace Portal v12.1 @ Products/IntelliSpace Portal - v12.1')
   assert.equal(read('/Products/Viewer 2.0/Patches/2.0.3/DHF'), 'Patches 2.0.3 @ Products/Viewer 2.0/Patches/2.0.3', 'the deepest version wins, with the folder above it as the name')
-  assert.deepEqual(releasesFromLocation('/Products/Service1_rel1_Service2_rel2/DHF').map((entry) => `${entry.name} ${entry.release}`), ['Service1 rel1', 'Service2 rel2'], 'a clubbed folder names every release, numbers as written')
-  assert.deepEqual(releasesFromLocation('/Products/Viewer 1.6 & 1.7/SRS').map((entry) => `${entry.name} ${entry.release}`), ['Viewer 1.6', 'Viewer 1.7'])
+  assert.deepEqual(releasesFromLocation('/Products/Ser 1 Rel1_Ser2 Rel2/DHF').map((entry) => [entry.name, entry.release, entry.clubbed, entry.parts.map((part) => `${part.name} ${part.release}`)]), [['Ser 1 Rel1_Ser2 Rel2', 'Rel1 + Rel2', true, ['Ser 1 Rel1', 'Ser2 Rel2']]], 'a clubbed folder is one release as written, numbers as written')
+  assert.deepEqual(releasesFromLocation('/Products/Viewer 1.6 & 1.7/SRS').map((entry) => `${entry.name} | ${entry.release}`), ['Viewer 1.6 & 1.7 | 1.6 + 1.7'])
   assert.deepEqual(releasesFromLocation('/Products/Viewer 1.6.0/DHF').map((entry) => entry.release), ['1.6.0'])
   assert.equal(read('/Quality/Manuals'), undefined)
   assert.equal(read(''), undefined)
@@ -97,15 +102,16 @@ test('Location source: unique releases and unique locations of an export, with t
   assert.equal(JSON.stringify(file).includes('"row"'), false, 'the analysis file holds no document rows')
 })
 
-test('Location: a clubbed folder counts its documents for each release, and numbers written differently stay different releases', () => {
+test('Location: a clubbed folder is one release counted once; numbers written differently stay different releases', () => {
   const rows = [
-    { Name: 'Test Plan', Location: '/Products/Service1_rel1_Service2_rel2/DHF' },
-    { Name: 'SRS', Location: '/Products/Service1/rel1/DHF' },
-    { Name: 'Report', Location: '/Products/Service1 1.0/DHF' },
+    { Name: 'Test Plan', Location: '/Products/Ser 1 Rel1_Ser2 Rel2/DHF' },
+    { Name: 'SRS', Location: '/Products/Ser 1 Rel1 _ Ser2 Rel2/DHF' },
+    { Name: 'Report', Location: '/Products/Ser 1/Rel1/DHF' },
+    { Name: 'Plan', Location: '/Products/Ser 1 1.0/DHF' },
   ]
   const { releases, clubbed } = windchillReleases(rows, ['Name', 'Location'])
   assert.equal(clubbed, 1)
-  assert.deepEqual(releases.map((entry) => [entry.name, entry.release, entry.documents.map((doc) => doc.name)]), [['Service1', 'rel1', ['Test Plan', 'SRS']], ['Service1', '1.0', ['Report']], ['Service2', 'rel2', ['Test Plan']]])
+  assert.deepEqual(releases.map((entry) => [entry.name, entry.release, entry.clubbed, entry.documents.map((doc) => doc.name)]), [['Ser 1', 'Rel1', false, ['Report']], ['Ser 1', '1.0', false, ['Plan']], ['Ser 1 Rel1_Ser2 Rel2', 'Rel1 + Rel2', true, ['Test Plan', 'SRS']]], 'no date column: by name, then by number')
 })
 
 test('export dates are read in the formats Windchill writes, and the list is newest first with unreadable dates last', () => {
