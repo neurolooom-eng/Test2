@@ -38,10 +38,12 @@ export function PulseCheckPage({ month, azure, store, my, navigate, windchill, o
   const exports = defaultStreams.filter((stream) => stream.source === 'windchill').map((stream) => ({ stream, view: exportForStream(stream, windchill.views) }))
   const streams = defaultStreamReleases(store.state, azure.connectionProfiles, month)
   const lastStreams = defaultStreamReleases(store.state, azure.connectionProfiles, last)
-  // The Supported summary (QV-33): DP's Supported Releases, then the Windchill streams' releases with the latest date
+  // The Supported summary (QV-33, QV-34): DP's Supported Releases, the Tool Validations' unique tools, then the Windchill streams' releases with the latest date
   // in the month, in the default stream order.
   const supportedLines = (shown: ReleaseStream[], at: string): SupportedLine[] => [
     ...shown.filter((stream) => stream.supportedReleases).map((stream) => ({ name: stream.name, releases: stream.supportedReleases!.map((entry) => `${entry.name} ${entry.release}`) })),
+    // Tool Validations: the unique tools with a document in the month (validated or supported), one entry per tool.
+    ...shown.filter((stream) => defaultStreams.find((def) => def.name === stream.name)?.rule === 'tool').map((stream) => ({ name: stream.name, releases: stream.releases.map((entry) => [entry.name, entry.release].filter(Boolean).join(' ')) })),
     ...exports.map(({ stream, view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return { name: stream.name, releases: source ? windchillSupported(source.rows, source.columns.length ? source.columns : view?.columns ?? [], at) : [] } }),
   ]
   const releases = (shown: ReleaseStream[], at: string) => <>
