@@ -146,3 +146,26 @@ test('TC-CON-41: the export page follows the header month, sorts by any column a
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+test('TC-QV-18: Pulse Check shows the Supported summary next to Releases, with the S&S IT export\'s releases of the month', async () => {
+  const { page, context, errors } = await openPage(app)
+  await navigate(page, 'Import Windchill export')
+  // The export page names the import after the stream so that Pulse Check finds it.
+  await page.getByLabel(/name/i).first().fill('S&S IT').catch(() => {})
+  await page.locator('input[type=file]').first().setInputFiles(fixture('windchill-export.csv'))
+  await page.locator('.panel').filter({ has: page.locator('h2, h3', { hasText: /^Releases/ }) }).first().waitFor()
+  await navigate(page, 'Pulse Check')
+  // The Releases tab shows the month before the header month ("Releases · last month").
+  await page.locator('header.topbar input[type=month]').fill('2026-11')
+  await page.getByRole('tab', { name: /^Releases ·/ }).click()
+  const supported = page.locator('.supported-summary')
+  await supported.waitFor()
+  const body = await text(supported)
+  assert.match(body, /SUPPORTED/)
+  assert.match(body, /October 2026 · 4 supported releases/)
+  assert.match(body, /S&S IT \[4\] : Service1_rel1_Service2_rel2 1 \+ 2, IntelliSpace Portal 12\.1, Remote Diagnostics 1\.7, Remote Diagnostics 1\.6/)
+  await page.locator('header.topbar input[type=month]').fill('2026-09')
+  assert.match(await text(supported), /S&S IT \[1\] : CareLink 3\.2/)
+  assert.deepEqual(errors, [])
+  await context.close()
+})

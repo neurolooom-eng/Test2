@@ -69,7 +69,7 @@ This document lists every software component of the system: the in-house source 
 | PersonPicker | `src/components/PersonPicker.tsx` | Typeable person list with "me" first and keyboard selection. | ATM, UI |
 | QueryView | `src/components/QueryView.tsx` | Read-only query results view: summary strip, query columns, sorting, filters, search and CSV export. | QV |
 | ReleaseFeatureEditor | `src/components/ReleaseFeatureEditor.tsx` | Create Feature button from Release Details, pre-filling the default Feature form from the release. | QV |
-| ReleaseQuadrants | `src/components/ReleaseQuadrants.tsx` | Releases summary lines and a 2×2 quadrant per stream with documents approved in the month and totals. | OVR |
+| ReleaseQuadrants | `src/components/ReleaseQuadrants.tsx` | Releases summary lines, the Supported summary next to them (DP Supported Releases, S&S IT export releases of the month), and a 2×2 quadrant per stream with documents approved in the month and totals. | OVR, QV |
 | ReleaseView | `src/components/ReleaseView.tsx` | Release source view: flat list of releases derived from document paths. | QV |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |

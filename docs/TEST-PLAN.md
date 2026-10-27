@@ -731,6 +731,13 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-17 Supported Releases section in Pulse Check** — Req QV-32, QV-24, QV-25 — L1 `dp-milestones.test.mjs` (the two unique-release tests), `streams.test.mjs` ("Pulse Check streams: …"); browser check with Azure DevOps mocked (the TC-QV-10 data): Pulse Check → Current month releases (October) shows "Supported Releases · DP · October 2026" with "3 releases · 4 milestones", #501 RSGMS 3.0.0.2 once with SFV and DT chips and "Completed (DT)"; the Releases tab (September) shows #504 with DT; no page errors.
 
+**TC-QV-18 Supported summary next to Releases, with S&S IT** — Req QV-33 — **UAT** — L1 `windchill-releases.test.mjs` ("Pulse Check Supported line: the export's releases with the latest date in the month, \"name number\", newest first (QV-33)"); E2E `documents-and-data.e2e.mjs` ("TC-QV-18": an S&S IT export imported, Pulse Check → Releases with the header month 2026-11 (the tab shows the month before) shows "SUPPORTED · October 2026 · 4 supported releases" with "S&S IT [4] : …", and for 2026-09 "S&S IT [1] : CareLink 3.2").
+- Steps:
+  1. Import the S&S IT export (`e2e/fixtures/windchill-export.csv`, named "S&S IT"); with a DP connection fetched (TD-02), open Pulse Check → Releases; set the header month.
+- Expected:
+  - Next to the RELEASES summary a SUPPORTED summary lists, per stream and in the same format, "DP [n] : name release, …" (its Supported Releases) and "S&S IT [n] : name number, …" (the export's releases whose latest Last Modified is in the month), with the total in the title; a stream without any shows "none".
+
+
 ### 6.9 Dashboard and capacity
 
 TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-01 to OVR-08; the Dashboard is tested by TC-OV-11 to TC-OV-14 (§6.2).
@@ -1219,6 +1226,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-30 | TC-QV-15 |
 | QV-31 | TC-QV-16 |
 | QV-32 | TC-QV-17 |
+| QV-33 | TC-QV-18 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
 | OV-12 | TC-OV-12 |
@@ -1291,7 +1299,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
