@@ -75,7 +75,7 @@ This document lists every software component of the system: the in-house source 
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |
 | SharedTimePanel | `src/components/SharedTimePanel.tsx` | Settings → Capacity: map Epics/Features as regional holidays or common activities applied to people in scope. | CAP, SET |
 | TeamFilterBar | `src/components/TeamFilterBar.tsx` | Region switch and role multi-select filter for team views. | OVR |
-| WindchillReleasesPanel | `src/components/WindchillReleasesPanel.tsx` | Lists a Windchill export's unique releases from Location or document names (source and columns chosen), the unique locations, CSV exports and Save locations to Git. | CON |
+| WindchillReleasesPanel | `src/components/WindchillReleasesPanel.tsx` | Lists a Windchill export's unique releases from Location or document names (source and columns chosen), filtered to the header month, sortable, with draggable widths; the unique locations, CSV exports and Save locations to Git. | CON |
 | WindchillSettingsPanel | `src/components/WindchillSettingsPanel.tsx` | Windchill host and service path setup with connection test and sign-in (browser or desktop). | CON |
 | WindchillViews | `src/components/WindchillViews.tsx` | Windchill views settings, the Windchill export page and import of results saved or copied from the browser. | CON |
 | WorkloadCharts | `src/components/WorkloadCharts.tsx` | SVG charts: utilization, Epic mix, Epic bullet, Pareto, utilization heatmap and donut. | OVR |
