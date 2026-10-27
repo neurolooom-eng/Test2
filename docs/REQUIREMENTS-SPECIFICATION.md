@@ -571,7 +571,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | UI-03 | Every icon-only button shall have an accessible label. | I | S | UC-01 |
 | UI-04 | Tab rows shall use `role="tablist"`/`role="tab"` with `aria-selected`, and sortable headings shall carry `aria-sort`. | I | S | UC-08, UC-09 |
 | UI-05 | Every action button shall be clearly visible: raised (shadow, lifting slightly on hover) and coloured by what it does — solid indigo with white text for the main action, white with an indigo outline for secondary actions, a tinted pill for small inline actions, green for Save to Git, red for Delete / Remove — in light and dark theme; disabled buttons shall be flat and grey (not-allowed cursor). Toggle groups and filter chips keep their own look. | D | S | UC-01 |
-| UI-06 | The app shall be named **I&D Quality Demand Planning**: the sidebar shows the mark (three rising bars under a check) with "I&D Quality / Demand Planning", the window and browser tab title and the favicon carry the same name and mark. The desktop installer, its update feed and the Git / SharePoint file kinds keep their former "Demand Planning Hub" names so installed apps and saved data keep working. | T | S | UC-01 |
+| UI-06 | The app shall be named **I&D Quality Demand Planning**: the sidebar shows the mark (a planning calendar with planned rows and a quality shield with a check) with "I&D Quality / Demand Planning", the window and browser tab title and the favicon carry the same name and mark. The desktop installer, its update feed and the Git / SharePoint file kinds keep their former "Demand Planning Hub" names so installed apps and saved data keep working. | T | S | UC-01 |
 
 ### 3.21 Build and deployment (CI) — UC-19
 
