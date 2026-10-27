@@ -55,7 +55,7 @@ test('TC-CON-39 / TC-CON-37: a Windchill export lists its unique releases, clubb
   await releases.waitFor()
   const body = await text(releases)
   assert.match(body, /5 releases · 6 of 7 documents · 1 clubbed/)
-  for (const row of ['Remote Diagnostics 1.6 ▸ 2 documents', 'Service1_rel1_Service2_rel2 clubbed 1 + 2 ▸ 1 document', 'CareLink 3.2']) assert.ok(body.includes(row), row)
+  for (const row of ['Remote Diagnostics 1.6 ▸ 2 documents', 'Service1_rel1_Service2_rel2 1 + 2 ▸ 1 document', 'CareLink 3.2']) assert.ok(body.includes(row), row)
   assert.match(body, /1 document without a release number in the name/)
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export releases CSV' }).click()])
   const csv = readFileSync(await download.path(), 'utf8')
