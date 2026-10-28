@@ -8,6 +8,7 @@ import { ThemeToggle } from './components/Clock'
 import { DataNotices, DataStatus } from './components/DataStatus'
 import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
+import { WorkspacePage } from './pages/WorkspacePage'
 import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
@@ -149,7 +150,7 @@ export default function App() {
   const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setPage('board') }
   // Access roles: each menu entry belongs to an area; Settings is always there (each person's own connections and tokens).
   // A page the viewer's roles do not include falls back to the first one they do.
-  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' ? 'release' : id === 'pulse' || id === 'pireview' ? 'overview' : id
+  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' ? 'release' : id === 'pulse' || id === 'pireview' || id === 'workspace' ? 'overview' : id
   const allowed = (id: Page) => { const area = areaOf(id); return area == null || access.sees(area) }
   const page = allowed(requested) ? requested : pages.find((entry) => allowed(entry.id))?.id ?? 'admin'
   const meta = pageMeta(page)
@@ -230,6 +231,7 @@ export default function App() {
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} />}
+      {page === 'workspace' && <WorkspacePage month={month} azure={azure} store={store} git={git} windchill={windchill} />}
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} git={git} pack={monthlyPack} />}
       {page === 'pireview' && <PiReviewPage />}
       {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} />}

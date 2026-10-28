@@ -4,11 +4,9 @@ import type { GitStorage } from '../useGitStorage'
 import type { MonthlyPackStore } from '../useMonthlyPack'
 import type { WindchillWorkspace } from '../useWindchill'
 import type { PageProps } from '../pages/types'
-import { buildMonthlyPack, monthLabel, noteLabels, packSlides, slideText, yearMonths, type MonthlyPackNotes, type NoteKey, type Slide, type SlideBox, type StreamMonth, type Utilization } from '../monthlyPack'
-import { defaultStreamReleases } from '../releaseOverview'
-import { defaultStreams, exportForStream } from '../streams'
-import { windchillSupported } from '../windchillReleases'
-import { capacityContext, capacityModel } from '../capacity'
+import { buildMonthlyPack, monthLabel, noteLabels, packSlides, slideText, type MonthlyPackNotes, type NoteKey, type Slide, type SlideBox, type StreamMonth, type Utilization } from '../monthlyPack'
+import { packStreamsOf, packUtilization } from '../packInputs'
+import { capacityContext } from '../capacity'
 import { writePptx, type PptxSlide } from '../pptx'
 import { downloadPptx } from '../download'
 import { Notice, Panel } from './ui'
@@ -16,8 +14,6 @@ import { Notice, Panel } from './ui'
 // Pulse Check → Monthly pack: the two slides for the month (2x2 and Performance Pulse), each box with its generated
 // lines (releases per line from the setup, utilisation, YoY, Epic KPIs) and the text typed for the month, saved to
 // Git. Copy a box or a slide as text, or download both slides as .pptx (pptx.ts).
-const label = (entry: { name: string; release: string; type?: string }) => `${[entry.name, entry.release].filter(Boolean).join(' ')}${entry.type ? ` (${entry.type})` : ''}`
-const ratio = (work: number, available: number) => available > 0 ? Math.round(work / available * 1000) / 10 : null
 
 export function MonthlyPackPanel({ month, azure, store, git, pack, windchill }: { month: string; azure: AzureWorkspace; store: PageProps['store']; git: GitStorage; pack: MonthlyPackStore; windchill: WindchillWorkspace }) {
   const settings = capacityContext(store.state)
@@ -30,16 +26,8 @@ export function MonthlyPackPanel({ month, azure, store, git, pack, windchill }: 
   const editable = git.connected && !git.readOnly && !git.isSample
   const dirty = JSON.stringify(draft) !== JSON.stringify(pack.notes)
 
-  const streamsOf = useMemo(() => (at: string): StreamMonth[] => [
-    ...defaultStreamReleases(store.state, azure.connectionProfiles, at).map((stream) => ({ name: stream.name, releases: stream.releases.map(label), supported: stream.supported ?? stream.releases.length })),
-    ...defaultStreams.filter((stream) => stream.source === 'windchill').map((stream) => { const view = exportForStream(stream, windchill.views); const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; const releases = source ? windchillSupported(source.rows, source.columns.length ? source.columns : view?.columns ?? [], at) : []; return { name: stream.name, releases, supported: releases.length } }),
-  ], [store.state, azure.connectionProfiles, windchill.views, windchill.sources])
-  const utilization = useMemo((): Utilization => {
-    const people = (at: string) => { try { return capacityModel(azure.items, at, settings).people.filter((person) => person.name !== 'Unassigned' && person.tasks) } catch { return [] } }
-    const sum = (list: { work: number; available: number }[]) => ratio(list.reduce((total, person) => total + person.work, 0), list.reduce((total, person) => total + person.available, 0))
-    const now = people(month)
-    return { month: sum(now), ytd: sum(yearMonths(month).flatMap(people)), qeMonth: sum(now.filter((person) => settings.profiles?.[person.name]?.role === 'QE')) }
-  }, [azure.items, month, settings])
+  const streamsOf = useMemo(() => (at: string): StreamMonth[] => packStreamsOf(store.state, azure.connectionProfiles, windchill, at), [store.state, azure.connectionProfiles, windchill])
+  const utilization = useMemo((): Utilization => packUtilization(azure.items, month, settings), [azure.items, month, settings])
   const built = useMemo(() => buildMonthlyPack({ month, setup: pack.setup, notes: draft, items: azure.items, streamsOf, utilization }), [month, pack.setup, draft, azure.items, streamsOf, utilization])
   const slides = useMemo(() => packSlides(built), [built])
 

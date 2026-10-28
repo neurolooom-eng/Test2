@@ -1147,6 +1147,20 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-PCK-04 Monthly pack end to end** — Req PCK-01, PCK-05, PCK-06 — **UAT** — E2E `monthly-pack.e2e.mjs` ("TC-PCK-04": synthetic sample, Pulse Check → the Monthly pack tab names the month before the header month; both slides with their boxes, the capacity line, the Summary sentence and the utilisation KPI row; the text boxes read-only with the sample; Download .pptx gives pulse-check-<month>.pptx, a zip with the presentation parts and the box headings; Settings → Monthly pack lists the default lines and KPI rows); browser check with Git connected (writable token): type Focus areas and a KPI value, Save to Git (monthly-pack/<month>.json, View commit), reload — the text is back; in Settings → Monthly pack add an Epic to PPU and change a KPI to "Items closed in the month", Save to Git, the pack shows the Feature titles and the count; Copy a box and Copy slide as text paste as bullets; open the .pptx in PowerPoint (two 16:9 slides).
 
+### 6.23 Insights workspace
+
+**TC-WSP-01 KPI helpers and data completeness** — Req WSP-02 — L1 `workspace.test.mjs` ("KPI helpers: deltas, signed text, month utilization and data completeness (WSP-01, WSP-02)": the change in points, the month's planned utilisation, the share of planned Tasks with actuals, people without region or role, a future month without a value, the cumulative sum).
+
+**TC-WSP-02 Exception queue** — Req WSP-03 — L1 `workspace.test.mjs` ("exception queue: over baseline, missing baseline and capacity risk, high first then by impact (WSP-03)": +60% high and +30% medium, within 25% and a closed release without scope left out, 95% not a capacity risk, the order, the stream with most planned hours, the month decides the capacity rows).
+
+**TC-WSP-03 Timeline health** — Req WSP-04 — L1 `workspace.test.mjs` ("timeline health: Features with a Target Date in the window per Epic — completed, overdue, at risk, planned (WSP-04)": the window, outside dates, Removed, undated Features and User Stories left out, the per-Epic and total counts, the sort by date).
+
+**TC-WSP-04 Insight cards** — Req WSP-05 — L1 `workspace.test.mjs` ("insight cards: each rule names its evidence, tone and pack line (WSP-05)": the seven rules with their tones, texts, bars and evidence columns, a stream not set up, the pack lines, the cards without data).
+
+**TC-WSP-05 Page, filters and routing** — Req WSP-01 — L1 `format.test.mjs` ("page registry …": the page in the Data Insights group with the header month); browser check: Settings → Access shows the page under Data Insights; a role without that area does not see it.
+
+**TC-WSP-06 Insights workspace end to end** — Req WSP-01…06 — **UAT** — E2E `workspace.e2e.mjs` ("TC-WSP-06": synthetic sample, the KPI tiles with their change, the two charts, the exception queue filtered by a kind chip, the timeline from target dates; the insight cards with filters and what was checked, the evidence rows, Add to monthly pack and the queue count, Save refused with the sample, the presentation preview, a suggested question jumping to the queue filtered on Over 25% baseline; the Dashboard unchanged with its six tabs); browser check with Git connected (writable token): queue two cards, Save to monthly pack, then Pulse Check → Monthly pack of that month shows them under Key takeaways and the Git history has the commit.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1336,6 +1350,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | PCK-04 | TC-PCK-02 |
 | PCK-05 | TC-PCK-03, TC-PCK-04 |
 | NFR-01 | TC-INS-04 |
+| WSP-01 | TC-WSP-05, TC-WSP-06 |
+| WSP-02 | TC-WSP-01, TC-WSP-06 |
+| WSP-03 | TC-WSP-02, TC-WSP-06 |
+| WSP-04 | TC-WSP-03, TC-WSP-06 |
+| WSP-05 | TC-WSP-04, TC-WSP-06 |
+| WSP-06 | TC-WSP-06 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1371,6 +1391,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-22 | TC-ACC-01, TC-ACC-02 |
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…04 |
+| UC-25 | TC-WSP-01…06 |
 
 ## 8. Result record
 
