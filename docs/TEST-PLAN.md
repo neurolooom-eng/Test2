@@ -375,6 +375,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ACC-01 Roles and access** — Req CON-41, CON-42, CON-43, CON-44 — L1 `access.test.mjs` (no policy = no restrictions; union of roles; default role for unknown or unlisted email; no default role = nothing; Backlog Health only for its roles; unknown roles, areas, actions and invalid emails dropped; broken file refused; the editor cannot remove their own "manage access"; a role without "change work items" is refused before anything is sent while reads still work); browser check with mocked GitHub and Azure DevOps: email shown from the connection's email field, Set up roles → add a member, tick Scrum Master → Save to Git commits access.json once; with a cached Team Member policy the menu has no Backlog Health, Bulk actions, Release Details, Baselines or Snapshots and Settings shows only Azure DevOps, Storage and Access. **UAT**
 
+**TC-ACC-03 Add members by name** — Req CON-74 — browser check with the Time Writing backlog loaded: Settings → Access → Choose a person lists the people Assigned To an item in QMS-0025 by name (members already listed left out; two people with the same name show their email); pick one and Add member adds their email with the everyone-else role; the table shows the name with the email under it, sorted by name; Other (enter an email)… shows the email field and adds a person not in the backlog; without the backlog loaded only the email field and the hint are shown.
+
 **TC-NAV-12 Freshness in the viewer's time zone** — Req NAV-12 — L1 `format.test.mjs` and `app-update.test.mjs` (the same instant in Asia/Kolkata, America/New_York and UTC; local "today"); browser check in America/New_York: a fetch at 09:00 UTC shows "05:00 AM EDT".
 
 **TC-OV-10 Releases summary, tracking Feature and local approval dates** — Req QV-18, QV-19, OV-10 — L1 `release-overview.test.mjs`, `format.test.mjs`, `release-source.test.mjs` (the same UTC instant is 30 September in New York and 1 October in India); browser check in Asia/Kolkata with CP, DP and IOCC loaded from Git: October shows three stream quadrants and the total (3 releases, 4 documents); September shows the CP release approved 29 Sep 18:30 UTC as “September 30, 2026”, in both the quadrant and the CP view.
@@ -1177,6 +1179,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-71 | TC-CON-39 |
 | CON-72 | TC-CON-40 |
 | CON-73 | TC-CON-41 |
+| CON-74 | TC-ACC-03 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1328,7 +1331,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
-| UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06 |
+| UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03 |
 | UC-13 | TC-SNP-01…03 |
 | UC-14 | TC-SET-01…04, TC-CAP-02, TC-CAP-03, TC-NAV-34 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
