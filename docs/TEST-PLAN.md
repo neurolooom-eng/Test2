@@ -747,6 +747,8 @@ Cases marked **UAT** are also run in acceptance testing.
   - A tool with several documents in the month is one entry; its document count is the number of documents.
   - A document whose Area Path has no tool folder is named by its Title before the version or the document word.
 
+**TC-QV-21 IOCC Completed and Supported Releases** — Req QV-36 — L1 `streams.test.mjs` ("IOCC: Completed = Release Notes or Verification Report signed, Supported = also Release Plan; each release once (QV-36)"; "Pulse Check streams: the five Azure streams in order …"); browser check with the IOCC connection fetched: Pulse Check → Current month releases shows IOCC's quadrant as completed / supported, the Releases line lists each completed release once with its Type of Release, and the Supported summary lists the supported releases (release plans included); the Dashboard delivery table shows the same counts.
+
 
 ### 6.9 Dashboard and capacity
 
@@ -1252,6 +1254,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-33 | TC-QV-18 |
 | QV-34 | TC-QV-19 |
 | QV-35 | TC-QV-20 |
+| QV-36 | TC-QV-21 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
 | OV-12 | TC-OV-12 |
@@ -1330,8 +1333,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34 |
 | UC-07 | TC-BKL-01…05, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03 |
