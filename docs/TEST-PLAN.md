@@ -934,6 +934,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
   - The circular message lists A and B.
   - The holiday notice lists the regional holidays.
 
+**TC-SET-05 Manager not on the board** — Req SET-13 — E2E `shell.e2e.mjs` ("TC-SET-05": synthetic sample, Settings → Resources, Chen Wei reports to → Other (type a name)… → "Maria Lopez" → OK; the select shows Maria Lopez, the reporting lines show Maria Lopez at the top marked "not on the board" with Chen Wei under her, and Diya Sharma's Reports to offers Maria Lopez under "Not on the board").
+
 **TC-SET-04 Master data, audit, reset** — Req SET-10…12, OI-06, OI-09
 - Expected:
   - An added value appears with "Active".
@@ -1275,6 +1277,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | SET-01…04 | TC-SET-01 |
 | SET-05, SET-06 | TC-SET-02 |
 | SET-07…09 | TC-SET-03 |
+| SET-13 | TC-SET-05 |
 | SET-10…12 | TC-SET-04 |
 | STO-01, STO-02 | TC-STO-01 |
 | STO-03 | TC-STO-02 |
@@ -1333,7 +1336,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…04, TC-CAP-02, TC-CAP-03, TC-NAV-34 |
+| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
