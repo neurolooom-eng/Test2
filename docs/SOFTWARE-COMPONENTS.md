@@ -100,6 +100,7 @@ This document lists every software component of the system: the in-house source 
 | domain | `src/domain.ts` | Core TypeScript types: AppState, activities, efforts, baselines, periods, snapshots, Azure work items, release plans. | — |
 | dpBoardMatch | `src/dpBoardMatch.ts` | Fuzzy match of DP rows to QMS-0025 Features/User Stories by name and version; DP Feature title builder. | QV |
 | dpMilestones | `src/dpMilestones.ts` | DP milestone fields, DDT month, Completed and unique Supported Releases counts per month. | QV, OVR |
+| ioccMilestones | `src/ioccMilestones.ts` | IOCC document type from the Title (Release Plan, Release Notes, Verification Report), the release a document belongs to, and the unique Completed and Supported Releases signed in a month. | QV |
 | dpReleases | `src/dpReleases.ts` | DP releases from Pedestal Release items dated by matching DHFI documents (exact version). | QV |
 | featureSetup | `src/featureSetup.ts` | Per-Epic Feature setup (stories, Time Writing story, task defaults), placeholders, shared/personal layers, parse/serialise. | CON |
 | format | `src/format.ts` | Display formatting: hours, percent, dates in viewer time zone, month names, relative time. | UI |
