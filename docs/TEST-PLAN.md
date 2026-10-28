@@ -1119,6 +1119,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-QEM-04 QE Mapping end to end** — Req QEM-01…QEM-07 — browser check with GitHub mocked (writable token, no qe-mapping.json yet): QE Mapping shows "No QE Mapping yet."; Upload Excel… with a two-sheet workbook (Mapping: Process, QE Owner, Area, Due Date with date cells, 12 rows; Owners: 1 row) → tabs "Mapping 12" and "Owners 1", dates as YYYY-MM-DD; edit a cell to "Dana"; Add row and fill it; select and delete 2 rows → 11; Add column "Status"; rename "QE Owner" to "Owner"; move Status left; hide Due Date → "Columns (4 of 5)"; Group by Area → groups CP 3, DP 3, IOCC 4, (blank) 1; Filter Area "cp" → "3 of 11 rows"; delete the column Owner; Export CSV → the shown columns; Export Excel → both tabs read back; Save to Git → one PUT of qe-mapping.json "Update the QE Mapping (qe-sample.xlsx)" with 11 rows and the new columns; after a reload the mapping comes from Git and the hidden column stays hidden; no page errors. **UAT**
 
+**TC-QEM-05 Compact columns** — Req QEM-08 — browser check: with a QE Mapping of ten or more columns, the headings stay on one line, short columns are only as wide as their content, a long cell wraps at about 240 px, and the Filter by column row sits right under the headings while scrolling.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1293,6 +1295,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QEM-02 | TC-QEM-01, TC-QEM-04 |
 | QEM-03…QEM-06 | TC-QEM-02, TC-QEM-04 |
 | QEM-07 | TC-QEM-03, TC-QEM-04 |
+| QEM-08 | TC-QEM-05 |
 | NFR-01 | TC-INS-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
@@ -1327,7 +1330,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
-| UC-23 | TC-QEM-01…04 |
+| UC-23 | TC-QEM-01…05 |
 
 ## 8. Result record
 
