@@ -209,7 +209,7 @@ Every cell is a checkbox in Settings → Access; the actions are *Change work it
 
 ### Sharing through Git
 
-A **separate private GitHub repository** (Settings → Storage → Git storage: owner, repository, branch, data file, token) holds:
+A **separate private GitHub repository** (Settings → Storage → Git storage: owner, repository, branch, data file, token — the form starts with the team's repository `ponkritz/DemandPlanningStorage`, branch `main`, so a new user adds only the token) holds:
 
 | File | Content | Written by | Read by |
 |---|---|---|---|

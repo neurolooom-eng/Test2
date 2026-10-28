@@ -538,6 +538,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | GIT-10 | "Disconnect" shall remove the Git config and token from this browser, leaving app data and the repository unchanged. | T | S | UC-12 |
 | GIT-11 | The app shall map HTTP 401, 403 and 404 to the specific messages listed in the code (`gitStorage.ts`). | T | S | UC-12 |
 | GIT-12 | When Git is connected and a token is available, the app shall load the Git file automatically once at start. | D | S | UC-12 |
+| GIT-13 | The Connect Git storage form shall start with the team's data repository prefilled — owner `ponkritz`, repository `DemandPlanningStorage`, branch `main`, data file `planning-data.json` — so that a user adds only the token; the values stay editable, and a saved connection shows its own values instead. The Get started guide shall say so. | T | M | UC-12 |
 
 ### 5.13 SharePoint and snapshots (SNP) — UC-13
 
