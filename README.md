@@ -191,7 +191,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 ### Roles and access
 
-**Settings → Access** decides which menu areas each person sees and what they may do. Who you are is the email entered on your Time Writing connection (Settings → Azure DevOps, the connection's email field — the same email new work is assigned to). It is typed in, not verified by Azure DevOps (reading it from the PAT does not work in this setup), so someone could enter a colleague's email; the roles decide what the app shows, while Azure DevOps and GitHub still decide what each token can do. The roles are kept in the Git data repository as `access.json`, next to `planning-data.json`, so only people whose GitHub token can write to that repository can change them, and every change is a commit.
+**Settings → Access** decides which menu areas each person sees and what they may do. Members are added by **choosing the person by name** from the people in the Time Writing backlog (QMS-0025); the app stores their email for you (**Other (enter an email)…** for someone not in that backlog). Who you are is the email entered on your Time Writing connection (Settings → Azure DevOps, the connection's email field — the same email new work is assigned to). It is typed in, not verified by Azure DevOps (reading it from the PAT does not work in this setup), so someone could enter a colleague's email; the roles decide what the app shows, while Azure DevOps and GitHub still decide what each token can do. The roles are kept in the Git data repository as `access.json`, next to `planning-data.json`, so only people whose GitHub token can write to that repository can change them, and every change is a commit.
 
 | Role (default) | Sees | May |
 |---|---|---|
