@@ -1123,6 +1123,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-QEM-06 Resizable columns** — Req QEM-09 — browser check: drag the right edge of a QE Mapping heading wider and narrower (the cells and the filter follow; long text wraps inside the new width), reload (the width is kept), switch tab (the other tab keeps its own widths), double-click the edge (that column returns to automatic), resize two columns and press Reset widths (all return to automatic, the button disappears).
 
+**TC-QEM-07 Collapse all / Expand all** — Req QEM-10 — browser check: group the QE Mapping by a column with several values; Collapse all closes every group (only the group rows and their counts stay; Collapse all is disabled, Expand all enabled); Expand all opens them all; open one group by hand after Collapse all (both buttons enabled); with no grouping, or a single group, the buttons are not shown.
+
+**TC-QEM-08 Nested grouping** — Req QEM-11 — L1 `qe-mapping.test.mjs` ("nested grouping: groups within groups, keys unique per path, counts per level (QEM-11)"); browser check: Group by Area, then by Owner — each Area row holds its Owner groups, indented, with their counts; collapse one Owner group under one Area (the same Owner under another Area stays open); Collapse all closes every level and Expand all opens them; change the first level (the second is dropped); in a column menu, Then group by this adds a level and Remove from grouping removes it; a fourth level is the last (no fifth select).
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1299,6 +1303,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QEM-07 | TC-QEM-03, TC-QEM-04 |
 | QEM-08 | TC-QEM-05 |
 | QEM-09 | TC-QEM-06 |
+| QEM-10 | TC-QEM-07 |
+| QEM-11 | TC-QEM-08 |
 | NFR-01 | TC-INS-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
@@ -1333,7 +1339,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
-| UC-23 | TC-QEM-01…06 |
+| UC-23 | TC-QEM-01…08 |
 
 ## 8. Result record
 
