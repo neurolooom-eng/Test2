@@ -571,6 +571,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | SET-10 | Master data shall allow adding a value to: Release Type, Activity Type, Status, Resource Band, Complexity. See OI-06. | D | C | UC-14 |
 | SET-11 | The Audit section shall show the 8 most recent entries (action, entity, detail, time). | D | M | UC-14 |
 | SET-12 | "Reset synthetic MVP data" shall replace the app state with the seed state. See OI-09. | D | C | UC-14 |
+| SET-13 | "Reports to" shall also accept a manager who has no Time Writing Tasks (not on the board): "Other (type a name)…" takes a name; a name typed in this way shall be offered to everyone under "Not on the board", and the reporting lines shall show such a manager at the top, marked "not on the board", with the people who report to them. | T | S | UC-14 |
 
 ### 5.15 Local storage, backup and recovery (STO) — UC-15
 
