@@ -1137,6 +1137,16 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-QEM-08 Nested grouping** — Req QEM-11 — L1 `qe-mapping.test.mjs` ("nested grouping: groups within groups, keys unique per path, counts per level (QEM-11)"); browser check: Group by Area, then by Owner — each Area row holds its Owner groups, indented, with their counts; collapse one Owner group under one Area (the same Owner under another Area stays open); Collapse all closes every level and Expand all opens them; change the first level (the second is dropped); in a column menu, Then group by this adds a level and Remove from grouping removes it; a fourth level is the last (no fifth select).
 
+### 6.22 Monthly pack
+
+**TC-PCK-01 Setup and month files** — Req PCK-02, PCK-06 — L1 `monthly-pack.test.mjs` ("setup and notes files: parse, clean and serialise (PCK-01, PCK-02)": the default setup round-trips; bad ids repaired, duplicates, invalid Epic ids and unknown metrics dropped; a month file keeps only typed text and valid KPI keys, CRLF normalised).
+
+**TC-PCK-02 Epic counts** — Req PCK-04 — L1 `monthly-pack.test.mjs` ("Epic counts: descendants without Tasks, open / closed in month / closed YTD / closed share (PCK-04)").
+
+**TC-PCK-03 The pack: lines, supported counts, YoY, capacity and slide text** — Req PCK-03, PCK-05 — L1 `monthly-pack.test.mjs` ("the pack: releases per line, supported counts, YoY from last year, capacity lines and slide text (PCK-03, PCK-05)": DP this year vs. last year, an Epic-mapped PPU line, the overall change, the capacity, YoY and supported lines, the overload risk line, the copy text of both slides); `monthly-pack.test.mjs` ("the .pptx writer: a zip with the presentation parts, one slide per input, text escaped (PCK-06)").
+
+**TC-PCK-04 Monthly pack end to end** — Req PCK-01, PCK-05, PCK-06 — **UAT** — E2E `monthly-pack.e2e.mjs` ("TC-PCK-04": synthetic sample, Pulse Check → the Monthly pack tab names the month before the header month; both slides with their boxes, the capacity line, the Summary sentence and the utilisation KPI row; the text boxes read-only with the sample; Download .pptx gives pulse-check-<month>.pptx, a zip with the presentation parts and the box headings; Settings → Monthly pack lists the default lines and KPI rows); browser check with Git connected (writable token): type Focus areas and a KPI value, Save to Git (monthly-pack/<month>.json, View commit), reload — the text is back; in Settings → Monthly pack add an Epic to PPU and change a KPI to "Items closed in the month", Save to Git, the pack shows the Feature titles and the count; Copy a box and Copy slide as text paste as bullets; open the .pptx in PowerPoint (two 16:9 slides).
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1320,6 +1330,11 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QEM-09 | TC-QEM-06 |
 | QEM-10 | TC-QEM-07 |
 | QEM-11 | TC-QEM-08 |
+| PCK-01, PCK-06 | TC-PCK-01, TC-PCK-04 |
+| PCK-02 | TC-PCK-01, TC-PCK-04 |
+| PCK-03 | TC-PCK-03 |
+| PCK-04 | TC-PCK-02 |
+| PCK-05 | TC-PCK-03, TC-PCK-04 |
 | NFR-01 | TC-INS-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
@@ -1355,6 +1370,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
 | UC-23 | TC-QEM-01…08 |
+| UC-24 | TC-PCK-01…04 |
 
 ## 8. Result record
 

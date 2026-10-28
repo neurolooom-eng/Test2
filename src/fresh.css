@@ -361,3 +361,11 @@ table.resizable,.azure-table table.resizable,.qe-table table.resizable{width:aut
 table.resizable.no-wrap th,table.resizable.no-wrap td{white-space:nowrap}
 table.resizable.wrap th,table.resizable.wrap td{white-space:pre-wrap;overflow-wrap:break-word;max-width:none}
 .wrap-toggle{white-space:nowrap}
+/* Monthly pack (PCK): two slides as boxes — generated lines, then the month's text; the KPI table with typed values. */
+.pack-slide{margin-top:14px}.pack-slide-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.pack-slide-head h3{margin:0}
+.pack-grid{display:grid;gap:10px;margin-top:8px}.pack-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.pack-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:900px){.pack-grid-2,.pack-grid-3{grid-template-columns:1fr}}
+.pack-box{display:grid;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}.pack-box-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.pack-box-head h4{margin:0;font-size:13px;color:var(--accent-text,var(--accent))}
+.pack-generated{margin:0;padding-left:18px;font-size:12.5px}.pack-generated li{margin:2px 0}.pack-box textarea{width:100%;font:inherit;font-size:12.5px;resize:vertical;min-height:58px}
+.pack-kpi{width:100%}.pack-kpi td{padding:3px 6px;font-size:12.5px}.pack-kpi td:last-child{text-align:right}.pack-kpi input{width:120px;text-align:right}
+.pack-setup td{vertical-align:top}.pack-setup .check{display:inline-flex;margin:0 10px 4px 0}.pack-row-actions{white-space:nowrap}.pack-row-actions button{margin-right:6px}
