@@ -76,13 +76,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-28 | CI build and publish | Dependency code in CI replaces the published installers (SM-16) | Code execution on every desktop | Compromised dependency with a write token | 5 | 1 | 4 | 20 | Read-only token for jobs that run dependency code; publishing jobs only download artefacts (CI-07) | 5×1×1 = 5 | TC-CI-03 | PT-02 fixed in this pull request; R-07 SHA pinning open |
 | DF-29 | Web update | Users keep running an old build, or reload while a fetch is running | Stale behaviour; interrupted save | Browser cache | 2 | 3 | 2 | 12 | Build id in the HTML, manifest check, reload blocked while busy (UPD-01…UPD-05) | 2×1×1 = 2 | TC-UPD-01, TC-UPD-02 | — |
 | DF-31 | Save the Windchill locations analysis to Git | The file goes to the wrong repository or carries document contents | Data in the wrong place | Wrong Git configuration | 3 | 2 | 2 | 12 | Written only to the configured data repository next to the planning data, under windchill-analysis/; holds unique folders, counts and releases only, no rows, no credentials; refused in sample mode and with a read-only token (CON-72, GIT-02, GIT-09) | 3×1×1 = 3 | TC-CON-40 | — |
+| DF-32 | Generate the Monthly pack | A slide figure is wrong: a release counted under the wrong line, a YoY change from an incomplete last year, a KPI counting Tasks or Removed items | A wrong number presented to management | Stream or Epic mapped to the wrong line; last year's data not fetched; wrong state rules | 4 | 3 | 3 | 36 | Lines and KPIs mapped in a shared setup shown next to the result; counts reuse the Pulse Check and Dashboard rules (QV-32, QV-36); YoY left out when last year has no data; Epic counts skip Tasks, Epics and Removed; every generated line is visible and editable text before it is copied (PCK-02…PCK-05) | 4×2×2 = 16 | TC-PCK-02, TC-PCK-03, TC-PCK-04 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 31 |
+| Failure modes analysed | 32 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 3 (DF-01, DF-02, DF-23) — all reduced to 5 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

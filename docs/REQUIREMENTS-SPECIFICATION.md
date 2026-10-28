@@ -133,6 +133,7 @@ Stakeholders:
 | UC-21 | Review backlog hygiene for the whole team: work left in ended Sprints, Features without DoD, unassigned work (Backlog Health) | Scrum Master, lead |
 | UC-22 | Decide which menu areas each role sees and what it may do, and assign roles to people by email | Admin |
 | UC-23 | Upload the existing QE mapping Excel and keep it up to date in the app — filter, edit, add and delete rows and columns — shared with the team | QE lead |
+| UC-24 | Prepare the two monthly Pulse Check slides (2x2 and Performance Pulse) for the month before the header month from the app's data, with the month's text kept in Git, and download them as .pptx | Lead, manager |
 
 ## 3. User requirements
 
@@ -158,6 +159,7 @@ User requirements are what the stakeholders of §2 need from the tool, written a
 | UR-16 | I need to see backlog hygiene for the whole team: work left in ended Sprints, Features without a Definition of Done, unassigned work. | Scrum Master, lead | UC-21 | SR-02 |
 | UR-17 | I need role-based access: which areas each role sees and what it may change, assigned to people by their work email. | Admin | UC-22 | SR-02 |
 | UR-18 | I need the QE mapping Excel maintained in the tool and shared with the team. | QE lead | UC-23 | SR-22 |
+| UR-21 | I need the monthly Pulse Check slides prepared from the app's data — releases per stream, utilisation, year-on-year change, Epic-based KPIs — with the month's wording kept for the team, so that the monthly call takes minutes to prepare. | Lead, manager | UC-24 | SR-25 |
 | UR-19 | Credentials must stay on my computer, writes must go to Azure DevOps Services only, and no production data, tokens or employee details may enter the source repository. | App owner, security | UC-02, UC-12, UC-17 | SR-02, SR-17, SR-23, SR-24 |
 | UR-20 | I need the tool usable on a phone or tablet as well as a desktop, accessible, and in light or dark mode. | All | UC-01 | SR-20 |
 
@@ -189,6 +191,7 @@ System requirements state what the system provides for the user requirements, on
 | SR-20 | The system shall provide themes, accessible controls, visible actions and the product name and mark. | UR-20 | UI (§5.20) |
 | SR-21 | The system shall be built, tested, packaged, published (installers with SHA-256 sums and `latest.json`) and deployed by CI on every pull request and push to main. | UR-14 | CI (§5.21) |
 | SR-22 | The system shall keep the QE Mapping as a shared, editable, filterable table in Git with Excel import and export. | UR-18 | QEM (§5.22) |
+| SR-25 | The system shall generate the Monthly pack — the 2x2 and Performance Pulse slides for the month before the header month — from the release, utilisation and Epic data, with a shared setup and the month's text in Git, as copy-ready text and a .pptx download. | UR-21 | PCK (§5.23) |
 | SR-23 | The system shall meet the non-functional requirements: no server component, data volume, timeouts, confirmed writes, PAT handling, window size, no production data in the repository. | UR-11, UR-19 | NFR (§6) |
 | SR-24 | The system shall use the external interfaces as specified: Azure DevOps REST 7.1 with a limited write set, the GitHub contents API, Microsoft Graph v1.0. | UR-02, UR-19 | IF (§7) |
 
@@ -681,6 +684,17 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | QEM-09 | Each QE Mapping column shall be resizable by dragging the right edge of its heading (double-click resets that column); the widths shall be kept per tab and column in this browser, and "Reset widths" shall return every column to its automatic width. | D | S | UC-23 |
 | QEM-10 | When the QE Mapping is grouped into two or more groups, "Collapse all" shall close every group at every level (only the outermost group rows with their counts stay) and "Expand all" shall open them all; each button shall be disabled when it has nothing to do. | D | S | UC-23 |
 | QEM-11 | Grouping shall be hierarchical: up to four columns, outermost first ("Group by", then "then by" for each further level, or "Then group by this" / "Remove from grouping" in a column's menu). Each group shall show its column, value and row count, indented by its level, and be collapsible on its own; a value under two different parents is two groups. Changing a level drops the levels after it. | T | S | UC-23 |
+
+### 5.23 Monthly pack (PCK) — UC-24
+
+| ID | Requirement | Ver. | Pri. | Trace |
+|---|---|---|---|---|
+| PCK-01 | Pulse Check shall have a **Monthly pack** tab for the month before the header month (the month presented in the following month's call), showing the two slides as boxes: the **2x2** (Actions/Deliverables Realized, Observations/Challenges & Risks, Focus Areas for Next Months, Support Requested / Topics to Highlight) and the **Performance Pulse** (Summary, Overall status, Key takeaways, Key next steps, Decision required, Risks, Proposed mitigation, Leadership support requested, KPI Pulse). | D | M | UC-24 |
+| PCK-02 | Settings → **Monthly pack** (shared settings) shall keep the pack setup in Git as monthly-pack-setup.json: the slide lines in order, each with a label, the app streams that feed it (DP, CP, IOCC, Content, Tool Validations, S&S IT) and the Epics whose Features closed in the month count for it; and the KPI Pulse rows, each with a label and what it reads — an Epic metric (open items, items closed in the month, items closed this year, closed share), the actual utilisation of the month or the year, or a value typed per month. Without the file the default lines (Serviceability = S&S IT, Digital Platform = DP, Clinical Platform = CP, IOCC, PPU, Content, Tool validation) and KPI rows apply. Unknown metrics, duplicate ids and invalid Epic ids are dropped on reading. | T | M | UC-24 |
+| PCK-03 | Actions/Deliverables Realized shall list, per slide line with at least one entry, the line's releases of the month ("Line - release, release"): the completed releases of its streams (DP and IOCC per QV-32 / QV-36, the S&S IT export's releases of the month, the other streams' releases with documents approved in the month) and the titles of the Features closed in the month under its Epics. Key takeaways shall list the supported count per line ("Line = n"), where a stream's count is its Supported Releases (DP, IOCC) else its releases and an Epic's count its closed Features. | T | M | UC-24 |
+| PCK-04 | KPI Pulse shall show each row's value: for an Epic metric the count over every item below the Epic except Tasks, Epics and Removed items (closed = Closed Date, else a finished state by its last change); the utilisation rows as the actual utilisation (booked hours over available hours of the people with bookings) of the month or of January to the month; a typed row its value for the month, editable in the tab. | T | M | UC-24 |
+| PCK-05 | The pack shall generate: the capacity line "Capacity: n% utilization (Mon) – QE – n% (Mon)" (QE = people with the role QE) in Observations and, as "Stretched Resources", in Support Requested; the Summary sentence with the month's utilisation; the year-on-year line "YoY support change of ±n% overall – with ±n% in Line, … (Mon YTD vs. last year)" from the supported counts of January to the month against the same months of the previous year (left out when last year has no data); and, when the month's utilisation is 100% or more, the Risks line "Overload: n% actual utilization (QE n%)". | T | M | UC-24 |
+| PCK-06 | Every other box shall be text typed per month, one line per bullet, kept in Git as monthly-pack/<YYYY-MM>.json with the typed KPI values — blank until typed, saved with "Save to Git" (a Git token that can write; refused in sample mode; a concurrent change is refused), and read when the month is chosen. Each box and each slide shall be copyable as text (generated lines first, then the typed lines, "• " bullets), and **Download .pptx** shall write both slides as a 16:9 PowerPoint file (one box per slide area, heading and bullets, no library) named pulse-check-<month>.pptx. | T | M | UC-24 |
 
 ## 6. Non-functional requirements
 
