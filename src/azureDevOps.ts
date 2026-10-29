@@ -1,5 +1,5 @@
 import type { AzureWorkItem } from './domain'
-import { featureDoD, fillTitle, missingValues, titleValues } from './featureSetup.ts'
+import { featureDoD, fillTitle, missingValues, reviewStoryTitle, titleValues } from './featureSetup.ts'
 import { planMonthStory, timeWritingMonth } from './azureInsights.ts'
 
 // baseUrl is the organization (https://dev.azure.com/<org>) or, on premises, the Azure DevOps Server collection
@@ -360,6 +360,7 @@ export function releaseHierarchyTitles(title: string, kind: 'PU' | 'Release', mo
   const identifier = `${parts[1]} ${parts[2].replace(/^v/i, '')}`
   return {
     reviews: (kind === 'PU' ? ['SFV', 'DT', 'IQOQ'] : ['PRD', 'SFV', 'DT', 'IQOQ']).map((milestone) => ({ milestone, title: `${milestone} : Review of Deliverables (${identifier})` })),
+    review: reviewStoryTitle(title),
     timeWriting: `${title.trim()} - Time Writing`,
     task: `${monthLabel} | ${title.trim()}`,
   }
@@ -491,6 +492,8 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     if (selected.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
     const children = await directChildren(config, pat, feature.id, transport)
     for (const review of titles.reviews.filter((review) => selected.includes(review.milestone))) items.push(await ensureChild(config, pat, feature, 'User Story', review.title, children, owner, transport, storyIterationPath || feature.iterationPath))
+    // The built-in "Review of Deliverables - <Feature>" story: always, in the Sprint chosen (else the Feature's iteration); an existing one is reused wherever it sits.
+    items.push(await ensureChild(config, pat, feature, 'User Story', titles.review, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { anyPlace: true }))
     // The Time Writing story is not tied to a PI, Sprint or year: it sits at the project's root iteration.
     const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, config.project, undefined, undefined, { anyPlace: true })
     items.push(timeWriting)
@@ -504,7 +507,7 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
 
 export async function createAzureReleaseHierarchy(config: AzureConfig, pat: string, input: FeatureInput, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure) {
   const titles = releaseHierarchyTitles(input.title.trim(), kind, monthLabel)
-  if ([...titles.reviews.map((review) => review.title), titles.timeWriting, titles.task].some((title) => title.length > 255)) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
+  if ([...titles.reviews.map((review) => review.title), titles.review, titles.timeWriting, titles.task].some((title) => title.length > 255)) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
   if (milestones?.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
   const feature = await createAzureFeature(config, pat, input, transport)
   try {
@@ -559,6 +562,10 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
     const taskTitle = fill(setup.task.title || '{month} | {feature}', 'The Time Writing Task title')
     const children = await directChildren(config, pat, feature.id, transport)
     for (const story of stories) items.push(await ensureChild(config, pat, feature, 'User Story', story.title, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { description: story.description }))
+    // The built-in "Review of Deliverables - <Feature>" story: always, in the Sprint chosen (else the Feature's iteration); an existing one is reused wherever it sits.
+    const reviewTitle = reviewStoryTitle(feature.title)
+    if (reviewTitle.length > 255) throw new Error('The Review of Deliverables title exceeds 255 characters. Shorten the Feature title.')
+    if (!stories.some((story) => story.title === reviewTitle)) items.push(await ensureChild(config, pat, feature, 'User Story', reviewTitle, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { anyPlace: true }))
     const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath ?? '' })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
