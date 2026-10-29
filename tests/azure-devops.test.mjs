@@ -608,6 +608,11 @@ test('the Time Writing story without set paths: the project root iteration (no P
   assert.equal(story.areaPath, result.feature.areaPath)
   assert.equal(review.iterationPath, 'Quality Project\\Current PI\\Sprint 4', 'optional stories still go to the chosen Sprint')
   assert.equal(result.items.find((item) => item.title === 'Review of Deliverables - Example | Service | v1.0').iterationPath, 'Quality Project\\Current PI\\Sprint 4', 'the built-in Review of Deliverables story goes to the chosen Sprint too')
+  // Unticked, the built-in story is not created, on either path.
+  const without = await createFeatureFromSetup(config, pat, { ...feature, title: 'Other | Service | v2.0', iterationPath: 'Current PI' }, { stories: [], reviewStory: false, timeWritingStory: plain, task }, 'October 2026', server.transport)
+  assert.deepEqual(without.items.filter((item) => item.workItemType === 'User Story').map((item) => item.title), ['Other | Service | v2.0 - Time Writing'], 'setup path: only the Time Writing story')
+  const builtin = await createAzureReleaseHierarchy(config, pat, { ...feature, title: 'Third | Service | v3.0', iterationPath: 'Current PI' }, 'PU', [], 'October 2026', server.transport, false)
+  assert.deepEqual(builtin.items.filter((item) => item.workItemType === 'User Story').map((item) => item.title), ['Third | Service | v3.0 - Time Writing'], 'built-in path: only the Time Writing story')
   // A Time Writing story created earlier in a Sprint is used as it is, not refused or duplicated.
   server.records.get(story.id).fields['System.IterationPath'] = 'Quality Project\\Old PI\\Sprint 1'
   const writes = server.writes.length
