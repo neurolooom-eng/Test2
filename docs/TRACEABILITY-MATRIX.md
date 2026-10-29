@@ -477,11 +477,11 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | PCK-01 | SR-25 | UR-21 | D | M | TC-PCK-04 | 11 | — | — |
 | PCK-02 | SR-25 | UR-21 | T | M | TC-PCK-01 | — | `monthly-pack.test.mjs` | — |
 | PCK-03 | SR-25 | UR-21 | T | M | TC-PCK-03 | — | `monthly-pack.test.mjs` | — |
-| PCK-04 | SR-25 | UR-21 | T | M | TC-PCK-02 | — | `monthly-pack.test.mjs` | — |
+| PCK-04 | SR-25 | UR-21 | T | M | TC-PCK-02 | — | `monthly-pack.test.mjs` | KB-09 |
 | PCK-05 | SR-25 | UR-21 | T | M | TC-PCK-03, TC-PCK-04 | 11 | `monthly-pack.test.mjs` | — |
 | PCK-06 | SR-25 | UR-21 | T | M | TC-PCK-01, TC-PCK-04 | 11 | `monthly-pack.test.mjs` | — |
-| WSP-01 | SR-26 | UR-22 | T | M | TC-WSP-05, TC-WSP-06 | 11 | `format.test.mjs` | — |
-| WSP-02 | SR-26 | UR-22 | T | M | TC-WSP-01, TC-WSP-06 | 11 | `workspace.test.mjs` | — |
+| WSP-01 | SR-26 | UR-22 | T | M | TC-WSP-05, TC-WSP-06 | 11 | `format.test.mjs` | KB-09 |
+| WSP-02 | SR-26 | UR-22 | T | M | TC-WSP-01, TC-WSP-06 | 11 | `workspace.test.mjs` | KB-09 |
 | WSP-03 | SR-26 | UR-22 | T | M | TC-WSP-02, TC-WSP-06 | 11 | `workspace.test.mjs` | — |
 | WSP-04 | SR-26 | UR-22 | T | M | TC-WSP-03, TC-WSP-06 | 11 | `workspace.test.mjs` | — |
 | WSP-05 | SR-26 | UR-22 | T | M | TC-WSP-04, TC-WSP-06 | 11 | `workspace.test.mjs` | — |
