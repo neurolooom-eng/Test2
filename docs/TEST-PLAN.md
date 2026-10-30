@@ -829,6 +829,10 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-03 NPRA maximum and tracking** — Req CAP-13 — L1 `capacity.test.mjs` ("NPRA: only booked hours are deducted; tracked against the per-person maximum, hours over it flagged": a Task tagged npra and a Task under a Feature tagged "NPRA Hours"; 12 h booked deducts 12 h, 30 h booked deducts 30 h and flags 10 h over the 20 h maximum; NPRA is no stream and not booked work; maximum 0 tracks only; settings without the field take 20 h; normalisation; "NPRA: nobody is charged for NPRA they did not book"), `dashboard.test.mjs` (settings with allowance 0 keep the former numbers); browser check (Pulse Check → Last month with the synthetic sample, whose CP / IOCC / QMS first Features carry "NPRA Hours"): the NPRA metric shows the booked hours and "max 20h per person"; the NPRA table lists each person with booked / planned / maximum / left and "Within 20h" or "n h over the maximum"; "Who has capacity" shows "NPRA nh / 20h" under the person; a person without NPRA Tasks keeps funded − absence as available; Settings → Capacity → Edit shows "NPRA maximum per person per month (h)" and saving 0 removes the flag; no page errors. **UAT**
 
+**TC-CAP-04 Joining and leaving dates** — Req CAP-14 — L1 `capacity.test.mjs` ("joined on / left on: funded hours for the working days employed …"); browser check:
+- Steps: Settings → Resources: set Left on 2026-10-14 for one person and Joined on 2026-11-02 for another; open the Dashboard for October 2026.
+- Expected: the first person has 10 of 22 days, 80 h funded (8 h/day), and the team's funded total drops accordingly; the second is not counted, and the month view lists their October hours to be checked; without dates everyone keeps the full month.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1366,6 +1370,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | OVR-09, CAP-01…09 | TC-CAP-01 |
 | CAP-04, CAP-05, CAP-10…12 | TC-CAP-02 |
 | CAP-13 | TC-CAP-03 |
+| CAP-14 | TC-CAP-04 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
