@@ -397,6 +397,7 @@ The detailed requirements are grouped by functional area. Each group heading nam
 | MON-17 | The save button shall be disabled when there are no staged changes, while saving, or when the active connection has no PAT. | D | M | UC-04 |
 | MON-18 | The page shall show a check panel, titled "Not picked up for {Month YYYY} ({n})" or "Everything picked up for {Month YYYY}". It shall list: (a) open Time Writing stories with no Month Task for the month; (b) Tasks under a Time Writing story with no month in the title; (c) Month Tasks with no Feature above them, with the parent shown. | T | M | UC-05 |
 | MON-19 | In Individual mode, the check panel shall list only the chosen person's stories: those assigned to them, or holding one of their Tasks. | T | S | UC-05 |
+| MON-20 | A month Time Writing Task newly created after its month's planning has locked (the MON-06 / MON-07 rule with the Settings periods) — by New Feature, Complete Feature children or Bulk actions → Create month tasks — shall be created with the tag `ad-hoc` and read back with it; the Feature, the User Stories and an existing Task that is reused shall not be tagged. The form and the confirmation shall say so before Save, and the result shall name it. Both transports shall accept only this one tag, only on a new Task. | T | M | UC-04 |
 
 ### 5.6 Assigned to Me (ATM) — UC-06
 
