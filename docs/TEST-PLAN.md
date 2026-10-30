@@ -608,6 +608,10 @@ Cases marked **UAT** are also run in acceptance testing.
 - Steps: Bulk actions → Create month tasks with a Feature whose Target date is in January 2027 (month October 2026); in the confirmation tick it, enter 20 h; Create tasks. Run it again.
 - Expected: Tasks for October, November, December 2026 and January 2027, each with Original Estimate 20 h (October without hours if planning had locked); the result names the later months; the second run creates nothing.
 
+**TC-ATM-14 Shared activities: month Tasks on Features owned by someone else** — Req ATM-22 — L1 `my-work.test.mjs` ("shared activities: a Feature owned by someone else is offered when I had a month Task under it or its Description @mentions me (TC-ATM-14)"); browser check:
+- Steps: as Person 2, with a pending Feature assigned to Person 1 whose Description @mentions Person 2, and another where Person 2 had last month's Task; open Assigned to Me, then Bulk actions → Create month tasks.
+- Expected: Assigned to Me shows the notice naming both Features; Bulk actions lists them with "Shared · owner Person 1", ticked; Create tasks adds Person 2's month Task under each Feature's Time Writing story.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -1336,6 +1340,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-19 | TC-ATM-11 |
 | ATM-20 | TC-ATM-12 |
 | ATM-21 | TC-ATM-13 |
+| ATM-22 | TC-ATM-14 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
