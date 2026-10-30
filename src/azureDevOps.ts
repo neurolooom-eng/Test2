@@ -31,7 +31,8 @@ export interface AzureRequest extends AzureConfig {
   query?: string
   ids?: number[]
   // adhoc: a new Time Writing Task created after planning has locked carries the 'ad-hoc' tag (Tasks only).
-  feature?: FeatureInput & { areaPath: string; adhoc?: boolean }
+  // The Planning / Classification fields of a new User Story (＋ User Story only).
+  feature?: FeatureInput & { areaPath: string; adhoc?: boolean } & StoryFields
   validateOnly?: boolean
   workItemType?: 'User Story' | 'Task'
   workItemId?: number
@@ -317,6 +318,25 @@ export async function createAzureFeature(config: AzureConfig, pat: string, featu
 }
 
 const hasAdhocTag = (tags: string) => tags.split(';').some((tag) => tag.trim().toLowerCase() === 'ad-hoc')
+export const validStoryPoints = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1000
+// The Azure DevOps User Story fields under Planning and Classification (Agile process): Story Points, Priority 1–4
+// (Azure's default 2), Risk and Value area (default Business). Only these values can be written.
+export const storyPriorities = [1, 2, 3, 4] as const
+export const storyRisks = ['1 - High', '2 - Medium', '3 - Low'] as const
+export const storyValueAreas = ['Business', 'Architectural'] as const
+export interface StoryFields { storyPoints?: number; priority?: number; risk?: string; valueArea?: string }
+// '' when the fields are valid for a new User Story, else why not; any of them on another create is refused.
+export function storyFieldsProblem(fields: StoryFields | undefined, isNewStory: boolean) {
+  if (!fields) return ''
+  const { storyPoints, priority, risk, valueArea } = fields
+  if (storyPoints == null && priority == null && risk == null && valueArea == null) return ''
+  if (!isNewStory) return 'Story Points, Priority, Risk and Value area are set on a new User Story only.'
+  if (storyPoints != null && (typeof storyPoints !== 'number' || !validStoryPoints(storyPoints))) return 'Story Points must be a number from 0 to 1,000.'
+  if (priority != null && !(storyPriorities as readonly number[]).includes(priority)) return 'Priority must be 1, 2, 3 or 4.'
+  if (risk != null && !(storyRisks as readonly string[]).includes(risk)) return 'Risk must be 1 - High, 2 - Medium or 3 - Low.'
+  if (valueArea != null && !(storyValueAreas as readonly string[]).includes(valueArea)) return 'Value area must be Business or Architectural.'
+  return ''
+}
 const validHours = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1_000_000
 
 /** Updates only the two Azure scheduling fields on a selected-month Task. */
@@ -341,7 +361,7 @@ export const isAssignee = (value: unknown): value is string => typeof value === 
 
 const htmlText = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')
 
-export function featurePatch(config: AzureConfig, feature: FeatureInput & { areaPath: string; adhoc?: boolean }) {
+export function featurePatch(config: AzureConfig, feature: FeatureInput & { areaPath: string; adhoc?: boolean } & StoryFields) {
   const patch: { op: string; path: string; value: unknown }[] = [
     { op: 'add', path: '/fields/System.Title', value: feature.title },
     { op: 'add', path: '/fields/System.AreaPath', value: feature.areaPath },
@@ -353,6 +373,10 @@ export function featurePatch(config: AzureConfig, feature: FeatureInput & { area
   if (feature.assignedTo?.trim()) patch.push({ op: 'add', path: '/fields/System.AssignedTo', value: feature.assignedTo.trim() })
   if (feature.targetDate) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.TargetDate', value: `${feature.targetDate}T00:00:00Z` })
   if (feature.adhoc === true) patch.push({ op: 'add', path: '/fields/System.Tags', value: 'ad-hoc' })
+  if (feature.storyPoints != null) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.StoryPoints', value: feature.storyPoints })
+  if (feature.priority != null) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Common.Priority', value: feature.priority })
+  if (feature.risk != null) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Common.Risk', value: feature.risk })
+  if (feature.valueArea != null) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Common.ValueArea', value: feature.valueArea })
   return patch
 }
 
@@ -438,6 +462,37 @@ export async function addChildWorkItem(config: AzureConfig, pat: string, parentI
   if (!raw || raw.fields['System.WorkItemType'] !== expected) throw new Error(`#${parentId} is not an accessible ${expected}; a ${type} goes under a ${expected}.`)
   const parent = mapAzureWorkItem(raw, config)
   return createChildItem(config, pat, parent, type, clean, iterationPath?.trim() || parent.iterationPath, assignedTo.trim().toLowerCase(), transport)
+}
+
+// ＋ User Story under a Feature (Backlogs, Assigned to Me), the New Feature form's counterpart: title, Description,
+// Acceptance criteria, the Sprint chosen and optional Story Points; the Feature is re-read first and the story takes its
+// Area Path. Assigned to the person chosen (an email), never blank; read back and verified.
+export interface StoryInput extends StoryFields { parentId: number; title: string; description: string; acceptanceCriteria: string; iterationPath: string; assignedTo: string }
+export async function createUserStory(config: AzureConfig, pat: string, input: StoryInput, transport: AzureTransport = requestAzure): Promise<AzureWorkItem> {
+  if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
+  const title = input.title.trim()
+  if (!title || title.length > 255) throw new Error('Enter a title of 1–255 characters.')
+  if (!isAssignee(input.assignedTo)) throw new Error('Choose who the User Story is assigned to (an email). Nothing was created.')
+  const problem = storyFieldsProblem(input, true)
+  if (problem) throw new Error(problem)
+  if (!input.iterationPath.trim()) throw new Error('Select a PI → Sprint for the User Story.')
+  const source = await transport({ ...config, pat, operation: 'items', ids: [input.parentId] }) as { value?: RawItem[] }
+  const raw = source.value?.find((item) => item.id === input.parentId)
+  if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') throw new Error(`#${input.parentId} is not an accessible Feature; a User Story goes under a Feature.`)
+  const project = raw.fields['System.TeamProject']
+  if (typeof project === 'string' && project.toLowerCase() !== config.project.toLowerCase()) throw new Error('The Feature belongs to a different project.')
+  const parent = mapAzureWorkItem(raw, config)
+  const iterationPath = input.iterationPath.trim(), assignedTo = input.assignedTo.trim().toLowerCase()
+  const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: 'User Story', feature: { parentId: parent.id, title, description: input.description, acceptanceCriteria: input.acceptanceCriteria, areaPath: parent.areaPath, iterationPath, assignedTo, ...(input.storyPoints != null ? { storyPoints: input.storyPoints } : {}), ...(input.priority != null ? { priority: input.priority } : {}), ...(input.risk != null ? { risk: input.risk } : {}), ...(input.valueArea != null ? { valueArea: input.valueArea } : {}) } }
+  await transport({ ...request, validateOnly: true })
+  const response = await transport({ ...request, validateOnly: false }) as RawItem
+  if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`User Story creation under #${parent.id} could not be confirmed. Check it in Azure DevOps before retrying.`)
+  const read = await transport({ ...config, pat, operation: 'items', ids: [response.id] }) as { value?: RawItem[] }
+  const created = read.value?.find((item) => item.id === response.id)
+  if (!created) throw new Error(`User Story #${response.id} was created but could not be read back.`)
+  const item = mapAzureWorkItem(created, config)
+  if (item.parentId !== parent.id || item.workItemType !== 'User Story' || item.title.trim() !== title || item.iterationPath !== iterationPath || (input.storyPoints != null && item.storyPoints !== input.storyPoints) || (input.priority != null && created.fields['Microsoft.VSTS.Common.Priority'] !== input.priority) || (input.risk != null && created.fields['Microsoft.VSTS.Common.Risk'] !== input.risk) || (input.valueArea != null && created.fields['Microsoft.VSTS.Common.ValueArea'] !== input.valueArea)) throw new Error(`User Story #${response.id} was created but does not match what was requested. Check it in Azure DevOps.`)
+  return item
 }
 
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
@@ -648,6 +703,8 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (changesAzure(request.operation) && !writesAllowed()) throw new Error('Your role does not allow changes in Azure DevOps. An Admin can change this in Settings → Access.')
   assertWritableBase(request, request.operation)
   if ((request.operation === 'create-feature' || request.operation === 'create-child') && !isAssignee(request.feature?.assignedTo)) throw new Error('A new work item must be assigned to someone (an email). Nothing was created.')
+  const storyProblem = storyFieldsProblem(request.feature, request.operation === 'create-child' && request.workItemType === 'User Story')
+  if (storyProblem) throw new Error(`${storyProblem} Nothing was created.`)
   if (request.feature?.adhoc != null && (request.feature.adhoc !== true || request.operation !== 'create-child' || request.workItemType !== 'Task')) throw new Error('Only a new Task can be tagged ad-hoc. Nothing was created.')
   if (window.azureDevOps) return window.azureDevOps.request(request)
   const base = projectApiBase(request)
