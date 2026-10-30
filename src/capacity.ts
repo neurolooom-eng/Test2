@@ -17,8 +17,10 @@ export interface SharedTimeRule { id: number; kind: SharedTimeKind; scope: Share
 // "NPRA" ("NPRA", "NPRA Hours", "NPRA - Training"). The hours booked on NPRA Tasks come off the person's available
 // hours (only what is booked, nothing is reserved up front) and are tracked against npraHoursPerMonth (20 by default),
 // the maximum per person per month; hours over it are flagged. 0 tracks without a maximum.
-export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; sharedTime?: SharedTimeRule[]; profiles?: Record<string, ResourceProfile> }
-export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20 }
+// defaultJoinedOn: the Joined on of everyone without their own (YYYY-MM-DD; '' for none): months before it give them no
+// capacity (CAP-15).
+export interface CapacitySettings { absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; profiles?: Record<string, ResourceProfile> }
+export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, defaultJoinedOn: '2026-05-01' }
 export const npraTag = /^npra\b/i
 export const isNpra = (item: Pick<AzureWorkItem, 'tags'>) => (item.tags ?? '').split(';').some((tag) => npraTag.test(tag.trim()))
 // An NPRA Task: tagged itself, or under a tagged Story / Feature / Epic (the absence Epic and mapped shared time win).
@@ -90,11 +92,13 @@ export interface PersonLoad {
 export interface StreamSummary extends StreamLoad { people: number; features: number; share: number | null }
 
 type ThresholdKey = 'absenceEpicId' | 'hoursPerDay' | 'overloadedAt' | 'availableBelow' | 'npraHoursPerMonth'
+// The default Joined on: a valid day, '' when cleared, else the built-in default (1 May 2026).
+const defaultJoinedOf = (value: unknown) => value === '' ? '' : typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(`${value}T00:00:00Z`).toISOString().startsWith(value) ? value : defaultCapacitySettings.defaultJoinedOn!
 export function normalizeCapacitySettings(value: unknown): CapacitySettings {
   const input = (value && typeof value === 'object' ? value : {}) as Partial<Record<ThresholdKey, unknown>>
   const number = (key: ThresholdKey, min: number) => { const candidate = Number(input[key]); return Number.isFinite(candidate) && candidate >= min ? candidate : defaultCapacitySettings[key] }
   const sharedTime = normalizeSharedTime((value as { sharedTime?: unknown } | null)?.sharedTime)
-  const settings = { absenceEpicId: Math.trunc(number('absenceEpicId', 1)), hoursPerDay: number('hoursPerDay', 0.25), overloadedAt: number('overloadedAt', 1), availableBelow: number('availableBelow', 0), npraHoursPerMonth: number('npraHoursPerMonth', 0), ...(sharedTime.length ? { sharedTime } : {}) }
+  const settings = { absenceEpicId: Math.trunc(number('absenceEpicId', 1)), hoursPerDay: number('hoursPerDay', 0.25), overloadedAt: number('overloadedAt', 1), availableBelow: number('availableBelow', 0), npraHoursPerMonth: number('npraHoursPerMonth', 0), defaultJoinedOn: defaultJoinedOf((value as { defaultJoinedOn?: unknown } | null)?.defaultJoinedOn), ...(sharedTime.length ? { sharedTime } : {}) }
   return settings.availableBelow < settings.overloadedAt ? settings : { ...settings, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
 }
 
@@ -160,6 +164,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const funded = workingDays(month) * settings.hoursPerDay
   const profiles = settings.profiles ?? {}
   const outside = new Map<string, { name: string; tasks: number; hours: number; joinedOn?: string; leftOn?: string }>()
+  // A person's own Joined on wins; without one, the default Joined on of the settings applies.
+  const employmentOf = (name: string) => ({ joinedOn: profiles[name]?.joinedOn ?? (settings.defaultJoinedOn || undefined), leftOn: profiles[name]?.leftOn })
   // Settings read before the NPRA allowance existed (or built by hand) take the default allowance.
   const npraAllowance = typeof settings.npraHoursPerMonth === 'number' && Number.isFinite(settings.npraHoursPerMonth) && settings.npraHoursPerMonth >= 0 ? settings.npraHoursPerMonth : defaultCapacitySettings.npraHoursPerMonth
   const people = new Map<string, PersonLoad & { streamMap: Map<string, StreamLoad> }>()
@@ -180,8 +186,9 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const name = task.assignedTo || feature?.assignedTo || 'Unassigned'
     // Employed on no working day of the month (joined later or left earlier): no capacity, not counted; the hours
     // booked are listed apart (outsideEmployment) so they can be checked.
-    const days = employedDays(month, profiles[name])
-    if (!days) { const entry = outside.get(name) ?? { name, tasks: 0, hours: 0, joinedOn: profiles[name]?.joinedOn, leftOn: profiles[name]?.leftOn }; entry.tasks += 1; entry.hours += hours(task.completedWork); outside.set(name, entry); continue }
+    const employment = employmentOf(name)
+    const days = employedDays(month, employment)
+    if (!days) { const entry = outside.get(name) ?? { name, tasks: 0, hours: 0, joinedOn: employment.joinedOn, leftOn: employment.leftOn }; entry.tasks += 1; entry.hours += hours(task.completedWork); outside.set(name, entry); continue }
     const personFunded = days * settings.hoursPerDay
     const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, streamMap: new Map() }
     people.set(name, person)
