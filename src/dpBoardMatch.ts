@@ -10,6 +10,9 @@ import { matchScore, prepareName, prepareTitle, releaseFeatureTitle, type Prepar
 // same major.minor 0.25, the same major 0.1); the version is the one in the Title, else the Release field. A board
 // title without the version or with another one stays below 80%. A match needs the threshold (80% by default);
 // the closest item below it is kept as a hint. Time Writing stories and removed items are not candidates.
+// The names tried are the Title and, when it differs, the PsName (each with and without the SourceProgram); the
+// versions are the Title's and the Release field's. A board title equal to the one Create Feature gives the row
+// (dpFeatureTitle, ignoring spaces, case and punctuation) is a 100% match, so a Feature made from the row is always found.
 export interface BoardHit { item: AzureWorkItem; score: number }
 export interface BoardMatch { feature?: BoardHit; story?: BoardHit; closest?: BoardHit }
 
@@ -35,13 +38,18 @@ export function dpBoardCandidates(board: AzureWorkItem[]) {
 }
 export type DpBoardCandidates = ReturnType<typeof dpBoardCandidates>
 
+const squashed = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '')
 export function dpBoardMatch(row: AzureWorkItem, candidates: DpBoardCandidates, threshold = 80): BoardMatch {
-  const program = dpProgramOf(row), version = dpVersionOf(row), wanted = names(row.title, program)
+  const program = dpProgramOf(row), psName = fieldOf(row, 'PsName')?.trim() ?? ''
+  const wanted = [...names(row.title, program), ...(psName && squashed(psName) !== squashed(row.title) ? names(psName, program) : [])]
+  const versionsTried = [...new Set([dpVersionOf(row), fieldOf(row, 'Release')?.trim() ?? ''].filter(Boolean))]
+  const created = squashed(dpFeatureTitle(row))
+  const score = (ready: PreparedTitle) => ready.flat === created ? 100 : Math.max(0, ...wanted.flatMap((name) => (versionsTried.length ? versionsTried : ['']).map((version) => matchScore(ready, name, version))))
   // Only items sharing a telling word (or the squashed name) with the row are scored.
   const keys = [...new Set(wanted.flatMap((name) => name.words.length ? name.words : name.wanted.length >= 2 ? [name.wanted] : []))]
   if (!keys.length) return {}
-  const hits = candidates.filter(({ ready }) => keys.some((key) => ready.flat.includes(key)))
-    .map(({ item, ready }) => ({ item, score: Math.max(...wanted.map((name) => matchScore(ready, name, version))) }))
+  const hits = candidates.filter(({ ready }) => ready.flat === created || keys.some((key) => ready.flat.includes(key)))
+    .map(({ item, ready }) => ({ item, score: score(ready) }))
     .filter((hit) => hit.score > 0)
     .sort((a, b) => b.score - a.score || a.item.id - b.item.id)
   const best = (type: string) => hits.find((hit) => hit.item.workItemType === type && hit.score >= threshold)

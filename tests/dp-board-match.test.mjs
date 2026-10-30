@@ -53,3 +53,13 @@ test('Create Feature from a DP row: Program (SourceProgram, else DP) | PsName | 
   assert.equal(dpFeatureTitle(row(9, 'RSGMS Viewer 3.0.0.2', { 'Custom.SourceProgram': 'DHP', 'Custom.PsName': 'RSGMS', 'Custom.Release': '3.0.0.2' })), 'DHP | RSGMS | v3.0.0.2')
   assert.equal(dpFeatureTitle(row(10, 'Cardio Suite 2.1')), 'DP | Cardio Suite | v2.1', 'no SourceProgram, PsName or Release: DP and the Title')
 })
+
+test('a Title unlike the PsName: the search combines PsName and Release, so the Feature Create Feature made is found', () => {
+  const release = row(30, 'RSGMS 3.0.0.2', { 'Custom.SourceProgram': 'ART-RSG', 'Custom.PsName': 'Remote Service GMS', 'Custom.Release': '3.0.0.2' })
+  const made = dpBoardCandidates([board(40, 'Feature', dpFeatureTitle(release)), board(41, 'Feature', 'ART-RSG | Remote Service GMS | v3.1')])
+  assert.deepEqual([dpBoardMatch(release, made).feature.item.id, dpBoardMatch(release, made).feature.score], [40, 100], 'the created title is a 100% match')
+  const typed = dpBoardCandidates([board(42, 'Feature', 'Remote Service GMS v3.0.0.2'), board(43, 'Feature', 'Remote Service GMS v3.1')])
+  assert.equal(dpBoardMatch(release, typed).feature.item.id, 42, 'PsName + Release without the program, not the other version')
+  const otherRelease = row(31, 'Portal 2.0', { 'Custom.PsName': 'Portal Core', 'Custom.Release': '2.5' })
+  assert.equal(dpBoardMatch(otherRelease, dpBoardCandidates([board(44, 'Feature', 'Portal Core | v2.5')])).feature.item.id, 44, 'the Release field’s version is tried, not only the Title’s')
+})

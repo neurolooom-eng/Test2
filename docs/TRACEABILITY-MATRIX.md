@@ -343,9 +343,9 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | QV-26 | SR-08 | UR-06 | T | S | TC-QV-11 | — | `dp-milestones.test.mjs` | — |
 | QV-27 | SR-08 | UR-06 | T | M | TC-QV-12 | — | `query-view.test.mjs` | KB-03 |
 | QV-28 | SR-08 | UR-06 | T | S | TC-QV-13 | — | — | — |
-| QV-29 | SR-08 | UR-06 | T | M | TC-QV-14 | 11 | `dp-board-match.test.mjs` | — |
+| QV-29 | SR-08 | UR-06 | T | M | TC-QV-14 | 11 | `dp-board-match.test.mjs` | KB-15 |
 | QV-30 | SR-08 | UR-06 | T | S | TC-QV-15 | — | `query-view.test.mjs` | — |
-| QV-31 | SR-08 | UR-06 | T | M | TC-QV-16 | 11 | `dp-board-match.test.mjs` | — |
+| QV-31 | SR-08 | UR-06 | T | M | TC-QV-16 | 11 | `dp-board-match.test.mjs` | KB-15 |
 | QV-32 | SR-08 | UR-06 | T | M | TC-QV-17 | — | `dp-milestones.test.mjs` | — |
 | QV-33 | SR-08 | UR-06 | T | M | TC-QV-18 | 11 | `windchill-releases.test.mjs` | — |
 | QV-34 | SR-08 | UR-06 | T | M | TC-QV-19 | 11 | `streams.test.mjs` | — |
