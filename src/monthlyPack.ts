@@ -108,11 +108,17 @@ export function kpiValue(row: KpiRow, items: AzureWorkItem[], month: string, uti
 export interface StreamMonth { name: string; releases: string[]; supported: number }
 export interface PackInputs { month: string; setup: MonthlyPackSetup; notes: MonthlyPackNotes; items: AzureWorkItem[]; streamsOf: (month: string) => StreamMonth[]; utilization: Utilization; timeZone?: string }
 export interface PackLineResult { id: string; label: string; releases: string[]; supported: number; ytd: number; lastYtd: number; change: number | null }
-export interface MonthlyPack { month: string; lines: PackLineResult[]; overall: { supported: number; ytd: number; lastYtd: number; change: number | null }; utilization: Utilization; kpis: { id: string; label: string; value: string; manual: boolean }[]; notes: MonthlyPackNotes }
+export interface MonthlyPack { month: string; lines: PackLineResult[]; overall: { supported: number; ytd: number; lastYtd: number; change: number | null }; utilization: Utilization; kpis: { id: string; label: string; value: string; manual: boolean; computed: string; overridden: boolean }[]; notes: MonthlyPackNotes }
 
 const change = (now: number, before: number) => before > 0 ? Math.round((now - before) / before * 1000) / 10 : null
 export function buildMonthlyPack(input: PackInputs): MonthlyPack {
-  const { month, setup, notes, items, streamsOf, utilization, timeZone } = input
+  const { month, setup, notes, items, streamsOf, timeZone } = input
+  // Every KPI can be overridden for the month: a value typed for a calculated KPI wins over the calculation. A typed
+  // utilisation ("87%", "87.5") also replaces the calculated one in the generated lines (Summary, Capacity, Risks).
+  const typedOf = (row: KpiRow) => notes.kpiValues[row.id]?.trim() || undefined
+  const percent = (text: string | undefined) => { const match = text ? /^\s*(-?\d+(?:\.\d+)?)\s*%?\s*$/.exec(text) : null; return match ? Number(match[1]) : undefined }
+  const typedUtil = (metric: KpiMetric) => percent(setup.kpis.map((row) => row.metric === metric ? typedOf(row) : undefined).find(Boolean))
+  const utilization: Utilization = { ...input.utilization, ...(typedUtil('utilization-month') != null ? { month: typedUtil('utilization-month')! } : {}), ...(typedUtil('utilization-ytd') != null ? { ytd: typedUtil('utilization-ytd')! } : {}) }
   const cache = new Map<string, StreamMonth[]>()
   const monthStreams = (at: string) => { if (!cache.has(at)) cache.set(at, streamsOf(at)); return cache.get(at)! }
   // Epic-mapped lines count the Features closed in the month under those Epics, like a release each.
@@ -126,7 +132,11 @@ export function buildMonthlyPack(input: PackInputs): MonthlyPack {
   })
   const overall = { supported: lines.reduce((sum, line) => sum + line.supported, 0), ytd: lines.reduce((sum, line) => sum + line.ytd, 0), lastYtd: lines.reduce((sum, line) => sum + line.lastYtd, 0), change: null as number | null }
   overall.change = change(overall.ytd, overall.lastYtd)
-  const kpis = setup.kpis.map((row) => ({ id: row.id, label: row.label, value: kpiValue(row, items, month, utilization, notes.kpiValues[row.id], timeZone), manual: row.metric === 'manual' || (row.metric !== 'utilization-month' && row.metric !== 'utilization-ytd' && !row.epicId) }))
+  const kpis = setup.kpis.map((row) => {
+    const manual = row.metric === 'manual' || (row.metric !== 'utilization-month' && row.metric !== 'utilization-ytd' && !row.epicId)
+    const computed = manual ? '' : kpiValue(row, items, month, input.utilization, undefined, timeZone), typed = typedOf(row)
+    return { id: row.id, label: row.label, value: typed ?? computed, manual, computed, overridden: !manual && typed != null }
+  })
   return { month, lines, overall, utilization, kpis, notes }
 }
 

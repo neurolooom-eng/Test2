@@ -25,7 +25,7 @@ test('TC-PCK-04: Pulse Check → Monthly pack shows both slides for the month be
   assert.match(body, /Performance Pulse update .*Summary.*Overall status.*Key takeaways.*Key next steps.*Decision required.*Risks.*Proposed mitigation.*Leadership support requested.*KPI Pulse/, 'the Performance Pulse boxes')
   assert.match(body, /Capacity: \d+(\.\d+)?% utilization \(\w+\)/, 'the capacity line from the sample bookings')
   assert.match(body, /Actual utilization was \d+(\.\d+)?% in /, 'the Summary sentence')
-  assert.match(body, /Utilization \(YTD\) \d+(\.\d+)?%/, 'the utilisation KPI row')
+  assert.match(body, /Utilization \(YTD\) Calculated \d+(\.\d+)?%; type to override/, 'the utilisation KPI row: calculated, and can be overridden (PCK-07)')
   assert.match(body, /Synthetic sample data is loaded: the text cannot be saved\./)
   assert.ok(await panel.getByLabel(/^Focus areas for next months for /).isDisabled(), 'the text is read-only without a Git token that can save')
   assert.equal(await panel.locator('textarea').count(), 11, 'one text box per typed slide box')
