@@ -557,6 +557,14 @@ Cases marked **UAT** are also run in acceptance testing.
   - Azure adds the tag `ad-hoc`.
   - The row's tag shows "ad-hoc", and its OE input is disabled.
 
+**TC-MON-08 Ad-hoc tag on Tasks created after the lock** — Req MON-20 — L1 `planning-lock.test.mjs` ("planning lock: the 5th by default…", "ad-hoc after the lock…"), `azure-devops.test.mjs` ("after the planning lock, a new Time Writing Task…"), `my-work.test.mjs` ("Bulk month Tasks after the planning lock…"); browser check:
+- Pre: planning of the current month locked (after the 5th, or locked in Settings).
+- Steps: (1) New Feature on an Epic: the Time Writing section says the new Task is tagged `ad-hoc`; Save. (2) Bulk actions → Create month tasks: the confirmation says so; confirm.
+- Expected:
+  - The new month Tasks carry the tag `ad-hoc`; the Feature and User Stories do not; the job result names the tag.
+  - An existing month Task that is reused is not tagged.
+  - With planning open (or extended in Settings), nothing is tagged.
+
 **TC-MON-07 Gaps panel** — Req MON-18
 - Expected (TD-02a, October 2026):
   - (a) S2 is listed as a Time Writing story with no October Task.
@@ -1269,6 +1277,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MON-13 | TC-MON-05 |
 | MON-15 | TC-MON-06 |
 | MON-18 | TC-MON-07 |
+| MON-20 | TC-MON-08 |
 | ATM-01…03 | TC-ATM-01 |
 | ATM-04, ATM-05 | TC-ATM-02 |
 | ATM-06 | TC-ATM-03, TC-ATM-08 |

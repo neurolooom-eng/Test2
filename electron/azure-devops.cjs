@@ -59,6 +59,8 @@ function azureFeatureRequest(input) {
   if (feature.targetDate && !/^\d{4}-\d{2}-\d{2}$/.test(feature.targetDate)) throw new Error('Invalid target date.')
   if (feature.iterationPath != null && (typeof feature.iterationPath !== 'string' || feature.iterationPath.length > 4096)) throw new Error('Invalid iteration path.')
   for (const field of ['taskOriginalEstimate', 'taskCompletedWork']) if (feature[field] != null && (!Number.isFinite(feature[field]) || feature[field] < 0 || feature[field] > 1000000)) throw new Error('Invalid Task effort.')
+  // The only tag a new work item can carry: 'ad-hoc' on a Time Writing Task created after planning has locked.
+  if (feature.adhoc != null && (feature.adhoc !== true || type !== 'Task')) throw new Error('Only a new Task can be tagged ad-hoc. Nothing was created.')
   const htmlText = (value) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')
   const base = projectBase(input)
   const patch = [
@@ -71,6 +73,7 @@ function azureFeatureRequest(input) {
   if (feature.iterationPath) patch.push({ op: 'add', path: '/fields/System.IterationPath', value: feature.iterationPath })
   if (feature.assignedTo?.trim()) patch.push({ op: 'add', path: '/fields/System.AssignedTo', value: feature.assignedTo.trim() })
   if (feature.targetDate) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.TargetDate', value: `${feature.targetDate}T00:00:00Z` })
+  if (feature.adhoc === true) patch.push({ op: 'add', path: '/fields/System.Tags', value: 'ad-hoc' })
   return { url: `${base}/_apis/wit/workitems/$${encodeURIComponent(type)}?api-version=${apiVersion(input)}&validateOnly=${input.validateOnly}`, options: {
     method: 'POST', redirect: 'error', headers: { ...connection.options.headers, 'Content-Type': 'application/json-patch+json' }, body: JSON.stringify(patch),
   } }

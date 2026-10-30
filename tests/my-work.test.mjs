@@ -68,7 +68,7 @@ function fakeAzure(world) {
     if (request.operation === 'create-child') {
       if (request.validateOnly) return {}
       const id = ++next, f = request.feature
-      world.set(id, raw(id, { 'System.WorkItemType': request.workItemType, 'System.Title': f.title, 'System.Parent': f.parentId, 'System.AreaPath': f.areaPath, 'System.IterationPath': f.iterationPath, ...(f.assignedTo ? { 'System.AssignedTo': { displayName: 'Ana Costa', uniqueName: f.assignedTo } } : {}) }))
+      world.set(id, raw(id, { 'System.WorkItemType': request.workItemType, 'System.Title': f.title, 'System.Parent': f.parentId, 'System.AreaPath': f.areaPath, 'System.IterationPath': f.iterationPath, ...(f.assignedTo ? { 'System.AssignedTo': { displayName: 'Ana Costa', uniqueName: f.assignedTo } } : {}), ...(f.adhoc ? { 'System.Tags': 'ad-hoc' } : {}) }))
       return { id }
     }
     if (request.operation === 'update-work-item') { const entry = world.get(request.workItemId); if (request.state) entry.fields['System.State'] = request.state; if (request.iterationPath) entry.fields['System.IterationPath'] = request.iterationPath; return {} }
@@ -141,6 +141,27 @@ test('new work items are never unassigned: month story and task, Add child, and 
   const { azureFeatureRequest } = createRequire(import.meta.url)('../electron/azure-devops.cjs')
   assert.throws(() => azureFeatureRequest({ ...config, pat: 'p', operation: 'create-child', workItemType: 'Task', validateOnly: true, feature: { parentId: 2, title: 't', description: '', acceptanceCriteria: '', areaPath: 'A' } }), /assigned to someone/)
   assert.doesNotThrow(() => azureFeatureRequest({ ...config, pat: 'p', operation: 'create-child', workItemType: 'Task', validateOnly: true, feature: { parentId: 2, title: 't', description: '', acceptanceCriteria: '', areaPath: 'A', assignedTo: 'ana@x.com' } }))
+})
+
+test('Bulk month Tasks after the planning lock: a new Task is tagged ad-hoc, the story is not; both transports allow only that tag on a Task (TC-MON-08)', async () => {
+  const config = { organization: 'org', project: 'Quality', team: 'T' }
+  const world = new Map([[2, raw(2, { 'System.WorkItemType': 'Feature', 'System.Title': 'CP | Care Pathways | v3.1' })]])
+  const { transport, calls } = fakeAzure(world)
+  const late = await ensureMonthTask(config, 'pat', 2, 'ana@x.com', 'October 2026', transport, true)
+  assert.deepEqual([late.task.tags, late.story.tags], ['ad-hoc', ''])
+  assert.deepEqual(calls.filter((call) => call.operation === 'create-child').map((call) => [call.workItemType, call.feature.adhoc]), [['User Story', undefined], ['User Story', undefined], ['Task', true], ['Task', true]])
+  const again = await ensureMonthTask(config, 'pat', 2, 'ana@x.com', 'October 2026', transport, true)
+  assert.equal(again.status, 'exists', 'an existing Task is reused, not re-created')
+  const { azureFeatureRequest } = createRequire(import.meta.url)('../electron/azure-devops.cjs')
+  const request = (workItemType, adhoc) => ({ ...config, pat: 'p', operation: 'create-child', workItemType, validateOnly: true, feature: { parentId: 2, title: 't', description: '', acceptanceCriteria: '', areaPath: 'A', assignedTo: 'ana@x.com', adhoc } })
+  assert.deepEqual(JSON.parse(azureFeatureRequest(request('Task', true)).options.body).at(-1), { op: 'add', path: '/fields/System.Tags', value: 'ad-hoc' })
+  assert.throws(() => azureFeatureRequest(request('User Story', true)), /Only a new Task/)
+  assert.throws(() => azureFeatureRequest(request('Task', 'x; secret')), /Only a new Task/, 'never an arbitrary tag')
+  globalThis.window = {}
+  try {
+    await assert.rejects(requestAzure(request('User Story', true)), /Only a new Task/)
+    await assert.rejects(requestAzure(request('Task', 'other')), /Only a new Task/)
+  } finally { delete globalThis.window }
 })
 
 test('people to assign to: everyone with an email, by name; a shared name shows the email', () => {

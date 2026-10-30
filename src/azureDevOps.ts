@@ -30,7 +30,8 @@ export interface AzureRequest extends AzureConfig {
   pat: string
   query?: string
   ids?: number[]
-  feature?: FeatureInput & { areaPath: string }
+  // adhoc: a new Time Writing Task created after planning has locked carries the 'ad-hoc' tag (Tasks only).
+  feature?: FeatureInput & { areaPath: string; adhoc?: boolean }
   validateOnly?: boolean
   workItemType?: 'User Story' | 'Task'
   workItemId?: number
@@ -315,6 +316,7 @@ export async function createAzureFeature(config: AzureConfig, pat: string, featu
   }
 }
 
+const hasAdhocTag = (tags: string) => tags.split(';').some((tag) => tag.trim().toLowerCase() === 'ad-hoc')
 const validHours = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1_000_000
 
 /** Updates only the two Azure scheduling fields on a selected-month Task. */
@@ -339,7 +341,7 @@ export const isAssignee = (value: unknown): value is string => typeof value === 
 
 const htmlText = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')
 
-export function featurePatch(config: AzureConfig, feature: FeatureInput & { areaPath: string }) {
+export function featurePatch(config: AzureConfig, feature: FeatureInput & { areaPath: string; adhoc?: boolean }) {
   const patch: { op: string; path: string; value: unknown }[] = [
     { op: 'add', path: '/fields/System.Title', value: feature.title },
     { op: 'add', path: '/fields/System.AreaPath', value: feature.areaPath },
@@ -350,6 +352,7 @@ export function featurePatch(config: AzureConfig, feature: FeatureInput & { area
   if (feature.iterationPath) patch.push({ op: 'add', path: '/fields/System.IterationPath', value: feature.iterationPath })
   if (feature.assignedTo?.trim()) patch.push({ op: 'add', path: '/fields/System.AssignedTo', value: feature.assignedTo.trim() })
   if (feature.targetDate) patch.push({ op: 'add', path: '/fields/Microsoft.VSTS.Scheduling.TargetDate', value: `${feature.targetDate}T00:00:00Z` })
+  if (feature.adhoc === true) patch.push({ op: 'add', path: '/fields/System.Tags', value: 'ad-hoc' })
   return patch
 }
 
@@ -395,7 +398,7 @@ async function directChildren(config: AzureConfig, pat: string, parentId: number
 }
 
 // options: a Description, and an Area Path other than the parent's (both from the per-Epic Feature setup).
-async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number, options: { anyPlace?: boolean; description?: string; areaPath?: string } = {}) {
+async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, existing: AzureWorkItem[], assignedTo: string, transport: AzureTransport, iterationPath = parent.iterationPath, taskOriginalEstimate?: number, taskCompletedWork?: number, options: { anyPlace?: boolean; description?: string; areaPath?: string; adhoc?: boolean } = {}) {
   const areaPath = options.areaPath?.trim() || parent.areaPath
   const matches = existing.filter((item) => item.parentId === parent.id && item.workItemType === type && item.title.trim() === title)
   if (matches.length > 1) throw new Error(`Multiple matching ${type} items already exist under #${parent.id}. Review duplicates before continuing.`)
@@ -408,7 +411,7 @@ async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkIt
   if (title.length > 255) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
   if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
   const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type,
-    feature: { parentId: parent.id, title, description: options.description ?? '', acceptanceCriteria: '', areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}) } }
+    feature: { parentId: parent.id, title, description: options.description ?? '', acceptanceCriteria: '', areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && taskOriginalEstimate != null ? { taskOriginalEstimate } : {}), ...(type === 'Task' && taskCompletedWork != null ? { taskCompletedWork } : {}), ...(type === 'Task' && options.adhoc ? { adhoc: true } : {}) } }
   await transport({ ...request, validateOnly: true })
   const response = await transport({ ...request, validateOnly: false }) as RawItem
   if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`${type} creation could not be confirmed. Check children under #${parent.id} before retrying.`)
@@ -417,7 +420,7 @@ async function ensureChild(config: AzureConfig, pat: string, parent: AzureWorkIt
     const raw = read.value?.find((item) => item.id === response.id)
     if (!raw) throw new Error('Missing work item.')
     const item = mapAzureWorkItem(raw, config)
-    if (item.parentId !== parent.id || item.workItemType !== type || item.areaPath !== areaPath || item.iterationPath !== iterationPath || (taskOriginalEstimate != null && item.originalEstimate !== taskOriginalEstimate) || (taskCompletedWork != null && item.completedWork !== taskCompletedWork)) throw new Error('Child verification failed.')
+    if (item.parentId !== parent.id || item.workItemType !== type || item.areaPath !== areaPath || item.iterationPath !== iterationPath || (taskOriginalEstimate != null && item.originalEstimate !== taskOriginalEstimate) || (taskCompletedWork != null && item.completedWork !== taskCompletedWork) || (type === 'Task' && options.adhoc && !hasAdhocTag(item.tags))) throw new Error('Child verification failed.')
     return item
   } catch { throw new Error(`${type} #${response.id} was created but could not be verified. Check the source before using Complete children.`) }
 }
@@ -441,7 +444,8 @@ export async function addChildWorkItem(config: AzureConfig, pat: string, parentI
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.
 export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean }
-export async function ensureMonthTask(config: AzureConfig, pat: string, featureId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure): Promise<MonthTaskResult> {
+// adhoc: the month's planning has locked, so a newly created Task is tagged 'ad-hoc' (an existing one is left as it is).
+export async function ensureMonthTask(config: AzureConfig, pat: string, featureId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false): Promise<MonthTaskResult> {
   if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
   const email = assignee.trim().toLowerCase()
   if (!isAssignee(email)) throw new Error('Choose who the month Task is assigned to (an email), or set your Azure DevOps email (Feature creator email on the Time Writing connection).')
@@ -462,13 +466,13 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   let story: AzureWorkItem, storyCreated = false
   if (plan.status === 'use') story = plan.story
   else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
-  const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport)
+  const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
   return { status: 'created', task, story, storyCreated }
 }
 
-async function createChildItem(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, iterationPath: string, assignedTo: string, transport: AzureTransport) {
+async function createChildItem(config: AzureConfig, pat: string, parent: AzureWorkItem, type: 'User Story' | 'Task', title: string, iterationPath: string, assignedTo: string, transport: AzureTransport, adhoc = false) {
   if (!isAssignee(assignedTo)) throw new Error(`Choose who the ${type} is assigned to (an email). Nothing was created.`)
-  const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type, feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, assignedTo: assignedTo.trim() } }
+  const request: AzureRequest = { ...config, pat, operation: 'create-child', workItemType: type, feature: { parentId: parent.id, title, description: '', acceptanceCriteria: '', areaPath: parent.areaPath, iterationPath, assignedTo: assignedTo.trim(), ...(type === 'Task' && adhoc ? { adhoc: true } : {}) } }
   await transport({ ...request, validateOnly: true })
   const response = await transport({ ...request, validateOnly: false }) as RawItem
   if (!Number.isSafeInteger(response.id) || response.id < 1) throw new Error(`${type} creation under #${parent.id} could not be confirmed. Check it in Azure DevOps before retrying.`)
@@ -476,12 +480,12 @@ async function createChildItem(config: AzureConfig, pat: string, parent: AzureWo
   const raw = read.value?.find((item) => item.id === response.id)
   if (!raw) throw new Error(`${type} #${response.id} was created but could not be read back.`)
   const item = mapAzureWorkItem(raw, config)
-  if (item.parentId !== parent.id || item.workItemType !== type || item.title.trim() !== title) throw new Error(`${type} #${response.id} was created but does not match what was requested. Check it in Azure DevOps.`)
+  if (item.parentId !== parent.id || item.workItemType !== type || item.title.trim() !== title || (type === 'Task' && adhoc && !hasAdhocTag(item.tags))) throw new Error(`${type} #${response.id} was created but does not match what was requested. Check it in Azure DevOps.`)
   return item
 }
 
 // The children are assigned to `assignee`, else to whoever the Feature is assigned to; never left blank.
-export async function completeReleaseHierarchy(config: AzureConfig, pat: string, featureId: number, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string, reviewStory = true) {
+export async function completeReleaseHierarchy(config: AzureConfig, pat: string, featureId: number, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string, reviewStory = true, adhoc = false) {
   const items: AzureWorkItem[] = []
   try {
     if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
@@ -503,20 +507,20 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, config.project, undefined, undefined, { anyPlace: true })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project))
+    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project, undefined, undefined, { adhoc }))
     return { feature, items }
   } catch (failure) {
     throw new HierarchyCreationError(failure instanceof Error ? failure.message : 'Unable to complete the release hierarchy.', items)
   }
 }
 
-export async function createAzureReleaseHierarchy(config: AzureConfig, pat: string, input: FeatureInput, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, reviewStory = true) {
+export async function createAzureReleaseHierarchy(config: AzureConfig, pat: string, input: FeatureInput, kind: 'PU' | 'Release', milestones?: string[], monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, reviewStory = true, adhoc = false) {
   const titles = releaseHierarchyTitles(input.title.trim(), kind, monthLabel)
   if ([...titles.reviews.map((review) => review.title), titles.review, titles.timeWriting, titles.task].some((title) => title.length > 255)) throw new Error('An automatic child title exceeds 255 characters. Shorten the Feature title.')
   if (milestones?.some((milestone) => !titles.reviews.some((review) => review.milestone === milestone))) throw new Error('Unsupported milestone selection for this release classification.')
   const feature = await createAzureFeature(config, pat, input, transport)
   try {
-    const bundle = await completeReleaseHierarchy(config, pat, feature.id, kind, milestones, monthLabel, transport, input.storyIterationPath, input.assignedTo, reviewStory)
+    const bundle = await completeReleaseHierarchy(config, pat, feature.id, kind, milestones, monthLabel, transport, input.storyIterationPath, input.assignedTo, reviewStory, adhoc)
     // Initial effort is deliberately saved on the month-named Task, not the User Story.
     if (input.taskOriginalEstimate != null || input.taskCompletedWork != null) {
       const task = bundle.items.find((item) => item.workItemType === 'Task')
@@ -538,7 +542,7 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
 // and the month Task with the setup's defaults. Titles may carry placeholders ({feature}, {program}, {service},
 // {version}, {month}). Existing children with the same title are reused, so it can also complete a Feature.
 export interface SetupChildren { stories: { title: string; description: string }[]; reviewStory?: boolean; titleFields?: TitleField[]; fieldValues?: string[]; timeWritingStory?: { title: string; description: string; assignedTo: string; areaPath: string; iterationPath: string }; task: { title: string; description: string; originalEstimate?: number; assignedTo: string; areaPath: string; iterationPath: string } }
-export async function completeFeatureFromSetup(config: AzureConfig, pat: string, featureId: number, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string) {
+export async function completeFeatureFromSetup(config: AzureConfig, pat: string, featureId: number, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, storyIterationPath?: string, assignee?: string, adhoc = false) {
   const items: AzureWorkItem[] = []
   try {
     if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
@@ -576,7 +580,7 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
     const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath ?? '' })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath })
+    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath, adhoc })
     // The default Original Estimate goes on a newly created Task only; an existing Task keeps its hours.
     if (setup.task.originalEstimate != null && !tasks.some((entry) => entry.id === task.id)) task = await updateAzureTimeWritingEffort(config, pat, task.id, setup.task.originalEstimate, undefined, false, transport)
     items.push(task)
@@ -586,9 +590,9 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
   }
 }
 
-export async function createFeatureFromSetup(config: AzureConfig, pat: string, input: FeatureInput, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure) {
+export async function createFeatureFromSetup(config: AzureConfig, pat: string, input: FeatureInput, setup: SetupChildren, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false) {
   const feature = await createAzureFeature(config, pat, input, transport)
-  try { return await completeFeatureFromSetup(config, pat, feature.id, setup, monthLabel, transport, input.storyIterationPath, input.assignedTo) }
+  try { return await completeFeatureFromSetup(config, pat, feature.id, setup, monthLabel, transport, input.storyIterationPath, input.assignedTo, adhoc) }
   catch (failure) {
     const partial = failure instanceof HierarchyCreationError ? failure.createdItems : []
     throw new HierarchyCreationError(`Feature #${feature.id} exists. ${failure instanceof Error ? failure.message : 'Child creation stopped.'} Use Complete children on that Feature after checking the source; do not recreate the Feature.`, mergeAzureWorkItems([feature], partial))
@@ -644,6 +648,7 @@ export async function requestAzure(request: AzureRequest): Promise<unknown> {
   if (changesAzure(request.operation) && !writesAllowed()) throw new Error('Your role does not allow changes in Azure DevOps. An Admin can change this in Settings → Access.')
   assertWritableBase(request, request.operation)
   if ((request.operation === 'create-feature' || request.operation === 'create-child') && !isAssignee(request.feature?.assignedTo)) throw new Error('A new work item must be assigned to someone (an email). Nothing was created.')
+  if (request.feature?.adhoc != null && (request.feature.adhoc !== true || request.operation !== 'create-child' || request.workItemType !== 'Task')) throw new Error('Only a new Task can be tagged ad-hoc. Nothing was created.')
   if (window.azureDevOps) return window.azureDevOps.request(request)
   const base = projectApiBase(request)
   const updating = request.operation === 'update-time-writing-effort' || request.operation === 'update-work-item'
