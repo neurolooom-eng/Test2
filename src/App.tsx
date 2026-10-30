@@ -14,7 +14,7 @@ import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
 import { settingsTabOnOpen } from './settingsTabs'
-import { defaultStreams, exportForStream, profileForStream } from './streams'
+import { dataSets, defaultStreams, exportForStream, profileForDataSet, profileForStream } from './streams'
 import { connectionPresets } from './connectionPresets'
 import { gitSyncedIds, markViewsSynced, removeDuplicateConnections, serializeViews, viewsFile } from './viewDefinitions'
 import { listAzureConnectionProfiles } from './azureCredentials'
@@ -180,6 +180,8 @@ export default function App() {
     fetched: azure.items.length > 0 && !azure.isSample, sample: azure.isSample,
     region: my.me.name ? capacityContext(store.state).profiles?.[my.me.name]?.region : undefined, canManage: access.can('settings.manage'),
     streams: defaultStreams.filter((stream) => stream.source === 'azure').map((stream) => { const profile = profileForStream(stream, azure.connectionProfiles); return { name: stream.name, connected: Boolean(profile && hasServerPat(serverKey(profile))) } }),
+    // DP's data sets count too: without them the DP releases and dates are incomplete.
+    dataSets: dataSets.map((set) => { const profile = profileForDataSet(set.name, azure.connectionProfiles); return { name: set.name, connected: Boolean(profile && hasServerPat(serverKey(profile))) } }),
   })
   const openSteps = requiredOpen(steps)
   const [guideOpen, setGuideOpen] = useState(false)
