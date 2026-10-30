@@ -1190,6 +1190,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-PCK-03 The pack: lines, supported counts, YoY, capacity and slide text** — Req PCK-03, PCK-05 — L1 `monthly-pack.test.mjs` ("the pack: releases per line, supported counts, YoY from last year, capacity lines and slide text (PCK-03, PCK-05)": DP this year vs. last year, an Epic-mapped PPU line, the overall change, the capacity, YoY and supported lines, the overload risk line, the copy text of both slides); `monthly-pack.test.mjs` ("the .pptx writer: a zip with the presentation parts, one slide per input, text escaped (PCK-06)").
 
+**TC-PCK-07 Typing stays responsive** — Req PCK-09 — L1 `monthly-pack.test.mjs` ("typing in the pack does not recount the data …"); browser check with the full team data: type a paragraph in Summary and in a KPI value.
+- Expected: the characters appear as they are typed; no month of releases is read again while typing; the generated lines and KPIs follow the typed text.
+
 **TC-PCK-06 The pack in the team's PowerPoint template** — Req PCK-01, PCK-08 — L1 `pptx-template.test.mjs` (all tests, with a synthetic template — the real one is never in this repository); browser check with the team template:
 - Steps: (1) Settings → Monthly pack: Upload template… (the team .pptx), set the Department name, Save to Git. (2) Pulse Check → Monthly pack: choose At Risk, type text in every box and a long Risks list; Download .pptx; open it in PowerPoint. (3) Upload a .txt renamed .pptx.
 - Expected:
@@ -1421,6 +1424,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | PCK-05 | TC-PCK-03, TC-PCK-04 |
 | PCK-07 | TC-PCK-05 |
 | PCK-08 | TC-PCK-06 |
+| PCK-09 | TC-PCK-07 |
 | NFR-01 | TC-INS-04 |
 | WSP-01 | TC-WSP-05, TC-WSP-06 |
 | WSP-02 | TC-WSP-01, TC-WSP-06 |
@@ -1463,7 +1467,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
 | UC-23 | TC-QEM-01…08 |
-| UC-24 | TC-PCK-01…06 |
+| UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 
 ## 8. Result record
