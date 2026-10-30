@@ -672,6 +672,13 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-09 Title fields in New Feature** — Req BKL-18 — L1 `azure-devops.test.mjs` ("a Feature from a setup with title fields: the typed values fill {Field} placeholders, also with a blank field"; "Release Classification: optional …": the field lines follow it), `feature-setup.test.mjs` ("title fields per Epic …": title, Description lines, on-prem values); browser check (QMS-0025, a CP Epic whose setup has Platform, Release Name, Number): New Feature shows the three inputs and the title follows them; Save gives the Description "Platform : …", "Release Name : …", "Number : …" below the Release Classification; Release Details → Create Feature on a CP release fills the fields from its on-prem items; with the fields only in the shared setup and a personal setup of the Epic, the form says so and “Use the shared setup” shows them.
 
+**TC-BKL-10 New User Story under a Feature** — Req BKL-19 — L1 `my-work.test.mjs` ("New User Story under a Feature: the Azure DevOps story fields …"); E2E `backlog.e2e.mjs` ("TC-BKL-10: ＋ User Story on a Feature opens the New User Story form …"); browser check with a test project:
+- Steps: (1) Backlogs → Expand all → ＋ User Story on a Feature. (2) Enter a title, keep the Sprint, set Story Points 3, Priority 2, Risk 2 - Medium, Value area Business; Save. (3) Repeat from Assigned to Me.
+- Expected:
+  - The form shows the Feature as parent, Assigned to, State New, the Feature's Area, PI → Sprint, Description, Acceptance criteria, Planning and Classification; Save stays disabled without a title or Sprint.
+  - The form closes at once; the top bar shows the job; the story appears under the Feature in the Sprint with the values entered, assigned to the person chosen.
+  - A Priority, Risk or Value area outside the lists, or Story Points on a Task, is refused by both transports before anything is sent.
+
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
 **TC-CON-43 Title fields in the Feature setup** — Req CON-75 — L1 `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup …"); browser check with GitHub mocked: Settings → Feature setup → an Epic → ＋ Add title field three times (Platform / Custom.Platform, Release Name, Number), the preview of a story titled "{Platform} review" with the sample "CP 2 | Atlas | 4.1" shows "CP 2 review"; Save to Git writes titleFields; a sixth field cannot be added.
@@ -1298,6 +1305,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-16 | TC-BKL-07 |
 | BKL-17 | TC-BKL-08 |
 | BKL-18 | TC-BKL-09 |
+| BKL-19 | TC-BKL-10 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
