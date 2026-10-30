@@ -604,6 +604,10 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-12 Close follow-up: User Stories with the Feature, the Feature with the last User Story** — Req ATM-20 — L1 `my-work.test.mjs` ("closing a Feature offers its open User Stories; closing the last open User Story offers the Feature (ATM-20)": open stories only, the last-story rule, Closed Features and Tasks left alone, the staged states, the question texts; the chain writes each item in order when confirmed, nothing when declined, reports a Resolved Feature and a failed write, sets a New Feature to Active then Closed); browser check (QMS-0025, own test items): Close Feature → the prompt lists its open User Stories → OK closes them and the log says so; close the last open User Story → the prompt offers the Feature → Cancel leaves it open.
 
+**TC-ATM-13 Month Tasks up to the Target date** — Req ATM-21 — L1 `my-work.test.mjs` ("Bulk month Tasks up to the Target date …"); browser check:
+- Steps: Bulk actions → Create month tasks with a Feature whose Target date is in January 2027 (month October 2026); in the confirmation tick it, enter 20 h; Create tasks. Run it again.
+- Expected: Tasks for October, November, December 2026 and January 2027, each with Original Estimate 20 h (October without hours if planning had locked); the result names the later months; the second run creates nothing.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -1331,6 +1335,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-18 | TC-ATM-10 |
 | ATM-19 | TC-ATM-11 |
 | ATM-20 | TC-ATM-12 |
+| ATM-21 | TC-ATM-13 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
