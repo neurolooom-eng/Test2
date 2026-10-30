@@ -268,6 +268,8 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 
 The on-prem views (Azure DevOps Server, e.g. DP, CP, IOCC) are listed under **Release Details**. **Import Windchill export** takes a Windchill search (e.g. a saved search) exported to CSV — comma, semicolon or tab separated; a title line above the header is skipped; columns are kept as in the file — and makes it a page there with search and CSV export; **Import newer export** replaces it. Excel files must be saved as CSV first. Direct Windchill access is not used: the desktop sign-in window is refused by the company sign-in, the browser is blocked by CORS, and bookmarks with code are blocked by browser policy, so the Windchill host and views setup is hidden (the code is kept).
 
+**Monthly pack in the team template.** Settings → Monthly pack takes the team's PowerPoint template (Upload template…) and a Department name. The template is kept only in the private data repository (Storage), never in the app. **Download .pptx** then fills that file: page 1 the Performance Pulse, page 2 the 2x2, in the template's own design. It fills the title with the department and month, every box, the Overall status (On Track / At Risk / Off Track, with a green ✓, amber ! or red ✕) and the KPI rows. Long text shrinks to fit its box. Without a template the plain layout is used, Summary first.
+
 **Monthly pack KPIs.** Every KPI Pulse row can be overridden for the month, the calculated ones (Utilization, Epic counts) included: type a value and it is used on the slide and in the .pptx, with the calculated value shown next to it and **Use calculated** to go back. A typed utilisation also changes the Summary, capacity and Risks lines.
 
 ### Monthly locking and ad-hoc Tasks
