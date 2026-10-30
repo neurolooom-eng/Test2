@@ -1190,6 +1190,13 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-PCK-03 The pack: lines, supported counts, YoY, capacity and slide text** — Req PCK-03, PCK-05 — L1 `monthly-pack.test.mjs` ("the pack: releases per line, supported counts, YoY from last year, capacity lines and slide text (PCK-03, PCK-05)": DP this year vs. last year, an Epic-mapped PPU line, the overall change, the capacity, YoY and supported lines, the overload risk line, the copy text of both slides); `monthly-pack.test.mjs` ("the .pptx writer: a zip with the presentation parts, one slide per input, text escaped (PCK-06)").
 
+**TC-PCK-06 The pack in the team's PowerPoint template** — Req PCK-01, PCK-08 — L1 `pptx-template.test.mjs` (all tests, with a synthetic template — the real one is never in this repository); browser check with the team template:
+- Steps: (1) Settings → Monthly pack: Upload template… (the team .pptx), set the Department name, Save to Git. (2) Pulse Check → Monthly pack: choose At Risk, type text in every box and a long Risks list; Download .pptx; open it in PowerPoint. (3) Upload a .txt renamed .pptx.
+- Expected:
+  - (1) "Template saved to Storage", the file is in the data repository only.
+  - (2) Page 1 is the Performance Pulse in the template's exact design with the department, month, text, amber ! At Risk and the KPI rows; page 2 the 2x2 with its lines; the long Risks list is shrunk inside its box; the footer and logo are unchanged; the file properties name nobody.
+  - (3) Refused: "This is not a PowerPoint (.pptx) file."
+
 **TC-PCK-05 Override any KPI** — Req PCK-07 — L1 `monthly-pack.test.mjs` ("every KPI can be overridden for the month; a typed utilisation also replaces it in the generated lines"); browser check:
 - Steps: Pulse Check → Monthly pack; type 95% in Utilization (YTD) and a value in an Epic KPI; Save to Git; Download .pptx; then "Use calculated".
 - Expected: the slide and the .pptx show the typed values; the calculated value stays visible as "Overridden · calculated …"; a typed month utilisation also changes Summary, the capacity line and Risks; "Use calculated" brings the calculation back.
@@ -1413,6 +1420,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | PCK-04 | TC-PCK-02 |
 | PCK-05 | TC-PCK-03, TC-PCK-04 |
 | PCK-07 | TC-PCK-05 |
+| PCK-08 | TC-PCK-06 |
 | NFR-01 | TC-INS-04 |
 | WSP-01 | TC-WSP-05, TC-WSP-06 |
 | WSP-02 | TC-WSP-01, TC-WSP-06 |
@@ -1455,7 +1463,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
 | UC-23 | TC-QEM-01…08 |
-| UC-24 | TC-PCK-01…05 |
+| UC-24 | TC-PCK-01…06 |
 | UC-25 | TC-WSP-01…07 |
 
 ## 8. Result record

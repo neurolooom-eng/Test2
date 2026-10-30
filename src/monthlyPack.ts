@@ -1,3 +1,4 @@
+import type { PulseFill } from './pptxTemplate.ts'
 import type { AzureWorkItem } from './domain'
 import { approvalMonthOf } from './releaseSource.ts'
 
@@ -16,7 +17,8 @@ export const kpiMetrics: Record<KpiMetric, string> = {
 }
 export interface PackLine { id: string; label: string; streams: string[]; epicIds: number[] }
 export interface KpiRow { id: string; label: string; epicId?: number; metric: KpiMetric }
-export interface MonthlyPackSetup { schema: 1; lines: PackLine[]; kpis: KpiRow[] }
+// department: the name before "| Performance Pulse update" in the title of the exported template (PCK-08).
+export interface MonthlyPackSetup { schema: 1; lines: PackLine[]; kpis: KpiRow[]; department?: string }
 // The slide text typed per month; blank until typed (suggestions are a later step).
 export const noteKeys = ['summary', 'overallStatus', 'keyTakeaways', 'nextSteps', 'decisionRequired', 'risks', 'mitigation', 'leadershipSupport', 'observations', 'focusAreas', 'supportRequested'] as const
 export type NoteKey = typeof noteKeys[number]
@@ -57,7 +59,8 @@ export function parsePackSetup(input: string): MonthlyPackSetup {
   if (!value || typeof value !== 'object' || value.schema !== 1) throw new Error('monthly-pack-setup.json is not a schema 1 file.')
   const lines = (Array.isArray(value.lines) ? value.lines : []).map((line, index) => ({ id: idOf(line?.id, `line-${index + 1}`), label: text(line?.label, 80).trim() || `Line ${index + 1}`, streams: names(line?.streams), epicIds: ids(line?.epicIds) }))
   const kpis = (Array.isArray(value.kpis) ? value.kpis : []).map((row, index) => ({ id: idOf(row?.id, `kpi-${index + 1}`), label: text(row?.label, 80).trim() || `KPI ${index + 1}`, ...(Number.isInteger(row?.epicId) && row!.epicId! > 0 ? { epicId: row!.epicId } : {}), metric: (row?.metric && row.metric in kpiMetrics ? row.metric : 'manual') as KpiMetric }))
-  return { schema: 1, lines: unique(lines), kpis: unique(kpis) }
+  const department = text((value as { department?: unknown }).department, 80).trim()
+  return { schema: 1, lines: unique(lines), kpis: unique(kpis), ...(department ? { department } : {}) }
 }
 const unique = <T extends { id: string }>(list: T[]) => { const seen = new Set<string>(); return list.filter((entry) => !seen.has(entry.id) && seen.add(entry.id)) }
 export const serializePackSetup = (setup: MonthlyPackSetup) => `${JSON.stringify(setup, null, 2)}\n`
@@ -185,5 +188,17 @@ export function packSlides(pack: MonthlyPack): Slide[] {
       box('kpi', 'KPI Pulse', pack.kpis.map((row) => `${row.label}: ${row.value || '—'}`)),
     ] },
   ]
+}
+// What the exported template is filled with (pptxTemplate.ts): the Performance Pulse boxes and the 2x2 boxes, as the
+// pack shows them. The overall status is the first line typed for it (On Track when blank).
+export function packFill(pack: MonthlyPack, department = ''): PulseFill {
+  const [grid, pulse] = packSlides(pack)
+  const lines = (slide: Slide, key: string) => slide.boxes.find((box) => box.key === key)?.lines ?? []
+  return {
+    department, monthLine: pulse.subtitle, summary: lines(pulse, 'summary'), status: lines(pulse, 'status')[0] ?? 'On Track',
+    takeaways: lines(pulse, 'takeaways'), nextSteps: lines(pulse, 'next'), decision: lines(pulse, 'decision'), risks: lines(pulse, 'risks'), mitigation: lines(pulse, 'mitigation'), leadership: lines(pulse, 'leadership'),
+    kpis: pack.kpis.map((row) => ({ label: row.label, value: row.value || '—' })),
+    twoByTwo: { deliverables: lines(grid, 'deliverables'), observations: lines(grid, 'observations'), focus: lines(grid, 'focus'), support: lines(grid, 'support') },
+  }
 }
 export const slideText = (slide: Slide) => [`${slide.title} — ${slide.subtitle}`, ...slide.boxes.flatMap((box) => ['', box.title, ...box.lines.map((line) => `• ${line}`)])].join('\n')
