@@ -660,6 +660,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-04 Feature DoD mandatory** — Req BKL-13 — L1 `azure-devops.test.mjs` ("the Feature DoD is mandatory: composed into the Description, and creation is refused without one"), `feature-setup.test.mjs` ("Feature DoD in a setup: kept through save, built-in defaults, and required for new or changed setups"); browser check with Azure DevOps mocked (Time Writing connection with email and PAT, one Epic): Assigned to Me → ＋ New Feature opens "Add Feature under an Epic" with "Feature DoD" = "DT finished. This is a PU release."; clearing it disables "Create Feature and children" with the title "Enter the Feature DoD first"; the release view's Create Feature is disabled until a DoD is typed. **UAT**
 
+**TC-BKL-07 New Feature form in the Azure DevOps layout** — Req BKL-16 — L1 `npx tsc -b` and `my-work.test.mjs` (the creation paths it calls are unchanged; TC-BKL-02…06 still pass); browser check (QMS-0025, connection with a saved PAT): ＋ New Feature opens “New Feature” with the title on top, the strip shows you, New, the Epic’s Area and the current PI → Sprint already chosen; no PAT field is shown; the DoD is prefilled from the setup; Child work items reads “n will be created or checked” and opens to tick them; Save creates the same hierarchy as before; at phone width the form fits without sideways scrolling.
+
 **TC-BKL-06 Built-in Review of Deliverables story** — Req BKL-15 — L1 `azure-devops.test.mjs` ("… always creates Time Writing and the month task": the story "Review of Deliverables - <Feature>" is created by default for PU and Release with and without milestones, in the Sprint; "partial hierarchy …": completion adds it; "a Feature from its Epic setup …": it follows the optional stories; "the Time Writing story without set paths …": it goes to the chosen Sprint, and unticked it is not created on either path), `feature-setup.test.mjs` ("built-in stories as a setup …": the title is not part of the setup); browser check: New Feature offers it ticked among the optional stories; after creation the Feature has the story in the current Sprint; unticked, the Feature is created without it; Complete children with it ticked on a Feature without it adds it.
 
 **TC-BKL-05 Time Writing story not tied to a Sprint** — Req BKL-14 — L1 `azure-devops.test.mjs` ("… always creates Time Writing and the month task" for PU and Release: review stories in the PI, the Time Writing story at the project root; "new Feature is assigned to the configured creator email, review stories to the Sprint, the Time Writing story and task to the project root"; "the Time Writing story without set paths: the project root iteration (no PI, Sprint or year) and the Feature area; an existing one is reused wherever it is"), `my-work.test.mjs` (a new Time Writing story from Bulk actions at the project root; "move candidates …": Time Writing stories are never moved); browser check: New Feature shows "Time Writing User Story → QMS (not the PI or Sprint)" in Dates and paths. **UAT**
@@ -1269,6 +1271,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-13 | TC-BKL-04 |
 | BKL-14 | TC-BKL-05 |
 | BKL-15 | TC-BKL-06 |
+| BKL-16 | TC-BKL-07 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
