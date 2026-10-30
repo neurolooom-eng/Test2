@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { completeFeatureFromSetup, createFeatureFromSetup, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
+import { completeFeatureFromSetup, createFeatureFromSetup, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, releaseClassifications, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
 import { Modal, Info } from './ui'
 import { PersonPicker } from './PersonPicker'
 import { assignablePeople } from '../myWork'
@@ -26,6 +26,8 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   // The Feature DoD is mandatory: it starts from the Epic's setup, else the PU / Full Release default, until typed.
   const [dodText, setDodText] = useState<string | null>(null)
   const [description, setDescription] = useState('')
+  // Optional; written into the Description as "Release Classification : …" even when left blank.
+  const [releaseClassification, setReleaseClassification] = useState('')
   const [taskOriginalEstimate, setTaskOriginalEstimate] = useState('')
   const [taskCompletedWork, setTaskCompletedWork] = useState('')
   const [iterationPath, setIterationPath] = useState('')
@@ -83,7 +85,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
     const token = pat; setError(''); submitting.current = true; setCreating(true)
     const parseHours = (value: string, label: string) => { if (!value.trim()) return undefined; const hours = Number(value); if (!Number.isFinite(hours) || hours < 0 || hours > 1000000) throw new Error(`${label} must be a number from 0 to 1,000,000.`); return hours }
     let feature: FeatureInput
-    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? '')) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, targetDate: String(data.get('targetDate') ?? ''), taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
+    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? ''), releaseClassification) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, targetDate: String(data.get('targetDate') ?? ''), taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Invalid Task effort.'); submitting.current = false; setCreating(false); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) { setError('Choose who the work is assigned to.'); submitting.current = false; setCreating(false); return }
     try {
@@ -141,7 +143,8 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
           <h4>Planning</h4>
           {parent && <label>Parent Epic<select disabled={creating} value={parent.key} onChange={(event) => setParent(epics.find((item) => item.key === event.target.value) ?? null)}>{epics.map((epic) => <option value={epic.key} key={epic.key}>#{epic.id} · {epic.title}</option>)}</select></label>}
           {parent && <label>Target date<input name="targetDate" type="date" disabled={creating} /></label>}
-          {!epicSetup && <label>Release classification<select value={releaseKind} disabled={creating} onChange={(event) => setKind(event.target.value as 'PU' | 'Release')}><option value="PU">PU</option><option value="Release">Full Release</option></select></label>}
+          {parent && <label>Release Classification<select value={releaseClassification} disabled={creating} onChange={(event) => setReleaseClassification(event.target.value)}><option value="">(not set)</option>{releaseClassifications.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>}
+          {!epicSetup && <label>Milestone set<select value={releaseKind} disabled={creating} onChange={(event) => setKind(event.target.value as 'PU' | 'Release')}><option value="PU">PU</option><option value="Release">Full Release</option></select></label>}
           {parent && <><h4>Time Writing ({monthLabel})</h4>
             <label>Original Estimate (h)<input type="number" min="0" max="1000000" step="0.25" value={taskOriginalEstimate} onChange={(event) => setTaskOriginalEstimate(event.target.value)} disabled={creating} placeholder={epicSetup?.task.originalEstimate != null ? `${epicSetup.task.originalEstimate} (setup)` : 'Optional'} /></label>
             <label>Completed Work (h)<input type="number" min="0" max="1000000" step="0.25" value={taskCompletedWork} onChange={(event) => setTaskCompletedWork(event.target.value)} disabled={creating} placeholder="Optional" /></label></>}

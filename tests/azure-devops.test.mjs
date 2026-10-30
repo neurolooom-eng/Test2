@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { parseAzureProjectUrl, fetchAzureWorkItems, mergeAzureWorkItems, buildWorkItemQuery, createAzureFeature, featurePatch, featureDescription, withFeatureDoD, releaseHierarchyTitles, currentIndiaMonth, createAzureReleaseHierarchy, completeReleaseHierarchy, HierarchyCreationError, readAzureIterations, projectIterationPaths, currentIterationPairs, futureIterationPairs, mapAzureWorkItem, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort } from '../src/azureDevOps.ts'
+import { parseAzureProjectUrl, fetchAzureWorkItems, mergeAzureWorkItems, buildWorkItemQuery, createAzureFeature, featurePatch, featureDescription, withFeatureDoD, releaseClassifications, releaseHierarchyTitles, currentIndiaMonth, createAzureReleaseHierarchy, completeReleaseHierarchy, HierarchyCreationError, readAzureIterations, projectIterationPaths, currentIterationPairs, futureIterationPairs, mapAzureWorkItem, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort } from '../src/azureDevOps.ts'
 import { buildWorkItemTree } from '../src/azureHierarchy.ts'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzurePatProfiles, loadAzurePatProfile, saveAzurePatProfile, forgetAzurePatProfile, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile } from '../src/azureCredentials.ts'
 import { normalizeBacklogColumns, defaultBacklogColumns, plainAzureText, visibleBacklogRows } from '../src/backlogView.ts'
@@ -649,4 +649,13 @@ test('the Feature DoD is mandatory: composed into the Description, and creation 
   await assert.rejects(createAzureFeature(config, pat, { ...feature, description: 'Release scope only' }, transport), /Feature DoD/)
   await assert.rejects(createAzureFeature(config, pat, { ...feature, description: '<p>Feature DoD: </p>' }, transport), /Feature DoD/)
   assert.equal(requests.length, 0, 'refused before anything is sent')
+})
+
+test('Release Classification: optional, always written below the Feature DoD in the Description', () => {
+  assert.deepEqual([...releaseClassifications], ['Major', 'Minor', 'MLD', 'Platform Update', 'Service Pack'])
+  assert.equal(withFeatureDoD('DT finished', 'Scope: X', 'Major'), 'Feature DoD: DT finished\n\nRelease Classification : Major\n\nScope: X')
+  assert.equal(withFeatureDoD('DT finished', '', 'Service Pack'), 'Feature DoD: DT finished\n\nRelease Classification : Service Pack')
+  assert.equal(withFeatureDoD('DT finished', 'Scope: X', ''), 'Feature DoD: DT finished\n\nRelease Classification :\n\nScope: X', 'left blank, the line is still captured')
+  assert.equal(withFeatureDoD('DT finished', 'Scope: X'), 'Feature DoD: DT finished\n\nScope: X', 'callers without the field are unchanged')
+  assert.throws(() => withFeatureDoD(' ', '', 'Major'), /Feature DoD/)
 })

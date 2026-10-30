@@ -47,10 +47,14 @@ export { featureDoD }
 export const featureDescription = (kind: 'PU' | 'Release') => `Feature DoD: ${featureDoD(kind)}`
 export const missingDoDMessage = 'Enter the Feature DoD (Definition of Done): a Feature is not created without it.'
 // The Description sent for a new Feature: the DoD first ("Feature DoD: " added unless typed), then any other text.
-export function withFeatureDoD(dod: string, description = '') {
+export const releaseClassifications = ['Major', 'Minor', 'MLD', 'Platform Update', 'Service Pack'] as const
+// The New Feature form passes the optional Release Classification ('' when left blank): the line is always written
+// below the Feature DoD, so a blank choice still shows in the Description.
+export function withFeatureDoD(dod: string, description = '', releaseClassification?: string) {
   const value = dod.trim().replace(/^feature\s+dod\s*:\s*/i, '').trim()
   if (!value) throw new Error(missingDoDMessage)
-  return [`Feature DoD: ${value}`, description.trim()].filter(Boolean).join('\n\n')
+  const classification = releaseClassification === undefined ? '' : `Release Classification : ${releaseClassification.trim()}`.trimEnd()
+  return [`Feature DoD: ${value}`, classification, description.trim()].filter(Boolean).join('\n\n')
 }
 const hasFeatureDoD = (description: string) => /\bDoD\b\s*:?\s*[^\s:]/i.test(description.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '))
 
