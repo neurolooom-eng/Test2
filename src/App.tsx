@@ -208,7 +208,7 @@ export default function App() {
         ] : group === 'Other views' ? [{ key: group, entries: [
           ...others.azure.filter((entry) => access.sees(entry.onPrem ? 'release' : 'board')).map((entry) => navButton(`view:${entry.id}`, pageMeta('board').icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id))),
           ...(access.sees('release') ? others.windchill.map((entry) => navButton(entry.id, pageMeta('windchill').icon, entry.name, page === 'windchill' && windchillView?.id === entry.id, () => openWindchill(entry.id))) : []),
-        ] }] : [{ key: group, entries: pages.filter((item) => item.group === group).flatMap((item) => item.id === 'board' ? (access.sees('board') ? views.filter((entry) => !entry.readOnly).map((entry) => navButton(`view:${entry.id}`, item.icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id))) : []) : pageButton(item)) }]
+        ] }] : [{ key: group, entries: pages.filter((item) => item.group === group && !item.hidden).flatMap((item) => item.id === 'board' ? (access.sees('board') ? views.filter((entry) => !entry.readOnly).map((entry) => navButton(`view:${entry.id}`, item.icon, entry.name, page === 'board' && view.id === entry.id, () => openView(entry.id))) : []) : pageButton(item)) }]
         const shown = sections.filter((section) => section.entries.length)
         if (!shown.length) return null
         const open = !collapsed.includes(group)
