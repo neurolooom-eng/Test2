@@ -1,7 +1,7 @@
 import type { AppState } from './domain'
 import type { AzureConnectionProfileSummary } from './azureCredentials.ts'
 import { releaseFor, releaseOf } from './releasePath.ts'
-import { defaultStreams, profileForStream, streamOfProfile, type ReleaseRule } from './streams.ts'
+import { defaultStreams, profileForStream, profilesForStream, streamOfProfile, type ReleaseRule } from './streams.ts'
 import { releaseRegister, viewMonthOf } from './releaseSource.ts'
 import { viewSource } from './viewSources.ts'
 import { dpMilestoneLabel, dpMonthCounts, type SupportedRelease } from './dpMilestones.ts'
@@ -18,18 +18,27 @@ export interface StreamDocument { id: number; title: string; url: string; releas
 // milestones the milestones Done behind them.
 // supportedEntries: the Supported Releases of a stream counted like DP (DP, IOCC), each once: key and label.
 export interface SupportedEntry { key: string; label: string }
-export interface ReleaseStream { id: string; name: string; fetchedAt: string; releases: StreamRelease[]; documents: number; titles: StreamDocument[]; notSetUp?: boolean; supported?: number; supportedReleases?: SupportedRelease[]; supportedEntries?: SupportedEntry[]; milestones?: number }
+// unit: what the stream's items are called (CP: Assets); combined: the connections read as one data set (CP).
+export interface ReleaseStream { unit?: 'Assets'; combined?: number; id: string; name: string; fetchedAt: string; releases: StreamRelease[]; documents: number; titles: StreamDocument[]; notSetUp?: boolean; supported?: number; supportedReleases?: SupportedRelease[]; supportedEntries?: SupportedEntry[]; milestones?: number }
 
 // One view's releases in the month, read with its stream's rule (streams.ts; others use the general path rule).
-function streamOf(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profile: AzureConnectionProfileSummary, releaseConnections: number, month: string, timeZone?: string, rule: ReleaseRule = 'path'): ReleaseStream {
-  const source = viewSource(state, profile.id, profile.role, profile.query, releaseConnections)
+// A combining stream (CP) passes all its connections: their items are one data set (each item once, by its key).
+export function combinedSource(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profiles: AzureConnectionProfileSummary[], releaseConnections: number) {
+  const sources = profiles.map((profile) => viewSource(state, profile.id, profile.role, profile.query, releaseConnections)).filter((source) => source != null)
+  if (!sources.length) return undefined
+  const items = [...new Map(sources.flatMap((source) => source.items).map((item) => [item.key, item])).values()]
+  return { items, fetchedAt: sources.map((source) => source.fetchedAt).sort().at(-1) ?? '', sources: sources.length }
+}
+function streamOf(state: Pick<AppState, 'azureSources' | 'releaseSource'>, profile: AzureConnectionProfileSummary | AzureConnectionProfileSummary[], releaseConnections: number, month: string, timeZone?: string, rule: ReleaseRule = 'path'): ReleaseStream {
+  const profiles = Array.isArray(profile) ? profile : [profile]
+  const source = combinedSource(state, profiles, releaseConnections)
   const inMonth = (source?.items ?? []).filter((item) => viewMonthOf(item, timeZone) === month)
   const label = (found: { group?: string; name: string; release: string }) => `${[found.name, found.release].filter(Boolean).join(' ')}${found.group ? ` (${found.group})` : ''}`
   const releases = releaseRegister(inMonth, [], { rule }).map(({ group, name, release, documents, approvalDate }) => ({ ...(group ? { type: group } : {}), name, release, documents, ...(approvalDate ? { approvalDate } : {}) }))
   // The month's documents of a release, by the query's Title, oldest approval first.
   const titles = inMonth.flatMap((item) => { const found = releaseFor(item, rule); return found ? [{ id: item.id, title: item.title, url: item.url, release: label(found), ...(item.approvalDate ? { approvalDate: item.approvalDate } : {}) }] : [] })
     .sort((a, b) => (a.approvalDate ?? '').localeCompare(b.approvalDate ?? '') || a.id - b.id)
-  return { id: profile.id, name: profile.viewName || profile.reason, fetchedAt: source?.fetchedAt ?? '', releases, documents: releases.reduce((sum, entry) => sum + entry.documents, 0), titles }
+  return { id: profiles[0].id, name: profiles[0].viewName || profiles[0].reason, fetchedAt: source?.fetchedAt ?? '', releases, documents: releases.reduce((sum, entry) => sum + entry.documents, 0), titles, ...(profiles.length > 1 ? { combined: profiles.length } : {}) }
 }
 
 // DP from its own query: Completed Releases = DT (DDT) Done in the month, Supported Releases = DT, SFV, PRD and RPE
@@ -63,6 +72,7 @@ export function defaultStreamReleases(state: Pick<AppState, 'azureSources' | 're
     const profile = profileForStream(stream, profiles)
     if (stream.rule === 'dp' && profile) return { ...dpStream(state, profile, releaseConnections, month, timeZone), name: stream.name }
     if (stream.rule === 'iocc' && profile) return { ...ioccStream(state, profile, releaseConnections, month, timeZone), name: stream.name }
+    if (stream.combine && profile) return { ...streamOf(state, profilesForStream(stream, profiles), releaseConnections, month, timeZone, stream.rule), name: stream.name, ...(stream.unit ? { unit: stream.unit } : {}) }
     return profile ? { ...streamOf(state, profile, releaseConnections, month, timeZone, stream.rule), name: stream.name } : { id: `stream:${stream.name}`, name: stream.name, fetchedAt: '', releases: [], documents: 0, titles: [], notSetUp: true }
   })
 }

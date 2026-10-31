@@ -808,6 +808,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-24 CP releases from the asset Titles** — Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
 
+**TC-QV-25 CP: every CP query combined into one release list, Assets, Save to Git** — Req QV-41 — L1 `streams.test.mjs` ("CP: every CP query is one data set — assets combined into one release list, counted in Pulse Check, saved to Git (TC-QV-25)"); browser check with two CP connections ("CP [Assets A]", "CP [Assets B]"; one asset in both, the namings mixed) and Git storage connected: the menu shows one CP entry and neither connection under Other views; Release Details → CP lists the releases of both queries with an **Assets** column (the shared asset once), ⓘ names both queries, Refresh fetches both; Pulse Check's CP quadrant counts the combined releases and says "assets"; Save releases to Git writes release-analysis/cp-releases.json with both data sets and no credentials; with a read-only token or sample data the button is not offered or is refused; no page errors. **UAT**
+
 **TC-CON-42 Auto-fit tables and Wrap text** — Req QV-38 — E2E `documents-and-data.e2e.mjs` ("TC-CON-42": a Windchill export's Releases table starts one line per cell; dragging the first heading's edge 200px to the right widens that column and the table by about 200px while the other columns keep their width; Wrap text on makes cells wrap (pre-wrap), off back to one line); browser check: the same on Release Details (query table and IOCC releases) and on QE Mapping, the choice remembered per table after a reload.
 
 
@@ -1379,6 +1381,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-37 | TC-QV-22 |
 | QV-39 | TC-QV-23 |
 | QV-40 | TC-QV-24 |
+| QV-41 | TC-QV-25 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1469,7 +1472,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
-| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24 |
+| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-QV-25 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
