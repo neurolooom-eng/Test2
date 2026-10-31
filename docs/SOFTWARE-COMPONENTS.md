@@ -57,7 +57,7 @@ This document lists every software component of the system: the in-house source 
 | Clock | `src/components/Clock.tsx` | Header clock in the viewer's time zone and the theme toggle button. | NAV, UI |
 | DataStatus | `src/components/DataStatus.tsx` | Header data-status chip with Refresh, and the data notices shown once under the header. | FET, NAV |
 | DesktopDownload | `src/components/DesktopDownload.tsx` | Sidebar entry and dialog to download the desktop app; hidden inside the desktop app. | DSK |
-| DpBoardColumn | `src/components/DpBoardColumn.tsx` | DP table cell showing the matching QMS-0025 Feature/User Story, or Create Feature when nothing matches. | QV |
+| DpBoardColumn | `src/components/DpBoardColumn.tsx` | DP table and Windchill releases cell showing the matching QMS-0025 Feature/User Story, or Create Feature when nothing matches. | QV |
 | DpMonthCounts | `src/components/DpMonthCounts.tsx` | Table of a month's DP Supported Releases with milestones passed (DT, SFV, PRD, RPE) and dates. | QV, OVR |
 | ErrorBoundary | `src/components/ErrorBoundary.tsx` | Catches render errors in a view and shows what failed with a way back instead of a blank app. | UI |
 | FeatureEditor | `src/components/FeatureEditor.tsx` | Modal to add a Feature under an Epic or complete a Feature's children, shared by Backlogs and Assigned to Me. | ATM, CON |
@@ -81,7 +81,7 @@ This document lists every software component of the system: the in-house source 
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |
 | SharedTimePanel | `src/components/SharedTimePanel.tsx` | Settings → Capacity: map Epics/Features as regional holidays or common activities applied to people in scope. | CAP, SET |
 | TeamFilterBar | `src/components/TeamFilterBar.tsx` | Region switch and role multi-select filter for team views. | OVR |
-| WindchillReleasesPanel | `src/components/WindchillReleasesPanel.tsx` | Lists a Windchill export's unique releases from Location or document names (source and columns chosen), filtered to the header month, sortable, with draggable widths; the unique locations, CSV exports and Save locations to Git. | CON |
+| WindchillReleasesPanel | `src/components/WindchillReleasesPanel.tsx` | Lists a Windchill export's unique releases from Location or document names (source and columns chosen), filtered to the header month, sortable, with draggable widths and a QMS-0025 match column with Create Feature; the unique locations, CSV exports and Save locations to Git. | CON, QV |
 | WindchillSettingsPanel | `src/components/WindchillSettingsPanel.tsx` | Windchill host and service path setup with connection test and sign-in (browser or desktop). | CON |
 | WindchillViews | `src/components/WindchillViews.tsx` | Windchill views settings, the Windchill export page and import of results saved or copied from the browser. | CON |
 | WorkloadCharts | `src/components/WorkloadCharts.tsx` | SVG charts: utilization, Epic mix, Epic bullet, Pareto, utilization heatmap and donut. | OVR |
@@ -104,7 +104,7 @@ This document lists every software component of the system: the in-house source 
 | csv | `src/csv.ts` | CSV cell escaping with spreadsheet-formula injection guard. | CON |
 | dashboard | `src/dashboard.ts` | Person-month records (plan, actual, capacity) with filters, periods, totals, overload, concentration and rebalancing. | OVR, CAP |
 | domain | `src/domain.ts` | Core TypeScript types: AppState, activities, efforts, baselines, periods, snapshots, Azure work items, release plans. | — |
-| dpBoardMatch | `src/dpBoardMatch.ts` | Fuzzy match of DP rows to QMS-0025 Features/User Stories by name and version; DP Feature title builder. | QV |
+| dpBoardMatch | `src/dpBoardMatch.ts` | Fuzzy match of DP rows and Windchill (S&S IT) releases to QMS-0025 Features/User Stories by name and version; DP and Windchill Feature title builders. | QV |
 | dpMilestones | `src/dpMilestones.ts` | DP milestone fields, DDT month, Completed and unique Supported Releases counts per month. | QV, OVR |
 | ioccMilestones | `src/ioccMilestones.ts` | IOCC document type from the Title (Release Plan, Release Notes, Verification Report), the release a document belongs to, and the unique Completed and Supported Releases signed in a month. | QV |
 | nestedGroups | `src/nestedGroups.ts` | Nested grouping of a list by several levels, with a unique key per group path (IOCC releases). | QV |
@@ -228,7 +228,7 @@ This document lists every software component of the system: the in-house source 
 | workspace.test | `tests/workspace.test.mjs` | KPI helpers, data completeness, exception queue, timeline health and insight cards. | WSP |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |
 | desktop-update.test | `tests/desktop-update.test.mjs` | Desktop update manifest, build comparison, verified download and per-platform manifest merge. | DSK, CI |
-| dp-board-match.test | `tests/dp-board-match.test.mjs` | DP row to QMS-0025 matching thresholds and Create Feature titles. | QV |
+| dp-board-match.test | `tests/dp-board-match.test.mjs` | DP row and Windchill release to QMS-0025 matching thresholds and Create Feature titles. | QV |
 | dp-milestones.test | `tests/dp-milestones.test.mjs` | DP Completed/Supported Release counts, DDT month and milestone names. | QV |
 | dp-releases.test | `tests/dp-releases.test.mjs` | Pedestal fields and titles, DHFI matching and dating, DP releases and fuzzy match. | QV |
 | feature-setup.test | `tests/feature-setup.test.mjs` | Feature setup paths, layer choice, publish, built-ins, copy and shared listing. | CON |
@@ -267,7 +267,7 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 |---|---|---|---|
 | helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate, load sample). | CI |
 | shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02). | NAV, UI, SMP, UPD |
-| documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); auto-fit tables and Wrap text (TC-CON-42). | DOC, CON, STO, NFR |
+| documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); Windchill releases' QMS-0025 match column (TC-QV-23); auto-fit tables and Wrap text (TC-CON-42). | DOC, CON, STO, NFR, QV |
 | backlog.e2e | `e2e/backlog.e2e.mjs` | New User Story form from a Feature row of the Backlogs (TC-BKL-10); the Edit form from Feature, User Story and Task rows (TC-BKL-11). | CI, BKL |
 | workspace.e2e | `e2e/workspace.e2e.mjs` | Insights workspace hidden for now: not in the menu, the Dashboard unchanged (TC-WSP-07; the TC-WSP-06 scenario returns with the page). | CI |
 | monthly-pack.e2e | `e2e/monthly-pack.e2e.mjs` | Monthly pack tab with the synthetic sample, the .pptx download and the setup tab (TC-PCK-04). | CI |
