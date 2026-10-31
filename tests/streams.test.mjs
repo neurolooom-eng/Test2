@@ -117,13 +117,20 @@ test('CP: the release from the asset Title "[Release name] [Release No] [Asset n
   assert.equal(asset('Patient Hub Rel 4.0: Release Notes'), 'Patient Hub|4.0')
   assert.equal(asset('Eclipse v5 Labeling'), 'Eclipse|5', 'a whole number counts when written with v / R / Rel')
   assert.equal(asset('Server 3.1 Test'), 'Server|3.1', 'a name ending in r keeps it')
+  // The other naming: "[Asset name] [Release No] ([Release Name])".
+  assert.equal(asset('Test Report 3.1 (Care Pathways)'), 'Care Pathways|3.1', 'release name in brackets after the number')
+  assert.equal(asset('SRS - v3.2 (CareLink)'), 'CareLink|3.2')
+  assert.equal(asset('Risk Analysis R4.0.1 (Patient Hub)'), 'Patient Hub|4.0.1')
+  assert.equal(asset('Labeling 5 (Eclipse)'), 'Eclipse|5', 'a whole number right before the brackets')
+  assert.equal(asset('IEC 62304 Checklist 2.0 (Care Pathways)'), 'Care Pathways|2.0', 'the number right before the brackets, not a number in the asset name')
+  assert.equal(asset('Care Pathways 3.1 Test Report (Draft)'), 'Care Pathways|3.1', 'brackets not right after the number: the first naming')
   assert.equal(asset('Quality Manual'), undefined, 'no version and no release path: no release')
   assert.equal(asset('Quality Manual', 'DHP\\Care Pathways', 'DHP\\Release 3.1'), 'Care Pathways|3.1', 'no version in the Title: the path rule')
   assert.equal(releaseFor(doc(9, 'DHP', 'DHP', 'Care Pathways 3.1 Test Report'), 'asset').name, 'Care Pathways')
   const cp = defaultStreams.find((stream) => stream.name === 'CP')
   assert.deepEqual([cp.rule, cp.fuzzy], ['asset', true])
-  // Three assets of 3.1 (3.1.0 is the same release) and one of 3.2: two releases; 3.1 matched to its Feature, 3.2 not.
-  const items = [doc(1, 'DHP', 'DHP', 'Care Pathways 3.1 Test Report'), doc(2, 'DHP', 'DHP', 'Care Pathways 3.1.0 SRS'), doc(3, 'DHP', 'DHP', 'Care Pathways v3.1 Risk Analysis'), doc(4, 'DHP', 'DHP', 'Care Pathways 3.2 Test Plan')]
+  // Three assets of 3.1 in both namings (3.1.0 is the same release) and one of 3.2: two releases; 3.1 matched to its Feature, 3.2 not.
+  const items = [doc(1, 'DHP', 'DHP', 'Care Pathways 3.1 Test Report'), doc(2, 'DHP', 'DHP', 'Care Pathways 3.1.0 SRS'), doc(3, 'DHP', 'DHP', 'Risk Analysis v3.1 (Care Pathways)'), doc(4, 'DHP', 'DHP', 'Care Pathways 3.2 Test Plan')]
   const register = releaseRegister(items, [feature(70, 'CP | Care Pathways | v3.1')], { rule: cp.rule, fuzzy: cp.fuzzy, threshold: 80 })
   assert.deepEqual(register.map((entry) => [entry.name, entry.release, entry.documents, entry.features.map((item) => item.id)]), [['Care Pathways', '3.2', 1, []], ['Care Pathways', '3.1', 3, [70]]])
   assert.equal(releaseOnlyTitle('Care Pathways', '3.2'), 'Care Pathways | v3.2', 'CP Create Feature title: the release name and number only')

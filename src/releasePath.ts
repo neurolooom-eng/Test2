@@ -90,9 +90,14 @@ export function toolRelease(item: Pick<AzureWorkItem, 'areaPath' | 'iterationPat
 // before its first version — "3.1", "v3.1", "R3.2", "Rel 4.0", or a whole number written with v / R / Rel ("v5") —
 // and the number is that version; the asset name after it is dropped, so a release's assets are one release. A Title
 // without a version falls back to the general path rule.
+// The other naming, "[Asset name] [Release No] ([Release Name])", is recognised by the release name in brackets at the
+// end, right after the number ("Test Report 3.1 (Care Pathways)", "SRS - v3.2 (CareLink)", "Labeling 5 (Eclipse)").
 const prefixedNumber = /(?:^|[^a-z\d.])(?:v\.?|r|rel(?:ease)?)\s*[-_:.]?\s*(\d+)(?![\d.]*\d)/i
+const bracketedName = /(?:^|[^a-z\d.])(?:v\.?|r|rel(?:ease)?)?\s*[-_:.]?\s*(\d+(?:\.\d+)*)\s*[-_|:–]?\s*\(\s*([^()]*[a-z][^()]*?)\s*\)$/i
 export function assetRelease(item: Pick<AzureWorkItem, 'areaPath' | 'iterationPath' | 'title'>): StreamRelease | undefined {
   const title = (item.title ?? '').replace(/\s+/g, ' ').trim()
+  const bracketed = bracketedName.exec(title)
+  if (bracketed && !versionPart.test(bracketed[2])) return { name: bracketed[2], release: bracketed[1] }
   const found = versionPart.exec(title) ?? prefixedNumber.exec(title)
   if (found) {
     const index = title.indexOf(found[1], found.index)
