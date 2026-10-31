@@ -701,6 +701,8 @@ Cases marked **UAT** are also run in acceptance testing.
 - Steps: reload the web app; open DP; Load from Git.
 - Expected: the DP data here is not replaced by the old-query data; Load from Git says the data in Git was fetched with another query and that the setup should be saved to Git.
 
+**TC-CON-46 Tree and direct-links queries** — Req CON-78 — L1 `release-source.test.mjs` ("tree and direct-links queries (FROM WorkItemLinks … MODE): every item on either end of a link, each once (TC-CON-46)"), `azure-devops.test.mjs` ("desktop bridge constrains credentials to Azure DevOps and rejects writes and oversized batches" — the WorkItemLinks lines); browser check with the desktop app: paste a tree query (Releases with their child Documents, MODE (Recursive)) into a CP connection, save, fetch: no "flat work-item query" error; the view lists the Releases and their Documents with the query's columns; a query with ASOF is refused on save.
+
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
 **TC-CON-43 Title fields in the Feature setup** — Req CON-75 — L1 `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup …"); browser check with GitHub mocked: Settings → Feature setup → an Epic → ＋ Add title field three times (Platform / Custom.Platform, Release Name, Number), the preview of a story titled "{Platform} review" with the sample "CP 2 | Atlas | 4.1" shows "CP 2 review"; Save to Git writes titleFields; a sixth field cannot be added.
@@ -1295,6 +1297,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-75 | TC-CON-43 |
 | CON-76 | TC-CON-44 |
 | CON-77 | TC-CON-45 |
+| CON-78 | TC-CON-46 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1469,7 +1472,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
-| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24 |
+| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
