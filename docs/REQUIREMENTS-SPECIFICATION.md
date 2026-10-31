@@ -656,7 +656,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 
 | ID | Requirement | Ver. | Pri. | Trace |
 |---|---|---|---|---|
-| DOC-01 | The Documentation page shall show, as tabs, every Markdown document in `docs/`: Validation package, Requirements, Traceability matrix, Test plan, Verification plan, UAT plan, Known issues, Software components, Security assessment, DFMEA, Development process, Azure DevOps setup, Project plan. | T | M | UC-20 |
+| DOC-01 | The Documentation page shall show, as tabs, every Markdown document in `docs/`: Validation package, Requirements, Traceability matrix, Test plan, Verification plan, UAT plan, Known issues, Software components, Security assessment, DFMEA, Development process, Azure DevOps setup, Project plan, CP release reporting brief. | T | M | UC-20 |
 | DOC-02 | The page shall show the documents bundled with the running build. | I | M | UC-20 |
 | DOC-03 | The page shall render headings, paragraphs, nested lists, tables, rules, inline code, bold, italic and links as formatted text. It shall not inject HTML from the documents. | T, I | M | UC-20 |
 | DOC-04 | A link to another bundled document shall open that document in the page, at the linked section when an anchor is given. A link to a section shall scroll to it. | T, D | M | UC-20 |
