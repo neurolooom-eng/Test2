@@ -63,3 +63,20 @@ test('a Title unlike the PsName: the search combines PsName and Release, so the 
   const otherRelease = row(31, 'Portal 2.0', { 'Custom.PsName': 'Portal Core', 'Custom.Release': '2.5' })
   assert.equal(dpBoardMatch(otherRelease, dpBoardCandidates([board(44, 'Feature', 'Portal Core | v2.5')])).feature.item.id, 44, 'the Release field’s version is tried, not only the Title’s')
 })
+
+test('Windchill release (S&S IT) → QMS-0025: the same search with the release name and number; Create Feature title (TC-QV-23)', async () => {
+  const { windchillBoardMatch, windchillFeatureTitle } = await import('../src/dpBoardMatch.ts')
+  const release = { name: 'Remote Diagnostics', release: '1.6', parts: [{ name: 'Remote Diagnostics', release: '1.6' }] }
+  assert.equal(windchillFeatureTitle('S&S IT', release), 'S&S IT | Remote Diagnostics | v1.6')
+  const ss = dpBoardCandidates([board(50, 'Feature', 'Remote Diagnostics v1.6'), board(51, 'Feature', 'S&S IT | Remote Diagnostics | v1.7'), board(52, 'User Story', 'Remote Diagnostics 1.6 validation')])
+  const match = windchillBoardMatch(release, 'S&S IT', ss)
+  assert.deepEqual([match.feature.item.id, match.story.item.id], [50, 52], 'name and number match without the stream; v1.7 is another release')
+  const made = dpBoardCandidates([board(53, 'Feature', windchillFeatureTitle('S&S IT', release))])
+  assert.equal(windchillBoardMatch(release, 'S&S IT', made).feature.score, 100, 'the title Create Feature gives is found')
+  const clubbed = { name: 'CareLink R3.2_Remote Diagnostics 1.6', release: '3.2 + 1.6', parts: [{ name: 'CareLink', release: '3.2' }, { name: 'Remote Diagnostics', release: '1.6' }] }
+  assert.equal(windchillBoardMatch(clubbed, 'S&S IT', ss).feature.item.id, 50, 'a clubbed release matches a Feature of one of its parts')
+  assert.equal(windchillFeatureTitle('S&S IT', clubbed), 'S&S IT | CareLink R3.2_Remote Diagnostics 1.6', 'a clubbed release keeps its name, which holds the numbers')
+  const none = windchillBoardMatch({ name: 'Unknown Tool', release: '9.9' }, 'S&S IT', ss)
+  assert.deepEqual([none.feature, none.story], [undefined, undefined])
+  assert.match(boardMatchText(none), /^No match/)
+})

@@ -804,6 +804,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-22 IOCC grouping** — Req QV-37 — L1 `nested-groups.test.mjs` ("nested groups: type, then name, then version; blank last; keys unique per path (QV-37)"), `streams.test.mjs` (the IOCC name without the document words); browser check with the IOCC connection fetched: Release Details → IOCC opens grouped by Type of Release with each group's release count; add then by Name and then by Release (nested, indented); collapse one group, then Collapse all and Expand all; No grouping shows the flat list; a release's notes, report and plan are one row with their documents under it.
 
+**TC-QV-23 Windchill releases matched to the QMS-0025 board** — Req QV-39 — L1 `dp-board-match.test.mjs` ("Windchill release (S&S IT) → QMS-0025: the same search with the release name and number; Create Feature title (TC-QV-23)"); browser check with the QMS-0025 board loaded (one Feature "Remote Diagnostics v1.6") and an S&S IT export holding Remote Diagnostics 1.6 and another release: the first row shows "Feature id n%" as a link; the other shows "no match" or the closest item and Create Feature, which opens the default New Feature form titled "S&S IT | name | vrelease"; sorting by the column and the releases CSV carry the match; no page errors. **UAT**
+
 **TC-CON-42 Auto-fit tables and Wrap text** — Req QV-38 — E2E `documents-and-data.e2e.mjs` ("TC-CON-42": a Windchill export's Releases table starts one line per cell; dragging the first heading's edge 200px to the right widens that column and the table by about 200px while the other columns keep their width; Wrap text on makes cells wrap (pre-wrap), off back to one line); browser check: the same on Release Details (query table and IOCC releases) and on QE Mapping, the choice remembered per table after a reload.
 
 
@@ -1373,6 +1375,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-35 | TC-QV-20 |
 | QV-36 | TC-QV-21 |
 | QV-37 | TC-QV-22 |
+| QV-39 | TC-QV-23 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1463,7 +1466,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
-| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16 |
+| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
 | UC-05 | TC-MON-07 |
