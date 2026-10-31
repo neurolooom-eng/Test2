@@ -288,7 +288,7 @@ Direct dependencies from `package.json`, with the exact version resolved by `pnp
 | oxlint | 1.89.0 | MIT | build | Static analysis (`pnpm lint`). | Lint findings go unnoticed. |
 | electron-builder | 26.18.0 | MIT | build | Packages the NSIS installer and the macOS disk image. | No installer is produced; CI fails. |
 | playwright | 1.56.1 | Apache-2.0 | test | Drives Chromium for the end-to-end suite (`pnpm test:e2e`); the browser is installed by `playwright install chromium`. | End-to-end tests cannot run; unit tests and the build are unaffected. |
-| fake-indexeddb | 6.2.6 | Apache-2.0 | test | IndexedDB in Node for the storage tests. | Storage tests cannot run. |
+| fake-indexeddb | 6.2.7 | Apache-2.0 | test | IndexedDB in Node for the storage tests. | Storage tests cannot run. |
 | @types/node, @types/react, @types/react-dom | 24.19.2, 19.3.0, 19.3.0 | MIT | build | Type definitions. | Type checking only. |
 | concurrently, cross-env, wait-on | 10.0.6, 10.1.0, 9.5.1 | MIT | development | Run the desktop app against the dev server (`pnpm dev:desktop`). | Developer convenience only; not in CI or releases. |
 
@@ -314,12 +314,12 @@ The app has **no other runtime dependency**: CSV, Markdown and .xlsx handling (`
 
 | Component | Advisory | Severity | Affected / fixed version | Handling | Status |
 |---|---|---|---|---|---|
-| — | No open advisory in the lockfile of this build | — | — | — | — |
+| minimatch (build time only, via electron-builder) | GHSA-g3hv-75wg-m249 — denial of service via globparts amplification | Moderate | < 11.0.1 / 11.0.1 | 31 October 2026: the 10.x copy used by app-builder-lib is overridden to ^11.0.1 (`minimatch@10` in `pnpm-workspace.yaml`, same `Minimatch` export). The 3.x, 5.x and 9.x copies (glob 7, @electron/asar, dir-compare, filelist, @electron/universal) have no patched release in their line, and 11.x changes their API; they only match the app's own packaging globs on the build machine, never user input. Accepted — KB-16. | Open — accepted until electron-builder updates |
 
 Advisories found later are listed here with the GHSA / CVE identifier that `pnpm audit` prints, the affected and fixed versions, and the handling (update, override, or accepted with the reason and the KB number in [KNOWN-ISSUES.md](KNOWN-ISSUES.md)). Vulnerabilities that are not dependency advisories — findings of the code analysis and penetration test — are in [SECURITY-ASSESSMENT.md](SECURITY-ASSESSMENT.md) §2.2.
 
 **Component-level security notes** (not advisories, from the assessment):
 
-- Electron 44.9.3 bundles its own Chromium and Node.js; the main window runs with context isolation, sandbox and no Node integration (DSK-02). Updating Electron is the way to take Chromium security fixes; the daily check updates it within the 44.x range, a major update is a reviewed change.
+- Electron 44.10.0 bundles its own Chromium and Node.js; the main window runs with context isolation, sandbox and no Node integration (DSK-02). Updating Electron is the way to take Chromium security fixes; the daily check updates it within the 44.x range, a major update is a reviewed change.
 - @azure/msal-browser 5.26.0 keeps the Entra session in `sessionStorage`; the requested Graph scope is broader than needed (SECURITY-ASSESSMENT.md PT-13).
 - react / react-dom 19.3.1 neutralise `javascript:` URLs in `href` and escape text content; the app uses no `dangerouslySetInnerHTML`.
