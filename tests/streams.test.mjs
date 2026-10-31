@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { defaultStreams, profileForStream, streamOfProfile, exportForStream, sameStream } from '../src/streams.ts'
 import { assetRelease, dpRelease, ioccRelease, releaseFor, toolRelease } from '../src/releasePath.ts'
 import { ioccDocumentOf, ioccMonthCounts, ioccReleaseOf } from '../src/ioccMilestones.ts'
-import { matchScore, releaseRegister, normalizeReleaseSourceSettings, releaseFeatureTitle } from '../src/releaseSource.ts'
+import { matchScore, releaseRegister, normalizeReleaseSourceSettings, releaseFeatureTitle, releaseOnlyTitle } from '../src/releaseSource.ts'
 import { defaultStreamReleases, streamCounts } from '../src/releaseOverview.ts'
 
 const doc = (id, areaPath, iterationPath, title = `Doc ${id}`, approvalDate = '2026-10-05T10:00:00Z') => ({ key: `o/p/${id}`, id, title, workItemType: 'Document', state: 'Approved', assignedTo: '', areaPath, iterationPath, tags: '', url: '', organization: 'o', project: 'p', syncedAt: '', approvalDate })
@@ -126,7 +126,10 @@ test('CP: the release from the asset Title "[Release name] [Release No] [Asset n
   const items = [doc(1, 'DHP', 'DHP', 'Care Pathways 3.1 Test Report'), doc(2, 'DHP', 'DHP', 'Care Pathways 3.1.0 SRS'), doc(3, 'DHP', 'DHP', 'Care Pathways v3.1 Risk Analysis'), doc(4, 'DHP', 'DHP', 'Care Pathways 3.2 Test Plan')]
   const register = releaseRegister(items, [feature(70, 'CP | Care Pathways | v3.1')], { rule: cp.rule, fuzzy: cp.fuzzy, threshold: 80 })
   assert.deepEqual(register.map((entry) => [entry.name, entry.release, entry.documents, entry.features.map((item) => item.id)]), [['Care Pathways', '3.2', 1, []], ['Care Pathways', '3.1', 3, [70]]])
-  assert.equal(releaseFeatureTitle('CP', 'Care Pathways', '3.2'), 'CP | Care Pathways | v3.2', 'Create Feature title for the release without a Feature')
+  assert.equal(releaseOnlyTitle('Care Pathways', '3.2'), 'Care Pathways | v3.2', 'CP Create Feature title: the release name and number only')
+  assert.equal(releaseOnlyTitle('Care Pathways', ''), 'Care Pathways')
+  const created = releaseRegister(items, [feature(71, releaseOnlyTitle('Care Pathways', '3.2'))], { rule: cp.rule, fuzzy: cp.fuzzy, threshold: 80 })
+  assert.deepEqual(created.find((entry) => entry.release === '3.2').features.map((item) => item.id), [71], 'a Feature created with that title is found')
   // Pulse Check: CP's releases of the month, read from the asset Titles.
   const state = { azureSources: [{ connectionId: 'cp', name: 'cp', role: 'reference', organization: 'o', project: 'p', query: 'q', fetchedAt: '2026-10-20T00:00:00Z', items }] }
   const streams = defaultStreamReleases(state, [{ id: 'cp', reason: 'CP', role: 'reference' }], '2026-10', 'UTC')
