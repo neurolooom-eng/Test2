@@ -76,7 +76,7 @@ This document lists every software component of the system: the in-house source 
 | StoryEditor | `src/components/StoryEditor.tsx` | New User Story form under a Feature (Backlogs, Assigned to Me), laid out like New Feature with the Azure DevOps story fields; saves as a background job. | BKL, ATM |
 | ReleaseFeatureEditor | `src/components/ReleaseFeatureEditor.tsx` | Create Feature button from Release Details, pre-filling the default Feature form from the release. | QV |
 | ReleaseQuadrants | `src/components/ReleaseQuadrants.tsx` | Releases summary lines, the Supported summary next to them (DP Supported Releases, S&S IT export releases of the month), and a 2×2 quadrant per stream with documents approved in the month and totals. | OVR, QV |
-| ReleaseView | `src/components/ReleaseView.tsx` | Release source view: flat list of releases derived from document paths. | QV |
+| ReleaseView | `src/components/ReleaseView.tsx` | Release source view: releases derived from document paths or Titles (per stream rule), with Feature match and Create Feature. | QV |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |
 | SharedTimePanel | `src/components/SharedTimePanel.tsx` | Settings → Capacity: map Epics/Features as regional holidays or common activities applied to people in scope. | CAP, SET |
@@ -121,7 +121,7 @@ This document lists every software component of the system: the in-house source 
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY, field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream, with counts and totals. | OVR |
-| releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC and Tool Validations (one entry per tool) stream rules. | QV |
+| releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC, Tool Validations (one entry per tool) and CP (release from the asset Title) stream rules. | QV |
 | rules | `src/rules.ts` | Period lock rules, demand classification, baseline lookup, variance flag and capacity utilization. | SET, BAS |
 | setupGuide | `src/setupGuide.ts` | "Get started" setup steps with live status and required-step logic. | NAV |
 | streams | `src/streams.ts` | Release stream definitions and data sets, name matching and connection/export lookup per stream. | QV, OVR |
@@ -248,7 +248,7 @@ This document lists every software component of the system: the in-house source 
 | release-source.test | `tests/release-source.test.mjs` | Release-source WIQL paging, path parsing, register and approval dates. | QV |
 | sample-data.test | `tests/sample-data.test.mjs` | Synthetic sample is deterministic and exercises every model. | SMP |
 | setup-guide.test | `tests/setup-guide.test.mjs` | Get started step statuses for new, partly and fully set-up users. | NAV |
-| streams.test | `tests/streams.test.mjs` | Stream definitions, DP/IOCC path rules, fuzzy Feature match and Pulse Check streams. | QV, OVR |
+| streams.test | `tests/streams.test.mjs` | Stream definitions, DP/IOCC/Tool Validations/CP rules, fuzzy Feature match and Pulse Check streams. | QV, OVR |
 | theme.test | `tests/theme.test.mjs` | Theme preference parsing/cycling/`?theme=` and relative freshness labels. | UI |
 | view-definitions.test | `tests/view-definitions.test.mjs` | Views file in Git, restore PAT rules, Git setup sync and Time Writing promotion. | CON, GIT |
 | view-sources.test | `tests/view-sources.test.mjs` | Each view shows its own fetch; legacy shared snapshot rule. | QV, FET |
