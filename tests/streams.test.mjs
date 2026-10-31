@@ -142,32 +142,3 @@ test('CP: the release from the asset Title "[Release name] [Release No] [Asset n
   const streams = defaultStreamReleases(state, [{ id: 'cp', reason: 'CP', role: 'reference' }], '2026-10', 'UTC')
   assert.deepEqual(streams.find((stream) => stream.name === 'CP').releases.map((entry) => [`${entry.name} ${entry.release}`, entry.documents]), [['Care Pathways 3.2', 1], ['Care Pathways 3.1', 3]])
 })
-
-test('CP: every CP query is one data set — assets combined into one release list, counted in Pulse Check, saved to Git (TC-QV-25)', async () => {
-  const { profilesForStream } = await import('../src/streams.ts')
-  const { otherMenuViews } = await import('../src/backlogViews.ts')
-  const { releaseAnalysisFile, releaseAnalysisPath } = await import('../src/releaseSource.ts')
-  const cp = defaultStreams.find((stream) => stream.name === 'CP')
-  assert.deepEqual([cp.combine, cp.unit], [true, 'Assets'])
-  const profiles = [{ id: 'cp1', reason: 'CP', viewName: 'CP [Assets A]', role: 'reference' }, { id: 'tw', reason: 'QMS-0025', role: 'time-tracking' }, { id: 'cp2', reason: 'CP_B', viewName: 'CP [Assets B]', role: 'reference' }, { id: 'dp', reason: 'DP', role: 'reference' }]
-  assert.deepEqual(profilesForStream(cp, profiles).map((profile) => profile.id), ['cp1', 'cp2'])
-  assert.deepEqual(otherMenuViews([{ id: 'cp1', readOnly: true }, { id: 'cp2', readOnly: true }, { id: 'x', readOnly: true }], profiles, []).azure.map((view) => view.id), ['x'], 'both CP queries sit under Release Details, not Other views')
-  // Query A: two assets of 3.1 in the first naming; query B: the same 3.1 asset again (one item) and 3.1 / 3.2 in the second naming.
-  const source = (connectionId, items, fetchedAt) => ({ connectionId, name: connectionId, role: 'reference', organization: 'o', project: 'p', query: 'q', fetchedAt, items })
-  const a = [doc(1, 'DHP', 'DHP', 'Care Pathways 3.1 Test Report'), doc(2, 'DHP', 'DHP', 'Care Pathways 3.1 SRS')]
-  const b = [doc(2, 'DHP', 'DHP', 'Care Pathways 3.1 SRS'), doc(3, 'DHP', 'DHP', 'Risk Analysis 3.1 (Care Pathways)'), doc(4, 'DHP', 'DHP', 'Labeling 3.2 (Care Pathways)')]
-  const state = { azureSources: [source('cp1', a, '2026-10-20T00:00:00Z'), source('cp2', b, '2026-10-21T00:00:00Z')] }
-  const stream = defaultStreamReleases(state, profiles, '2026-10', 'UTC').find((entry) => entry.name === 'CP')
-  assert.deepEqual(stream.releases.map((entry) => [`${entry.name} ${entry.release}`, entry.documents]), [['Care Pathways 3.2', 1], ['Care Pathways 3.1', 3]], 'four assets, the shared one once; two releases')
-  assert.deepEqual([stream.unit, stream.combined, stream.documents, stream.fetchedAt], ['Assets', 2, 4, '2026-10-21T00:00:00Z'])
-  const counts = streamCounts(state, profiles, ['2026-10'], 'UTC').find((entry) => entry.name === 'CP')
-  assert.deepEqual([counts.releases, counts.documents], [2, 4], 'the Dashboard counts the combined data set')
-  // Save to Git: the combined release list, with the data sets and each release's Feature or closest match.
-  const register = releaseRegister([...a, ...b.slice(1)], [feature(70, 'Care Pathways | v3.1')], { rule: cp.rule, fuzzy: cp.fuzzy, threshold: 80 })
-  const file = releaseAnalysisFile('CP', ['CP [Assets A]', 'CP [Assets B]'], register, '2026-10-31T00:00:00Z')
-  assert.equal(releaseAnalysisPath('CP'), 'release-analysis/cp-releases.json')
-  assert.deepEqual([file.kind, file.stream, file.datasets.length, file.items], ['stream-releases', 'CP', 2, 4])
-  assert.deepEqual(file.releases.map((entry) => [entry.name, entry.release, entry.items, entry.feature?.id ?? null]), [['Care Pathways', '3.2', 1, null], ['Care Pathways', '3.1', 3, 70]])
-  assert.equal(file.releases[1].feature.score, 100)
-  assert.doesNotMatch(JSON.stringify(file), /"(?:pat|token|password)"/i, 'no credential fields in the file')
-})

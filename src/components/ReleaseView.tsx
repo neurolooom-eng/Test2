@@ -1,13 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { releaseAnalysisFile, releaseFeatureTitle, releaseOnlyTitle, releaseRegister, type ReleaseEntry } from '../releaseSource'
-import type { GitStorage } from '../useGitStorage'
+import { releaseFeatureTitle, releaseOnlyTitle, releaseRegister, type ReleaseEntry } from '../releaseSource'
 import type { FeatureSetups } from '../featureSetup'
 import type { ReleaseRule } from '../streams'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import { formatDate, formatHours } from '../format'
 import { QueryView } from './QueryView'
-import { EmptyState, Notice, Pill, TablePanel } from './ui'
+import { EmptyState, Pill, TablePanel } from './ui'
 import type { QueryColumn, QueryOrder } from '../queryView'
 import { useColumnWidths } from './columnWidths'
 import { ReleaseFeatureButton } from './ReleaseFeatureEditor'
@@ -22,31 +21,18 @@ const releaseLevels: GroupLevel<ReleaseEntry>[] = [
 
 // Release source view, one page: the releases found in the documents' paths (see releasePath: release from the
 // Iteration Path with the name from the Area Path, else "…\Name\Release x.y.z" in the Area Path) as a flat list — no grouping by stream — and below it the documents with the query's columns.
-export function ReleaseView({ name, items, backlog, columns, orderBy, unresolved, azure, assign, featureSetup, rule, fuzzy = false, threshold = 80, unit, git, datasets }: { unit?: 'Assets'; git?: GitStorage; datasets?: string[]; featureSetup?: FeatureSetups | null; name: string; items: AzureWorkItem[]; backlog: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[]; azure?: AzureWorkspace; assign?: { me: string; canChoose: boolean }; rule?: ReleaseRule; fuzzy?: boolean; threshold?: number }) {
+export function ReleaseView({ name, items, backlog, columns, orderBy, unresolved, azure, assign, featureSetup, rule, fuzzy = false, threshold = 80 }: { featureSetup?: FeatureSetups | null; name: string; items: AzureWorkItem[]; backlog: AzureWorkItem[]; columns?: QueryColumn[]; orderBy?: QueryOrder[]; unresolved?: string[]; azure?: AzureWorkspace; assign?: { me: string; canChoose: boolean }; rule?: ReleaseRule; fuzzy?: boolean; threshold?: number }) {
   const register = useMemo(() => releaseRegister(items, backlog, { rule, fuzzy, threshold }), [items, backlog, rule, fuzzy, threshold])
-  const info = rule === 'dp' ? `DP: release name from the Area Path (last segment), release number from the Iteration Path (a “Release x.y.z” segment, else a segment with a version). Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more (Settings → Azure DevOps → Stream mapping). Map the Pedestal and DHFI data sets there to list the Pedestal Releases with their DHFI dates instead.` : rule === 'iocc' ? `IOCC: the Area Path segment after “IOCC” is the Type of Release; the release name comes from the document Title, with its version as the release number. Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more (Settings → Azure DevOps → Stream mapping).` : rule === 'asset' ? `CP: each asset's Title is “[Release name] [Release No] [Asset name]” — the release is the Title before its first version (3.1, v3.1, R3.2, Rel 4.0) and the number is that version — or “[Asset name] [Release No] ([Release Name])”, the release name in brackets right after the number; a release's assets are one release. Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more; without one, Create Feature opens the New Feature form titled with the release name and number only, “release name | vRelease”. Every connection named CP is one data set: their assets are combined (each once) into this release list, which Pulse Check and the Dashboard count too, and Save releases to Git writes it to the Git data repository (release-analysis/cp-releases.json) for further analysis.` : 'Releases are read from the documents’ paths: a “Release x.y.z” segment with the name in the segment above it (Iteration Path first, else Area Path). Time Writing Feature = the QMS-0025 Feature whose title names the release exactly (name as whole words and the exact version, in any order); a Feature matching several releases goes to the longest name. Planned and booked hours are the Time Writing Tasks under that Feature.'
-  // A combining stream (CP): its release list can be saved to the Git data repository for further analysis.
-  const [saved, setSaved] = useState<{ tone: 'info' | 'success' | 'error'; text: string } | null>(null)
-  const saveToGit = async () => {
-    if (!git) return
-    setSaved({ tone: 'info', text: 'Saving to Git…' })
-    try {
-      const file = releaseAnalysisFile(name, datasets ?? [], register)
-      const path = await git.pushReleaseAnalysis(name, `${JSON.stringify(file, null, 2)}\n`, `${name}: ${register.length} releases from ${file.items} ${unit === 'Assets' ? 'assets' : 'documents'} (${(datasets ?? []).length} data set${(datasets ?? []).length === 1 ? '' : 's'})`)
-      setSaved({ tone: 'success', text: `Saved to Git (${path}).` })
-    } catch (error) { setSaved({ tone: 'error', text: `Not saved to Git: ${error instanceof Error ? error.message : String(error)}` }) }
-  }
-  const action = git?.connected && !git.readOnly ? <button type="button" className="ghost" disabled={!register.length || saved?.tone === 'info'} onClick={() => void saveToGit()}>Save releases to Git</button> : undefined
+  const info = rule === 'dp' ? `DP: release name from the Area Path (last segment), release number from the Iteration Path (a “Release x.y.z” segment, else a segment with a version). Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more (Settings → Azure DevOps → Stream mapping). Map the Pedestal and DHFI data sets there to list the Pedestal Releases with their DHFI dates instead.` : rule === 'iocc' ? `IOCC: the Area Path segment after “IOCC” is the Type of Release; the release name comes from the document Title, with its version as the release number. Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more (Settings → Azure DevOps → Stream mapping).` : rule === 'asset' ? `CP: each asset's Title is “[Release name] [Release No] [Asset name]” — the release is the Title before its first version (3.1, v3.1, R3.2, Rel 4.0) and the number is that version — or “[Asset name] [Release No] ([Release Name])”, the release name in brackets right after the number; a release's assets are one release. Time Writing Feature = the best fuzzy match among QMS-0025 Features (name 60%, version 40%); it counts — with its planned and booked hours — at ${threshold}% or more; without one, Create Feature opens the New Feature form titled with the release name and number only, “release name | vRelease”.` : 'Releases are read from the documents’ paths: a “Release x.y.z” segment with the name in the segment above it (Iteration Path first, else Area Path). Time Writing Feature = the QMS-0025 Feature whose title names the release exactly (name as whole words and the exact version, in any order); a Feature matching several releases goes to the longest name. Planned and booked hours are the Time Writing Tasks under that Feature.'
   return <>
-    {saved && <Notice tone={saved.tone === 'error' ? 'warning' : 'info'}><span role="status">{saved.text}</span></Notice>}
-    <ReleaseTable unit={unit} action={action} name={name} register={register} azure={azure} assign={assign} featureSetup={featureSetup} threshold={threshold} typed={rule === 'iocc'} info={info} featureTitle={rule === 'asset' ? (release) => releaseOnlyTitle(release.name, release.release) : undefined} empty={rule === 'asset' ? <EmptyState title="No releases found in the asset Titles." detail="A release is read from a Title “[Release name] [Release No] [Asset name]” or “[Asset name] [Release No] ([Release Name])”, e.g. “Care Pathways 3.1 Test Report” or “Test Report 3.1 (Care Pathways)” → Care Pathways 3.1." /> : <EmptyState title="No releases found in the documents' paths." detail="A release is read from a path segment “Release x.y.z”, with the name in the segment above it." />} />
+    <ReleaseTable name={name} register={register} azure={azure} assign={assign} featureSetup={featureSetup} threshold={threshold} typed={rule === 'iocc'} info={info} featureTitle={rule === 'asset' ? (release) => releaseOnlyTitle(release.name, release.release) : undefined} empty={rule === 'asset' ? <EmptyState title="No releases found in the asset Titles." detail="A release is read from a Title “[Release name] [Release No] [Asset name]” or “[Asset name] [Release No] ([Release Name])”, e.g. “Care Pathways 3.1 Test Report” or “Test Report 3.1 (Care Pathways)” → Care Pathways 3.1." /> : <EmptyState title="No releases found in the documents' paths." detail="A release is read from a path segment “Release x.y.z”, with the name in the segment above it." />} />
     <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={unresolved} summary={rule !== 'tool'} />
   </>
 }
 
 // The release table shared by the views: one row per release with its documents, Feature match and hours; with
 // typed, the IOCC Type of Release column and nested grouping (Group by … then by …, Collapse all / Expand all).
-function ReleaseTable({ unit, name, title = 'Releases', detail, register, azure, assign, featureSetup, threshold = 80, typed, info, action, empty, featureTitle = (release) => releaseFeatureTitle(name, [release.group, release.name].filter(Boolean).join(' '), release.release) }: { unit?: 'Assets'; featureTitle?: (release: ReleaseEntry) => string; name: string; title?: string; detail?: string; register: ReleaseEntry[]; featureSetup?: FeatureSetups | null; azure?: AzureWorkspace; assign?: { me: string; canChoose: boolean }; fuzzy?: boolean; threshold?: number; typed?: boolean; info?: ReactNode; action?: ReactNode; empty?: ReactNode }) {
+function ReleaseTable({ name, title = 'Releases', detail, register, azure, assign, featureSetup, threshold = 80, typed, info, action, empty, featureTitle = (release) => releaseFeatureTitle(name, [release.group, release.name].filter(Boolean).join(' '), release.release) }: { featureTitle?: (release: ReleaseEntry) => string; name: string; title?: string; detail?: string; register: ReleaseEntry[]; featureSetup?: FeatureSetups | null; azure?: AzureWorkspace; assign?: { me: string; canChoose: boolean }; fuzzy?: boolean; threshold?: number; typed?: boolean; info?: ReactNode; action?: ReactNode; empty?: ReactNode }) {
   const [open, setOpen] = useState('')
   const widths = useColumnWidths(`releases:${name}:${title}`)
   const [groupBy, setGroupBy] = useState<string[]>(typed ? ['type'] : [])
@@ -57,7 +43,7 @@ function ReleaseTable({ unit, name, title = 'Releases', detail, register, azure,
   const regroup = (next: string[]) => { setGroupBy(next); setCollapsed([]) }
   // IOCC: the Area Path segment after IOCC is the Type of Release, in its own column.
   const grouped = typed || register.some((release) => release.group)
-  const headings = [...(grouped ? ['Type of Release'] : []), 'Name', 'Release', 'Approved', unit ?? 'Documents', 'Time Writing Feature', 'Planned (h)', 'Booked (h)']
+  const headings = [...(grouped ? ['Type of Release'] : []), 'Name', 'Release', 'Approved', 'Documents', 'Time Writing Feature', 'Planned (h)', 'Booked (h)']
   const releaseRows = (release: ReleaseEntry): ReactNode[] => [
           <tr key={release.key}>
             {grouped && <td>{release.group || '—'}</td>}

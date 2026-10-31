@@ -13,19 +13,6 @@ export const defaultReleaseSourceSettings: ReleaseSourceSettings = {}
 export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
 export interface ReleaseEntry { key: string; group?: string; match?: { feature: AzureWorkItem; score: number }; name: string; release: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; features: AzureWorkItem[]; planned: number; booked: number; hourTasks: number; approvalDate?: string; approvalMonth?: string }
 
-// A stream's release list for analysis in Git (release-analysis/<stream>-releases.json): the data sets it combines,
-// each release once with its asset count, latest approval and Time Writing Feature (or closest match). Titles, IDs and
-// dates only — no credentials, no document contents.
-export const releaseAnalysisFolder = 'release-analysis'
-export const releaseAnalysisPath = (stream: string) => `${releaseAnalysisFolder}/${stream.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'stream'}-releases.json`
-export interface ReleaseAnalysisFile { schema: 1; kind: 'stream-releases'; stream: string; generatedAt: string; datasets: string[]; items: number; releases: { name: string; release: string; items: number; approvalDate?: string; feature?: { id: number; title: string; score?: number }; closest?: { id: number; title: string; score: number }; plannedHours: number; bookedHours: number }[] }
-export function releaseAnalysisFile(stream: string, datasets: string[], register: ReleaseEntry[], generatedAt = new Date().toISOString()): ReleaseAnalysisFile {
-  return { schema: 1, kind: 'stream-releases', stream, generatedAt, datasets, items: register.reduce((sum, entry) => sum + entry.documents, 0), releases: register.map((entry) => {
-    const feature = entry.features[0], score = entry.match && feature && entry.match.feature.id === feature.id ? entry.match.score : undefined
-    return { name: entry.name, release: entry.release, items: entry.documents, ...(entry.approvalDate ? { approvalDate: entry.approvalDate } : {}), ...(feature ? { feature: { id: feature.id, title: feature.title, ...(score != null ? { score } : {}) } } : entry.match ? { closest: { id: entry.match.feature.id, title: entry.match.feature.title, score: entry.match.score } } : {}), plannedHours: entry.planned, bookedHours: entry.booked }
-  }) }
-}
-
 type Transport = (request: AzureRequest) => Promise<unknown>
 
 // Earlier settings (stream segment, release pattern) are no longer used and are dropped.

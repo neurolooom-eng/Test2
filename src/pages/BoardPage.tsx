@@ -11,7 +11,6 @@ import { ddtMonthOf, dpMilestoneNames, dpMilestones } from '../dpMilestones'
 import { formatDate, formatDateTime, monthName } from '../format'
 import { approvalDateFrom, viewMonthOf } from '../releaseSource'
 import { viewSource } from '../viewSources'
-import { combinedSource } from '../releaseOverview'
 import { listAzureConnectionProfiles } from '../azureCredentials'
 import { connectionConfig, type AzureWorkspace } from '../useAzureWorkspace'
 import { loadAzureConnectionProfile } from '../azureCredentials'
@@ -20,7 +19,7 @@ import type { AzureConfig } from '../azureDevOps'
 import type { PageProps } from './types'
 import type { GitStorage } from '../useGitStorage'
 import { columnName, queryLayout, type QueryColumn, type QueryOrder } from '../queryView'
-import { defaultMatchThreshold, profilesForStream, streamOfProfile } from '../streams'
+import { defaultMatchThreshold, streamOfProfile } from '../streams'
 import { normalizeReleaseSourceSettings } from '../releaseSource'
 
 // One page for all configured Azure DevOps views (each its own entry in the sidebar): the Time Writing backlog
@@ -28,7 +27,7 @@ import { normalizeReleaseSourceSettings } from '../releaseSource'
 export function BoardPage({ azure, store, current, month, git, onOpenConnection, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; current: BacklogView; month: string; git?: GitStorage; onOpenConnection: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null }) {
   const { items, config, preview, pat, featureCreated, rememberPat } = azure
   const [filter, setFilter] = useState('')
-  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} month={month} git={git} gitNote={git?.snapshotNotes[current.id]} onOpenConnection={onOpenConnection} assign={assign} featureSetup={featureSetup} />
+  if (current.readOnly) return <ReadOnlyView key={current.id} id={current.id} name={current.name} role={current.role} azure={azure} store={store} month={month} gitNote={git?.snapshotNotes[current.id]} onOpenConnection={onOpenConnection} assign={assign} featureSetup={featureSetup} />
   const activeItems = items.filter((item) => item.state.trim().toLowerCase() !== 'removed')
   const shown = activeItems.filter((item) => `${item.id} ${item.title} ${item.workItemType} ${item.state}`.toLowerCase().includes(filter.toLowerCase()))
   const counts = new Map<string, number>()
@@ -48,19 +47,14 @@ export function BoardPage({ azure, store, current, month, git, onOpenConnection,
 
 // A Backlog view connection: its last fetched snapshot as the same expandable tree, read only.
 const noItems: AzureWorkItem[] = []
-function ReadOnlyView({ id, name, role, azure, store, month, git, gitNote, onOpenConnection, assign, featureSetup }: { git?: GitStorage; featureSetup?: FeatureSetups | null; id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; gitNote?: { tone: string; text: string }; onOpenConnection: () => void; assign?: { me: string; canChoose: boolean } }) {
+function ReadOnlyView({ id, name, role, azure, store, month, gitNote, onOpenConnection, assign, featureSetup }: { featureSetup?: FeatureSetups | null; id: string; name: string; role: BacklogView['role']; azure: AzureWorkspace; store: PageProps['store']; month: string; gitNote?: { tone: string; text: string }; onOpenConnection: () => void; assign?: { me: string; canChoose: boolean } }) {
   const [allMonths, setAllMonths] = useState(false)
   // Every connection's fetch is stored on its own (by connection ID).
   const status = azure.connectionStatus[id]
   const profile = loadAzureConnectionProfile(id)
-  const profiles = listAzureConnectionProfiles(), releaseConnections = profiles.filter((entry) => entry.role === 'release-source').length
-  // A default stream (DP, CP, IOCC, …) reads its releases with its own rule; DP, CP and IOCC match Features fuzzily.
+  const source = viewSource(store.state, id, role, profile?.query, listAzureConnectionProfiles().filter((entry) => entry.role === 'release-source').length)
+  // A default stream (DP, CP, IOCC, …) reads its releases with its own rule; DP and IOCC match Features fuzzily.
   const stream = profile ? streamOfProfile({ viewName: profile.viewName, reason: profile.reason, role }) : undefined
-  // A combining stream (CP): every connection named like it is one data set, their items combined (each once).
-  const members = stream?.combine ? profilesForStream(stream, profiles) : []
-  const combined = members.length > 1 ? combinedSource(store.state, members, releaseConnections) : undefined
-  const own = viewSource(store.state, id, role, profile?.query, releaseConnections)
-  const source = combined && own ? { ...own, items: combined.items, fetchedAt: combined.fetchedAt } : combined && !own ? { ...combined, query: profile?.query ?? '', columns: undefined, orderBy: undefined, unresolved: undefined } : own
   const threshold = normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold
   let config: AzureConfig | null = null
   try { config = profile ? connectionConfig(profile) : null } catch { config = null }
@@ -80,11 +74,9 @@ function ReadOnlyView({ id, name, role, azure, store, month, git, gitNote, onOpe
   // Items without an approval date fall back to their Changed Date for the month filter; say how many.
   const undated = source ? source.items.filter((item) => isDp ? !ddtMonthOf(item) : !(item.approvalDate ?? approvalDateFrom(item.fields ?? {}))).length : 0
   // On-prem views with Git storage: Load from Git too; a fetch that cannot run falls back to it.
-  const fetchAll = async () => { for (const member of members.length > 1 ? members : [{ id }]) await azure.fetchConnection(member.id) }
-  const refresh = <span className="button-row"><button className="primary" disabled={busy} onClick={() => void fetchAll()}>{busy ? (status?.message || 'Fetching…') : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>{azure.canLoadFromGit(id) && <button className="ghost" disabled={busy} onClick={() => void azure.loadFromGit(id)}>Load from Git</button>}</span>
+  const refresh = <span className="button-row"><button className="primary" disabled={busy} onClick={() => void azure.fetchConnection(id)}>{busy ? (status?.message || 'Fetching…') : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>{azure.canLoadFromGit(id) && <button className="ghost" disabled={busy} onClick={() => void azure.loadFromGit(id)}>Load from Git</button>}</span>
   // Information about the view sits behind the ⓘ next to its name, not as banners; only errors and warnings stay on the page.
   const notes = [
-    members.length > 1 ? `${stream!.name} combines ${members.length} queries into one data set: ${members.map((member) => member.viewName || member.reason).join(', ')} (each item once). Refresh fetches them all.` : '',
     source && isDp ? `Month filter: by DDT Date in your time zone.${undated > 0 ? ` ${undated} of ${source.items.length} releases have no DDT Date and show only with “All months”.` : ''}` : '',
     source && !isDp && undated > 0 ? `Month filter: by Author Approval Date in your time zone. ${undated} of ${source.items.length} items have no approval date${role === 'release-source' ? '' : ' in the query’s columns'}, so their Changed Date is used.` : '',
     isDp ? dpMilestones.map(([milestone]) => `${dpMilestoneNames[milestone].short} = ${dpMilestoneNames[milestone].long} (${milestone})`).join(' · ') : '',
@@ -98,7 +90,7 @@ function ReadOnlyView({ id, name, role, azure, store, month, git, gitNote, onOpe
       {!azure.isSample && gitNote?.tone === 'error' && <div className="notice error" role="alert">{gitNote.text}</div>}
       {stale && !busy && <div className="notice warning" role="status">The saved data was fetched with different columns than the connection's query now has. Refresh from Azure to load every column's values.</div>}
       {source && config && !items.length && source.items.length ? isDp ? <><DpMonthCounts items={source.items} month={month} /><EmptyState title={`No release has its DDT Date in ${monthName(month)}.`} detail="Pick another month in the header, or tick “All months”. The counts above still include milestones Done in the month." /></> : <EmptyState title={`No items in ${monthName(month)}.`} detail={`${source.items.length} items have an approval date (else a changed date) in other months. Pick another month in the header, or tick “All months”.`} />
-        : source && config ? isDp ? <><DpMonthCounts items={source.items} month={month} /><QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} queryOnly choose extra={boardColumn} /></> : role === 'release-source' || stream ? <ReleaseView name={stream?.combine ? stream.name : name} items={items} backlog={azure.items} azure={azure} assign={assign} featureSetup={featureSetup} rule={stream?.rule} fuzzy={stream?.fuzzy} threshold={threshold} unit={stream?.unit} git={stream?.combine ? git : undefined} datasets={stream?.combine ? (members.length ? members : profile ? [profile] : []).map((member) => member.viewName || member.reason) : undefined} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
+        : source && config ? isDp ? <><DpMonthCounts items={source.items} month={month} /><QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} queryOnly choose extra={boardColumn} /></> : role === 'release-source' || stream ? <ReleaseView name={name} items={items} backlog={azure.items} azure={azure} assign={assign} featureSetup={featureSetup} rule={stream?.rule} fuzzy={stream?.fuzzy} threshold={threshold} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} /> : <QueryView name={name} items={items} columns={columns} orderBy={orderBy} unresolved={stale ? current?.unresolved : source.unresolved} />
         : <><EmptyState title={config ? `“${name}” has not been fetched yet.` : `The connection for “${name}” is not saved in this browser.`} detail={config ? 'Fetch it read-only; nothing is written to Azure DevOps. Its items stay on this page and are not counted in Overview, Monthly Time Writing or Assigned to Me.' : 'Add it again in Settings → Azure DevOps.'} /></>}
     </Panel>
   </Page>

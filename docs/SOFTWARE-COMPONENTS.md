@@ -29,7 +29,7 @@ This document lists every software component of the system: the in-house source 
 | AdminPage | `src/pages/AdminPage.tsx` | Settings page: tabs for Azure DevOps connections, Git and SharePoint storage, Access, Feature setup, capacity/absence, periods, resources, master data and audit. | SET, CON, GIT, SNP, CAP |
 | BacklogHealthPage | `src/pages/BacklogHealthPage.tsx` | Backlog Health: open work in ended Sprints, Features without DoD and unassigned work, with person filter, chosen columns, sorting and CSV. | CON |
 | BaselinesPage | `src/pages/BaselinesPage.tsx` | Baselines: estimation rules editor, release baselines vs booked hours, and the monthly Time Writing task plan check. | BAS, GIT |
-| BoardPage | `src/pages/BoardPage.tsx` | Backlogs / Release Details: editable Time Writing tree, read-only query views, release views (CP combined from every CP query) and the DP table with DDT month filter and board match. | CON, FET, QV, ATM |
+| BoardPage | `src/pages/BoardPage.tsx` | Backlogs / Release Details: editable Time Writing tree, read-only query views, release views and the DP table with DDT month filter and board match. | CON, FET, QV, ATM |
 | BulkActionsPage | `src/pages/BulkActionsPage.tsx` | Bulk actions: move my User Stories from past Sprints to the current PI + Sprint, state checks, and create this month's Time Writing story and task. | ATM, CON |
 | DashboardPage | `src/pages/DashboardPage.tsx` | Dashboard: demand vs capacity for a period and filters — utilization, overload, rebalancing, trends, Epic mix, insights and releases. | OVR, CAP |
 | DocsPage | `src/pages/DocsPage.tsx` | Documentation page: reads the bundled project documents in-app, remembers the chosen one, keeps document and anchor links in the page. | DOC |
@@ -76,7 +76,7 @@ This document lists every software component of the system: the in-house source 
 | StoryEditor | `src/components/StoryEditor.tsx` | New User Story form under a Feature (Backlogs, Assigned to Me), laid out like New Feature with the Azure DevOps story fields; saves as a background job. | BKL, ATM |
 | ReleaseFeatureEditor | `src/components/ReleaseFeatureEditor.tsx` | Create Feature button from Release Details, pre-filling the default Feature form from the release. | QV |
 | ReleaseQuadrants | `src/components/ReleaseQuadrants.tsx` | Releases summary lines, the Supported summary next to them (DP Supported Releases, S&S IT export releases of the month), and a 2×2 quadrant per stream with documents approved in the month and totals. | OVR, QV |
-| ReleaseView | `src/components/ReleaseView.tsx` | Release source view: releases derived from document paths or Titles (per stream rule), with Feature match and Create Feature; CP: Assets and Save releases to Git. | QV, GIT |
+| ReleaseView | `src/components/ReleaseView.tsx` | Release source view: releases derived from document paths or Titles (per stream rule), with Feature match and Create Feature. | QV |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |
 | SharedTimePanel | `src/components/SharedTimePanel.tsx` | Settings → Capacity: map Epics/Features as regional holidays or common activities applied to people in scope. | CAP, SET |
@@ -97,7 +97,7 @@ This document lists every software component of the system: the in-house source 
 | azureInsights | `src/azureInsights.ts` | Time Writing month-task detection, month story plans, working days, Azure insights and Time Writing gaps. | MON, TWN, CAP |
 | backlogHealth | `src/backlogHealth.ts` | Backlog Health lists (older-Sprint work, Features without DoD, unassigned), columns and CSV. | CON |
 | backlogView | `src/backlogView.ts` | Backlog table columns, normalisation, plain-text rendering and visible row flattening. | CON |
-| backlogViews | `src/backlogViews.ts` | Azure DevOps menu entries: the editable Time Writing backlog and read-only views (all CP connections under Release Details), remembered tab. | NAV, CON, QV |
+| backlogViews | `src/backlogViews.ts` | Azure DevOps menu entries: the editable Time Writing backlog and read-only views, remembered tab. | NAV, CON |
 | baseline | `src/baseline.ts` | Per-stream estimation rules, dated release scopes and release baseline vs actual rows. | BAS |
 | capacity | `src/capacity.ts` | Capacity model: month tasks, absence, shared time, regions/roles, per-person and per-stream load and status. | CAP, SET |
 | chartUtils | `src/chartUtils.ts` | Chart helpers: month labels, ticks, bar/column/arc geometry, Epic colours, Pareto series, label wrapping. | OVR |
@@ -120,7 +120,7 @@ This document lists every software component of the system: the in-house source 
 | pulseCheck | `src/pulseCheck.ts` | Pulse Check: previous month, release comparison, work flow opened/closed and ongoing work. | OVR |
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY, field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
-| releaseOverview | `src/releaseOverview.ts` | Releases with documents (CP: assets, every CP query combined) approved in the month per stream, with counts and totals. | OVR, QV |
+| releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream, with counts and totals. | OVR |
 | releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC, Tool Validations (one entry per tool) and CP (release from the asset Title) stream rules. | QV |
 | rules | `src/rules.ts` | Period lock rules, demand classification, baseline lookup, variance flag and capacity utilization. | SET, BAS |
 | setupGuide | `src/setupGuide.ts` | "Get started" setup steps with live status and required-step logic. | NAV |
@@ -157,7 +157,7 @@ This document lists every software component of the system: the in-house source 
 | backgroundJobs | `src/backgroundJobs.ts` | Background jobs of a page load: runs long Azure DevOps writes off the form, one per key, with progress and the result; nothing stored. | NAV, BKL, ATM, MON |
 | azureCredentials | `src/azureCredentials.ts` | Browser-local PATs per server and connection profiles (role, view name, show in menu); never in app data. | CON |
 | connectionPresets | `src/connectionPresets.ts` | Pre-filled team connection presets and dismissed-preset storage. | CON |
-| releaseSource | `src/releaseSource.ts` | Read-only release source: paged WIQL queries, approval month, completed releases, fuzzy Feature name matching, the release-analysis file. | QV |
+| releaseSource | `src/releaseSource.ts` | Read-only release source: paged WIQL queries, approval month, completed releases, fuzzy Feature name matching. | QV |
 | windchill | `src/windchill.ts` | Windchill host/service path settings, normalisation and browser storage. | CON |
 | windchillBridge | `src/windchillBridge.ts` | Bookmarklet bridge to run Windchill searches in a signed-in Windchill tab and return verified results. | CON |
 | windchillBrowser | `src/windchillBrowser.ts` | Windchill test and query from the browser with its own sign-in (CORS, read-only GETs). | CON |
@@ -175,7 +175,7 @@ This document lists every software component of the system: the in-house source 
 | useAzureWorkspace | `src/useAzureWorkspace.ts` | Azure connections state: fetch, save, preview, sample data, Git-backed on-prem data and fetch listeners. | CON, FET, SMP |
 | useDpBoardColumn | `src/useDpBoardColumn.tsx` | DP table "QMS-0025 match" column with search/export text and Create Feature. | QV |
 | useFeatureSetup | `src/useFeatureSetup.ts` | Shared and personal Feature setup from Git, cached locally, saved with a writable token. | CON |
-| useGitStorage | `src/useGitStorage.ts` | Git storage state: load/save planning data, views file, access, Feature setup, QE Mapping and Windchill files, including the windchill-analysis locations file and the release-analysis CP release list. | GIT, CON, QEM, QV |
+| useGitStorage | `src/useGitStorage.ts` | Git storage state: load/save planning data, views file, access, Feature setup, QE Mapping and Windchill files, including the windchill-analysis locations file. | GIT, CON, QEM |
 | useMyWork | `src/useMyWork.ts` | Who "me" is: Time Writing connection email plus a remembered display name. | ATM |
 | useNow | `src/useNow.ts` | Date that re-renders on an interval for clock and freshness labels. | NAV |
 | usePersonScope | `src/usePersonScope.ts` | Team / Individual scope and team filter, remembered per page. | MON, OVR |

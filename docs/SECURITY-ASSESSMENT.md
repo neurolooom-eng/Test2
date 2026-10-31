@@ -112,7 +112,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 
 | ID | Mitigation | Requirements | Verified by |
 |---|---|---|---|
-| SM-01 | PATs and the Git token live only in browser / desktop local storage, one PAT per server; they are never part of the app state, a backup, a snapshot or a Git file (the CP release list in release-analysis/ included). | CON-18, NAV-28, GIT-02, STO-09, SNP-05, QV-41 | TC-INS-01, TC-STO-04, TC-NAV-24, E2E `documents-and-data.e2e.mjs`, TC-QV-25 |
+| SM-01 | PATs and the Git token live only in browser / desktop local storage, one PAT per server; they are never part of the app state, a backup, a snapshot or a Git file. | CON-18, NAV-28, GIT-02, STO-09, SNP-05 | TC-INS-01, TC-STO-04, TC-NAV-24, E2E `documents-and-data.e2e.mjs` |
 | SM-02 | PAT fields are password fields; error text from Azure DevOps has the (trimmed) PAT redacted before it is shown. | NFR-05 | TC-INS-01 |
 | SM-03 | The Git token is sent only in the `Authorization` header to the configured GitHub API; GitHub errors are mapped to fixed messages. | GIT-02, GIT-11, IF-03 | TC-GIT-01, TC-INS-04 |
 | SM-04 | The source repository holds no production data, tokens or employee details; CI builds from a frozen lockfile. | NFR-07, CI-01 | TC-INS-01, TC-CI-01 |

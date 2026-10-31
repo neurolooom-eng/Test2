@@ -1,5 +1,5 @@
 import { showsInMenu, viewNameOf, type AzureConnectionProfileSummary } from './azureCredentials.ts'
-import { defaultStreams, exportForStream, profileForStream, profilesForStream } from './streams.ts'
+import { defaultStreams, exportForStream, profileForStream } from './streams.ts'
 
 // The Azure DevOps menu: every connection marked "Show in menu", named by its View name (else the connection name).
 // The active Time Writing connection is the editable backlog; every other shown connection is a read-only view.
@@ -37,8 +37,7 @@ export function saveBacklogTab(id: string, storage: Pick<Storage, 'setItem'> = l
 // views had no place in the menu. The Time Writing backlog stays under I&D Board.
 type StreamProfile = Parameters<typeof profileForStream>[1][number]
 export function otherMenuViews<W extends { id: string; name: string; exportFile?: string }>(views: BacklogView[], profiles: StreamProfile[], windchill: W[]) {
-  // A combining stream (CP) sits under Release Details with all its connections, so none of them is listed here.
-  const streamIds = new Set(defaultStreams.flatMap((stream) => stream.combine ? profilesForStream(stream, profiles).map((profile) => profile.id) : [profileForStream(stream, profiles)?.id]).filter(Boolean))
+  const streamIds = new Set(defaultStreams.map((stream) => profileForStream(stream, profiles)?.id).filter(Boolean))
   const streamExports = new Set(defaultStreams.map((stream) => exportForStream(stream, windchill)?.id).filter(Boolean))
   return {
     azure: views.filter((view) => view.readOnly && !streamIds.has(view.id)),
