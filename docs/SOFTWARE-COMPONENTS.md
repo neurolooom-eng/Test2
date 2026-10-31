@@ -119,7 +119,7 @@ This document lists every software component of the system: the in-house source 
 | myWork | `src/myWork.ts` | "Me" matching, pending work, month-task and move candidates, state checks and next states, Feature children. | ATM |
 | pulseCheck | `src/pulseCheck.ts` | Pulse Check: previous month, release comparison, work flow opened/closed and ongoing work. | OVR |
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
-| queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY, field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
+| queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY (flat and tree / links queries), field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream, with counts and totals. | OVR |
 | releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC, Tool Validations (one entry per tool) and CP (release from the asset Title) stream rules. | QV |
 | rules | `src/rules.ts` | Period lock rules, demand classification, baseline lookup, variance flag and capacity utilization. | SET, BAS |
@@ -157,7 +157,7 @@ This document lists every software component of the system: the in-house source 
 | backgroundJobs | `src/backgroundJobs.ts` | Background jobs of a page load: runs long Azure DevOps writes off the form, one per key, with progress and the result; nothing stored. | NAV, BKL, ATM, MON |
 | azureCredentials | `src/azureCredentials.ts` | Browser-local PATs per server and connection profiles (role, view name, show in menu); never in app data. | CON |
 | connectionPresets | `src/connectionPresets.ts` | Pre-filled team connection presets and dismissed-preset storage. | CON |
-| releaseSource | `src/releaseSource.ts` | Read-only release source: paged WIQL queries, approval month, completed releases, fuzzy Feature name matching. | QV |
+| releaseSource | `src/releaseSource.ts` | Read-only release source: paged flat WIQL queries and tree / direct-links (WorkItemLinks) queries, approval month, completed releases, fuzzy Feature name matching. | QV |
 | windchill | `src/windchill.ts` | Windchill host/service path settings, normalisation and browser storage. | CON |
 | windchillBridge | `src/windchillBridge.ts` | Bookmarklet bridge to run Windchill searches in a signed-in Windchill tab and return verified results. | CON |
 | windchillBrowser | `src/windchillBrowser.ts` | Windchill test and query from the browser with its own sign-in (CORS, read-only GETs). | CON |
@@ -245,7 +245,7 @@ This document lists every software component of the system: the in-house source 
 | qe-mapping.test | `tests/qe-mapping.test.mjs` | xlsx/CSV read/write and QE Mapping editing and Git file handling. | QEM |
 | query-view.test | `tests/query-view.test.mjs` | Query layout, field resolution, sorting, summary, CSV and column order. | QV |
 | release-overview.test | `tests/release-overview.test.mjs` | Releases per stream approved in the month for Overview and Pulse Check. | OVR |
-| release-source.test | `tests/release-source.test.mjs` | Release-source WIQL paging, path parsing, register and approval dates. | QV |
+| release-source.test | `tests/release-source.test.mjs` | Release-source WIQL paging, tree / links queries, path parsing, register and approval dates. | QV, CON |
 | sample-data.test | `tests/sample-data.test.mjs` | Synthetic sample is deterministic and exercises every model. | SMP |
 | setup-guide.test | `tests/setup-guide.test.mjs` | Get started step statuses for new, partly and fully set-up users. | NAV |
 | streams.test | `tests/streams.test.mjs` | Stream definitions, DP/IOCC/Tool Validations/CP rules, fuzzy Feature match and Pulse Check streams. | QV, OVR |
