@@ -214,6 +214,7 @@ This document lists every software component of the system: the in-house source 
 |---|---|---|---|
 | traceability.test | `tests/traceability.test.mjs` | Validation Package consistency: requirement levels, test-case and UAT traces, component list, current matrix. | DOC, CI |
 | swbom.test | `tests/swbom.test.mjs` | The SWBOM lists exactly the lockfile's components with scope, licence and hash; lockfile key parsing. | CI |
+| release-notes.test | `tests/release-notes.test.mjs` | The newest release-notes version is the package version; versions unique, descending, each with an entry. | CI |
 | validation-package.test | `tests/validation-package.test.mjs` | Validation Package documents: required sections, unique IDs, mitigations and DFMEA controls traced to existing requirements. | DOC |
 | access.test | `tests/access.test.mjs` | Access policy: no-policy defaults, role union, file round trip, refusing writes for roles without Azure changes. | CON |
 | app-update.test | `tests/app-update.test.mjs` | Build metadata validation, cache-busting URLs, update checks and reload blocking, release version check. | UPD, CI |
