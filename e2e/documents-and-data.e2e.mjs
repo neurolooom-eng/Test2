@@ -191,6 +191,30 @@ test('TC-CON-53 / TC-CON-54: "＋ ECP" imports the export as the ECP page whatev
   await context.close()
 })
 
+test('TC-CON-55: an ECP setup named "ECP - Type 2" reads projects from the 3rd Location folder and is listed on its own', async () => {
+  const { page, context, errors } = await openPage(app)
+  await page.locator('nav button', { hasText: /^＋\s*ECP$/ }).click()
+  assert.equal(await page.getByLabel('Logic').inputValue(), 'ecp', 'opened from ＋ ECP: the ECP setup')
+  await page.getByLabel('Project details at').selectOption('3')
+  await page.getByLabel(/^Name/).first().fill('ECP - Type 2')
+  await page.locator('input[type=file]').first().setInputFiles(fixture('windchill-ecp-type2.csv'))
+  const releases = page.locator('.panel').filter({ has: page.locator('h2, h3', { hasText: /^Releases/ }) }).first()
+  await releases.waitFor()
+  await releases.getByLabel('Show').selectOption('all')
+  let body = await text(releases)
+  assert.match(body, /Patient Monitor/)
+  assert.match(body, /Scanner/)
+  assert.equal(await page.locator('nav button', { hasText: /ECP - Type 2$/ }).count(), 1, 'the export has its own menu entry')
+  assert.equal(await page.locator('nav button', { hasText: /ECP export$/ }).count(), 1, '＋ ECP export adds another')
+  // The setup can be changed on the export's page: the 2nd folder gives the parent folder instead.
+  await releases.getByLabel('Project details at').selectOption('2')
+  body = await text(releases)
+  assert.match(body, /Programs/)
+  assert.doesNotMatch(body, /Patient Monitor ▸/)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
 test('TC-QV-18: Pulse Check shows the Supported summary next to Releases, with the S&S IT export\'s releases of the month', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, 'Import Windchill export')
