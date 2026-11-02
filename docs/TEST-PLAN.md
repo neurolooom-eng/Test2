@@ -616,6 +616,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-16 Leave in Bulk actions** — Req ATM-24 — L1 `my-work.test.mjs` ("leave in Bulk actions: my PTO / Sick / Unplanned Features under the Epic, apart from work; training and others not (TC-ATM-16)"); browser check: Bulk actions → Create month tasks shows a Leave list with your PTO / Sick / Unplanned Features, unticked; the work count and Assigned to Me's "tasks missing" do not include them; ticking one adds it to Create n tasks and creates its month Task.
 
+**TC-ATM-17 Others' stories never block my month Task** — Req ATM-25 — L1 `my-work.test.mjs` ("a shared leave Feature where everyone keeps a story of the same title: mine is used, or a new one of mine — never \"Choose story\" (TC-ATM-17)"), `monthly-hours.test.mjs` ("Month task placement: …"); browser check: on a shared PTO Feature with colleagues' "PTO - Time Writing" stories, Bulk actions → Leave shows "Story + task missing" (no story of yours) or "Task missing" (your own story), never "Choose story"; creating puts the Task under your story.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -1388,6 +1390,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-22 | TC-ATM-14 |
 | ATM-23 | TC-ATM-15 |
 | ATM-24 | TC-ATM-16 |
+| ATM-25 | TC-ATM-17 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |

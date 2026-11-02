@@ -8,6 +8,9 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 - **QRE** joins the default streams under Release Details → Windchill exports: each release is a project "PJ-<number> <name>" read from the Location path at index 2, otherwise read like S&S IT (month, Pulse Check, Monthly pack, QMS-0025 match, Create Feature "QRE | PJ-1234 Name") (CON-83, TC-CON-51).
 - **BRITE** has a place at the root of Release Details, not set up yet (CON-84, TC-CON-52).
 
+**Fixed**
+- Leave in Bulk actions showed "Choose story" on a shared leave Feature where everyone keeps a story of the same title: your month Task now goes under your own story there (any title), else a new one of yours — never under a colleague's (ATM-25, TC-ATM-17, KB-21).
+
 ## v1.11.0 — 2026-11-02
 
 **Added**

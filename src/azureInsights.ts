@@ -56,14 +56,17 @@ export function planMonthStory<T extends Pick<AzureWorkItem, 'id' | 'workItemTyp
   const ownStories = open.filter(entry => mine(entry.story))
   if (ownStories.length === 1) return { status: 'use', story: ownStories[0].story }
   if (ownStories.length > 1) return { status: 'conflict', stories: ownStories.map(entry => entry.story) }
+  // ATM-25: several Time Writing stories and none of them mine (a shared leave Feature where everyone keeps their own
+  // story): my own story under the Feature, whatever its title, else a new one of mine — never "choose" among others'.
+  const mineOrNew = (): MonthStoryPlan<T> => { const myAny = stories.filter(entry => live(entry.story) && mine(entry.story)); return myAny.length === 1 ? { status: 'use', story: myAny[0].story } : myAny.length > 1 ? { status: 'conflict', stories: myAny.map(entry => entry.story) } : { status: 'create' } }
   const exact = open.filter(entry => entry.story.title.trim().toLowerCase() === storyTitle.toLowerCase())
-  if (exact.length > 1) return { status: 'conflict', stories: exact.map(entry => entry.story) }
+  if (exact.length > 1) return mineOrNew()
   if (exact.length) return { status: 'use', story: exact[0].story }
   const withMine = open.filter(entry => entry.tasks.some(own))
   if (withMine.length === 1) return { status: 'use', story: withMine[0].story }
   if (withMine.length > 1) return { status: 'conflict', stories: withMine.map(entry => entry.story) }
   if (open.length === 1) return { status: 'use', story: open[0].story }
-  return open.length ? { status: 'conflict', stories: open.map(entry => entry.story) } : { status: 'create' }
+  return open.length ? mineOrNew() : { status: 'create' }
 }
 export function indiaMonth(date?: string) {
   if (!date || !Number.isFinite(Date.parse(date))) return undefined
