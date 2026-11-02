@@ -82,6 +82,7 @@ This document lists every software component of the system: the in-house source 
 | ReleaseQuadrants | `src/components/ReleaseQuadrants.tsx` | Releases summary lines, the Supported summary next to them (DP Supported Releases, S&S IT export releases of the month), and a 2×2 quadrant per stream with documents approved in the month and totals. | OVR, QV |
 | ReleaseView | `src/components/ReleaseView.tsx` | Release source view: releases derived from document paths or Titles (per stream rule), with the Time Writing Feature match and hours and the QMS-0025 match column with Create Feature (QV-46). | QV |
 | ResultTabs | `src/components/ResultTabs.tsx` | The two tabs of a Release Details page: the consolidation (Releases, CP report, Projects) and the raw rows (Query output / Raw data), the choice kept per page in the browser tab (QV-47). | QV |
+| ViewActions | `src/components/ViewActions.tsx` | The compact actions of a Release Details page: the main action as a small icon button with its name as tooltip, the others in a ⋯ menu (QV-48). | QV |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SectionTabs | `src/components/SectionTabs.tsx` | The section row of a Settings page: one section at a time, the last one remembered per page (SET-14). | SET, NAV |
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status and buttons to the right place. | NAV |
