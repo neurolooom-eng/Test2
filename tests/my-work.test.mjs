@@ -356,3 +356,15 @@ test("a Feature shared by two people: each one's own User Story brings the Featu
   const forBen = monthTaskCandidates(shared, { email: 'ben@x.com', name: 'Ben Okafor' }, 'October 2026', 37778).find((row) => row.feature.id === 30)
   assert.deepEqual([forBen.status, forBen.storyTitle], ['needs-task', 'CT | Scanner | v5 - Time Writing'])
 })
+
+test('Team Holidays and Training: my Training story gets its month Task; leave there is still left out (TC-CAP-06)', () => {
+  const rows = [
+    item(1, 'Epic', 'CP'), item(37778, 'Epic', 'Team Holidays and Training'),
+    item(80, 'Feature', 'Training', { parentId: 37778, ...ben }), item(81, 'User Story', 'Training - Time Writing', { parentId: 80, ...ana }),
+    item(82, 'Task', 'September 2026 | Training', { parentId: 81, ...ana, state: 'Closed' }),
+    item(90, 'Feature', 'Ana Costa - PTO', { parentId: 37778, ...ana }), item(91, 'User Story', 'Ana - Time Writing', { parentId: 90, ...ana }),
+  ]
+  const rows2 = monthTaskCandidates(rows, me, 'October 2026', 37778)
+  assert.deepEqual(rows2.map((row) => row.feature.id), [80], 'the Training Feature is offered; the PTO Feature is not')
+  assert.deepEqual([rows2[0].status, rows2[0].storyTitle], ['needs-task', 'Training - Time Writing'], 'under my own Training story')
+})

@@ -863,6 +863,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-05 Default Joined on** — Req CAP-15 — L1 `capacity.test.mjs` ("default Joined on (1 May 2026 unless changed) …"); browser check: Settings → Resources shows Default Joined on 1 May 2026; the Dashboard for April 2026 shows no capacity and lists the April hours to check; May 2026 counts everyone; give one person their own Joined on 2026-01-05 and April shows that person; Clear the default and April counts everyone again; Edit capacity settings… keeps the default.
 
+**TC-CAP-06 Team Holidays and Training** — Req CAP-16 — L1 `capacity.test.mjs` ("Team Holidays and Training (same Epic ID): training is NPRA, PTO / Sick / Unplanned stay absence; the Epic title is not read (TC-CAP-06)"), `my-work.test.mjs` ("Team Holidays and Training: my Training story gets its month Task; leave there is still left out (TC-CAP-06)"); browser check with the QMS-0025 board: Pulse Check → Last month — a person's Training month Task hours appear in the NPRA table and the NPRA total, not in absence; PTO / Sick / Unplanned stay in the absence split; Bulk actions → Create month tasks lists the Training Feature for your own Training story and no leave Feature; Settings → Capacity & periods names the Epic "Team Holidays and Training".
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1426,6 +1428,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-13 | TC-CAP-03 |
 | CAP-14 | TC-CAP-04 |
 | CAP-15 | TC-CAP-05 |
+| CAP-16 | TC-CAP-06 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
