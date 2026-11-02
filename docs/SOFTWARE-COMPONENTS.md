@@ -51,7 +51,7 @@ This document lists every software component of the system: the in-house source 
 | AccessPanel | `src/components/AccessPanel.tsx` | Settings → Access: shows roles and per-role rights; editable and saved to Git (access.json) only by a role that may manage access. | CON |
 | AssigneeConfirm | `src/components/AssigneeConfirm.tsx` | Confirmation before creating work items: what is created and to whom it is assigned; never blank. | CON, ATM |
 | AzureConnections | `src/components/AzureConnections.tsx` | Settings → Azure DevOps connection setup: servers, presets, add/clone/edit connections, PATs, stream mapping (admins: saved to Git on every change, Save stream mapping to Git) and duplicate clean-up. | CON |
-| AzureViewsGit | `src/components/AzureViewsGit.tsx` | Settings panel to save Azure DevOps connection definitions to Git and restore them elsewhere, never writing PATs. | CON, GIT |
+| AzureViewsGit | `src/components/AzureViewsGit.tsx` | Settings panel to save Azure DevOps connection definitions to Git and restore them elsewhere, never writing PATs; Back up and clean up (download / dated Git backup, remove all with a reset marker). | CON, GIT |
 | AzureWorkItemTree | `src/components/AzureWorkItemTree.tsx` | Expandable Epic → Feature → Story → Task tree with Feature creation and child completion; read-only for other connections. | CON, ATM |
 | BacklogTable | `src/components/BacklogTable.tsx` | Paged backlog table of the work-item tree with level filter and per-browser column chooser. | CON |
 | BaselineRulesEditor | `src/components/BaselineRulesEditor.tsx` | Editor for per-stream estimation rules (hours per unit × units formula, optional max), draft then save. | BAS |
@@ -64,7 +64,7 @@ This document lists every software component of the system: the in-house source 
 | DpBoardColumn | `src/components/DpBoardColumn.tsx` | DP table and Windchill releases cell showing the matching QMS-0025 Feature/User Story, or Create Feature when nothing matches. | QV |
 | DpMonthCounts | `src/components/DpMonthCounts.tsx` | Table of a month's DP Supported Releases with milestones passed (DT, SFV, PRD, RPE) and dates. | QV, OVR |
 | ErrorBoundary | `src/components/ErrorBoundary.tsx` | Catches render errors in a view and shows what failed with a way back instead of a blank app. | UI |
-| FeatureEditor | `src/components/FeatureEditor.tsx` | Modal to add a Feature under an Epic or complete a Feature's children, shared by Backlogs and Assigned to Me. | ATM, CON |
+| FeatureEditor | `src/components/FeatureEditor.tsx` | Modal to add a Feature under an Epic or complete a Feature's children, shared by Backlogs and Assigned to Me; the Parent Epic starts blank. | ATM, CON, BKL |
 | JobsIndicator | `src/components/JobsIndicator.tsx` | Top-bar list of the background jobs: running count, results, Clear finished; asks before leaving the page while one runs. | NAV |
 | MonthlyPackPanel | `src/components/MonthlyPackPanel.tsx` | Pulse Check → Monthly pack: the two slides as boxes with generated lines and the month's text, Save to Git, copy, Download .pptx. | PCK |
 | MonthlyPackSetupPanel | `src/components/MonthlyPackSetupPanel.tsx` | Settings → Monthly pack: slide lines (streams, Epics) and KPI rows (Epic, metric), saved to Git. | PCK |
@@ -154,7 +154,7 @@ This document lists every software component of the system: the in-house source 
 | sharepoint | `src/sharepoint.ts` | SharePoint client via MSAL and Microsoft Graph for remote app state. | SNP |
 | cloudSnapshots | `src/cloudSnapshots.ts` | Frozen whitelisted snapshot files uploaded to SharePoint with read-back verification; listing history. | SNP |
 | viewDefinitions | `src/viewDefinitions.ts` | Azure connection definitions file in Git: serialise/parse, restore with PAT rules, sync (the stream mapping enforced), pending admin changes, duplicates. | CON, GIT |
-| download | `src/download.ts` | File downloads: effort CSV, state JSON backup, CSV, Markdown, XLSX and PPTX. | STO, CON, PCK |
+| download | `src/download.ts` | File downloads: effort CSV, state JSON backup, CSV, JSON, Markdown, XLSX and PPTX. | STO, CON, PCK |
 | seed | `src/seed.ts` | Initial synthetic AppState (people, activities, efforts, baselines, periods). | SMP |
 | sampleData | `src/sampleData.ts` | Deterministic synthetic Azure-shaped dataset, profiles and release scopes for sample mode. | SMP |
 
