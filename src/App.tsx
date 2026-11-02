@@ -166,7 +166,7 @@ export default function App() {
   const windchillViews = windchill.views.filter((entry) => entry.exportFile && entry.showInMenu)
   const [windchillId, setWindchillId] = useState('')
   const windchillView = windchillViews.find((entry) => entry.id === windchillId)
-  // "＋ QRE" / "＋ S&S IT" (not imported yet) open the import named after that stream, so the export lands on it (CON-85).
+  // "＋ ECP" / "＋ S&S IT" (not imported yet) open the import named after that stream, so the export lands on it (CON-85).
   const [windchillFor, setWindchillFor] = useState('')
   const openWindchill = (id: string, stream = '') => { setWindchillId(id); setWindchillFor(id ? '' : stream); setPage('windchill') }
   // Views shown in the menu that are not the Time Writing backlog nor a default stream: listed under "Other views".
