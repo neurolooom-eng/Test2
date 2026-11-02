@@ -195,7 +195,7 @@ test('TC-CON-53 / TC-CON-54: "＋ ECP" imports the export as the ECP page whatev
   await context.close()
 })
 
-test('TC-CON-55: an ECP setup named "ECP - Type 2" reads projects from the 3rd Location folder and is listed on its own', async () => {
+test('TC-CON-55 / TC-QV-28: an ECP setup named "ECP - Type 2" reads projects from the 3rd Location folder, is listed on its own, with compact page actions', async () => {
   const { page, context, errors } = await openPage(app)
   await page.locator('nav button', { hasText: /^＋\s*ECP$/ }).click()
   assert.equal(await page.getByLabel('Logic').inputValue(), 'ecp', 'opened from ＋ ECP: the ECP setup')
@@ -210,6 +210,13 @@ test('TC-CON-55: an ECP setup named "ECP - Type 2" reads projects from the 3rd L
   assert.match(body, /Scanner/)
   assert.equal(await page.locator('nav button', { hasText: /ECP - Type 2$/ }).count(), 1, 'the export has its own menu entry')
   assert.equal(await page.locator('nav button', { hasText: /ECP export$/ }).count(), 1, '＋ ECP export adds another')
+  // TC-QV-28: the page's actions are compact — a small import button and a ⋯ menu with the rest.
+  assert.equal(await page.getByRole('button', { name: 'Remove' }).count(), 0, 'no full-size Remove button')
+  assert.equal(await page.locator('.view-actions label[title="Import newer export"]').count(), 1, 'Import newer export is a small button with its name as tooltip')
+  await page.getByRole('button', { name: 'More actions: ECP - Type 2' }).click()
+  assert.equal(await page.getByRole('menuitem', { name: 'Remove this export…' }).count(), 1, 'Remove is in the ⋯ menu')
+  await page.keyboard.press('Escape')
+  assert.equal(await page.getByRole('menu').count(), 0, 'Escape closes the menu')
   // The setup can be changed on the export's page: the 2nd folder gives the parent folder instead.
   await releases.getByLabel('Project details at').selectOption('2')
   body = await text(releases)

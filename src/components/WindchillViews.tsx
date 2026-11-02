@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { projectLevels, windchillCsv, windchillOps, windchillCell, type WindchillFilter, type WindchillLogic, type WindchillView } from '../windchillViews'
 import { defaultStreams, windchillOptionsForView } from '../streams'
 import { ResultTabs } from './ResultTabs'
+import { ViewActions } from './ViewActions'
 import { formatDateTime } from '../format'
 import { downloadCsv } from '../download'
 import type { WindchillWorkspace } from '../useWindchill'
@@ -94,9 +95,10 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
   const csv = () => windchillCsv(columns, rows)
   return <Panel className="connection-panel backlog-panel">
     <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.exportFile ? `Windchill export ${view.exportFile}` : view.entitySet}{source ? ` · ${source.rows.length} results · ${view.exportFile ? 'imported' : 'fetched'} ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
-      <div className="button-row">{view.exportFile ? <ExportFileButton label="Import newer export" onFile={(text, file) => windchill.importExport(text, file, '', view.id)} onError={setError} /> : <button className="primary" disabled={status?.state === 'busy'} onClick={() => void windchill.fetchView(view.id)}>{status?.state === 'busy' ? 'Searching…' : source ? 'Refresh from Windchill' : 'Fetch from Windchill'}</button>}
-        {git?.connected && <button type="button" className="ghost" disabled={fromGit?.text === 'Loading from Git…'} onClick={() => void loadFromGit()}>Load from Git</button>}
-        {view.exportFile && <button type="button" className="text-button" onClick={() => { if (window.confirm(`Remove the Windchill export “${view.name}” from this app?`)) windchill.removeView(view.id) }}>Remove</button>}</div></div>
+      {/* QV-48: a small main action (import a newer file, or refresh a search) and the rest in a ⋯ menu. */}
+      <ViewActions label={view.name} primary={view.exportFile ? <ExportFileButton label="⤒" title="Import newer export" className="act-button act-primary" onFile={(text, file) => windchill.importExport(text, file, '', view.id)} onError={setError} />
+        : <button type="button" className="act-button act-primary" aria-label={source ? 'Refresh from Windchill' : 'Fetch from Windchill'} title={source ? 'Refresh from Windchill' : 'Fetch from Windchill'} disabled={status?.state === 'busy'} onClick={() => void windchill.fetchView(view.id)}>↻{status?.state === 'busy' ? <small>Searching…</small> : null}</button>}
+        items={[...(git?.connected ? [{ key: 'git', label: 'Load from Git', disabled: fromGit?.text === 'Loading from Git…', onClick: () => void loadFromGit() }] : []), ...(view.exportFile ? [{ key: 'remove', label: 'Remove this export…', danger: true, onClick: () => { if (window.confirm(`Remove the Windchill export “${view.name}” from this app?`)) windchill.removeView(view.id) } }] : [])]} /></div>
     {!view.exportFile && <WindchillImport view={view} windchill={windchill} />}
     {error && <Notice tone="error">{error}</Notice>}
     {fromGit && <Notice tone={fromGit.tone}>{fromGit.text}</Notice>}
@@ -113,8 +115,8 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
 }
 
 // Chooses an export file and hands its text on; a file that is not an export is reported.
-function ExportFileButton({ label, onFile, onError }: { label: string; onFile: (text: string, fileName: string) => void; onError: (message: string) => void }) {
-  return <label className="primary file-button">{label}<input type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => {
+function ExportFileButton({ label, onFile, onError, title, className = 'primary file-button' }: { label: string; onFile: (text: string, fileName: string) => void; onError: (message: string) => void; title?: string; className?: string }) {
+  return <label className={className} title={title} aria-label={title}>{label}<input type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => {
     const file = event.currentTarget.files?.[0]
     event.currentTarget.value = ''
     if (!file) return

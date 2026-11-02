@@ -4,6 +4,7 @@ import { EmptyState, Page, Panel, Pill, Info } from '../components/ui'
 import { AzureWorkItemTree } from '../components/AzureWorkItemTree'
 import { QueryView } from '../components/QueryView'
 import { ResultTabs } from '../components/ResultTabs'
+import { ViewActions } from '../components/ViewActions'
 import { ReleaseView } from '../components/ReleaseView'
 import { DpMonthCounts } from '../components/DpMonthCounts'
 import { useDpBoardColumn } from '../useDpBoardColumn'
@@ -85,7 +86,10 @@ function ReadOnlyView({ id, name, role, azure, store, month, gitNote, onOpenConn
   // Items without an approval date fall back to their Changed Date for the month filter; say how many.
   const undated = source ? source.items.filter((item) => isDp ? !ddtMonthOf(item) : !(item.approvalDate ?? approvalDateFrom(item.fields ?? {}))).length : 0
   // On-prem views with Git storage: Load from Git too; a fetch that cannot run falls back to it.
-  const refresh = <span className="button-row"><button className="primary" disabled={busy} onClick={() => void azure.fetchConnection(id)}>{busy ? (status?.message || 'Fetching…') : source ? 'Refresh from Azure' : 'Fetch from Azure'}</button>{azure.canLoadFromGit(id) && <button className="ghost" disabled={busy} onClick={() => void azure.loadFromGit(id)}>Load from Git</button>}</span>
+  // QV-48: a small ↻ button (its full name as tooltip; the progress shown beside it while busy) and a ⋯ menu.
+  const refreshLabel = source ? 'Refresh from Azure' : 'Fetch from Azure'
+  const refresh = <ViewActions label={name} primary={<button type="button" className="act-button act-primary" aria-label={refreshLabel} title={refreshLabel} disabled={busy} onClick={() => void azure.fetchConnection(id)}>↻{busy ? <small>{status?.message || 'Fetching…'}</small> : !source ? <small>Fetch</small> : null}</button>}
+    items={[...(azure.canLoadFromGit(id) ? [{ key: 'git', label: 'Load from Git', disabled: busy, onClick: () => void azure.loadFromGit(id) }] : []), { key: 'settings', label: 'Connection settings', onClick: onOpenConnection }]} />
   // Information about the view sits behind the ⓘ next to its name, not as banners; only errors and warnings stay on the page.
   const notes = [
     source && isDp ? `Month filter: by DDT Date in your time zone.${undated > 0 ? ` ${undated} of ${source.items.length} releases have no DDT Date and show only with “All months”.` : ''}` : '',
@@ -97,7 +101,7 @@ function ReadOnlyView({ id, name, role, azure, store, month, gitNote, onOpenConn
   ].filter(Boolean)
   return <Page className="backlog-page">
     <Panel className="connection-panel backlog-panel">
-      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}${'fromGit' in source && source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}{notes.length > 0 && <Info>{notes.map((note) => <p key={note}>{note}</p>)}</Info>}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}<button className="ghost" onClick={onOpenConnection}>Connection settings</button></div></div>
+      <div className="view-source-bar"><div><strong>{name}</strong><span className="muted"> · {config ? `${config.organization} / ${config.project}` : 'connection not found'}{source ? ` · ${allMonths ? source.items.length : `${items.length} of ${source.items.length}`} items${allMonths ? '' : ` in ${monthName(month)}`} · fetched ${formatDateTime(source.fetchedAt)}${'fromGit' in source && source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span>{profile?.query ? <small className="muted"> · query</small> : config?.team ? <small className="muted"> · team {config.team}</small> : null}{notes.length > 0 && <Info>{notes.map((note) => <p key={note}>{note}</p>)}</Info>}</div><div className="button-row">{source && <label className="check"><input type="checkbox" checked={allMonths} onChange={(event) => setAllMonths(event.target.checked)} />All months</label>}{refresh}</div></div>
       {status?.state === 'error' && <div className="notice error" role="alert">{status.message}</div>}
       {!azure.isSample && gitNote?.tone === 'error' && <div className="notice error" role="alert">{gitNote.text}</div>}
       {stale && !busy && <div className="notice warning" role="status">The saved data was fetched with different columns than the connection's query now has. Refresh from Azure to load every column's values.</div>}
