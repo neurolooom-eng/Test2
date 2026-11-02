@@ -84,18 +84,24 @@ export function releasesFromLocation(location: string): LocationRelease[] {
   return []
 }
 export const releaseFromLocation = (location: string): LocationRelease | undefined => releasesFromLocation(location)[0]
-// QRE (CON-83): each release is a project, "PJ-<number> <name>", read from the Location's folder at index 2 when split on
-// "/" ("/Projects/PJ-1234 Name/DHF" → PJ-1234, Name); when that folder is not a project, the first folder that is.
+// QRE (CON-83): each release is the Location's folder at index 2 when split on "/", whatever its name, and every
+// document anywhere under that folder belongs to it ("/Projects/PJ-1234 Name/DHF/Reports" → PJ-1234, Name;
+// "/Projects/Some Project/DHF" → "Some Project"). A folder written "PJ-<number> <name>" is split into number and name.
 const project = /^(PJ[-_ ]?\d+)[\s_:.-]*(.*)$/i
+const projectParts = (folder: string) => {
+  const match = project.exec(folder)
+  if (!match) return { name: folder, release: '' }
+  return { name: match[2].trim(), release: match[1].toUpperCase().replace(/^PJ[-_ ]?/, 'PJ-') }
+}
 export function projectFromLocation(location: string): LocationRelease | undefined {
   const segments = location.split('/').map((segment) => segment.trim())
-  const folder = [segments[2] ?? '', ...segments].find((segment) => project.test(segment))
+  const folder = segments[2] ?? ''
   if (!folder) return undefined
-  const [, code, rest] = project.exec(folder)!
-  const release = code.toUpperCase().replace(/^PJ[-_ ]?/, 'PJ-'), name = rest.trim()
-  const part = { name, release, raw: folder }
-  return { name, release, folder: segments.slice(0, segments.indexOf(folder) + 1).join('/'), clubbed: false, parts: [part] }
+  const { name, release } = projectParts(folder)
+  return { name, release, folder: segments.slice(0, 3).join('/'), clubbed: false, parts: [{ name, release, raw: folder }] }
 }
+// Without a Location, a document named "PJ-<number> <name> …" still names its project (CON-83).
+const projectFromName = (text: string): LocationRelease | undefined => project.test(text.trim()) ? projectFromLocation(`//${text.trim()}`) : undefined
 // Every distinct Location value with its document count and the release read from it, most documents first.
 export function uniqueLocations(rows: Record<string, unknown>[], column: string): UniqueLocation[] {
   const counts = new Map<string, number>()
@@ -155,7 +161,7 @@ export function windchillReleases(rows: Record<string, unknown>[], columns: stri
     // A clubbed name or folder is one release (oneRelease), kept as written and counted once.
     const parsed = releasesFromDocumentName(text)
     const release = chosen.project
-      ? ((entry) => entry && { ...entry, document: text, key: entry.release.toLowerCase() })(projectFromLocation(folder) ?? projectFromLocation(`//${text}`))
+      ? ((entry) => entry && { ...entry, document: text, key: entry.release.toLowerCase() })(folder ? projectFromLocation(folder) : projectFromName(text))
       : source === 'location'
       ? (([entry]) => entry && { ...entry, document: text, key: entry.release.toLowerCase() })(releasesFromLocation(folder))
       : (() => { const one = oneRelease(parsed, parsed[0]?.span ?? ''); return one && { ...one, document: parsed[0]?.document ?? '', key: one.clubbed ? one.release.toLowerCase() : normalizeVersion(one.release) } })()
