@@ -65,10 +65,14 @@ export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
   const inAbsence = (item: AzureWorkItem) => absenceEpicId != null && chainOf(item).some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)
   const storyIds = timeWritingStoryIds(items), month = timeWritingMonth(monthLabel) ?? ''
   const featureIds = new Set<number>()
+  // ATM-23: a Feature in my name, or an active Feature holding a User Story in my name — in any state but Removed, my own
+  // Time Writing story included, as on a Feature shared by two people who each keep their own stories — or a pending
+  // Task / Bug of mine (month Tasks count through "earlier-task" below).
   for (const item of items) {
-    if (!isPending(item) || !isMine(item, me) || inAbsence(item) || storyIds.has(item.id) || timeWritingMonth(item.title)) continue
-    if (item.workItemType === 'Feature') featureIds.add(item.id)
-    else { const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature)) featureIds.add(feature.id) }
+    if (!isMine(item, me) || inAbsence(item) || item.state.trim().toLowerCase() === 'removed' || timeWritingMonth(item.title)) continue
+    if (item.workItemType === 'Feature') { if (isPending(item)) featureIds.add(item.id); continue }
+    if (item.workItemType !== 'User Story' && (!isPending(item) || storyIds.has(item.id))) continue
+    const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature'); if (feature && isPending(feature)) featureIds.add(feature.id)
   }
   const shared = new Map<number, 'earlier-task' | 'mention'>()
   for (const item of items) {
