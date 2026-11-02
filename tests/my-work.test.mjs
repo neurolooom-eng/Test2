@@ -35,7 +35,9 @@ test('month-task candidates: my pending Features or Features holding my pending 
   assert.deepEqual(rows.map((row) => [row.feature.id, row.status]), [[2, 'needs-task'], [6, 'needs-story']], "Ben's task on #2 does not count as mine; #6 is Ben's Feature but holds my Task")
   const done = monthTaskCandidates([...items, item(11, 'Task', 'October 2026 | CP | Care Pathways | v3.1', { parentId: 3, ...ana })], me, 'October 2026', 37778)
   assert.equal(done.find((row) => row.feature.id === 2).status, 'exists')
-  assert.equal(monthTaskCandidates([...items, item(12, 'User Story', 'CP | Care Pathways | v3.1 - Time Writing', { parentId: 2 })], me, 'October 2026', 37778).find((row) => row.feature.id === 2).status, 'conflict')
+  const second = monthTaskCandidates([...items, item(12, 'User Story', 'CP | Care Pathways | v3.1 - Time Writing', { parentId: 2 })], me, 'October 2026', 37778).find((row) => row.feature.id === 2)
+  assert.deepEqual([second.status, second.storyTitle], ['needs-task', 'CP | Care Pathways | v3.1 - Time Writing'], 'two stories of the same title: my own one takes the Task (ATM-23)')
+  assert.equal(monthTaskCandidates([...items, item(12, 'User Story', 'CP | Care Pathways | v3.1 - Time Writing', { parentId: 2, ...ana })], me, 'October 2026', 37778).find((row) => row.feature.id === 2).status, 'conflict', 'two of my own: a conflict')
 })
 
 test('shared activities: a Feature owned by someone else is offered when I had a month Task under it or its Description @mentions me (TC-ATM-14)', () => {
@@ -329,4 +331,28 @@ test('Bulk month Tasks up to the Target date: the months after this one up to th
   for (const label of ['October 2026', ...monthsUntilTarget('October 2026', '2026-12-10')]) titles.push((await ensureMonthTask(config, 'pat', 2, 'ana@x.com', label, transport)).task.title)
   assert.deepEqual(titles, ['October 2026 | CP | Care Pathways | v3.1', 'November 2026 | CP | Care Pathways | v3.1', 'December 2026 | CP | Care Pathways | v3.1'])
   assert.equal((await ensureMonthTask(config, 'pat', 2, 'ana@x.com', 'November 2026', transport)).status, 'exists', 'running again creates nothing')
+})
+
+test("a Feature shared by two people: each one's own User Story brings the Feature up for their month Task (TC-ATM-15)", () => {
+  const shared = [
+    item(1, 'Epic', 'CT'), item(37778, 'Epic', 'Absence'),
+    // Ben owns the Feature; Ana and Ben each have their own User Story, Ana's own Time Writing story holds her month Tasks.
+    item(30, 'Feature', 'CT | Scanner | v5', { parentId: 1, ...ben }),
+    item(31, 'User Story', 'CT | Scanner | v5 - Time Writing', { parentId: 30, ...ben }),
+    item(32, 'User Story', 'Ana - Scanner v5 hours', { parentId: 30, ...ana }), item(33, 'Task', 'September 2026 | CT | Scanner | v5', { parentId: 32, ...ana, state: 'Closed' }),
+    // A Feature where Ana's only User Story is already Closed, while the Feature is still active.
+    item(40, 'Feature', 'CT | Scanner | v6', { parentId: 1, ...ben }), item(41, 'User Story', 'Verification plan', { parentId: 40, ...ana, state: 'Closed' }),
+    // Not offered: a Removed story of Ana's, a closed Feature, and a Feature with nothing of Ana's.
+    item(50, 'Feature', 'CT | Scanner | v7', { parentId: 1, ...ben }), item(51, 'User Story', 'Old work', { parentId: 50, ...ana, state: 'Removed' }),
+    item(60, 'Feature', 'CT | Scanner | v4', { parentId: 1, ...ben, state: 'Closed' }), item(61, 'User Story', 'Work', { parentId: 60, ...ana }),
+    item(70, 'Feature', 'CT | Scanner | v8', { parentId: 1, ...ben }), item(71, 'User Story', 'Ben work', { parentId: 70, ...ben }),
+  ]
+  const rows = monthTaskCandidates(shared, me, 'October 2026', 37778)
+  assert.deepEqual(rows.map((row) => row.feature.id).sort(), [30, 40], 'my own story (Time Writing or not, open or closed) brings the active Feature up')
+  const scanner = rows.find((row) => row.feature.id === 30)
+  assert.deepEqual([scanner.status, scanner.storyTitle], ['needs-task', 'Ana - Scanner v5 hours'], "my month Task goes under my own Time Writing story, not Ben's")
+  assert.equal(rows.find((row) => row.feature.id === 40).status, 'needs-story', 'no Time Writing story of mine yet: one is created')
+  // Ben sees the same Feature for his own month Task, under his own story.
+  const forBen = monthTaskCandidates(shared, { email: 'ben@x.com', name: 'Ben Okafor' }, 'October 2026', 37778).find((row) => row.feature.id === 30)
+  assert.deepEqual([forBen.status, forBen.storyTitle], ['needs-task', 'CT | Scanner | v5 - Time Writing'])
 })
