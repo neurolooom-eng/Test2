@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { windchillCsv, windchillOps, windchillCell, type WindchillFilter, type WindchillView } from '../windchillViews'
+import { projectLevels, windchillCsv, windchillOps, windchillCell, type WindchillFilter, type WindchillLogic, type WindchillView } from '../windchillViews'
+import { defaultStreams } from '../streams'
 import { formatDateTime } from '../format'
 import { downloadCsv } from '../download'
 import type { WindchillWorkspace } from '../useWindchill'
@@ -101,7 +102,7 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
     {status && <Notice tone={status.state === 'error' ? 'error' : status.state === 'busy' ? 'info' : 'success'}>{status.message}</Notice>}
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
     {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Fetch it from Windchill, or Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
-      : <><WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} /><div className="query-view">
+      : <><WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} onSetup={view.exportFile ? (setup) => windchill.setSetup(view.id, setup) : undefined} /><div className="query-view">
         <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span>{!view.exportFile && <Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill>}<button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
         <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
         {rows.length > 1000 && <p className="muted">Showing the first 1000 of {rows.length}; search to narrow, or export CSV for all.</p>}
@@ -121,8 +122,13 @@ function ExportFileButton({ label, onFile, onError }: { label: string; onFile: (
 
 // Release Details → Import Windchill export: a search run in Windchill and exported as CSV becomes a page here.
 // Opened from a stream not imported yet ("＋ ECP"), the Name is that stream's, so the export becomes its page (CON-85).
+// The Logic dropdown (CON-87): Standard reads releases (S&S IT's rules); ECP reads projects "<number> <name>" from the
+// Location folder chosen under "Project details at" (2nd, 3rd…); several ECP exports each get their own name.
 export function WindchillExportImport({ windchill, git, onImported, stream = '' }: { windchill: WindchillWorkspace; git?: GitStorage; onImported: (id: string) => void; stream?: string }) {
+  const ecpStream = defaultStreams.find((entry) => entry.project)?.name ?? 'ECP'
   const [name, setName] = useState(stream)
+  const [logic, setLogic] = useState<WindchillLogic>(stream === ecpStream ? 'ecp' : 'standard')
+  const [projectLevel, setProjectLevel] = useState(2)
   const [error, setError] = useState('')
   const [fromGit, setFromGit] = useState<{ tone: 'info' | 'success' | 'warning' | 'error'; text: string } | null>(null)
   // Restore every export saved to Git (e.g. on a new computer): missing ones are added, newer results replace older.
@@ -137,12 +143,15 @@ export function WindchillExportImport({ windchill, git, onImported, stream = '' 
   }
   return <Panel className="connection-panel" eyebrow="RELEASE DETAILS" title={stream ? `Import the ${stream} export` : 'Import a Windchill export'} info="In Windchill, run your search (e.g. a saved search), export the result list to a CSV file, then import it here. The columns are kept as in the file; with Git storage connected the export is also saved to Git for the web app.">
     <div className="connection-form">
-      <label>Name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. GSS_BST released documents (default: the file name)" /></label>
-      <div className="connection-actions"><ExportFileButton label="Choose CSV export…" onFile={(text, file) => { onImported(windchill.importExport(text, file, name)); setName(stream) }} onError={setError} />{git?.connected && <button type="button" className="ghost" disabled={fromGit?.text === 'Loading from Git…'} onClick={() => void loadAll()}>Load all exports from Git</button>}</div>
+      <label>Logic<select value={logic} onChange={(event) => setLogic(event.target.value as WindchillLogic)}><option value="standard">Standard (releases, e.g. S&amp;S IT)</option><option value="ecp">ECP setup (projects)</option></select></label>
+      {logic === 'ecp' && <label>Project details at<select value={projectLevel} onChange={(event) => setProjectLevel(Number(event.target.value))}>{projectLevels.map((level) => <option key={level} value={level}>{level}{level === 2 ? 'nd' : level === 3 ? 'rd' : 'th'} folder of the Location</option>)}</select></label>}
+      <label>Name<input value={name} onChange={(event) => setName(event.target.value)} placeholder={logic === 'ecp' ? 'e.g. ECP - Type 1' : 'e.g. GSS_BST released documents (default: the file name)'} /></label>
+      <div className="connection-actions"><ExportFileButton label="Choose CSV export…" onFile={(text, file) => { onImported(windchill.importExport(text, file, name, undefined, { logic, ...(logic === 'ecp' ? { projectLevel } : {}) })); setName(stream) }} onError={setError} />{git?.connected && <button type="button" className="ghost" disabled={fromGit?.text === 'Loading from Git…'} onClick={() => void loadAll()}>Load all exports from Git</button>}</div>
     </div>
     {error && <Notice tone="error">{error}</Notice>}
     {fromGit && <Notice tone={fromGit.tone}>{fromGit.text}</Notice>}
-    {stream && <p className="muted">Saved as <strong>{name.trim() || stream}</strong>: keep the name starting with “{stream}” so that the export is the {stream} page, Pulse Check and Monthly pack use it.</p>}
+    {logic === 'ecp' ? <p className="muted">ECP: each project is the Location's {projectLevel}{projectLevel === 2 ? 'nd' : projectLevel === 3 ? 'rd' : 'th'} folder, "Project number Project name" (e.g. Parent folder/123456 Patient Monitor/Phase), with every document under it. Each ECP export is listed on its own under Windchill exports, in Pulse Check and in the Monthly pack — name it after its type, e.g. "ECP - Type 1".</p>
+      : stream && <p className="muted">Saved as <strong>{name.trim() || stream}</strong>: keep the name starting with “{stream}” so that the export is the {stream} page, Pulse Check and Monthly pack use it.</p>}
     <p className="muted">CSV or tab-separated text. Excel files: open them and save as CSV first.</p>
   </Panel>
 }
