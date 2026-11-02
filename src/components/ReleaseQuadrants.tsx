@@ -1,5 +1,4 @@
 import { formatDate, formatDateTime, monthName } from '../format'
-import { DataTable } from './DataTable'
 import type { ReleaseStream } from '../releaseOverview'
 import { Panel } from './ui'
 
@@ -30,11 +29,7 @@ export function ReleaseQuadrants({ streams, month, supported = [] }: { streams: 
         {stream.titles.length ? <ul className="quadrant-titles">{stream.titles.map((doc) => <li key={`${doc.id}:${doc.release}`}><a href={doc.url} target="_blank" rel="noreferrer">{doc.title}</a><small>{doc.release}{doc.approvalDate ? ` · ${formatDate(doc.approvalDate)}` : ''}</small></li>)}</ul> : <p className="muted">{stream.supported != null ? `No DT, SFV, PRD or RPE Done in ${monthName(month)}.` : `No documents approved in ${monthName(month)}.`}</p>}
       </Panel>)}
       <Panel className="release-quadrant release-quadrant-total" eyebrow="ALL STREAMS" title={`${releases} release${releases === 1 ? '' : 's'} · ${documents} document${documents === 1 ? '' : 's'}`} detail={`${monthName(month)}, per stream.`}>
-        <DataTable id="release-quadrants" rows={streams} rowKey={(stream) => stream.id} exportName={`Releases ${month}`} totals={{ values: { releases, documents } }} columns={[
-          { id: 'stream', label: 'Stream', value: (stream) => stream.name },
-          { id: 'releases', label: 'Releases', align: 'right', firstSortDesc: true, value: (stream) => stream.releases.length, render: (stream) => <>{stream.releases.length}{stream.supported != null && <small> completed</small>}</> },
-          { id: 'documents', label: 'Documents', align: 'right', firstSortDesc: true, value: (stream) => stream.supported ?? stream.documents, render: (stream) => stream.supported != null ? <>{stream.supported}<small> supported</small></> : stream.documents },
-        ]} />
+        <table><thead><tr><th>Stream</th><th>Releases</th><th>Documents</th></tr></thead><tbody>{streams.map((stream) => <tr key={stream.id}><td>{stream.name}</td><td>{stream.releases.length}{stream.supported != null && <small> completed</small>}</td><td>{stream.supported != null ? <>{stream.supported}<small> supported</small></> : stream.documents}</td></tr>)}<tr className="matrix-total"><td>Total</td><td>{releases}</td><td>{documents}</td></tr></tbody></table>
       </Panel>
     </section>
   </>

@@ -5,8 +5,9 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 ## v1.18.0 — 2026-11-02
 
 **Changed**
-- More tables on the table design default (Columns, move by drag or ↑ ↓, Wrap text, Comfortable / Compact, one Export with Excel or CSV and real dates): Pulse Check, the CP report, Baselines, Snapshots, Assigned to Me (its tree kept), Bulk actions' state checks, Monthly Time Writing (fields still editable), Backlog Health (its own Columns dialog and Export CSV replaced), the capacity tables and the Insights workspace. Totals rows follow moved columns (UI-13, TC-UI-06).
-- Still to come: the Dashboard, the QMS-0025 backlog, Settings tables, QE Mapping and Documentation (LIM-14).
+- More tables on the table design default (Columns, move by drag or ↑ ↓, Wrap text, Comfortable / Compact, one Export with Excel or CSV and real dates): Pulse Check's lists (Ongoing activities, Windchill exports, Supported Releases), the CP report, Baselines, Snapshots, Assigned to Me (its tree kept), Bulk actions' state checks, Monthly Time Writing (fields still editable) and Backlog Health (its own Columns dialog and Export CSV replaced) (UI-13, TC-UI-06).
+- Summary tables stay plain, without the table toolbar: the Dashboard, Pulse Check's count tables, the capacity summaries, Insights, the Monthly pack KPI table and Documentation (UI-13).
+- Still to come: the QMS-0025 backlog, Settings tables and QE Mapping (LIM-14).
 
 ## v1.17.0 — 2026-11-02
 
