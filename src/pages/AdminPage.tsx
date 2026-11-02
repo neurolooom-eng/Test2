@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TableDefaultsPanel } from '../components/TableDefaultsPanel'
 import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
 import { EmptyState, Modal, Notice, Page, Panel, Pill, SettingsSummary, type Tone } from '../components/ui'
@@ -159,6 +160,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     ]} />}
     {tab === 'features' && <FeatureSetupPanel setup={featureSetup} git={git} items={azure.items} />}
     {tab === 'pack' && shared && <MonthlyPackSetupPanel pack={monthlyPack} git={git} items={azure.items} />}
+    {tab === 'tables' && <TableDefaultsPanel store={store} git={git} canEdit={shared} />}
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <SectionTabs page="capacity" sections={[
