@@ -282,6 +282,10 @@ The on-prem views (Azure DevOps Server, e.g. DP, CP, IOCC) are listed under **Re
 
 **Which Features get a month Task.** Bulk actions → Create month tasks and the *tasks missing* figure on Assigned to Me list every open Feature in your name, and every open Feature that holds a **User Story in your name** — in any state but Removed, your own Time Writing story included — or an open Task or Bug of yours. On a Feature shared by two people who each keep their own User Story, both see it, and each person's month Task goes under **their own** Time Writing story when they have one, never under the other person's.
 
+**Leave and the ＋ Time Writing Task button.** Bulk actions also lists your **leave** Features (PTO, Sick Leave, Unplanned Leave under the Team Holidays and Training Epic) in a separate **Leave** list, unticked: tick only the leave you take that month (leave is never counted as missing). Any Feature or User Story row in the QMS-0025 backlog and in Assigned to Me also has **＋ Time Writing Task**, which adds this month's Task for you under that Feature by the same rules.
+
+**QMS-0025 shows your work first.** The backlog opens filtered to you — your items with the Epic and Feature above them and the work below — shown as **Assigned to me ✕**; click it to see everyone's, until the app is restarted.
+
 **Month Tasks up to the Target date.** In Bulk actions → Create month tasks, the confirmation lists the selected Features whose Target date is after the month. Tick a Feature to also create its month Tasks for every month up to the Target month. An optional **Original Estimate per new month Task** sets the hours on each new Task (not on this month's Task once planning has locked: it is ad-hoc). Existing month Tasks are never duplicated.
 
 **Shared activities.** A Feature owned by someone else is also offered in Bulk actions → Create month tasks, marked **Shared · owner {name}**, when you had a month Task under it before or its Description **@mentions** you. Assigned to Me shows a notice for these shared Features while your month Task is missing. Your Task is created in your name under the Feature's Time Writing story.
