@@ -1,5 +1,5 @@
 import type { AzureWorkItem } from './domain'
-import { isTimeWritingStory, planMonthStory, timeWritingMonth, timeWritingStoryIds } from './azureInsights.ts'
+import { isTimeWritingStory, isTrainingWork, planMonthStory, timeWritingMonth, timeWritingStoryIds } from './azureInsights.ts'
 
 // "Me" is matched by Azure email (Assigned To unique name) when known, otherwise by display name.
 export interface Me { email?: string; name?: string }
@@ -62,7 +62,8 @@ export function mentions(description: string | undefined, me: Me) {
 }
 export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
   const chainOf = ancestry(items)
-  const inAbsence = (item: AzureWorkItem) => absenceEpicId != null && chainOf(item).some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)
+  // Leave under the Team Holidays and Training Epic is left out; training there gets its month Task like any work (CAP-16).
+  const inAbsence = (item: AzureWorkItem) => { const chain = chainOf(item); return absenceEpicId != null && chain.some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId) && !isTrainingWork(item, chain) }
   const storyIds = timeWritingStoryIds(items), month = timeWritingMonth(monthLabel) ?? ''
   const featureIds = new Set<number>()
   // ATM-23: a Feature in my name, or an active Feature holding a User Story in my name — in any state but Removed, my own
@@ -78,7 +79,7 @@ export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
   for (const item of items) {
     if (item.workItemType !== 'Task' || !isMine(item, me) || !timeWritingMonth(item.title)) continue
     const feature = chainOf(item).find((entry) => entry.workItemType === 'Feature')
-    if (feature && !featureIds.has(feature.id) && isPending(feature) && !inAbsence(feature)) shared.set(feature.id, 'earlier-task')
+    if (feature && !featureIds.has(feature.id) && isPending(feature) && !inAbsence(item)) shared.set(feature.id, 'earlier-task')
   }
   for (const feature of items) if (feature.workItemType === 'Feature' && !featureIds.has(feature.id) && !shared.has(feature.id) && isPending(feature) && !inAbsence(feature) && mentions(feature.description, me)) shared.set(feature.id, 'mention')
   for (const id of shared.keys()) featureIds.add(id)

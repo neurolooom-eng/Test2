@@ -22,6 +22,9 @@ export function timeWritingMonth(title: string): string | undefined {
   return trailNumber ? `${trailNumber[1]}-${trailNumber[2].padStart(2, '0')}` : undefined
 }
 // A User Story that names "Time Writing" anywhere in its title (e.g. "<Feature> - Time Writing", "Time Writing - DP").
+// Training under the Team Holidays and Training Epic (formerly Absence; same ID, CAP-16): a month Task whose own title, or
+// its Story's / Feature's, says "training" is training, not leave. The Epic's own title is not read (it says Training).
+export const isTrainingWork = (item: { title: string; workItemType: string }, chain: { title: string; workItemType: string }[] = []) => [item, ...chain].some((entry) => entry.workItemType !== 'Epic' && /\btrainings?\b/i.test(entry.title))
 export const isTimeWritingStory = (item: { workItemType: string; title: string }) => item.workItemType === 'User Story' && /\btime[\s_-]*writ(?:ing|ting)\b/i.test(item.title)
 // Time Writing is recognised from the Task, not from its story: a Task whose title starts or ends with a month and year counts
 // for that month wherever it sits, and its Feature and Epic come from the parent chain. Story titles are free text.
