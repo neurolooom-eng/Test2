@@ -614,6 +614,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-15 Features from my User Stories; my own story on a shared Feature** — Req ATM-23 — L1 `my-work.test.mjs` ("a Feature shared by two people: each one's own User Story brings the Feature up for their month Task (TC-ATM-15)"; "month-task candidates: …" for two stories of the same title), `monthly-hours.test.mjs` ("Month task placement: …"); browser check with the QMS-0025 board: a Feature owned by a colleague where you have a User Story (open or Closed) is listed in Bulk actions → Create month tasks and counted on Assigned to Me; with your own Time Writing story under it, the confirmation names that story; after creating, the Task is under your story in Azure DevOps, not under the colleague's; a Feature where your only story is Removed, or that is Closed, is not listed.
 
+**TC-ATM-16 Leave in Bulk actions** — Req ATM-24 — L1 `my-work.test.mjs` ("leave in Bulk actions: my PTO / Sick / Unplanned Features under the Epic, apart from work; training and others not (TC-ATM-16)"); browser check: Bulk actions → Create month tasks shows a Leave list with your PTO / Sick / Unplanned Features, unticked; the work count and Assigned to Me's "tasks missing" do not include them; ticking one adds it to Create n tasks and creates its month Task.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -697,6 +699,8 @@ Cases marked **UAT** are also run in acceptance testing.
   - (2) Nothing is saved: "changed in Azure DevOps since you opened it".
   - (3) The Feature and its open User Stories move; the Time Writing story does not.
   - (4) Original Estimate is locked; the Task is tagged ad-hoc when it had no estimate; the iteration and the month in the title cannot change.
+
+**TC-BKL-12 Backlog filtered to me; ＋ Time Writing Task** — Req BKL-21, BKL-22 — E2E `backlog.e2e.mjs` ("TC-BKL-12: QMS-0025 opens filtered to the person browsing; clearing the filter shows everyone; rows offer ＋ Time Writing Task"); L1 `my-work.test.mjs` ("QMS-0025 shows mine by default: my items with everything above and below; featureOf finds the Feature of a Story (TC-BKL-12)"); browser check with the QMS-0025 board and your work email: the backlog shows your items with their Epic / Feature above and the work below; Assigned to me ✕ clears to everyone and a restart filters again; ＋ Time Writing Task on a Feature (and on a Story) creates this month's Task for you under your own Time Writing story, or reports that it exists; the same button on Assigned to Me rows.
 
 **TC-CON-45 Git view data with another query is not applied** — Req CON-77 — L1 `git-snapshots.test.mjs` ("a snapshot fetched with another query than the connection has here is not applied"); browser check:
 - Pre: Git storage connected; the DP connection's query changed here; Git holds DP data fetched with the old query.
@@ -1377,6 +1381,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-21 | TC-ATM-13 |
 | ATM-22 | TC-ATM-14 |
 | ATM-23 | TC-ATM-15 |
+| ATM-24 | TC-ATM-16 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
@@ -1388,6 +1393,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-18 | TC-BKL-09 |
 | BKL-19 | TC-BKL-10 |
 | BKL-20 | TC-BKL-11 |
+| BKL-21 | TC-BKL-12 |
+| BKL-22 | TC-BKL-12 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |

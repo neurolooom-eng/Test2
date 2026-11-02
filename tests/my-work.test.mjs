@@ -368,3 +368,34 @@ test('Team Holidays and Training: my Training story gets its month Task; leave t
   assert.deepEqual(rows2.map((row) => row.feature.id), [80], 'the Training Feature is offered; the PTO Feature is not')
   assert.deepEqual([rows2[0].status, rows2[0].storyTitle], ['needs-task', 'Training - Time Writing'], 'under my own Training story')
 })
+
+test('leave in Bulk actions: my PTO / Sick / Unplanned Features under the Epic, apart from work; training and others not (TC-ATM-16)', async () => {
+  const { leaveTaskCandidates } = await import('../src/myWork.ts')
+  const rows = [
+    item(1, 'Epic', 'CP'), item(37778, 'Epic', 'Team Holidays and Training'),
+    item(90, 'Feature', 'Ana Costa - PTO', { parentId: 37778, ...ana }), item(91, 'User Story', 'Ana - Time Writing', { parentId: 90, ...ana }),
+    item(92, 'Feature', 'Leave - Sick', { parentId: 37778, ...ben }), item(93, 'User Story', 'Ana sick leave', { parentId: 92, ...ana, state: 'Closed' }),
+    item(94, 'Feature', 'Ben Okafor - PTO', { parentId: 37778, ...ben }),
+    item(80, 'Feature', 'Training', { parentId: 37778, ...ben }), item(81, 'User Story', 'Training - Time Writing', { parentId: 80, ...ana }),
+    item(95, 'Feature', 'Ana Costa - Unplanned leave', { parentId: 37778, ...ana, state: 'Closed' }),
+    item(2, 'Feature', 'CP | Care Pathways | v3.1', { parentId: 1, ...ana }),
+  ]
+  const leave = leaveTaskCandidates(rows, me, 'October 2026', 37778)
+  assert.deepEqual(leave.map((row) => [row.feature.id, row.leave, row.status]), [[90, true, 'needs-task'], [92, true, 'needs-story']], "mine (or holding my story), open, not training, not Ben's, not work")
+  assert.deepEqual(monthTaskCandidates(rows, me, 'October 2026', 37778).map((row) => row.feature.id).sort(), [2, 80], 'work and training only: leave is never counted as missing')
+  assert.deepEqual(leaveTaskCandidates(rows, me, 'October 2026', undefined), [], 'no Epic set, no leave')
+})
+
+test('QMS-0025 shows mine by default: my items with everything above and below; featureOf finds the Feature of a Story (TC-BKL-12)', async () => {
+  const { mineWithContext, featureOf } = await import('../src/myWork.ts')
+  const tree = [
+    item(1, 'Epic', 'CP'), item(2, 'Feature', 'CP | A', { parentId: 1, ...ben }), item(3, 'User Story', 'Mine', { parentId: 2, ...ana }), item(4, 'Task', 'Under mine', { parentId: 3, ...ben }),
+    item(5, 'Feature', 'CP | B', { parentId: 1, ...ana }), item(6, 'User Story', 'Ben under my Feature', { parentId: 5, ...ben }),
+    item(7, 'Feature', 'CP | C', { parentId: 1, ...ben }), item(8, 'User Story', 'Ben only', { parentId: 7, ...ben }),
+    item(9, 'Epic', 'Other'),
+  ]
+  assert.deepEqual(mineWithContext(tree, me).map((row) => row.id), [1, 2, 3, 4, 5, 6], 'context above (Epic, Feature), work below; nothing of Ben only, no empty Epic')
+  assert.equal(featureOf(tree, tree[3]).id, 2, 'a Task finds its Feature through its Story')
+  assert.equal(featureOf(tree, tree[1]).id, 2, 'a Feature is its own')
+  assert.equal(featureOf(tree, tree[0]), undefined, 'an Epic has none')
+})
