@@ -711,6 +711,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-49 Successor and Predecessor IDs of a view of its own** — Req CON-81 — L1 `azure-devops.test.mjs` ("Predecessor and Successor IDs come from the Dependency links of each work item (TC-CON-49)"); browser check (desktop app, on-prem): add a connection with its own name (not a stream name) and a query returning items that have Successor / Predecessor links, fetch — the query view ends with **Successor ID** and **Predecessor ID**, listing each linked ID once ("501, 502"), sortable, found by search and present in the CSV; an item without links shows them empty; the DP / IOCC stream views show no such columns; after Save data to Git the web app shows the same columns.
 
+**TC-CON-50 Work email as its own setting** — Req CON-82 — L1 `work-email.test.mjs` ("your work email is its own setting: saved and read, never taken from the first connection or changed by a Git sync (TC-CON-50)"; "first start: the email on the Time Writing connection becomes the setting only after the shared-email clean-up ran (TC-CON-50)"); E2E `shell.e2e.mjs` (TC-SET-06: *Your work email* is the first section of Azure DevOps); browser check (desktop app): enter the email under Settings → Azure DevOps → Your work email, Force Update and restart — the email is still there, Assigned to Me shows your work and the access role is yours; edit and save the Time Writing connection (no email field) — the email is unchanged; Get started points to Your work email while it is empty.
+
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
 **TC-CON-43 Title fields in the Feature setup** — Req CON-75 — L1 `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup …"); browser check with GitHub mocked: Settings → Feature setup → an Epic → ＋ Add title field three times (Platform / Custom.Platform, Release Name, Number), the preview of a story titled "{Platform} review" with the sample "CP 2 | Atlas | 4.1" shows "CP 2 review"; Save to Git writes titleFields; a sixth field cannot be added.
@@ -1321,6 +1323,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-79 | TC-CON-47 |
 | CON-80 | TC-CON-48 |
 | CON-81 | TC-CON-49 |
+| CON-82 | TC-CON-50 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |

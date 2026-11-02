@@ -135,6 +135,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
   const tab = settingsPagesFor(shared).some((page) => page.key === requested) ? requested : 'connections'
   return <Page>
     {tab === 'connections' && <SectionTabs page="connections" sections={[
+      { key: 'email', label: 'Your work email', node: <AzureConnections section="email" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
       { key: 'servers', label: 'Servers and PATs', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
       { key: 'mapping', label: 'Stream mapping', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
       { key: 'views', label: 'Other views', node: <AzureConnections section="views" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
