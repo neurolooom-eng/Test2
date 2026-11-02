@@ -705,6 +705,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-47 Admin stream mapping enforced through Git** — Req CON-79 — L1 `view-definitions.test.mjs` ("Git connection setup is the default: added and followed; the stream mapping is enforced, other views kept when changed here; PATs kept (TC-CON-47)"); browser check with two browsers and Git storage connected: as an admin (Manage shared settings), change the CP query in Settings → Azure DevOps → Stream mapping and Save — the notice says it was saved to Git and the commit "Stream mapping: CP" is in the data repository; as another user, change the CP query locally, reload: the admin's query is back and the start message names CP as applied from the admin's mapping; the user's own extra "CP …" connection is not the one Release Details → CP opens; as the admin with a read-only token, a change says "saved here only" and survives a reload; Save stream mapping to Git writes it once the token can write.
 
+**TC-CON-48 Work email never shared through Git** — Req CON-80 — L1 `view-definitions.test.mjs` ("the work email is personal: never written to Git, ignored in the file, kept here; an inherited one is cleared once (TC-CON-48)"); browser check: as an admin with a Time Writing email, Save connections to Git — `azure-views.json` has no `creatorEmail`; as a new user (empty browser, Git storage connected to a file that still has the admin's email) — after the start sync, Settings → Azure DevOps shows the Time Writing connection with **Work email missing**, the access role is the default one, and after entering their own email and restarting it stays; a user who had already received the admin's email sees the start message asking for their own email once, and their email entered afterwards is kept; no page errors.
+
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
 **TC-CON-43 Title fields in the Feature setup** — Req CON-75 — L1 `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup …"); browser check with GitHub mocked: Settings → Feature setup → an Epic → ＋ Add title field three times (Platform / Custom.Platform, Release Name, Number), the preview of a story titled "{Platform} review" with the sample "CP 2 | Atlas | 4.1" shows "CP 2 review"; Save to Git writes titleFields; a sixth field cannot be added.
@@ -1311,6 +1313,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-77 | TC-CON-45 |
 | CON-78 | TC-CON-46 |
 | CON-79 | TC-CON-47 |
+| CON-80 | TC-CON-48 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
