@@ -252,4 +252,8 @@ test('back up and clean up: every connection removed, PATs kept per server, the 
   assert.deepEqual(listAzureConnectionProfiles(user).map((view) => view.id), ['dp-new'])
   assert.equal(loadAzureConnectionProfile('dp-new', user).token, 'user-pat', 'the server PAT serves the new connection')
   assert.equal(resetPending(null, user), false, 'no marker in Git: nothing pending')
+  // A later clean-up applies even when the earlier marker carried a future time (an admin's wrong clock).
+  markResetApplied('2999-01-01T00:00:00.000Z', user)
+  assert.equal(resetPending('2026-11-03T09:00:00.000Z', user), true)
+  assert.deepEqual(applyViewsReset('2026-11-03T09:00:00.000Z', user).map((view) => view.id), ['dp-new'])
 })

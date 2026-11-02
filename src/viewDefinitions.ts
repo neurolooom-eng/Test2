@@ -229,7 +229,8 @@ export function resetPending(resetAt: string | null, storage: Pick<Storage, 'get
   if (!resetAt) return false
   let seen = ''
   try { seen = storage.getItem(resetSeenKey) ?? '' } catch { seen = '' }
-  return !seen || Date.parse(seen) < Date.parse(resetAt)
+  // Any reset not applied here yet, whatever its time: a marker dated in the future (a wrong clock) never blocks a later one.
+  return seen !== resetAt
 }
 // At start: a reset in Git newer than the last one applied here removes every connection here. Returns the removed ones,
 // or null when there is nothing to apply.

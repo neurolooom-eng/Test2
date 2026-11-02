@@ -217,6 +217,7 @@ This document lists every software component of the system: the in-house source 
 | vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag). | CI, UPD |
 | index | `index.html` | HTML entry page with favicon, title and root element loading src/main.tsx. | — |
 | build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
+| dependabot | `.github/dependabot.yml` | Weekly update pull requests for the GitHub Actions pinned to commit SHAs in the workflow (KB-08). | CI |
 | buildInfo | `src/buildInfo.ts` | Exposes the build metadata injected by Vite as `appBuild`. | UPD |
 
 ### 1.9 Automated tests
@@ -319,7 +320,7 @@ The app has **no other runtime dependency**: CSV, Markdown and .xlsx handling (`
 |---|---|---|
 | Node.js | 24 in CI (`actions/setup-node@v4`, `node-version: 24`); 22.12 or later required by Electron 44 | Runs the tests, the build and the desktop main process. |
 | pnpm | 11.19.0 (`packageManager` field; `pnpm/action-setup@v4`) | Package manager with a frozen lockfile in CI. |
-| GitHub Actions | `actions/checkout@v4`, `pnpm/action-setup@v4`, `actions/setup-node@v4`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v5` | CI/CD (`.github/workflows/build-and-deploy.yml`): Windows validate and package, end-to-end tests (runner pinned to `ubuntu-24.04`: Playwright 1.56 has no Chromium for Ubuntu 26.04), macOS package, publish `desktop-latest`, build and deploy GitHub Pages. |
+| GitHub Actions | `actions/checkout@v4`, `pnpm/action-setup@v4`, `actions/setup-node@v4`, `actions/upload-artifact@v4`, `actions/download-artifact@v4`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v5`, each pinned to the commit SHA of that tag (updated by Dependabot) | CI/CD (`.github/workflows/build-and-deploy.yml`): Windows validate and package, end-to-end tests (runner pinned to `ubuntu-24.04`: Playwright 1.56 has no Chromium for Ubuntu 26.04), macOS package, publish `desktop-latest`, build and deploy GitHub Pages. |
 | GitHub Pages | — | Hosts the web app (static files only). |
 | GitHub Releases `desktop-latest` | — | Hosts the installers, SHA256SUMS and `latest.json` for the desktop updater. |
 | Browsers | Latest Chrome / Edge (Windows), Chrome / Safari (macOS) per TEST-PLAN.md §3 | Web app runtime; IndexedDB and localStorage. |
