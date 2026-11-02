@@ -263,6 +263,26 @@ test('TC-UI-04 / TC-UI-05: every table follows the table default — move, hide,
   await context.close()
 })
 
+test('TC-UI-06: the page tables follow the table default too — My Work keeps its tree, Backlog Health its lists, each with Columns and one Export', async () => {
+  const { page, context, errors } = await openPage(app)
+  await page.getByRole('button', { name: 'Load synthetic sample' }).click()
+  await navigate(page, 'Assigned to Me')
+  const pick = page.locator('input[placeholder^="Choose a person"]').first()
+  await pick.click(); await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter')
+  const work = page.locator('.data-table').first()
+  await work.locator('button.tree-toggle').first().click()
+  assert.ok(await work.locator('tr.work-child').count() > 0, 'a Feature opens its children as rows of the same table')
+  assert.equal(await work.getByRole('button', { name: /^Columns/ }).count(), 1)
+  assert.equal(await work.getByRole('button', { name: /^Export/ }).count(), 1)
+  await navigate(page, 'Backlog Health')
+  assert.equal(await page.getByRole('button', { name: 'Export CSV' }).count(), 0, 'no second export: the table has its own')
+  assert.equal(await page.locator('.data-table').getByRole('button', { name: /^Columns/ }).count(), 1)
+  await navigate(page, 'Baselines')
+  assert.ok(await page.locator('.data-table').count() >= 1, 'Baselines tables on the default')
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
 test('TC-QV-18: Pulse Check shows the Supported summary next to Releases, with the S&S IT export\'s releases of the month', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, 'Import Windchill export')

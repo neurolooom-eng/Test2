@@ -1,4 +1,5 @@
 import { windchillReleases, windchillSupported } from '../windchillReleases'
+import { DataTable } from '../components/DataTable'
 import { SupportedReleasesTable } from '../components/DpMonthCounts'
 import { useState } from 'react'
 import { ReleaseQuadrants, SupportedSummary, type SupportedLine } from '../components/ReleaseQuadrants'
@@ -62,7 +63,13 @@ export function PulseCheckPage({ month, azure, store, my, navigate, windchill, o
       {dpList && stream.supportedReleases!.length > 0 && <SupportedReleasesTable releases={stream.supportedReleases!} />}
     </TablePanel>)}
     {exports.length > 0 && <TablePanel title="Windchill exports" info={<p>The Windchill streams (S&amp;S IT; ECP later): the export named like the stream, rows as last imported, and the unique releases read from the document names (release name, release number, then the document name). Open one for the release list, its columns, search and filters.</p>} count={`${exports.length} stream${exports.length === 1 ? '' : 's'}`}>
-      <table><thead><tr><th>Stream</th><th>Rows</th><th>Releases</th><th>Imported</th><th /></tr></thead><tbody>{exports.map(({ name, view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return <tr key={view?.id ?? name}><td><strong>{name}</strong>{view?.exportFile && <small>{view.exportFile}</small>}</td><td>{source ? source.rows.length : '—'}</td><td>{source ? (() => { const found = windchillReleases(source.rows, source.columns.length ? source.columns : view?.columns ?? [], view ? windchillOptionsForView(view) : {}); return <>{found.releases.length}<small>unique, from document names</small></> })() : '—'}</td><td>{view ? source ? formatDateTime(source.fetchedAt) : 'Not imported yet' : 'No export named like the stream yet'}</td><td><button type="button" className="text-button" onClick={() => openWindchill(view?.id ?? '')}>{view ? 'Open →' : 'Import →'}</button></td></tr> })}</tbody></table>
+      <DataTable id="pulse:windchill-exports" rows={exports} rowKey={(entry) => entry.view?.id ?? entry.name} exportName="Windchill exports" columns={[
+        { id: 'stream', label: 'Stream', value: ({ name }) => name, render: ({ name, view }) => <><strong>{name}</strong>{view?.exportFile && <small>{view.exportFile}</small>}</> },
+        { id: 'rows', label: 'Rows', align: 'right', value: ({ view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return source ? source.rows.length : '' } },
+        { id: 'releases', label: 'Releases', align: 'right', value: ({ view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return source && view ? windchillReleases(source.rows, source.columns.length ? source.columns : view.columns, windchillOptionsForView(view)).releases.length : '' } },
+        { id: 'imported', label: 'Imported', value: ({ view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return source?.fetchedAt ?? '' }, render: ({ view }) => { const source = view ? windchill.sources.find((entry) => entry.viewId === view.id) : undefined; return view ? source ? formatDateTime(source.fetchedAt) : 'Not imported yet' : 'No export named like the stream yet' } },
+        { id: 'open', label: '', sortable: false, export: false, render: ({ view }) => <button type="button" className="text-button" onClick={() => openWindchill(view?.id ?? '')}>{view ? 'Open →' : 'Import →'}</button> },
+      ]} />
     </TablePanel>}
   </>
   const tabLabels: [Tab, string][] = [['releases', `Releases · ${monthName(last)}`], ['last', `Last month · ${monthName(last)}`], ['ongoing', 'Ongoing activities'], ['current', `Current month releases · ${monthName(month)}`], ['pack', `Monthly pack · ${monthName(last)}`]]
@@ -92,9 +99,16 @@ function Ongoing({ azure, month, absenceEpicId }: { azure: AzureWorkspace; month
     <TablePanel title="Ongoing activities" info={<ul><li>Features and User Stories whose State is Active, In Progress, Committed or Doing, per stream (the Epic above them); work under the absence Epic is left out.</li><li>Booked = Completed Work in {monthName(month)} on the month's Time Writing Tasks below the item.</li><li>Past Target Date = still in progress after the Target Date.</li></ul>}
       count={`${shown.length} of ${work.items.length}`} action={<label className="inline-select">Stream<select value={stream} onChange={(event) => setStream(event.target.value)}><option value="">All streams</option>{work.streams.map((name) => <option key={name}>{name}</option>)}</select></label>}
       empty={shown.length ? undefined : 'Nothing in progress.'}>
-      {shown.length > 0 && <table><thead><tr><th>Stream</th><th>Item</th><th>State</th><th>Assigned to</th><th>Iteration</th><th>Target date</th><th>Booked {monthName(month)}</th></tr></thead><tbody>
-        {shown.map(({ item, stream: name, feature, booked, overdue }) => <tr key={item.key}><td>{name}</td><td><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> <strong className="inline">{item.title}</strong><small>{item.workItemType}{item.workItemType === 'User Story' && feature ? ` · ${feature.title}` : ''}</small></td><td><Pill tone="open">{item.state}</Pill></td><td>{item.assignedTo || <span className="muted">Unassigned</span>}</td><td><small className="plain">{item.iterationPath.split('\\').slice(1).join(' › ') || item.iterationPath}</small></td><td className={overdue ? 'negative' : ''}>{item.targetDate ? formatDate(item.targetDate) : '—'}{overdue && <small>past</small>}</td><td>{booked ? formatHours(booked) : '—'}</td></tr>)}
-      </tbody></table>}
+      {shown.length > 0 && <DataTable id="pulse:ongoing" rows={shown} rowKey={(row) => row.item.key} exportName={`Ongoing activities ${month}`} columns={[
+        { id: 'stream', label: 'Stream', value: (row) => row.stream },
+        { id: 'item', label: 'Item', value: (row) => `#${row.item.id} ${row.item.title}`, render: ({ item, feature }) => <><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> <strong className="inline">{item.title}</strong><small>{item.workItemType}{item.workItemType === 'User Story' && feature ? ` · ${feature.title}` : ''}</small></> },
+        { id: 'type', label: 'Type', value: (row) => row.item.workItemType, defaultHidden: true },
+        { id: 'state', label: 'State', value: (row) => row.item.state, render: (row) => <Pill tone="open">{row.item.state}</Pill> },
+        { id: 'assigned', label: 'Assigned to', value: (row) => row.item.assignedTo, render: (row) => row.item.assignedTo || <span className="muted">Unassigned</span> },
+        { id: 'iteration', label: 'Iteration', value: (row) => row.item.iterationPath.split('\\').slice(1).join(' › ') || row.item.iterationPath, render: (row) => <small className="plain">{row.item.iterationPath.split('\\').slice(1).join(' › ') || row.item.iterationPath}</small> },
+        { id: 'target', label: 'Target date', value: (row) => row.item.targetDate ?? '', firstSortDesc: true, className: '', render: (row) => <span className={row.overdue ? 'negative' : ''}>{row.item.targetDate ? formatDate(row.item.targetDate) : '—'}{row.overdue && <small>past</small>}</span> },
+        { id: 'booked', label: `Booked ${monthName(month)}`, align: 'right', firstSortDesc: true, value: (row) => row.booked || '', render: (row) => row.booked ? formatHours(row.booked) : '—' },
+      ]} />}
     </TablePanel>
   </>
 }

@@ -1187,6 +1187,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-UI-04 Tables follow one design default** — Req UI-07, UI-08, UI-09, UI-10, UI-12 — L1 `table-defaults.test.mjs` ("table defaults: unknown values dropped, missing ones from the built-in default (TC-UI-04)", "column layout: saved order first, new columns where they stand; ↑ ↓ and drag moves (TC-UI-04)"); E2E `documents-and-data.e2e.mjs` ("TC-UI-04 / TC-UI-05: every table follows the table default — move, hide, density, one Export with Excel dates; Settings → Table defaults changes them all"); browser check: on DP, IOCC, a Windchill export's Releases, unique locations and Raw data — drag a heading onto another and use ↑ ↓ in Columns (1, 2, 3 → 2, 3, 1), untick a column, drag a heading edge, switch Wrap text and Compact, reload: the layout stays; Reset layout restores it; each table has one Export (no Export CSV / Export releases CSV buttons left); in Settings → Table defaults untick CSV — every Export offers Excel only; untick Move columns — no table can be rearranged.
 
 **TC-UI-05 Dates exported as Excel date-times** — Req UI-10, UI-11 — L1 `table-defaults.test.mjs` ("export: dates become real date-times in Excel and CSV; numbers stay numbers; formulas neutralised (TC-UI-05)"); E2E `documents-and-data.e2e.mjs` (as TC-UI-04); browser check: export DP's query output as Excel and as CSV, open both in Excel — Changed Date / DDT Date are dates (right-aligned, formattable as Long Date and time), numbers are numbers, a cell starting with "=" stays text.
+
+**TC-UI-06 Page tables on the table default** — Req UI-13 — E2E `documents-and-data.e2e.mjs` ("TC-UI-06: the page tables follow the table default too — My Work keeps its tree, Backlog Health its lists, each with Columns and one Export"); browser check: on Pulse Check (Ongoing activities, Windchill exports, Supported Releases), CP, Baselines, Snapshots, Assigned to Me, Bulk actions, Monthly Time Writing and Backlog Health — every table has Columns, Wrap text, Comfortable / Compact and one Export ▾ (Excel / CSV); the summary tables — Dashboard, Pulse Check's release counts / last vs this month / work closed and opened, the capacity summaries, Insights, the Monthly pack KPI table and Documentation — stay plain, without that toolbar; open a Feature on Assigned to Me — its Stories and Tasks appear as rows under it; Backlog Health has no Export CSV or Columns dialog of its own; Monthly Time Writing's Original Estimate / Completed Work cells still edit.
 - L3 steps:
   1. Click the toggle three times.
   2. Load `?theme=dark` and then reload without the parameter.
@@ -1515,6 +1517,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UI-10 | TC-UI-04, TC-UI-05 |
 | UI-11 | TC-UI-05 |
 | UI-12 | TC-UI-04 |
+| UI-13 | TC-UI-06 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
 | CI-06 | TC-CI-02 |

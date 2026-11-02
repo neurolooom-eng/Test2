@@ -45,7 +45,9 @@ export interface DataTableProps<T> {
   onSort?: (sort: { id: string; desc: boolean }) => void
   rowClassName?: (row: T) => string | undefined
   empty?: ReactNode
-  footer?: ReactNode // rows after the data (e.g. totals), drawn as given
+  footer?: ReactNode // rows after the data, drawn as given
+  // A totals row that follows the columns as they are moved or hidden: a value per column id, the label in the first column without one.
+  totals?: { label?: string; values: Record<string, ReactNode> }
   className?: string
   caption?: string
   // A row's detail (e.g. its documents), drawn under it across all columns when given.
@@ -53,9 +55,12 @@ export interface DataTableProps<T> {
   // Grouped rows (e.g. IOCC by Type of Release): the owner lays out group rows and calls row() for each data row; span
   // is the number of columns shown.
   group?: (rows: T[], row: (row: T) => ReactNode[], span: number) => ReactNode[]
+  // Child rows drawn under a row with the same columns (a tree, e.g. a Feature's User Stories and Tasks); the owner
+  // returns them only while the row is open.
+  subRows?: (row: T) => T[] | undefined
 }
 
-export function DataTable<T>({ id, columns, rows, rowKey, exportName, toolbar, status, limit, defaultSort, sort: controlledSort, onSort, rowClassName, empty, footer, className = '', caption, expand, group }: DataTableProps<T>) {
+export function DataTable<T>({ id, columns, rows, rowKey, exportName, toolbar, status, limit, defaultSort, sort: controlledSort, onSort, rowClassName, empty, footer, className = '', caption, expand, group, totals, subRows }: DataTableProps<T>) {
   const defaults = useTableDefaults()
   const widths = useColumnWidths(`table:${id}`, defaults.defaultWrap)
   const [layout, setLayoutState] = useState<TableLayout>(() => readLayout(id))
@@ -113,7 +118,7 @@ export function DataTable<T>({ id, columns, rows, rowKey, exportName, toolbar, s
     return [<tr key={key} className={rowClassName?.(row)}>{shownColumns.map((column) => {
       const value = valueOf(column, row)
       return <td key={column.id} style={defaults.resize ? widths.style(column.id) : undefined} className={[column.align ? `align-${column.align}` : '', column.className ?? ''].filter(Boolean).join(' ') || undefined} title={column.title?.(row) ?? (typeof value === 'string' && value.length > 40 ? value : undefined)}>{column.render ? column.render(row) : value instanceof Date ? value.toLocaleString() : value ?? ''}</td>
-    })}</tr>, ...(detail ? [<tr key={`${key}/detail`} className="data-table-detail"><td colSpan={shownColumns.length}>{detail}</td></tr>] : [])]
+    })}</tr>, ...(detail ? [<tr key={`${key}/detail`} className="data-table-detail"><td colSpan={shownColumns.length}>{detail}</td></tr>] : []), ...(subRows?.(row) ?? []).flatMap((child, childIndex) => rowLines(child, childIndex))]
   }
   const exported = [...fixed, ...ordered].filter((column) => column.value && (column.export === 'always' || (column.export !== false && shownColumns.includes(column))))
   const exportRows = () => sorted.map((row) => exported.map((column) => valueOf(column, row)))
@@ -161,7 +166,7 @@ export function DataTable<T>({ id, columns, rows, rowKey, exportName, toolbar, s
           {defaults.resize && widths.handle(column.id, column.label)}
         </th>
       })}</tr></thead>
-      <tbody>{group ? group(drawn, (row) => rowLines(row, drawn.indexOf(row)), shownColumns.length) : drawn.flatMap(rowLines)}{footer}</tbody>
+      <tbody>{group ? group(drawn, (row) => rowLines(row, drawn.indexOf(row)), shownColumns.length) : drawn.flatMap(rowLines)}{totals && <tr className="matrix-total">{shownColumns.map((column, index) => <td key={column.id} className={column.align ? `align-${column.align}` : undefined}>{column.id in totals.values ? totals.values[column.id] : index === shownColumns.findIndex((entry) => !(entry.id in totals.values)) ? totals.label ?? 'Total' : ''}</td>)}</tr>}{footer}</tbody>
     </table></div> : empty}
     {limit && sorted.length > limit && <p className="muted">Showing the first {limit} of {sorted.length} rows; search or filter to narrow{exportName ? ', or Export for all' : ''}.</p>}
   </div>
