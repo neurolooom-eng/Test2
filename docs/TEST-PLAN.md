@@ -837,6 +837,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-QV-23 Windchill releases matched to the QMS-0025 board** — Req QV-39 — L1 `dp-board-match.test.mjs` ("Windchill release (S&S IT) → QMS-0025: the same search with the release name and number; Create Feature title (TC-QV-23)"); browser check with the QMS-0025 board loaded (one Feature "Remote Diagnostics v1.6") and an S&S IT export holding Remote Diagnostics 1.6 and another release: the first row shows "Feature id n%" as a link; the other shows "no match" or the closest item and Create Feature, which opens the default New Feature form titled "S&S IT | name | vrelease"; sorting by the column and the releases CSV carry the match; no page errors. **UAT**
 
 **TC-QV-26 Create Feature on every stream's releases** — Req QV-46, QV-31 — L1 `dp-board-match.test.mjs` ("IOCC, Content and Tool Validations releases → QMS-0025: the same search, Create Feature when nothing matches (TC-QV-26)"); browser check with the QMS-0025 board loaded and an IOCC and a Tool Validations view fetched: each release table ends with **QMS-0025 match**; a release whose Feature is on the board shows "Feature id n%" (and "Story id n%"); a release without one shows the closest item or "no match" and **Create Feature**, which opens the New Feature form titled "IOCC \| {Type of Release} {name} \| v{release}" (Tool Validations: "Tool Validations \| {tool} \| v{release}") under the Epic named like the stream; the Time Writing Feature column has no button; without the board loaded the cell reads "board not loaded" and Create Feature stays offered (disabled with its reason when it cannot open); no page errors.
+**TC-QV-27 Consolidation and raw data on two tabs** — Req QV-47 — E2E `documents-and-data.e2e.mjs` ("TC-CON-39 / TC-CON-37 / TC-QV-27: a Windchill export lists its unique releases, clubbed names included, its raw rows on their own tab, and exports a neutralised CSV"); browser check: open DP, CP, IOCC, Content and Tool Validations under Release Details — each shows its releases (CP report) first and the query rows only on the "Query output (n)" tab; open S&S IT and an ECP export — Releases / Projects first, the imported rows with search and Export CSV on "Raw data (n)"; the tab chosen stays when moving between pages.
+
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
 
@@ -1243,6 +1245,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-QEM-07 Collapse all / Expand all** — Req QEM-10 — browser check: group the QE Mapping by a column with several values; Collapse all closes every group (only the group rows and their counts stay; Collapse all is disabled, Expand all enabled); Expand all opens them all; open one group by hand after Collapse all (both buttons enabled); with no grouping, or a single group, the buttons are not shown.
 
 **TC-QEM-08 Nested grouping** — Req QEM-11 — L1 `qe-mapping.test.mjs` ("nested grouping: groups within groups, keys unique per path, counts per level (QEM-11)"); browser check: Group by Area, then by Owner — each Area row holds its Owner groups, indented, with their counts; collapse one Owner group under one Area (the same Owner under another Area stays open); Collapse all closes every level and Expand all opens them; change the first level (the second is dropped); in a column menu, Then group by this adds a level and Remove from grouping removes it; a fourth level is the last (no fifth select).
+**TC-QEM-09 Add a row in a pop-up, saved to Git, QE Name from Resources** — Req QEM-12 — L1 `qe-mapping.test.mjs` ("add a row: the QE Name column is found for the Resources list, the row comes first with its values (TC-QEM-09)"); browser check (Git connected with a token that can write): QE Mapping → ＋ Add row opens "Add a row" with a field per column, the QE Name a list of the Resources; fill it and Save — the row appears first and "Row added and the QE Mapping saved to Git" links the commit; clicking a QE Name cell offers the same list; with Git refusing (e.g. a concurrent change), the row stays as an unsaved change with the reason.
+
 
 ### 6.22 Monthly pack
 
@@ -1445,6 +1449,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-44 | TC-QV-25 |
 | QV-45 | TC-QV-25 |
 | QV-46 | TC-QV-26 |
+| QV-47 | TC-QV-27 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1512,6 +1517,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QEM-09 | TC-QEM-06 |
 | QEM-10 | TC-QEM-07 |
 | QEM-11 | TC-QEM-08 |
+| QEM-12 | TC-QEM-09 |
 | PCK-01, PCK-06 | TC-PCK-01, TC-PCK-04 |
 | PCK-02 | TC-PCK-01, TC-PCK-04 |
 | PCK-03 | TC-PCK-03 |

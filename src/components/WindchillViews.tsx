@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { projectLevels, windchillCsv, windchillOps, windchillCell, type WindchillFilter, type WindchillLogic, type WindchillView } from '../windchillViews'
-import { defaultStreams } from '../streams'
+import { defaultStreams, windchillOptionsForView } from '../streams'
+import { ResultTabs } from './ResultTabs'
 import { formatDateTime } from '../format'
 import { downloadCsv } from '../download'
 import type { WindchillWorkspace } from '../useWindchill'
@@ -102,11 +103,12 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
     {status && <Notice tone={status.state === 'error' ? 'error' : status.state === 'busy' ? 'info' : 'success'}>{status.message}</Notice>}
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
     {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Fetch it from Windchill, or Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
-      : <><WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} onSetup={view.exportFile ? (setup) => windchill.setSetup(view.id, setup) : undefined} /><div className="query-view">
+      // QV-47: the consolidation (releases / projects) and the raw imported rows are two tabs of the page.
+      : <ResultTabs id={`wc:${view.id}`} mainLabel={windchillOptionsForView(view).project ? 'Projects' : 'Releases'} rawLabel={view.exportFile ? 'Raw data' : 'Query output'} rawCount={source.rows.length} main={<WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} onSetup={view.exportFile ? (setup) => windchill.setSetup(view.id, setup) : undefined} />} raw={<div className="query-view">
         <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span>{!view.exportFile && <Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill>}<button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
         <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
         {rows.length > 1000 && <p className="muted">Showing the first 1000 of {rows.length}; search to narrow, or export CSV for all.</p>}
-      </div></>}
+      </div>} />}
   </Panel>
 }
 
