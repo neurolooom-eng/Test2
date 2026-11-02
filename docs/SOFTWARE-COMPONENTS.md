@@ -22,6 +22,7 @@ This document lists every software component of the system: the in-house source 
 | fresh | `src/fresh.css` | Final "fresh look" style layer (white sidebar, soft canvas, borderless cards) built on the index.css tokens. | UI |
 | theme | `src/theme.ts` | Theme preference (system/light/dark): parse, cycle, resolve against prefers-color-scheme, apply and store per browser; `?theme=` support. | UI |
 | headerSlot | `src/headerSlot.ts` | React context for a header slot that pages can fill (e.g. the Team / Individual switch). | NAV |
+| workEmail | `src/workEmail.ts` | Your work email as its own setting on the computer: read, save, and the one-time take-over from the Time Writing connection (CON-82). | CON, ATM |
 | settingsTabs | `src/settingsTabs.ts` | The Settings pages (menu order, shared ones), the remembered page and the remembered section of each page (SET-14). | SET, CON, NAV |
 | index | `src/docs/index.ts` | Bundles docs/*.md at build time into the list of project documents shown on the Documentation page. | DOC |
 | registry | `src/pages/registry.ts` | Single source of page ids, labels, icons, sidebar groups, header text and month-picker use. | NAV |
@@ -258,6 +259,7 @@ This document lists every software component of the system: the in-house source 
 | setup-guide.test | `tests/setup-guide.test.mjs` | Get started step statuses for new, partly and fully set-up users. | NAV |
 | streams.test | `tests/streams.test.mjs` | Stream definitions, DP/IOCC/Tool Validations rules, fuzzy Feature match and Pulse Check streams. | QV, OVR |
 | theme.test | `tests/theme.test.mjs` | Theme preference parsing/cycling/`?theme=` and relative freshness labels. | UI |
+| work-email.test | `tests/work-email.test.mjs` | The work email setting: saved and read on its own, unchanged by Git syncs and connection edits, taken over once from the Time Writing connection only after the shared-email clean-up. | CON |
 | view-definitions.test | `tests/view-definitions.test.mjs` | Views file in Git, restore PAT rules, Git setup sync (stream mapping enforced), pending admin changes and Time Writing promotion. | CON, GIT |
 | view-sources.test | `tests/view-sources.test.mjs` | Each view shows its own fetch; legacy shared snapshot rule. | QV, FET |
 | windchill-bridge.test | `tests/windchill-bridge.test.mjs` | Windchill bookmarklet and result verification. | CON |
