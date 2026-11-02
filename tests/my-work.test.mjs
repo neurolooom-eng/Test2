@@ -381,9 +381,34 @@ test('leave in Bulk actions: my PTO / Sick / Unplanned Features under the Epic, 
     item(2, 'Feature', 'CP | Care Pathways | v3.1', { parentId: 1, ...ana }),
   ]
   const leave = leaveTaskCandidates(rows, me, 'October 2026', 37778)
-  assert.deepEqual(leave.map((row) => [row.feature.id, row.leave, row.status]), [[90, true, 'needs-task'], [92, true, 'needs-story']], "mine (or holding my story), open, not training, not Ben's, not work")
+  assert.deepEqual(leave.map((row) => [row.feature.id, row.story?.id, row.leave, row.status]), [[90, 91, true, 'needs-task'], [92, undefined, true, 'needs-story']], "mine (or holding my story), open, not training, not Ben's, not work")
   assert.deepEqual(monthTaskCandidates(rows, me, 'October 2026', 37778).map((row) => row.feature.id).sort(), [2, 80], 'work and training only: leave is never counted as missing')
   assert.deepEqual(leaveTaskCandidates(rows, me, 'October 2026', undefined), [], 'no Epic set, no leave')
+})
+
+test('a leave Feature with one story per leave type lists one row per story of mine, never "Choose story" (TC-ATM-18)', async () => {
+  const { leaveTaskCandidates } = await import('../src/myWork.ts')
+  const rows = [
+    item(37778, 'Epic', 'Team Holidays and Training'), item(37795, 'Feature', 'Ana Costa', { parentId: 37778, ...ana }),
+    item(96, 'User Story', 'PTO', { parentId: 37795, ...ana }), item(97, 'User Story', 'Sick Leave', { parentId: 37795, ...ana }),
+    item(98, 'Task', 'October 2026 | Sick Leave', { parentId: 97, ...ana }), item(99, 'User Story', 'Unplanned Leave', { parentId: 37795, ...ana, state: 'Closed' }),
+    item(100, 'User Story', 'PTO', { parentId: 37795, ...ben }),
+  ]
+  const leave = leaveTaskCandidates(rows, me, 'October 2026', 37778)
+  assert.deepEqual(leave.map((row) => [row.feature.id, row.story?.id, row.status, row.taskTitle]), [[37795, 96, 'needs-task', 'October 2026 | PTO'], [37795, 97, 'exists', 'October 2026 | Sick Leave']], 'my open stories only, each with its own status; Ben\'s and closed ones not listed')
+})
+
+test('ensureStoryMonthTask creates the month Task under the given story once, then reuses it (TC-ATM-18)', async () => {
+  const { ensureStoryMonthTask } = await import('../src/azureDevOps.ts')
+  const config = { organization: 'org', project: 'Quality', team: 'T' }
+  const world = new Map([[96, raw(96, { 'System.WorkItemType': 'User Story', 'System.Title': 'PTO', 'System.Parent': 37795 })], [5, raw(5, { 'System.WorkItemType': 'Feature', 'System.Title': 'F' })]])
+  const { transport, calls } = fakeAzure(world)
+  const first = await ensureStoryMonthTask(config, 'pat', 96, 'Ana@x.com', 'October 2026', transport)
+  assert.deepEqual([first.status, first.storyCreated, first.story.id, first.task.title, first.task.assignedToEmail, first.task.parentId], ['created', false, 96, 'October 2026 | PTO', 'ana@x.com', 96])
+  const again = await ensureStoryMonthTask(config, 'pat', 96, 'ana@x.com', 'October 2026', transport)
+  assert.deepEqual([again.status, again.task.id], ['exists', first.task.id], 'running again creates nothing')
+  assert.equal(calls.filter((call) => call.operation === 'create-child' && !call.validateOnly).length, 1)
+  await assert.rejects(ensureStoryMonthTask(config, 'pat', 5, 'ana@x.com', 'October 2026', transport), /not an accessible User Story/)
 })
 
 test('QMS-0025 shows mine by default: my items with everything above and below; featureOf finds the Feature of a Story (TC-BKL-12)', async () => {
