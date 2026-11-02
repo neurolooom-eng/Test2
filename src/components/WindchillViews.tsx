@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { projectLevels, windchillCsv, windchillOps, windchillCell, type WindchillFilter, type WindchillLogic, type WindchillView } from '../windchillViews'
+import { projectLevels, windchillOps, windchillCell, type WindchillFilter, type WindchillLogic, type WindchillView } from '../windchillViews'
 import { defaultStreams, windchillOptionsForView } from '../streams'
 import { ResultTabs } from './ResultTabs'
+import { DataTable, type DataColumn } from './DataTable'
+import { windchillDateValue } from '../windchillReleases'
 import { ViewActions } from './ViewActions'
 import { formatDateTime } from '../format'
-import { downloadCsv } from '../download'
 import type { WindchillWorkspace } from '../useWindchill'
 import type { GitStorage } from '../useGitStorage'
 import { EmptyState, Notice, Panel, Pill } from './ui'
@@ -92,7 +93,8 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
   const source = windchill.sources.find((entry) => entry.viewId === view.id), status = windchill.status[view.id]
   const columns = source?.columns.length ? source.columns : view.columns
   const rows = (source?.rows ?? []).filter((row) => !search.trim() || columns.some((column) => windchillCell(row, column).toLowerCase().includes(search.trim().toLowerCase())))
-  const csv = () => windchillCsv(columns, rows)
+  // UI-07…12: the raw rows follow the table default; a date written by Windchill ("27-Oct-2026 09:15") is exported as a date-time.
+  const rawColumns: DataColumn<Record<string, unknown>>[] = columns.map((column) => ({ id: column, label: column, value: (row) => windchillDateValue(windchillCell(row, column)), render: (row) => windchillCell(row, column) }))
   return <Panel className="connection-panel backlog-panel">
     <div className="view-source-bar"><div><strong>{view.name}</strong><span className="muted"> · {view.exportFile ? `Windchill export ${view.exportFile}` : view.entitySet}{source ? ` · ${source.rows.length} results · ${view.exportFile ? 'imported' : 'fetched'} ${formatDateTime(source.fetchedAt)}${source.fromGit ? ' (desktop app, via Git)' : ''}` : ''}</span></div>
       {/* QV-48: a small main action (import a newer file, or refresh a search) and the rest in a ⋯ menu. */}
@@ -106,11 +108,9 @@ export function WindchillPage({ view, windchill, git, gitNote, month, board }: {
     {gitNote && <div className={`notice ${gitNote.tone}`} role="status">{gitNote.text}</div>}
     {!source ? <EmptyState title={`“${view.name}” has not been fetched yet.`} detail="Fetch it from Windchill, or Open in browser, save the results (Ctrl+S) or copy them, then Import file or Paste results. Results saved to Git from another computer also appear here." />
       // QV-47: the consolidation (releases / projects) and the raw imported rows are two tabs of the page.
-      : <ResultTabs id={`wc:${view.id}`} mainLabel={windchillOptionsForView(view).project ? 'Projects' : 'Releases'} rawLabel={view.exportFile ? 'Raw data' : 'Query output'} rawCount={source.rows.length} main={<WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} onSetup={view.exportFile ? (setup) => windchill.setSetup(view.id, setup) : undefined} />} raw={<div className="query-view">
-        <div className="query-toolbar"><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} /><span className="muted">{rows.length} of {source.rows.length}</span>{!view.exportFile && <Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill>}<button type="button" className="ghost" onClick={() => downloadCsv(csv(), `${view.name.replace(/[^\w-]+/g, '-')}.csv`)}>Export CSV</button></div>
-        <div className="azure-table query-table"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.slice(0, 1000).map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{windchillCell(row, column)}</td>)}</tr>)}</tbody></table></div>
-        {rows.length > 1000 && <p className="muted">Showing the first 1000 of {rows.length}; search to narrow, or export CSV for all.</p>}
-      </div>} />}
+      : <ResultTabs id={`wc:${view.id}`} mainLabel={windchillOptionsForView(view).project ? 'Projects' : 'Releases'} rawLabel={view.exportFile ? 'Raw data' : 'Query output'} rawCount={source.rows.length} main={<WindchillReleasesPanel view={view} rows={source.rows} columns={columns} git={git} month={month} board={board} onSetup={view.exportFile ? (setup) => windchill.setSetup(view.id, setup) : undefined} />} raw={<DataTable id={`wc:${view.id}`} columns={rawColumns} rows={rows} rowKey={(_, index) => String(index)} exportName={view.name} limit={1000}
+        toolbar={<><input className="search" aria-label={`Search ${view.name}`} placeholder="Search all columns" value={search} onChange={(event) => setSearch(event.target.value)} />{!view.exportFile && <Pill tone="info">{view.filters.length} filter{view.filters.length === 1 ? '' : 's'}</Pill>}</>}
+        status={`${rows.length} of ${source.rows.length}`} />} />}
   </Panel>
 }
 
