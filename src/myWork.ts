@@ -48,7 +48,7 @@ export function matchesWork(row: { item: AzureWorkItem; feature?: AzureWorkItem;
 // holding a pending item of mine. Status comes from the cached backlog; creation re-checks Azure before writing.
 // Shared activities: a pending Feature owned by someone else is also mine to write time on when I had a month Task
 // under it (any month) or its Description @mentions me (my name, letter case ignored).
-export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string; taskTitle: string; status: 'exists' | 'needs-task' | 'needs-story' | 'conflict'; shared?: { owner: string; reason: 'earlier-task' | 'mention' }; leave?: boolean }
+export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string; taskTitle: string; status: 'exists' | 'needs-task' | 'needs-story' | 'conflict'; shared?: { owner: string; reason: 'earlier-task' | 'mention' }; leave?: boolean; story?: AzureWorkItem }
 const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" }
 // The Description as plain text: tags dropped, the common entities decoded, spaces collapsed.
 const plainText = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/&(amp|lt|gt|quot|apos|nbsp|#39);/g, (_, name: string) => entities[name]).replace(/\s+/g, ' ')
@@ -75,7 +75,19 @@ export function leaveTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
     const feature = item.workItemType === 'Feature' ? item : item.workItemType === 'User Story' ? chain.find((entry) => entry.workItemType === 'Feature') : undefined
     if (feature && isPending(feature)) featureIds.add(feature.id)
   }
-  return monthRows(items, me, monthLabel, featureIds, new Map()).map((row) => ({ ...row, leave: true }))
+  // ATM-26: a person's leave Feature holds one story per leave type (PTO, Sick Leave, Unplanned Leave): one row per
+  // story of theirs, the month Task going under that story; a leave Feature without a story of theirs keeps one row.
+  const month = timeWritingMonth(monthLabel) ?? ''
+  const rows: MonthTaskCandidate[] = []
+  for (const row of monthRows(items, me, monthLabel, featureIds, new Map())) {
+    const stories = items.filter((story) => story.parentId === row.feature.id && story.workItemType === 'User Story' && isMine(story, me) && isPending(story) && !isTrainingWork(story))
+    if (!stories.length) { rows.push({ ...row, leave: true }); continue }
+    for (const story of stories.sort((a, b) => a.title.localeCompare(b.title))) {
+      const has = items.some((task) => task.parentId === story.id && task.workItemType === 'Task' && task.state.trim().toLowerCase() !== 'removed' && isMine(task, me) && timeWritingMonth(task.title) === month)
+      rows.push({ feature: row.feature, story, storyTitle: story.title, taskTitle: `${monthLabel} | ${story.title.trim()}`, status: has ? 'exists' : 'needs-task', leave: true })
+    }
+  }
+  return rows
 }
 export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
   const chainOf = ancestry(items)
