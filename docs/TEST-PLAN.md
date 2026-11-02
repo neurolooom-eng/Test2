@@ -616,6 +616,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-16 Leave in Bulk actions** — Req ATM-24 — L1 `my-work.test.mjs` ("leave in Bulk actions: my PTO / Sick / Unplanned Features under the Epic, apart from work; training and others not (TC-ATM-16)"); browser check: Bulk actions → Create month tasks shows a Leave list with your PTO / Sick / Unplanned Features, unticked; the work count and Assigned to Me's "tasks missing" do not include them; ticking one adds it to Create n tasks and creates its month Task.
 
+**TC-ATM-17 Others' stories never block my month Task** — Req ATM-25 — L1 `my-work.test.mjs` ("a shared leave Feature where everyone keeps a story of the same title: mine is used, or a new one of mine — never \"Choose story\" (TC-ATM-17)"), `monthly-hours.test.mjs` ("Month task placement: …"); browser check: on a shared PTO Feature with colleagues' "PTO - Time Writing" stories, Bulk actions → Leave shows "Story + task missing" (no story of yours) or "Task missing" (your own story), never "Choose story"; creating puts the Task under your story.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -716,6 +718,10 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-CON-49 Successor and Predecessor IDs of a view of its own** — Req CON-81 — L1 `azure-devops.test.mjs` ("Predecessor and Successor IDs come from the Dependency links of each work item (TC-CON-49)"); browser check (desktop app, on-prem): add a connection with its own name (not a stream name) and a query returning items that have Successor / Predecessor links, fetch — the query view ends with **Successor ID** and **Predecessor ID**, listing each linked ID once ("501, 502"), sortable, found by search and present in the CSV; an item without links shows them empty; the DP / IOCC stream views show no such columns; after Save data to Git the web app shows the same columns.
 
 **TC-CON-50 Work email as its own setting** — Req CON-82 — L1 `work-email.test.mjs` ("your work email is its own setting: saved and read, never taken from the first connection or changed by a Git sync (TC-CON-50)"; "first start: the email on the Time Writing connection becomes the setting only after the shared-email clean-up ran (TC-CON-50)"); E2E `shell.e2e.mjs` (TC-SET-06: *Your work email* is the first section of Azure DevOps); browser check (desktop app): enter the email under Settings → Azure DevOps → Your work email, Force Update and restart — the email is still there, Assigned to Me shows your work and the access role is yours; edit and save the Time Writing connection (no email field) — the email is unchanged; Get started points to Your work email while it is empty.
+
+**TC-CON-51 QRE projects from Windchill** — Req CON-83 — L1 `windchill-releases.test.mjs` ("QRE: each release is a project \"PJ-<number> <name>\" from the Location folder at index 2 (TC-CON-51)"), `streams.test.mjs` ("default streams in order; connections and exports found by name"); browser check: import a Windchill export named "QRE" — Release Details → Windchill exports → QRE lists each PJ project once with its documents and latest date, the month filter follows the header month, Pulse Check → Supported shows "QRE [n] : PJ-1234 Name, …", and Create Feature proposes "QRE | PJ-1234 Name".
+
+**TC-CON-52 BRITE placeholder** — Req CON-84 — inspection: Release Details shows BRITE at its root; it opens "BRITE is not set up yet."; Pulse Check and the Monthly pack have no BRITE line.
 
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
@@ -1330,6 +1336,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-80 | TC-CON-48 |
 | CON-81 | TC-CON-49 |
 | CON-82 | TC-CON-50 |
+| CON-83 | TC-CON-51 |
+| CON-84 | TC-CON-52 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1382,6 +1390,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-22 | TC-ATM-14 |
 | ATM-23 | TC-ATM-15 |
 | ATM-24 | TC-ATM-16 |
+| ATM-25 | TC-ATM-17 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |

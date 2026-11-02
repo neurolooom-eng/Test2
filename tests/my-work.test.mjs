@@ -399,3 +399,18 @@ test('QMS-0025 shows mine by default: my items with everything above and below; 
   assert.equal(featureOf(tree, tree[1]).id, 2, 'a Feature is its own')
   assert.equal(featureOf(tree, tree[0]), undefined, 'an Epic has none')
 })
+
+test('a shared leave Feature where everyone keeps a story of the same title: mine is used, or a new one of mine — never "Choose story" (TC-ATM-17)', async () => {
+  const { leaveTaskCandidates } = await import('../src/myWork.ts')
+  const cara = { assignedTo: 'Cara Diaz', assignedToEmail: 'cara@x.com' }
+  const rows = [
+    item(37778, 'Epic', 'Team Holidays and Training'),
+    item(100, 'Feature', 'PTO', { parentId: 37778, ...ana }),
+    item(101, 'User Story', 'PTO - Time Writing', { parentId: 100, ...ben }), item(102, 'Task', 'September 2026 | PTO', { parentId: 101, ...ben }),
+    item(103, 'User Story', 'PTO - Time Writing', { parentId: 100, ...cara }), item(104, 'Task', 'September 2026 | PTO', { parentId: 103, ...cara }),
+  ]
+  const none = leaveTaskCandidates(rows, me, 'October 2026', 37778)
+  assert.deepEqual(none.map((row) => [row.feature.id, row.status]), [[100, 'needs-story']], 'Ben’s and Cara’s stories are theirs: a story of mine is created')
+  const mineToo = leaveTaskCandidates([...rows, item(105, 'User Story', 'Ana Costa PTO', { parentId: 100, ...ana })], me, 'October 2026', 37778)
+  assert.deepEqual(mineToo.map((row) => [row.status, row.storyTitle]), [['needs-task', 'Ana Costa PTO']], 'my own story, whatever its title')
+})

@@ -163,6 +163,8 @@ test('Month task placement: reuse any month task of mine, otherwise the right st
   const other = { story: at(8, 'User Story', 'Ben hours', { assignedTo: 'Ben' }), tasks: [at(9, 'Task', 'Sep 2026 | v4', { assignedTo: 'Ben' })] }
   assert.equal(planMonthStory([random, other], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'use', 'the story holding my tasks wins')
   const third = { story: at(10, 'User Story', 'More hours', { assignedTo: 'Ben' }), tasks: [at(11, 'Task', 'Aug 2026 | v4', { assignedTo: 'Ben' })] }
-  assert.equal(planMonthStory([other, third], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'conflict')
+  assert.equal(planMonthStory([other, third], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'create', 'two Time Writing stories of other people: a story of my own is created (ATM-25)')
+  const plain = { story: at(13, 'User Story', 'Asha - PTO'), tasks: [] }
+  assert.deepEqual(planMonthStory([other, third, plain], [], '2026-10', 'DP | v4 - Time Writing', mine), { status: 'use', story: plain.story }, 'or my own story of any title under the Feature')
   assert.equal(planMonthStory([], [at(12, 'Task', 'October 2026 | v4')], '2026-10', 'x', mine).status, 'exists', 'a month task directly under the Feature counts')
 })
