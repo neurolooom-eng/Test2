@@ -808,7 +808,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-11 DP milestone names and query scope** — Req QV-26 — L1 `dp-milestones.test.mjs` ("DP milestones carry the team names: DT, SFV, PRD, RPE"), `streams.test.mjs` (titles "SFV Done", "DT Done"); browser check with Azure DevOps mocked (DP query rows from two projects): the Supported Releases hint reads "DT n · SFV n · PRD n · RPE n", "What was counted" shows "DT · Design Transfer · Completed", "SFV · Start of Verification / Start of Hardening", the legend lists all four names, and rows of both projects are shown and counted.
 
-**TC-QV-12 Rich-text cells as plain text** — Req QV-27 — L1 `query-view.test.mjs` ("rich-text values (Acceptance Criteria) show as text: tags removed, entities decoded, lines joined"); browser check with Azure DevOps mocked (a query with [Microsoft.VSTS.Common.AcceptanceCriteria] holding `<div><b>Given</b>…</div>`): the cell reads "Given … · When … · Then …" with no tags, the hover shows the same, the CSV holds the text; no page errors.
+**TC-QV-12 Rich-text cells as plain text** — Req QV-27 — L1 `query-view.test.mjs` ("rich-text values (Acceptance Criteria) show as text: tags removed, entities decoded, lines joined"; "rich text of any size becomes text in linear time; script and style blocks are dropped (KB-03, TC-QV-12)"); browser check with Azure DevOps mocked (a query with [Microsoft.VSTS.Common.AcceptanceCriteria] holding `<div><b>Given</b>…</div>`): the cell reads "Given … · When … · Then …" with no tags, the hover shows the same, the CSV holds the text; no page errors.
 
 **TC-QV-13 View notes behind Info** — Req QV-28 — browser check with Azure DevOps mocked (DP view, October, a Git save note): no info banners above the counts; the ⓘ Info next to "DP" lists "Month filter: by DDT Date in your time zone." and the legend "DT = Design Transfer (DDT) · SFV = … · PRD = … · RPE = …"; a fetch error still shows as a banner; no page errors.
 
@@ -1074,7 +1074,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
   - The global error shows with both buttons.
   - The browser warns before leaving the page.
 
-**TC-STO-04 Restore validation** — Req STO-07, STO-08 — L1 `browser-state.test.mjs`.
+**TC-STO-04 Restore validation** — Req STO-07, STO-08 — L1 `browser-state.test.mjs` (also "a work item from a backup or Git keeps only an https link or none (KB-06, TC-STO-04)").
 - L3: restore each file in TD-05.
 - Expected:
   - (a) restores after the checkbox is ticked.
@@ -1242,7 +1242,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 ### 6.21 QE Mapping
 
-**TC-QEM-01 Read an Excel as it is** — Req QEM-02 — L1 `qe-mapping.test.mjs` ("reads an Excel workbook as it is: every sheet, shared / rich / inline strings, dates, numbers, booleans, formulas"; "reads CSV with commas, semicolons or tabs, quotes and line breaks in fields"; "a sheet becomes a table as it is: header from the first non-empty row, names made unique, empty rows and columns dropped").
+**TC-QEM-01 Read an Excel as it is** — Req QEM-02 — L1 `qe-mapping.test.mjs` ("reads an Excel workbook as it is: every sheet, shared / rich / inline strings, dates, numbers, booleans, formulas"; "reads CSV with commas, semicolons or tabs, quotes and line breaks in fields"; "a sheet becomes a table as it is: header from the first non-empty row, names made unique, empty rows and columns dropped"; "a crafted Excel sheet with cells beyond Excel's limits is refused, not padded (KB-04, TC-QEM-01)").
 
 **TC-QEM-02 Edit, filter, group** — Req QEM-03…QEM-06 — L1 `qe-mapping.test.mjs` ("editing: cells, rows and columns keep their ids; filter, group and export").
 
