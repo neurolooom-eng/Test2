@@ -160,9 +160,9 @@ test('Month task placement: reuse any month task of mine, otherwise the right st
   const done = { story: random.story, tasks: [...random.tasks, at(7, 'Task', 'Oct. 2026 / v4')] }
   assert.equal(planMonthStory([done], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'exists')
   assert.equal(planMonthStory([milestone], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'create', 'a milestone story is never used')
-  const other = { story: at(8, 'User Story', 'Ben hours'), tasks: [at(9, 'Task', 'Sep 2026 | v4', { assignedTo: 'Ben' })] }
+  const other = { story: at(8, 'User Story', 'Ben hours', { assignedTo: 'Ben' }), tasks: [at(9, 'Task', 'Sep 2026 | v4', { assignedTo: 'Ben' })] }
   assert.equal(planMonthStory([random, other], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'use', 'the story holding my tasks wins')
-  const third = { story: at(10, 'User Story', 'More hours'), tasks: [at(11, 'Task', 'Aug 2026 | v4', { assignedTo: 'Ben' })] }
+  const third = { story: at(10, 'User Story', 'More hours', { assignedTo: 'Ben' }), tasks: [at(11, 'Task', 'Aug 2026 | v4', { assignedTo: 'Ben' })] }
   assert.equal(planMonthStory([other, third], [], '2026-10', 'DP | v4 - Time Writing', mine).status, 'conflict')
   assert.equal(planMonthStory([], [at(12, 'Task', 'October 2026 | v4')], '2026-10', 'x', mine).status, 'exists', 'a month task directly under the Feature counts')
 })

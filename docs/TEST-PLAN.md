@@ -612,6 +612,8 @@ Cases marked **UAT** are also run in acceptance testing.
 - Steps: as Person 2, with a pending Feature assigned to Person 1 whose Description @mentions Person 2, and another where Person 2 had last month's Task; open Assigned to Me, then Bulk actions → Create month tasks.
 - Expected: Assigned to Me shows the notice naming both Features; Bulk actions lists them with "Shared · owner Person 1", ticked; Create tasks adds Person 2's month Task under each Feature's Time Writing story.
 
+**TC-ATM-15 Features from my User Stories; my own story on a shared Feature** — Req ATM-23 — L1 `my-work.test.mjs` ("a Feature shared by two people: each one's own User Story brings the Feature up for their month Task (TC-ATM-15)"; "month-task candidates: …" for two stories of the same title), `monthly-hours.test.mjs` ("Month task placement: …"); browser check with the QMS-0025 board: a Feature owned by a colleague where you have a User Story (open or Closed) is listed in Bulk actions → Create month tasks and counted on Assigned to Me; with your own Time Writing story under it, the confirmation names that story; after creating, the Task is under your story in Azure DevOps, not under the colleague's; a Feature where your only story is Removed, or that is Closed, is not listed.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -1369,6 +1371,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-20 | TC-ATM-12 |
 | ATM-21 | TC-ATM-13 |
 | ATM-22 | TC-ATM-14 |
+| ATM-23 | TC-ATM-15 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |

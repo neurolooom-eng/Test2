@@ -36,7 +36,8 @@ export function timeWritingStoryIds(items: Pick<AzureWorkItem, 'id' | 'workItemT
 }
 
 // Where a person's month Task goes under a Feature: an existing Task of theirs for that month (any title or delimiter)
-// is reused; otherwise the story titled exactly "<Feature> - Time Writing", else the story already holding their month
+// is reused; otherwise their own Time Writing story under the Feature (ATM-23), else the story titled exactly
+// "<Feature> - Time Writing", else the story already holding their month
 // Tasks, else the Feature's only Time Writing story; with none a story is created, and an unclear choice is a conflict.
 export interface StoryChildren<T> { story: T; tasks: T[] }
 export type MonthStoryPlan<T> = { status: 'exists'; task: T; story?: T } | { status: 'use'; story: T } | { status: 'create' } | { status: 'conflict'; stories: T[] }
@@ -47,6 +48,11 @@ export function planMonthStory<T extends Pick<AzureWorkItem, 'id' | 'workItemTyp
   for (const entry of open) { const task = entry.tasks.find(item => own(item) && timeWritingMonth(item.title) === month); if (task) return { status: 'exists', task, story: entry.story } }
   const direct = featureTasks.find(item => own(item) && timeWritingMonth(item.title) === month)
   if (direct) return { status: 'exists', task: direct }
+  // A Feature shared by two people (ATM-23): my own Time Writing story under it takes my month Task, never another
+  // person's; two of mine are a conflict.
+  const ownStories = open.filter(entry => mine(entry.story))
+  if (ownStories.length === 1) return { status: 'use', story: ownStories[0].story }
+  if (ownStories.length > 1) return { status: 'conflict', stories: ownStories.map(entry => entry.story) }
   const exact = open.filter(entry => entry.story.title.trim().toLowerCase() === storyTitle.toLowerCase())
   if (exact.length > 1) return { status: 'conflict', stories: exact.map(entry => entry.story) }
   if (exact.length) return { status: 'use', story: exact[0].story }
