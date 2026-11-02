@@ -725,6 +725,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-52 BRITE placeholder** — Req CON-84 — inspection: Release Details shows BRITE at its root; it opens "BRITE is not set up yet."; Pulse Check and the Monthly pack have no BRITE line.
 
+**TC-CON-53 Import a stream's export from its menu entry** — Req CON-85 — E2E `documents-and-data.e2e.mjs` ("TC-CON-53: \"＋ QRE\" imports the export as the QRE page whatever the file is called, read by project"); browser check: with no QRE export, click "＋ QRE" — the import shows "Import the QRE export" with Name "QRE"; choose a CSV called anything (e.g. "Search Results.csv") — the QRE page opens with its projects, the menu shows QRE (no ＋), and Pulse Check lists QRE.
+
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
 **TC-CON-43 Title fields in the Feature setup** — Req CON-75 — L1 `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup …"); browser check with GitHub mocked: Settings → Feature setup → an Epic → ＋ Add title field three times (Platform / Custom.Platform, Release Name, Number), the preview of a story titled "{Platform} review" with the sample "CP 2 | Atlas | 4.1" shows "CP 2 review"; Save to Git writes titleFields; a sixth field cannot be added.
@@ -1340,6 +1342,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-82 | TC-CON-50 |
 | CON-83 | TC-CON-51 |
 | CON-84 | TC-CON-52 |
+| CON-85 | TC-CON-53 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
