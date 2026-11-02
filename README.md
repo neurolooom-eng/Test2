@@ -161,7 +161,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 **Get started.** A new user sees a **Get started** pop-up with the few things to configure, in order, each with its live status, why it matters, how to do it and a button that opens the right Settings tab: **1** connect the shared Git storage (it brings the team's connections, Feature setup, holidays and roles), **2** check the Time Writing connection and **your work email**, **3** enter your Azure DevOps PAT, **4** fetch your data (**Fetch now**). Optional: your region and role (set by a People Manager or Scrum Master) and the release streams on the on-premises server. It opens by itself while a required step is open — until you choose *Don't show again automatically* — and the **Setup · n/4** button in the top bar reopens it.
 
-**Work email.** The Time Writing connection needs **your work email** (as Azure DevOps shows it): it finds your work on *Assigned to Me* and is assigned to the Features you create. Saving without it is refused; the Stream mapping shows *Work email missing* until it is set.
+**Work email.** The Time Writing connection needs **your work email** (as Azure DevOps shows it): it finds your work on *Assigned to Me* and is assigned to the Features you create. Saving without it is refused; the Stream mapping shows *Work email missing* until it is set. The email stays on your computer: it is never saved to the shared setup in Git, so nobody else gets it, and a sync from Git never changes it. If your Time Writing connection had received someone else's email from an older shared setup, the app clears it once at start and asks for your own.
 
 **Pop-ups.** In Settings, adding or editing opens a pop-up over the page: Azure DevOps connections and servers, Git storage, SharePoint, the capacity settings, holiday and common-activity mappings, and the Feature setup of an Epic. The page keeps the lists and a summary of the saved values. Every pop-up form reads top to bottom: one field per row, its explanation under it, Cancel and the main action at the bottom right. A click beside a pop-up does not close it (× and Cancel do), so nothing typed is lost.
 
@@ -226,7 +226,7 @@ A **separate private GitHub repository** (Settings → Storage → Git storage: 
 | File | Content | Written by | Read by |
 |---|---|---|---|
 | `planning-data.json` | baseline rules, release scopes, region / role mapping | Save to Git (Baselines, Settings) | every app at start, Load latest from Git |
-| `azure-views.json` | the connection setup — view names, queries, URLs, roles, never PATs | Settings → Views in Git → Save N connections to Git | every app at start (the default for everyone), Restore from Git |
+| `azure-views.json` | the connection setup — view names, queries, URLs, roles, never PATs or work emails | Settings → Views in Git → Save N connections to Git | every app at start (the default for everyone), Restore from Git |
 | `azure-data/<connection>.json` | the last fetch of each on-prem view | automatically at every fresh fetch (also when the data is unchanged: the fetch time is new) | the web app at start, **Load from Git** on the view — only data fetched with the query the connection has here; data fetched with another query (an older shared setup) is not loaded |
 | `windchill-data/<export>.json` | each imported Windchill export | each import | every app at start, **Load from Git** / **Load all exports from Git** |
 
