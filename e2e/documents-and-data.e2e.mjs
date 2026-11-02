@@ -47,7 +47,7 @@ test('TC-DOC-02: a link to another document opens it at the linked section, and 
   await context.close()
 })
 
-test('TC-CON-39 / TC-CON-37: a Windchill export lists its unique releases, clubbed names included, and exports a neutralised CSV', async () => {
+test('TC-CON-39 / TC-CON-37 / TC-QV-27: a Windchill export lists its unique releases, clubbed names included, its raw rows on their own tab, and exports a neutralised CSV', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, 'Import Windchill export')
   await page.locator('input[type=file]').first().setInputFiles(fixture('windchill-export.csv'))
@@ -64,6 +64,10 @@ test('TC-CON-39 / TC-CON-37: a Windchill export lists its unique releases, clubb
   // CON-69: a cell that a spreadsheet would read as a formula is prefixed so that it stays text.
   await page.locator('input[type=file]').first().setInputFiles(fixture('windchill-formula.csv'))
   await page.locator('.notice, .panel', { hasText: /windchill-formula/ }).first().waitFor().catch(() => {})
+  // VIEW-01: the imported rows are on the "Raw data" tab, not below the releases.
+  assert.equal(await page.locator('.query-view').count(), 0, 'the raw rows are not shown on the Releases tab')
+  await page.getByRole('tab', { name: /^Raw data/ }).click()
+  await page.locator('.query-view').waitFor()
   const [exported] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /^Export CSV/ }).first().click()])
   const content = readFileSync(await exported.path(), 'utf8')
   assert.ok(content.includes("'=HYPERLINK") || content.includes('"\'=HYPERLINK'), `formula cell is neutralised: ${content.split('\n')[1]}`)

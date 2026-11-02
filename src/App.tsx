@@ -1,5 +1,5 @@
 import { BrandMark } from './components/BrandMark'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import './fresh.css'
 import { useAppStore } from './store'
@@ -51,7 +51,7 @@ import { formatDateTime, todayIso } from './format'
 import { HeaderSlot } from './headerSlot'
 import { SetupGuide } from './components/SetupGuide'
 import { guideKey, requiredOpen, setupSteps } from './setupGuide'
-import { capacityContext } from './capacity'
+import { azureResources, capacityContext } from './capacity'
 import { hasServerPat, serverKey } from './azureCredentials'
 
 export default function App() {
@@ -168,6 +168,9 @@ export default function App() {
   const windchillView = windchillViews.find((entry) => entry.id === windchillId)
   // "＋ ECP" / "＋ S&S IT" (not imported yet) open the import named after that stream, so the export lands on it (CON-85).
   const [windchillFor, setWindchillFor] = useState('')
+  // QE Mapping (QEM-12): the QE Name of a new row is picked from the Resources list (Settings → Resources): everyone with
+  // Time Writing Tasks, and the people with a resource profile.
+  const qeResources = useMemo(() => page !== 'qemapping' ? [] : (() => { const capacity = capacityContext(store.state); return [...new Set([...azureResources(azure.items, month, capacity).map((person) => person.name), ...Object.keys(capacity.profiles ?? {})])].filter(Boolean).sort((a, b) => a.localeCompare(b)) })(), [page, azure.items, month, store.state])
   const openWindchill = (id: string, stream = '') => { setWindchillId(id); setWindchillFor(id ? '' : stream); setPage('windchill') }
   // Views shown in the menu that are not the Time Writing backlog nor a default stream: listed under "Other views".
   const others = otherMenuViews(views, azure.connectionProfiles, windchillViews)
@@ -256,7 +259,7 @@ export default function App() {
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} git={git} pack={monthlyPack} />}
       {page === 'pireview' && <PiReviewPage />}
       {page === 'brite' && <BritePage />}
-      {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} />}
+      {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} resources={qeResources} />}
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
