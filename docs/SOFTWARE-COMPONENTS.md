@@ -37,6 +37,7 @@ This document lists every software component of the system: the in-house source 
 | DocsPage | `src/pages/DocsPage.tsx` | Documentation page: reads the bundled project documents in-app, remembers the chosen one, keeps document and anchor links in the page. | DOC |
 | MonthlyPage | `src/pages/MonthlyPage.tsx` | Monthly Time Writing: the selected month's Time Writing Tasks (team or individual) with planned/completed hours and gaps. | MON, TWN |
 | MyWorkPage | `src/pages/MyWorkPage.tsx` | Assigned to Me: my pending Azure DevOps items, resolve/close them, and create a Feature under an Epic with its stories and task. | ATM, CON |
+| BritePage | `src/pages/BritePage.tsx` | BRITE placeholder at the root of Release Details, until its exports and rules are known (CON-84). | CON |
 | PiReviewPage | `src/pages/PiReviewPage.tsx` | PI Review placeholder page (planned PI summary). | NAV |
 | WorkspacePage | `src/pages/WorkspacePage.tsx` | Insights workspace: KPI tiles, trend and cumulative releases charts, exception queue, timeline health, insight cards with evidence, the pack preview and the insights queue saved to the Monthly pack. | WSP |
 | PulseCheckPage | `src/pages/PulseCheckPage.tsx` | Pulse Check: last month's and this month's releases per stream, Supported Releases, Windchill exports, analysis and ongoing activities. | OVR, NAV, QV |
