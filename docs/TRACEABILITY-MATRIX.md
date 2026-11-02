@@ -674,7 +674,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | TC-CON-48 | Work email never shared through Git | CON-80 | L1, L3 | — |
 | TC-CON-49 | Successor and Predecessor IDs of a view of its own | CON-81 | L1, L3 | — |
 | TC-CON-50 | Work email as its own setting | CON-82 | L1, L3 | — |
-| TC-CON-51 | QRE projects from Windchill | CON-83 | L1, L3 | — |
+| TC-CON-51 | ECP projects from Windchill | CON-83 | L1, L3 | — |
 | TC-CON-52 | BRITE placeholder | CON-84 | L3 | — |
 | TC-CON-53 | Import a stream's export from its menu entry | CON-85 | L3 | — |
 | TC-CON-44 | DP and DHFI defaults | CON-76 | L1, L3 | — |

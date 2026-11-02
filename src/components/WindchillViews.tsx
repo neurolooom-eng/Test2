@@ -120,7 +120,7 @@ function ExportFileButton({ label, onFile, onError }: { label: string; onFile: (
 }
 
 // Release Details → Import Windchill export: a search run in Windchill and exported as CSV becomes a page here.
-// Opened from a stream not imported yet ("＋ QRE"), the Name is that stream's, so the export becomes its page (CON-85).
+// Opened from a stream not imported yet ("＋ ECP"), the Name is that stream's, so the export becomes its page (CON-85).
 export function WindchillExportImport({ windchill, git, onImported, stream = '' }: { windchill: WindchillWorkspace; git?: GitStorage; onImported: (id: string) => void; stream?: string }) {
   const [name, setName] = useState(stream)
   const [error, setError] = useState('')
