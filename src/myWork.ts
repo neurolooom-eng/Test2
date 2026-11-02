@@ -48,7 +48,7 @@ export function matchesWork(row: { item: AzureWorkItem; feature?: AzureWorkItem;
 // holding a pending item of mine. Status comes from the cached backlog; creation re-checks Azure before writing.
 // Shared activities: a pending Feature owned by someone else is also mine to write time on when I had a month Task
 // under it (any month) or its Description @mentions me (my name, letter case ignored).
-export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string; taskTitle: string; status: 'exists' | 'needs-task' | 'needs-story' | 'conflict'; shared?: { owner: string; reason: 'earlier-task' | 'mention' } }
+export interface MonthTaskCandidate { feature: AzureWorkItem; storyTitle: string; taskTitle: string; status: 'exists' | 'needs-task' | 'needs-story' | 'conflict'; shared?: { owner: string; reason: 'earlier-task' | 'mention' }; leave?: boolean }
 const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" }
 // The Description as plain text: tags dropped, the common entities decoded, spaces collapsed.
 const plainText = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/&(amp|lt|gt|quot|apos|nbsp|#39);/g, (_, name: string) => entities[name]).replace(/\s+/g, ' ')
@@ -60,11 +60,28 @@ export function mentions(description: string | undefined, me: Me) {
   for (let at = text.indexOf(wanted); at >= 0; at = text.indexOf(wanted, at + 1)) if (!/[\p{L}\p{N}]/u.test(text[at + wanted.length] ?? '')) return true
   return false
 }
+// Leave (ATM-24): my PTO / Sick Leave / Unplanned Leave Features under the Team Holidays and Training Epic — assigned
+// to me or holding a User Story of mine, not finished, not training — offered apart in Bulk actions, never counted as a
+// missing month Task (leave is not every month). Same story and Task rules as work.
+export function leaveTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
+  if (absenceEpicId == null) return []
+  const chainOf = ancestry(items)
+  const underEpic = (item: AzureWorkItem) => chainOf(item).some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId)
+  const featureIds = new Set<number>()
+  for (const item of items) {
+    if (!isMine(item, me) || item.state.trim().toLowerCase() === 'removed' || !underEpic(item) || timeWritingMonth(item.title)) continue
+    const chain = chainOf(item)
+    if (isTrainingWork(item, chain)) continue
+    const feature = item.workItemType === 'Feature' ? item : item.workItemType === 'User Story' ? chain.find((entry) => entry.workItemType === 'Feature') : undefined
+    if (feature && isPending(feature)) featureIds.add(feature.id)
+  }
+  return monthRows(items, me, monthLabel, featureIds, new Map()).map((row) => ({ ...row, leave: true }))
+}
 export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: string, absenceEpicId?: number): MonthTaskCandidate[] {
   const chainOf = ancestry(items)
   // Leave under the Team Holidays and Training Epic is left out; training there gets its month Task like any work (CAP-16).
   const inAbsence = (item: AzureWorkItem) => { const chain = chainOf(item); return absenceEpicId != null && chain.some((entry) => entry.workItemType === 'Epic' && entry.id === absenceEpicId) && !isTrainingWork(item, chain) }
-  const storyIds = timeWritingStoryIds(items), month = timeWritingMonth(monthLabel) ?? ''
+  const storyIds = timeWritingStoryIds(items)
   const featureIds = new Set<number>()
   // ATM-23: a Feature in my name, or an active Feature holding a User Story in my name — in any state but Removed, my own
   // Time Writing story included, as on a Feature shared by two people who each keep their own stories — or a pending
@@ -83,6 +100,10 @@ export function monthTaskCandidates(items: AzureWorkItem[], me: Me, monthLabel: 
   }
   for (const feature of items) if (feature.workItemType === 'Feature' && !featureIds.has(feature.id) && !shared.has(feature.id) && isPending(feature) && !inAbsence(feature) && mentions(feature.description, me)) shared.set(feature.id, 'mention')
   for (const id of shared.keys()) featureIds.add(id)
+  return monthRows(items, me, monthLabel, featureIds, shared)
+}
+function monthRows(items: AzureWorkItem[], me: Me, monthLabel: string, featureIds: Set<number>, shared: Map<number, 'earlier-task' | 'mention'>): MonthTaskCandidate[] {
+  const month = timeWritingMonth(monthLabel) ?? ''
   const childrenOf = (id: number) => items.filter((item) => item.parentId === id)
   return items.filter((item) => featureIds.has(item.id)).sort((a, b) => a.title.localeCompare(b.title)).map((feature) => {
     const storyTitle = `${feature.title.trim()} - Time Writing`, taskTitle = `${monthLabel} | ${feature.title.trim()}`
@@ -221,4 +242,28 @@ export function monthsUntilTarget(monthLabel: string, targetDate: string | undef
     labels.push(date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }))
   }
   return labels
+}
+
+// The QMS-0025 backlog shows the person browsing by default (BKL-21): the items assigned to them, every item above them
+// (for context: Epic, Feature, Story) and every item below them (the work under their Features and Stories).
+export function mineWithContext(items: AzureWorkItem[], me: Me): AzureWorkItem[] {
+  const byId = new Map(items.map((item) => [item.id, item]))
+  const children = new Map<number, AzureWorkItem[]>()
+  for (const item of items) if (item.parentId != null) children.set(item.parentId, [...(children.get(item.parentId) ?? []), item])
+  const keep = new Set<number>()
+  const down = (item: AzureWorkItem) => { if (keep.has(item.id)) return; keep.add(item.id); for (const child of children.get(item.id) ?? []) down(child) }
+  for (const item of items) {
+    if (!isMine(item, me)) continue
+    down(item)
+    const seen = new Set([item.id]); let up = item.parentId == null ? undefined : byId.get(item.parentId)
+    while (up && !seen.has(up.id)) { keep.add(up.id); seen.add(up.id); up = up.parentId == null ? undefined : byId.get(up.parentId) }
+  }
+  return items.filter((item) => keep.has(item.id))
+}
+// The Feature a "＋ Time Writing Task" button works on (BKL-22): the row itself, or the Feature above a User Story.
+export function featureOf(items: AzureWorkItem[], item: AzureWorkItem): AzureWorkItem | undefined {
+  if (item.workItemType === 'Feature') return item
+  const byId = new Map(items.map((entry) => [entry.id, entry])); const seen = new Set<number>()
+  for (let up = item.parentId == null ? undefined : byId.get(item.parentId); up && !seen.has(up.id); up = up.parentId == null ? undefined : byId.get(up.parentId)) { if (up.workItemType === 'Feature') return up; seen.add(up.id) }
+  return undefined
 }
