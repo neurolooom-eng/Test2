@@ -708,6 +708,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-13 Parent Epic blank on New Feature** — Req BKL-23 — E2E `backlog.e2e.mjs` ("TC-BKL-13: New Feature opens with the Parent Epic blank; every Epic is offered"); browser check: the same from Assigned to Me and from Create Feature on Release Details; Create without an Epic says "Choose the parent Epic."
 
+**TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
+
 **TC-CON-45 Git view data with another query is not applied** — Req CON-77 — L1 `git-snapshots.test.mjs` ("a snapshot fetched with another query than the connection has here is not applied"); browser check:
 - Pre: Git storage connected; the DP connection's query changed here; Git holds DP data fetched with the old query.
 - Steps: reload the web app; open DP; Load from Git.
@@ -843,6 +845,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-QV-26 Create Feature on every stream's releases** — Req QV-46, QV-31 — L1 `dp-board-match.test.mjs` ("IOCC, Content and Tool Validations releases → QMS-0025: the same search, Create Feature when nothing matches (TC-QV-26)"); browser check with the QMS-0025 board loaded and an IOCC and a Tool Validations view fetched: each release table ends with **QMS-0025 match**; a release whose Feature is on the board shows "Feature id n%" (and "Story id n%"); a release without one shows the closest item or "no match" and **Create Feature**, which opens the New Feature form titled "IOCC \| {Type of Release} {name} \| v{release}" (Tool Validations: "Tool Validations \| {tool} \| v{release}") under the Epic named like the stream; the Time Writing Feature column has no button; without the board loaded the cell reads "board not loaded" and Create Feature stays offered (disabled with its reason when it cannot open); no page errors.
 **TC-QV-27 Consolidation and raw data on two tabs** — Req QV-47 — E2E `documents-and-data.e2e.mjs` ("TC-CON-39 / TC-CON-37 / TC-QV-27: a Windchill export lists its unique releases, clubbed names included, its raw rows on their own tab, and exports a neutralised CSV"); browser check: open DP, CP, IOCC, Content and Tool Validations under Release Details — each shows its releases (CP report) first and the query rows only on the "Query output (n)" tab; open S&S IT and an ECP export — Releases / Projects first, the imported rows with search and Export CSV on "Raw data (n)"; the tab chosen stays when moving between pages.
 **TC-QV-28 Compact page actions** — Req QV-48 — E2E `documents-and-data.e2e.mjs` ("TC-CON-55 / TC-QV-28: an ECP setup named \"ECP - Type 2\" reads projects from the 3rd Location folder, is listed on its own, with compact page actions"); browser check: on DP / IOCC the header shows "All months", a small ↻ (tooltip "Refresh from Azure") and ⋯ with Load from Git and Connection settings; on a Windchill export a small ⤒ (tooltip "Import newer export") and ⋯ with Load from Git and Remove this export…; the menu closes on Escape or a click outside.
+
+**TC-QV-30 CP Platform titles (PF1.0 / PF2.0)** — Req QV-49 — L1 `cp-reporting.test.mjs` ("Platform titles: \"PF1.0 / PF2.0 <Name>-<Number>\" give the name with its variant and an alphanumeric number (QV-49, TC-QV-30)"); browser check: a CP container "PF2.0 Carpo-A12" shows as "PF2.0 Carpo A12" with no warning, and Create Feature offers "PF2.0 Carpo | A12".
 
 
 
@@ -1434,6 +1438,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-21 | TC-BKL-12 |
 | BKL-22 | TC-BKL-12 |
 | BKL-23 | TC-BKL-13 |
+| BKL-24 | TC-BKL-14 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1465,6 +1470,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-46 | TC-QV-26 |
 | QV-47 | TC-QV-27 |
 | QV-48 | TC-QV-28 |
+| QV-49 | TC-QV-30 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
