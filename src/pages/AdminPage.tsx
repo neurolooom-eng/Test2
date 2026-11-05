@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useNow } from '../useNow'
+import { actualsLockDate, actualsLocked, defaultActualsLockDay, defaultPlanLockDay, planLockDate, planningLocked } from '../planningLock'
 import { groupOf } from '../history'
 import { fetchTeamMembers } from '../azureDevOps'
 import { HistoryPanel } from '../components/HistoryPanel'
@@ -8,7 +10,7 @@ import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
 import { EmptyState, Modal, Notice, Page, Panel, Pill, SettingsSummary, type Tone } from '../components/ui'
 import { formatDate, formatDateTime, formatHours, formatPercent, monthName } from '../format'
-import { azureResources, capacityContext, capacityModel, normalizeCapacitySettings, normalizeProfiles, regions, resourceRoles, resourceRows, type LoadStatus, type ResourceProfile, type SharedTimeRule } from '../capacity'
+import { azureResources, capacityContext, capacityModel, normalizeCapacitySettings, normalizeProfiles, regions, resourceRoles, resourceRows, type CapacitySettings, type LoadStatus, type MonthLock, type ResourceProfile, type SharedTimeRule } from '../capacity'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import { GitStoragePanel, GitSyncBar } from '../components/GitStorage'
@@ -38,8 +40,8 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
   const [sharePointConfig, setSharePointConfig] = useState<SharePointConfig>(() => store.getSavedSharePointConfig())
   const [sharePointOpen, setSharePointOpen] = useState(false)
   const [capacityOpen, setCapacityOpen] = useState(false)
-  const period = store.state.periods.find((item) => item.month === month)
   const capacity = capacityContext(store.state)
+  const lockNow = useNow(60000)
   const profiles = capacity.profiles ?? {}
   // Resources (CAP-29…CAP-31): Time Writing people with their figures, plus everyone else who can be given a region and role.
   const historyPeople = history.file ? [...new Set(history.file.rows.filter((row) => !groupOf(row.person)).map((row) => history.file!.people[row.person] || row.person))] : []
@@ -91,33 +93,23 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     })
   }
 
-  function toggle(kind: 'planning' | 'actuals') {
-    const now = new Date().toISOString()
+  // Month locks (MON-21…MON-24): the lock dates and early locks of the header month, and the default lock days, kept with
+  // the capacity settings (planning data in Git); every lock is worked out from the current time.
+  function setLocks(change: (settings: CapacitySettings) => CapacitySettings, detail: string) {
     store.update((draft) => {
-      let current = draft.periods.find((item) => item.month === month)
-      if (!current) {
-        current = { month, planningDeadline: `${month}-05T23:59:59.000Z`, actualsDeadline: `${month}-05T23:59:59.000Z`, planningLocked: false, actualsLocked: false, updatedAt: now, updatedBy: 'u-owner' }
-        draft.periods.push(current)
-      }
-      if (kind === 'planning') current.planningLocked = !current.planningLocked
-      else current.actualsLocked = !current.actualsLocked
-      current.extensionReason = reason; current.updatedAt = now
-      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: kind === 'planning' ? (current.planningLocked ? 'Lock planning' : 'Unlock planning') : (current.actualsLocked ? 'Lock actuals' : 'Unlock actuals'), entity: 'PeriodControl', entityId: month, detail: reason })
+      const now = new Date().toISOString()
+      draft.capacitySettings = normalizeCapacitySettings(change(normalizeCapacitySettings(draft.capacitySettings)))
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'PeriodControl', entityId: month, detail: reason ? `${detail} — ${reason}` : detail })
       return draft
     })
   }
-
-  function extend(kind: 'planning' | 'actuals', date: string) {
-    if (!date) return
-    store.update((draft) => {
-      const current = draft.periods.find((item) => item.month === month)
-      if (current) {
-        if (kind === 'planning') current.planningExtendedUntil = `${date}T23:59:59`
-        else current.actualsExtendedUntil = `${date}T23:59:59`
-        current.extensionReason = reason
-      }
-      return draft
-    })
+  function setMonthLock(patch: Partial<MonthLock>, detail: string) {
+    setLocks((settings) => {
+      const current = settings.monthLocks?.[month] ?? {}
+      const next: MonthLock = { ...current, ...patch, ...(reason ? { reason } : {}), updatedAt: new Date().toISOString(), updatedBy: access.email || 'Settings' }
+      for (const key of Object.keys(patch) as (keyof MonthLock)[]) if (patch[key] === undefined) delete next[key]
+      return { ...settings, monthLocks: { ...(settings.monthLocks ?? {}), [month]: next } }
+    }, detail)
   }
 
   function addMaster(event: React.FormEvent<HTMLFormElement>) {
@@ -203,10 +195,22 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
       </Panel> },
       { key: 'time', label: 'Holidays and common activities', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div>
       <SharedTimePanel settings={capacity} items={azure.items} month={month} onSave={saveSharedTime} /></> },
-      { key: 'period', label: 'Period control', node: <Panel eyebrow="PERIOD CONTROL" title={monthName(month)}>
+      { key: 'period', label: 'Period control', node: <Panel eyebrow="PERIOD CONTROL" title={`Locks of ${monthName(month)}`} info={<ul><li>Every month has its own lock dates: planning of the month and its actuals. The lock starts when that day ends (your local time), so the date itself is still open.</li><li>Without a date of its own, a month uses the default days below — e.g. November planning locks after 5 November, November actuals after 4 December.</li><li>Lock now locks a month before its date; to reopen a locked month, set a later date. Saved with the planning data in Git, so everyone sees the same locks.</li></ul>}>
+        <GitSyncBar git={git} />
+        <div className="lock-defaults">
+          <label>Planning locks after day<input type="number" min={1} max={28} value={capacity.planLockDay ?? defaultPlanLockDay} onChange={(event) => { const day = Number(event.target.value); if (day >= 1 && day <= 28) setLocks((settings) => ({ ...settings, planLockDay: day }), `Default planning lock day = ${day}`) }} /><small className="muted">of the month (every month without its own date)</small></label>
+          <label>Actuals lock after day<input type="number" min={1} max={28} value={capacity.actualsLockDay ?? defaultActualsLockDay} onChange={(event) => { const day = Number(event.target.value); if (day >= 1 && day <= 28) setLocks((settings) => ({ ...settings, actualsLockDay: day }), `Default actuals lock day = ${day}`) }} /><small className="muted">of the next month</small></label>
+        </div>
         <label>Reason for change<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label>
-        <div className="control-card"><div><strong>Planning</strong><p>Deadline: {formatDate(period?.planningDeadline, `${month}-05 (default)`)}</p></div><Pill tone={period?.planningLocked ? 'locked' : 'open'}>{period?.planningLocked ? 'Locked' : 'Open'}</Pill><button className="primary" onClick={() => toggle('planning')}>{period?.planningLocked ? 'Unlock' : 'Lock'}</button><label>Extend until<input type="date" onChange={(event) => extend('planning', event.target.value)} /></label></div>
-        <div className="control-card"><div><strong>Actuals</strong><p>Deadline: {formatDate(period?.actualsDeadline, `${month}-05 (default)`)}</p></div><Pill tone={period?.actualsLocked ? 'locked' : 'open'}>{period?.actualsLocked ? 'Locked' : 'Open'}</Pill><button className="primary" onClick={() => toggle('actuals')}>{period?.actualsLocked ? 'Unlock' : 'Lock'}</button><label>Extend until<input type="date" onChange={(event) => extend('actuals', event.target.value)} /></label></div>
+        {([['planning', 'Planning', planLockDate(capacity, month), planningLocked(capacity, month, lockNow), 'planOn', 'planLocked'], ['actuals', 'Actuals', actualsLockDate(capacity, month), actualsLocked(capacity, month, lockNow), 'actualsOn', 'actualsLocked']] as const).map(([kind, label, date, locked, dateKey, flagKey]) => {
+          const own = capacity.monthLocks?.[month]
+          return <div className="control-card" key={kind}><div><strong>{label} of {monthName(month)}</strong><p>Locks after {formatDate(date)}{own?.[dateKey] ? ' (date of this month)' : ' (default)'}{own?.[flagKey] ? ' · locked early' : ''}</p></div>
+            <Pill tone={locked ? 'locked' : 'open'}>{locked ? 'Locked' : 'Open'}</Pill>
+            <label>Lock date<input type="date" aria-label={`${label} lock date of ${monthName(month)}`} value={date} onChange={(event) => event.target.value && setMonthLock({ [dateKey]: event.target.value }, `${label} of ${month} locks after ${event.target.value}`)} /></label>
+            {own?.[dateKey] && <button type="button" className="ghost" onClick={() => setMonthLock({ [dateKey]: undefined }, `${label} of ${month}: default lock date`)}>Use default</button>}
+            <button type="button" className="primary" onClick={() => setMonthLock({ [flagKey]: own?.[flagKey] ? undefined : true }, `${label} of ${month} ${own?.[flagKey] ? 'no longer locked early' : 'locked now'}`)}>{own?.[flagKey] ? 'Undo early lock' : 'Lock now'}</button>
+          </div>
+        })}
       </Panel> },
     ]} />}
     {tab === 'resources' && <Panel className="admin-section" eyebrow="AZURE DEVOPS" title="Resources" info="Everyone whose region, role and dates can be set: the people with Time Writing Tasks (with their figures), everyone else Assigned To fetched work, the people of the historical hours (leavers included), the Azure DevOps team members (Add team members) and people added by name. Region, role and reporting line are saved with the planning data in Git (see Git storage above). Region decides which regional holidays apply. Joined on / Left on (both days worked) limit a person's funded hours to the working days they are employed: a month they join or leave in is prorated, and in a month before joining or after leaving they have no capacity and are not counted." action={<Pill tone={resources.length ? 'open' : 'neutral'}>{resources.length} {resources.length === 1 ? 'person' : 'people'}</Pill>}>
