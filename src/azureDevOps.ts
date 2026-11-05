@@ -1,3 +1,4 @@
+import { assertNotViewingAs } from './viewAs.ts'
 import type { AzureWorkItem } from './domain'
 import { featureDoD, fillTitle, missingValues, reviewStoryTitle, titleValues, fieldPlaceholders, type TitleField } from './featureSetup.ts'
 import { planMonthStory, timeWritingMonth } from './azureInsights.ts'
@@ -831,6 +832,7 @@ export function assertWritableBase(config: Pick<AzureConfig, 'organization' | 'b
   if (changesAzure(operation) && !isCloudBase(collectionUrl(config))) throw new Error('Changes are written to Azure DevOps Services (dev.azure.com) only; on-premises servers are read-only. Nothing was changed.')
 }
 export async function requestAzure(request: AzureRequest): Promise<unknown> {
+  if (changesAzure(request.operation)) assertNotViewingAs()
   if (changesAzure(request.operation) && !writesAllowed()) throw new Error('Your role does not allow changes in Azure DevOps. An Admin can change this in Settings → Access.')
   assertWritableBase(request, request.operation)
   if ((request.operation === 'create-feature' || request.operation === 'create-child') && !isAssignee(request.feature?.assignedTo)) throw new Error('A new work item must be assigned to someone (an email). Nothing was created.')
