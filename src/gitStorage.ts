@@ -1,3 +1,4 @@
+import { assertNotViewingAs } from './viewAs.ts'
 import type { AppState } from './domain'
 import { normalizeRules, normalizeScopes, type BaselineRule, type ReleaseScope } from './baseline.ts'
 import { normalizeCapacitySettings, normalizeProfiles, type CapacitySettings, type ResourceProfile } from './capacity.ts'
@@ -117,6 +118,7 @@ export async function readTextFile(config: GitConfig, token: string, fetchImpl: 
   return { text: decodeBase64(body.content), sha: body.sha }
 }
 export async function writeTextFile(config: GitConfig, token: string, text: string, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {
+  assertNotViewingAs()
   const response = await fetchImpl(fileUrl(config), { method: 'PUT', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim() || `Update ${config.path}`, content: encodeBase64(text), branch: config.branch, ...(sha ? { sha } : {}) }) })
   if (!response.ok) throw await failure(response, config, `save ${config.path}`)
   const body = (await response.json()) as { content?: { sha?: string }; commit?: { html_url?: string } }
@@ -127,6 +129,7 @@ export async function writeTextFile(config: GitConfig, token: string, text: stri
 // A binary file (the Monthly pack's PowerPoint template): written as base64 like a text file, read raw as bytes.
 export function bytesToBase64(bytes: Uint8Array) { let binary = ''; for (let at = 0; at < bytes.length; at += 0x8000) binary += String.fromCharCode(...bytes.subarray(at, at + 0x8000)); return btoa(binary) }
 export async function writeBinaryFile(config: GitConfig, token: string, bytes: Uint8Array, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {
+  assertNotViewingAs()
   const response = await fetchImpl(fileUrl(config), { method: 'PUT', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim() || `Update ${config.path}`, content: bytesToBase64(bytes), branch: config.branch, ...(sha ? { sha } : {}) }) })
   if (!response.ok) throw await failure(response, config, `save ${config.path}`)
   const body = (await response.json()) as { content?: { sha?: string }; commit?: { html_url?: string } }
@@ -143,6 +146,7 @@ export async function readBinaryFile(config: GitConfig, token: string, fetchImpl
 // Deletes a file as one commit; false when it does not exist. The version id is read first, so the delete is of the
 // file as it is now.
 export async function deleteFile(config: GitConfig, token: string, message: string, fetchImpl: Fetch = fetch): Promise<boolean> {
+  assertNotViewingAs()
   const sha = await fileSha(config, token, fetchImpl)
   if (!sha) return false
   const response = await fetchImpl(fileUrl(config), { method: 'DELETE', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim() || `Delete ${config.path}`, sha, branch: config.branch }) })
@@ -178,6 +182,7 @@ export async function fileSha(config: GitConfig, token: string, fetchImpl: Fetch
 // Writes the data file as one commit. The sha of the version that was loaded is required, so a concurrent change
 // is refused (GitConflictError) instead of being overwritten.
 export async function writePlanningFile(config: GitConfig, token: string, data: PlanningData, sha: string | null, message: string, fetchImpl: Fetch = fetch): Promise<{ sha: string; commitUrl: string }> {
+  assertNotViewingAs()
   const response = await fetchImpl(fileUrl(config), { method: 'PUT', headers: { ...headers(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim() || 'Update planning data', content: encodeBase64(serializePlanning(data)), branch: config.branch, ...(sha ? { sha } : {}) }) })
   if (!response.ok) throw await failure(response, config, 'save the data file')
   const body = (await response.json()) as { content?: { sha?: string }; commit?: { html_url?: string } }

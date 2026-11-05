@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "1.25.3"
+      "version": "1.26.0"
     },
     "tools": [
       {
