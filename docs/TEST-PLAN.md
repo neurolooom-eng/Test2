@@ -315,6 +315,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-NAV-32 Other views in the menu** — Req NAV-32, NAV-17 — L1 `connections.test.mjs` ("Other views: read-only views and Windchill exports that are not a default stream, from the cloud or on-prem"); browser check: add an on-prem connection named e.g. "Risk register" with Show in menu on: it appears under Other views (not under Release Details), opens its view, and the heading is highlighted while it is collapsed and the view is open; with Show in menu off it disappears, and the heading is hidden when empty. **UAT**
 
+**TC-NAV-37 Expand all / Collapse all in the menu** — Req NAV-37, NAV-17 — E2E `shell.e2e.mjs` ("TC-NAV-37: Expand all and Collapse all open and close every menu heading, and are remembered"); browser check: with a page pinned, Collapse all closes every heading and the Release Details lists while the pinned page stays; Expand all opens them; at 900px the buttons are hidden; on a phone (off-canvas menu) they work.
+
 **TC-NAV-33 Get started pop-up** — Req NAV-33 — L1 `setup-guide.test.mjs` ("release streams: DP's Pedestal and DHFI data sets count, and the missing ones are named"; "a first-time user: Git first, the rest waits for the step it depends on"; "partly set up: Git and the connection done, the PAT is next, then Fetch"; "fully set up: nothing required left; region and streams follow the facts and who may change them"); browser check: a new browser without data opens the pop-up by itself with "Connect the shared Git storage" as the next step and the PAT and fetch steps "After the step above"; "Open Storage settings" closes it and shows Settings → Storage; the top bar shows "Setup · 0/4" and reopens it; a reload opens it again; after "Don't show again automatically" a reload does not, the Setup button still does; at 390 × 844 nothing overflows. **UAT**
 
 **TC-NAV-36 Background jobs** — Req NAV-36 — L1 `background-jobs.test.mjs` ("background jobs: run, report progress and the result; the same job is not started twice"; "… a failed result or a thrown error marks the job; Clear finished keeps the running ones"); browser check (QMS-0025 with a saved PAT): New Feature → Save closes the form at once and the top bar shows “⟳ 1 running” with its progress, then “✓ Jobs done” with “#id … Hierarchy complete”; the menu and other pages stay usable meanwhile; Bulk actions → Create month tasks and Move run the same way and their buttons wait while the job runs; Monthly Time Writing → Save leaves a failed Task staged; reloading while a job runs asks first.
@@ -1340,6 +1342,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NAV-33 | TC-NAV-33 |
 | NAV-34 | TC-NAV-34 |
 | NAV-36 | TC-NAV-36 |
+| NAV-37 | TC-NAV-37 |
 | CON-01…03 | TC-CON-01 |
 | CON-04…08, CON-19 | TC-CON-02 |
 | CON-09 | TC-CON-03 |
@@ -1600,7 +1603,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |

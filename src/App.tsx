@@ -189,7 +189,11 @@ export default function App() {
   useEffect(() => { setNavOpen(false) }, [page, viewId, windchillId])
   useEffect(() => { if (!navOpen) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setNavOpen(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [navOpen])
   const [collapsed, setCollapsed] = useState<string[]>(() => { try { const saved = JSON.parse(localStorage.getItem('demand-planning-nav-collapsed-v1') ?? '[]'); return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === 'string') : [] } catch { return [] } })
-  const toggleNav = (key: string) => setCollapsed((now) => { const next = now.includes(key) ? now.filter((entry) => entry !== key) : [...now, key]; try { localStorage.setItem('demand-planning-nav-collapsed-v1', JSON.stringify(next)) } catch { /* this visit only */ } return next })
+  const saveCollapsed = (next: string[]) => { try { localStorage.setItem('demand-planning-nav-collapsed-v1', JSON.stringify(next)) } catch { /* this visit only */ } return next }
+  const toggleNav = (key: string) => setCollapsed((now) => saveCollapsed(now.includes(key) ? now.filter((entry) => entry !== key) : [...now, key]))
+  // Expand all / Collapse all (NAV-37): every heading and both Release Details lists at once.
+  const navKeys = [...pageGroups, 'release:ads', 'release:windchill']
+  const allCollapsed = navKeys.every((key) => collapsed.includes(key))
   const navButton = (key: string, icon: string, label: string, active: boolean, onClick: () => void) => <button key={key} className={active ? 'nav-active' : ''} aria-current={active ? 'page' : undefined} onClick={onClick}><span className="nav-icon">{icon}</span>{label}</button>
   // Settings pages (SET-14): one menu entry each; opening one on a given section (e.g. Stream mapping) shows that
   // section. The page is remounted so it picks up the section asked for.
@@ -225,6 +229,7 @@ export default function App() {
     {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
     <aside className="sidebar" id="primary-navigation">
       <div className="brand" title="I&amp;D Quality Demand Planning"><div className="brand-mark"><BrandMark /></div><div><strong>I&amp;D Quality</strong><span>Demand Planning</span></div></div>
+      <div className="nav-fold" role="group" aria-label="Menu headings"><button type="button" className="text-button" disabled={!collapsed.length} onClick={() => setCollapsed(saveCollapsed([]))}>Expand all</button><button type="button" className="text-button" disabled={allCollapsed} onClick={() => setCollapsed(saveCollapsed(navKeys))}>Collapse all</button></div>
       <nav aria-label="Primary navigation">{(() => { const pinned = personalViews.menu.pinned.map((id) => pages.find((item) => item.id === id)).filter((item): item is typeof pages[number] => Boolean(item && !item.hidden && allowed(item.id))); return pinned.length ? <div className="nav-section nav-pinned"><span className="nav-group">PINNED</span><div className="nav-items">{pinned.map((item) => <button key={`pin:${item.id}`} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</div></div> : null })()}{pageGroups.map((group) => {
         const pageButton = (item: typeof pages[number]) => !allowed(item.id) ? [] : [<button key={item.id} className={page === item.id ? 'nav-active' : ''} aria-current={page === item.id ? 'page' : undefined} onClick={() => setPage(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}{item.id === 'mywork' && my.pending.length > 0 && <span className="nav-badge" aria-label={`${my.pending.length} pending`}>{my.pending.length}</span>}</button>]
         const windchillMeta = pageMeta('windchill')
