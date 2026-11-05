@@ -223,7 +223,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | CON-70 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-38 | — | `windchill-views.test.mjs` | KB-05, KB-06 |
 | CON-71 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-39 | 11 | `windchill-releases.test.mjs` | — |
 | CON-72 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-40 | 11 | `windchill-releases.test.mjs` | — |
-| CON-73 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-41 | 11 | `windchill-releases.test.mjs` | — |
+| CON-73 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-41 | 11 | `windchill-releases.test.mjs` | KB-28 |
 | CON-74 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | D | S | TC-ACC-03 | — | — | — |
 | CON-75 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | S | TC-CON-43 | — | `feature-setup.test.mjs` | — |
 | CON-76 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | S | TC-CON-44 | — | `connections.test.mjs` | KB-10 |
@@ -371,7 +371,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | QV-30 | SR-08 | UR-06 | T | S | TC-QV-15 | — | `query-view.test.mjs` | — |
 | QV-31 | SR-08 | UR-06 | T | M | TC-QV-16, TC-QV-26 | 11 | `dp-board-match.test.mjs` | KB-15 |
 | QV-32 | SR-08 | UR-06 | T | M | TC-QV-17 | — | `dp-milestones.test.mjs` | — |
-| QV-33 | SR-08 | UR-06 | T | M | TC-QV-18 | 11 | `windchill-releases.test.mjs` | — |
+| QV-33 | SR-08 | UR-06 | T | M | TC-QV-18 | 11 | `windchill-releases.test.mjs` | KB-28 |
 | QV-34 | SR-08 | UR-06 | T | M | TC-QV-19 | 11 | `streams.test.mjs` | — |
 | QV-35 | SR-08 | UR-06 | D | S | TC-QV-20 | — | — | — |
 | QV-36 | SR-08 | UR-06 | T | M | TC-QV-21 | — | `streams.test.mjs` | — |
