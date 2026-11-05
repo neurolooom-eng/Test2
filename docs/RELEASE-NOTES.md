@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.24.1 — 2026-11-05
+
+**Fixed**
+- **Pulse Check** no longer freezes the app when opened: it never fetched, but it rebuilt the CP release tree and re-read the Windchill exports for every month shown on every open. The slow steps are now much faster, and the results are kept per data set and reused until the data changes (QV-51, TC-QV-32, KB-27, DF-49).
+
 ## v1.24.0 — 2026-11-05
 
 **Added**

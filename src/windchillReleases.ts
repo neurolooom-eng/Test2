@@ -164,6 +164,7 @@ export function windchillReleases(rows: Record<string, unknown>[], columns: stri
   const location = chosen.locationColumn || locationColumn(columns)
   const source: ReleaseSource = chosen.source === 'name' || (chosen.source !== 'location' && !location) ? 'name' : 'location'
   const byKey = new Map<string, WindchillRelease>()
+  const seen = new Map<string, Set<Record<string, unknown>>>()
   const unmatched: string[] = []
   const date = dateColumn(columns)
   for (const row of rows) {
@@ -182,7 +183,9 @@ export function windchillReleases(rows: Record<string, unknown>[], columns: stri
     {
       const key = `${release.name.toLowerCase().replace(/[^a-z0-9]+/g, '')}\u0000${release.key}`
       const entry = byKey.get(key) ?? { key, name: release.name, release: release.release, clubbed: release.clubbed, parts: release.parts, documents: [], latest: '', locations: [], ...(chosen.project ? { project: true } : {}) }
-      if (entry.documents.some((doc) => doc.row === row)) continue
+      const counted = seen.get(key) ?? new Set<Record<string, unknown>>()
+      if (counted.has(row)) continue
+      counted.add(row); seen.set(key, counted)
       entry.documents.push({ name: release.document || text, row })
       if (folder && !entry.locations.includes(folder)) entry.locations.push(folder)
       // The latest date by value; text that is not a date is compared as text, only among such texts.
@@ -205,7 +208,17 @@ export const releasesInMonth = <T extends Pick<WindchillRelease, 'latestAt'>>(re
 
 // The releases of a Windchill export with the latest date in the month, as "name number" texts for the Pulse Check
 // Supported line (QV-33), newest first.
-export const windchillSupported = (rows: Record<string, unknown>[], columns: string[], month: string, options: ReleaseOptions = {}) => releasesInMonth(windchillReleases(rows, columns, options).releases, month).map((entry) => options.project ? `${entry.release} ${entry.name}`.trim() : `${entry.name} ${entry.release}`)
+// The unique releases of an export are read once per imported data set and reused for every month (KB-27).
+const releaseCache = new WeakMap<object, Map<string, ReturnType<typeof windchillReleases>>>()
+export function cachedWindchillReleases(rows: Record<string, unknown>[], columns: string[], options: ReleaseOptions = {}) {
+  let byKey = releaseCache.get(rows)
+  if (!byKey) { byKey = new Map(); releaseCache.set(rows, byKey) }
+  const key = JSON.stringify([columns, options])
+  let result = byKey.get(key)
+  if (!result) { result = windchillReleases(rows, columns, options); byKey.set(key, result) }
+  return result
+}
+export const windchillSupported = (rows: Record<string, unknown>[], columns: string[], month: string, options: ReleaseOptions = {}) => releasesInMonth(cachedWindchillReleases(rows, columns, options).releases, month).map((entry) => options.project ? `${entry.release} ${entry.name}`.trim() : `${entry.name} ${entry.release}`)
 
 // The analysis file saved to the Git data repository (windchill-analysis/<export>-locations.json): every distinct
 // Location with its document count and the release read from it, plus the unique releases — so that the folder
