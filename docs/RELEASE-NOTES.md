@@ -6,6 +6,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 **Fixed**
 - **Historical hours**: rows whose person is a group now apply to everyone in it, like a regional holiday Feature — **All** for everyone, **All-BLR**, **All-NL** and **All-US** for everyone in that region (Settings → Resources). Holidays under the Team Holidays and Training Epic count as public holidays, other group rows as reserved common time. Before, "All" rows were dropped and "All-BLR" counted as a person (HIS-13, TC-HIS-08, KB-31).
+- **Historical hours** import check: rows left out by design (months from the cut-off on, months without hours) are counted apart from the **rows to check** (no person, no month, an unknown group), which are listed open (HIS-03).
 
 ## v1.25.1 — 2026-11-05
 

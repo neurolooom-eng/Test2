@@ -87,6 +87,9 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
   const byFeature = draft ? draft.rows.filter((row) => row.month < draft.cutoff && row.featureId && features.has(row.featureId)).length : 0
   const draftMonths = draft ? [...new Set(draft.rows.filter((row) => row.month < draft.cutoff).map((row) => row.month))].sort() : []
   const draftHours = draft ? draft.rows.filter((row) => row.month < draft.cutoff).reduce((sum, row) => sum + (row.actual ?? 0), 0) : 0
+  // Rows left out by design (a month from the cut-off on, no hours that month) apart from rows to check (HIS-03).
+  const expected = (reason: string) => /from the cut-off on|^no hours$/.test(reason)
+  const toCheck = draft ? draft.skipped.filter((entry) => !expected(entry.reason)) : []
   const reasons = draft ? Object.entries(draft.skipped.reduce<Record<string, number>>((all, entry) => { const reason = entry.reason.replace(/^\d{4}-\d{2}: /, ''); all[reason] = (all[reason] ?? 0) + 1; return all }, {})) : []
 
   return <Panel className="admin-section" eyebrow="SHARED DATA" title="Historical hours" info={<ul><li>The planned and recorded hours of the months before Time Writing in Azure DevOps, from the planning workbook (sheet TransformedData: QA/QE, Month(Date), Epic No, Stream(Features), Project / Release Title, Expected, Actual, and an optional Feature ID column), uploaded from this computer or read from the Git data repository (its folder or history/).</li><li>Where a row has a Feature ID of a Feature in the fetched data, its hours count under that Feature and its Epic; else under the Epic No; else under the Epic chosen for its stream.</li><li>Before the cut-off month the history is the only source of hours: Azure DevOps Time Writing Tasks of those months are not counted (they stay in Azure DevOps). From the cut-off on, only Azure DevOps counts.</li><li>The rows are kept in the Git data repository (history-hours.json), never in the app's source; nothing is written to Azure DevOps.</li><li>People who have left appear by name; add them in Settings → Resources (region, role, Left on) so their utilization has a capacity.</li></ul>}>
@@ -118,7 +121,8 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
         <Metric label="People" value={draftNames.length} hint={`${draftNames.filter((name) => draft.people[name]).length} matched to Azure DevOps / Resources`} />
         <Metric label="Recorded hours" value={`${formatHours(draftHours)}h`} />
         <Metric label="By Feature ID" value={byFeature} hint="rows under a Feature in Azure DevOps" />
-        <Metric label="Rows not imported" value={draft.skipped.length} hint={reasons.map(([reason, count]) => `${count} ${reason}`).join(' · ') || 'none'} />
+        <Metric label="Rows to check" value={toCheck.length} tone={toCheck.length ? 'negative' : undefined} hint={reasons.filter(([reason]) => !expected(reason)).map(([reason, count]) => `${count} ${reason}`).join(' · ') || 'none'} />
+        <Metric label="Left out as expected" value={draft.skipped.length - toCheck.length} hint={reasons.filter(([reason]) => expected(reason)).map(([reason, count]) => `${count} ${reason}`).join(' · ') || 'none'} />
       </Metrics>
       {groups.length > 0 && <Notice tone="info">Rows for a group apply to each person in it, like a regional holiday Feature: {groups.map(([label, count]) => `${count} for ${label}`).join(' · ')}. Holidays and leave under the Team Holidays and Training Epic count as public holidays, everything else as reserved common time. People need their region in Settings → Resources.</Notice>}
       <h4>People</h4>
@@ -142,7 +146,8 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
         {checks.missing.length > 0 && <>Feature IDs not in the fetched data (placed by Epic No or stream instead): {checks.missing.slice(0, 40).map((id) => `#${id}`).join(', ')}{checks.missing.length > 40 ? ', …' : ''}. Refresh the Time Writing connection if they should be there. </>}
         {checks.conflicts.length > 0 && <>Feature ID and Epic No disagree (the Feature's Epic is used): {checks.conflicts.slice(0, 40).map((entry) => `#${entry.featureId} → Epic ${entry.epicOfFeature ? `#${entry.epicOfFeature}` : 'none'}, Epic No ${entry.epicNo}`).join('; ')}{checks.conflicts.length > 40 ? '; …' : ''}.</>}
       </Notice>}
-      {draft.skipped.length > 0 && <details><summary>The {draft.skipped.length} rows not imported</summary><ul className="plain">{draft.skipped.slice(0, 500).map((entry) => <li key={entry.row}>Row {entry.row}: {entry.reason}</li>)}</ul>{draft.skipped.length > 500 && <small className="muted">… and {draft.skipped.length - 500} more.</small>}</details>}
+      {toCheck.length > 0 && <details open><summary>The {toCheck.length} rows to check</summary><ul className="plain">{toCheck.slice(0, 500).map((entry) => <li key={entry.row}>Row {entry.row}: {entry.reason}</li>)}</ul></details>}
+      {draft.skipped.length > 0 && <details><summary>All {draft.skipped.length} rows not imported</summary><ul className="plain">{draft.skipped.slice(0, 500).map((entry) => <li key={entry.row}>Row {entry.row}: {entry.reason}</li>)}</ul>{draft.skipped.length > 500 && <small className="muted">… and {draft.skipped.length - 500} more.</small>}</details>}
       <div className="button-row"><button type="button" className="ghost" disabled={busy} onClick={() => setDraft(null)}>Cancel</button><button type="button" className="primary" disabled={busy || !git.connected || !draft.rows.some((row) => row.month < draft.cutoff)} onClick={() => void save()}>Save to Git for everyone</button></div>
     </div>}
   </Panel>
