@@ -39,7 +39,6 @@ This document lists every software component of the system: the in-house source 
 | MyWorkPage | `src/pages/MyWorkPage.tsx` | Assigned to Me: my pending Azure DevOps items, resolve/close them, and create a Feature under an Epic with its stories and task. | ATM, CON |
 | BritePage | `src/pages/BritePage.tsx` | BRITE placeholder at the root of Release Details, until its exports and rules are known (CON-84). | CON |
 | PiReviewPage | `src/pages/PiReviewPage.tsx` | PI Review placeholder page (planned PI summary). | NAV |
-| WorkspacePage | `src/pages/WorkspacePage.tsx` | Insights workspace: KPI tiles, trend and cumulative releases charts, exception queue, timeline health, insight cards with evidence, the pack preview and the insights queue saved to the Monthly pack. | WSP |
 | PulseCheckPage | `src/pages/PulseCheckPage.tsx` | Pulse Check: last month's and this month's releases per stream, Supported Releases, Windchill exports, analysis and ongoing activities. | OVR, NAV, QV |
 | MyDashboardPage | `src/pages/MyDashboardPage.tsx` | My dashboard: the person's hours against capacity, open work, streams and releases for the header month; the start page. | MYD |
 | PersonalLayout | `src/components/PersonalLayout.tsx` | Customize a page's sections (show, hide, order, reset, default for everyone) and the menu (pin, hide). | MYD |
@@ -124,7 +123,6 @@ This document lists every software component of the system: the in-house source 
 | dpReleases | `src/dpReleases.ts` | DP releases from Pedestal Release items dated by matching DHFI documents (exact version). | QV |
 | featureSetup | `src/featureSetup.ts` | Per-Epic Feature setup (stories, Time Writing story, task defaults), placeholders, shared/personal layers, parse/serialise. | CON |
 | format | `src/format.ts` | Display formatting: hours, percent, dates in viewer time zone, month names, relative time. | UI |
-| workspace | `src/workspace.ts` | Insights workspace rules: KPI deltas, data completeness, exception queue, timeline health, cumulative sums, insight cards and the suggested questions. | WSP |
 | packInputs | `src/packInputs.ts` | The Monthly pack's inputs for a month (streams' releases and supported counts, utilisation), shared by the pack tab and the Insights workspace. | PCK, WSP |
 | insights | `src/insights.ts` | Dashboard insights: month forecast, plan accuracy, stream momentum, resilience, anomalies and health score. | OVR |
 | markdown | `src/markdown.ts` | Small Markdown parser to plain data (headings with GitHub anchors, lists, tables, inline) and link targets. | DOC |
@@ -247,7 +245,6 @@ This document lists every software component of the system: the in-house source 
 | capacity.test | `tests/capacity.test.mjs` | Capacity model: absence, streams, thresholds, shared time and holidays. | CAP |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
-| workspace.test | `tests/workspace.test.mjs` | KPI helpers, data completeness, exception queue, timeline health and insight cards. | WSP |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |
 | desktop-update.test | `tests/desktop-update.test.mjs` | Desktop update manifest, build comparison, verified download and per-platform manifest merge. | DSK, CI |
 | cp-reporting.test | `tests/cp-reporting.test.mjs` | CP release reporting: containers, signatures, slots, months, Supported / Completed, shared work, data issues, names and the Create Feature title. | QV |
@@ -295,7 +292,6 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 | shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02). | NAV, UI, SMP, UPD |
 | documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; "＋ ECP" import named after the stream with the ECP CSV, Project No / Project Name columns, an ECP setup at the 3rd folder with the type-2 CSV (TC-CON-53, 54, 55); the table default on the Windchill raw data — move, hide, density, Excel export with dates, Settings → Table defaults (TC-UI-04, 05); My Work tree, Backlog Health and Baselines on the default (TC-UI-06); neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); Windchill releases' QMS-0025 match column (TC-QV-23); auto-fit tables and Wrap text (TC-CON-42); the DP Supported Releases list in Pulse Check folded until Show list (TC-QV-17). | DOC, CON, STO, NFR, QV |
 | backlog.e2e | `e2e/backlog.e2e.mjs` | New User Story form from a Feature row of the Backlogs (TC-BKL-10); the Edit form from Feature, User Story and Task rows (TC-BKL-11). | CI, BKL |
-| workspace.e2e | `e2e/workspace.e2e.mjs` | Insights workspace hidden for now: not in the menu, the Dashboard unchanged (TC-WSP-07; the TC-WSP-06 scenario returns with the page). | CI |
 | monthly-pack.e2e | `e2e/monthly-pack.e2e.mjs` | Monthly pack tab with the synthetic sample, the .pptx download and the setup tab (TC-PCK-04). | CI |
 
 ## 2. Third-party components (SOUP)
