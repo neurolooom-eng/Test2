@@ -97,3 +97,29 @@ test('historical hours: a Feature ID of a Feature in the data wins over Epic No 
   assert.deepEqual(capacityModel(merged, '2026-06').streams.map((stream) => [stream.title, stream.work]).sort(), [['Alpha stream', 3], ['CAPA stream', 2]], 'unknown Feature 999: Epic No 500; Feature 702: its Epic, no stream mapping needed')
   assert.equal(merged.filter((entry) => entry.parentId === 701 && entry.id < 0).length, 1, 'the history Task sits under the real Feature')
 })
+
+test('historical hours: holidays, leave and trainings under their Features count for the row\'s own person only (HIS-12)', () => {
+  const base = { organization: 'org', project: 'Quality', state: 'Active', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '', assignedTo: '' }
+  const item = (id, workItemType, title, parentId) => ({ ...base, key: `org/q/${id}`, id, workItemType, title, ...(parentId ? { parentId } : {}) })
+  // Team Holidays and Training (the absence Epic) with a regional holiday Feature, a leave Feature and a training Feature.
+  const ado = [item(37778, 'Epic', 'Team Holidays and Training'), item(800, 'Feature', 'Public Holidays - India', 37778), item(801, 'Feature', 'PTO', 37778), item(802, 'Feature', 'QE Training', 37778), item(500, 'Epic', 'Alpha stream')]
+  const head = ['QA/QE', 'Month(Date)', 'Epic No', 'Stream(Features)', 'Project / Release Title', 'Expected', 'Actual', 'Feature ID']
+  const rows = [head,
+    ['Ana Costa', '2026-08-01', '', 'Holidays', 'Independence Day', '', '8', '800'],
+    ['Ben Ode', '2026-08-01', '', 'Holidays', 'Independence Day', '', '8', '800'],
+    ['Ana Costa', '2026-08-01', '', 'PTO', 'PTO', '', '16', '801'],
+    ['Ben Ode', '2026-08-01', '', 'Training', 'QE Training', '', '4', '802'],
+    ['Ana Costa', '2026-08-01', '500', 'Alpha', 'Alpha 1.0', '100', '100', ''],
+    ['Ben Ode', '2026-08-01', '500', 'Alpha', 'Alpha 1.0', '100', '100', ''],
+  ]
+  const file = buildHistoryFile({ rows: parseHistorySheet(rows, '2026-10').rows, cutoff: '2026-10', source: 'plan.xlsx', sheet: 'TransformedData', importedBy: '', streamEpics: {}, people: {} })
+  const settings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, profiles: { 'Ana Costa': { region: 'India' }, 'Ben Ode': { region: 'India' } } }
+  const august = capacityModel(withHistory(ado, file).items, '2026-08', settings)
+  const person = (name) => august.people.find((entry) => entry.name === name)
+  assert.equal(person('Ana Costa').absenceByKind['Public holiday'], 8, 'her own 8h holiday, not 16h for the two rows together')
+  assert.equal(person('Ben Ode').absenceByKind['Public holiday'], 8)
+  assert.equal(person('Ana Costa').absenceByKind.PTO, 16, 'leave under the absence Epic is absence')
+  assert.equal(person('Ben Ode').npra, 4, 'training under the absence Epic is training (NPRA)')
+  assert.deepEqual([person('Ana Costa').work, person('Ben Ode').work], [100, 100], 'leave, holidays and training are not work')
+  assert.deepEqual(august.sharedTime, [], 'nothing spread over the region')
+})
