@@ -905,6 +905,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-06 Team Holidays and Training** — Req CAP-16 — L1 `capacity.test.mjs` ("Team Holidays and Training (same Epic ID): training is NPRA, PTO / Sick / Unplanned stay absence; the Epic title is not read (TC-CAP-06)"), `my-work.test.mjs` ("Team Holidays and Training: my Training story gets its month Task; leave there is still left out (TC-CAP-06)"); browser check with the QMS-0025 board: Pulse Check → Last month — a person's Training month Task hours appear in the NPRA table and the NPRA total, not in absence; PTO / Sick / Unplanned stay in the absence split; Bulk actions → Create month tasks lists the Training Feature for your own Training story and no leave Feature; Settings → Capacity & periods names the Epic "Team Holidays and Training".
 
+**TC-CAP-07 Everyone in Resources** — Req CAP-29, CAP-30, CAP-31 — L1 `resources.test.mjs` ("Resources list everyone who can be given a region: Time Writing, assignees, historical hours, team members, added by name (CAP-29, CAP-31)"; "Team members are read from Azure DevOps (read only), groups left out, one entry per name (CAP-30)"); browser check with the Time Writing data fetched: Resources lists the people with Time Writing and, as "No Time Writing yet", the other assignees and the historical-hours people; Add team members from Azure DevOps adds the team's other members (or shows the PAT hint); Add a person by name adds one, Remove takes them off again; a region set for a leaver applies to their historical holidays.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1530,6 +1532,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-14 | TC-CAP-04 |
 | CAP-15 | TC-CAP-05 |
 | CAP-16 | TC-CAP-06 |
+| CAP-29 | TC-CAP-07 |
+| CAP-30 | TC-CAP-07 |
+| CAP-31 | TC-CAP-07 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1659,7 +1664,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34 |
+| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |

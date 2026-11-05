@@ -268,6 +268,7 @@ This document lists every software component of the system: the in-house source 
 | personal-views.test | `tests/personal-views.test.mjs` | Personal views: file path per person, validated parse, defaults merge, section order and moves. | MYD |
 | history.test | `tests/history.test.mjs` | Historical hours: sheet and rows, skipped reasons, name matching, Git file shapes, cut-off and merge into the reports. | HIS |
 | view-as.test | `tests/view-as.test.mjs` | View as: Admin only, rights of a person or role, people list, writes refused while on. | CON |
+| resources.test | `tests/resources.test.mjs` | Resources: everyone listed (Time Writing, assignees, history, team, added), team members read from Azure DevOps (browser and desktop proxy). | CAP |
 | nested-groups.test | `tests/nested-groups.test.mjs` | Nested grouping: levels, order, blank last, unique keys. | QV |
 | monthly-pack.test | `tests/monthly-pack.test.mjs` | Monthly pack files, Epic counts, lines, YoY, slide text and the .pptx writer. | PCK |
 | qe-mapping.test | `tests/qe-mapping.test.mjs` | xlsx/CSV read/write and QE Mapping editing and Git file handling. | QEM |

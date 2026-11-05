@@ -6,6 +6,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 **Added**
 - **View as** (Admins only, sidebar footer → View as…): see the app as a chosen **person** — the menu and pages of their roles, their own My dashboard, Assigned to Me, Monthly Time Writing and personal views — or as a **role** alone. Read only: while it is on, nothing is saved to Azure DevOps or Git (refused before anything is sent); a banner names who you view as, with Change and Exit; it is never stored and a reload ends it (CON-89…CON-92, TC-ACC-04, TC-ACC-05, DF-51, SM-30).
+- **Settings → Resources lists everyone**: besides the people with Time Writing Tasks, everyone else Assigned To fetched work, the people of the historical hours (leavers included), the Azure DevOps team members (**Add team members from Azure DevOps**, read only; the PAT needs Project and Team, Read) and people added by name — so region, role and dates can be set for all of them (CAP-29…CAP-31, TC-CAP-07, SM-31).
 
 ## v1.25.3 — 2026-11-05
 
