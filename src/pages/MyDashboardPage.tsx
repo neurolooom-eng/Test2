@@ -7,10 +7,12 @@ import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
+import type { PersonalViewsStore } from '../usePersonalViews'
+import { CustomizableSections } from '../components/PersonalLayout'
 
 // My dashboard (MYD-01…MYD-04): every user's start page — their own hours against their capacity, their open work and
 // their streams and releases, for the header month. Each count opens the page with the detail.
-export function MyDashboardPage({ month, azure, store, my, navigate }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void }) {
+export function MyDashboardPage({ month, azure, store, my, navigate, views, canSetDefault = false }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; views: PersonalViewsStore; canSetDefault?: boolean }) {
   if (!my.known) return <Page><EmptyState title="Who are you in Azure DevOps?" detail="Set your work email in Settings → Azure DevOps → Your work email, or choose your name on Assigned to Me. My dashboard then shows your own hours and work." /></Page>
   const settings = capacityContext(store.state)
   const today = todayIso()
@@ -30,6 +32,8 @@ export function MyDashboardPage({ month, azure, store, my, navigate }: { month: 
   const open = (page: PageId, text: string) => <button type="button" className="text-button" onClick={() => navigate(page)}>{text} →</button>
   return <Page>
     <p className="muted">{name || my.me.email} · {label}</p>
+    <CustomizableSections page="mydash" views={views} canSetDefault={canSetDefault} sections={[
+      { id: 'hours', label: 'My hours', node: <>
     <TablePanel title={`My hours · ${label}`} info={<ul><li>Planned = Original Estimate and recorded = Completed Work of your month Time Writing Tasks; capacity = your working days less absence, as on the Dashboard.</li><li>Overrun = hours recorded above the estimate; ad-hoc = hours on Tasks tagged ad-hoc.</li></ul>} action={open('monthly', 'Monthly Time Writing')}>
       <Metrics>
         <Metric label="Planned" value={`${formatHours(now.plan)}h`} hint={`Capacity ${formatHours(now.capacity)}h`} />
@@ -41,6 +45,8 @@ export function MyDashboardPage({ month, azure, store, my, navigate }: { month: 
         {months.slice().reverse().map((entry) => { const row = totals(rows.filter((item) => item.month === entry)); return <tr key={entry} className={entry === month ? 'row-current' : ''}><td>{monthName(entry)}</td><td>{formatHours(row.plan)}h</td><td>{formatHours(row.actual)}h</td><td>{formatHours(row.capacity)}h</td><td>{formatPercent(row.actualUtil ?? row.planUtil)}</td></tr> })}
       </tbody></table></div> : <EmptyState title="No Time Writing hours for you yet." detail="Refresh Time Writing from Azure, or check that your name on Assigned to Me matches your Tasks." />}
     </TablePanel>
+      </> },
+      { id: 'work', label: 'My open work', node: <>
     <TablePanel title="My open work" info="Your New and Active work items (work under the absence Epic left out), and the state checks of Bulk actions." action={open('mywork', 'Assigned to Me')}>
       <Metrics>
         <Metric label="Features" value={count('Feature')} hint="open, assigned to you" />
@@ -50,6 +56,8 @@ export function MyDashboardPage({ month, azure, store, my, navigate }: { month: 
       </Metrics>
       <div className="button-row">{open('mywork', 'Open my work')}{(toClose > 0 || needsStory > 0) && open('bulk', 'Fix in Bulk actions')}</div>
     </TablePanel>
+      </> },
+      { id: 'streams', label: 'My streams and releases', node: <>
     <TablePanel title={`My streams and releases · ${label}`} info="The Epics you planned or recorded hours on in the month, and your Features with a Target Date in the month." empty={streams.length || due.length ? undefined : `No hours or Features due for you in ${label}.`}>
       {streams.length > 0 && <div className="azure-table"><table><thead><tr><th>Stream (Epic)</th><th>Planned</th><th>Recorded</th></tr></thead><tbody>
         {streams.map((stream) => <tr key={stream.key}><td>{stream.title}</td><td>{formatHours(stream.plan)}h</td><td>{formatHours(stream.actual)}h</td></tr>)}
@@ -58,5 +66,7 @@ export function MyDashboardPage({ month, azure, store, my, navigate }: { month: 
         {due.map((item) => <tr key={item.key}><td><a href={item.url} target="_blank" rel="noreferrer">#{item.id}</a> {item.title}</td><td><Pill tone={isPending(item) ? 'open' : 'neutral'}>{item.state}</Pill></td><td>{item.targetDate ? formatDate(item.targetDate) : '—'}</td></tr>)}
       </tbody></table></div>}
     </TablePanel>
+      </> },
+    ]} />
   </Page>
 }

@@ -13,6 +13,7 @@ import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
+import type { PersonalViewsStore } from '../usePersonalViews'
 
 // Dashboard: demand (planned hours), recorded hours and capacity per person and month, over a period, with one
 // utilization model everywhere — the bands from Settings → Capacity (overloaded at or above overloadedAt %, spare
@@ -27,10 +28,11 @@ const storageKey = 'demand-planning-dashboard-v3'
 const list = <T extends string>(value: unknown, allowed?: readonly T[]) => Array.isArray(value) ? value.filter((entry): entry is T => typeof entry === 'string' && (!allowed || allowed.includes(entry as T))) : []
 const numbers = (value: unknown, max: number) => Array.isArray(value) ? [...new Set(value.filter((entry): entry is number => Number.isInteger(entry) && entry >= 1 && entry <= max))].sort((a, b) => a - b) : []
 // Starts on the quarter of the month picked in the header; the choice is remembered in this browser.
-const load = (month: string): Saved => {
+// MYD-08: with personal views the choice follows the person (Git), else this browser keeps it.
+const load = (month: string, stored?: unknown): Saved => {
   const fallback: Saved = { tab: 'summary', period: { year: Number(month.slice(0, 4)), quarters: [quarterOf(month)], months: [] }, filter: noFilter }
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as Partial<Saved> | null
+    const saved = (stored && typeof stored === 'object' ? stored : JSON.parse(localStorage.getItem(storageKey) ?? 'null')) as Partial<Saved> | null
     if (!saved) return fallback
     const year = Number(saved.period?.year)
     return {
@@ -70,11 +72,11 @@ function MoreTable<T>({ items, limit = 8, render, head }: { items: T[]; limit?: 
   return <><div className="azure-table"><table><thead>{head}</thead><tbody>{shown.map(render)}</tbody></table></div>{button}</>
 }
 
-export function DashboardPage({ month, azure, store, my }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork }) {
+export function DashboardPage({ month, azure, store, my, views }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork; views?: PersonalViewsStore }) {
   const settings = capacityContext(store.state)
   const bands: Bands = { overloadedAt: settings.overloadedAt, availableBelow: settings.availableBelow }
-  const [saved, setSaved] = useState(() => load(month))
-  const update = (next: Partial<Saved>) => setSaved((current) => { const value = { ...current, ...next }; try { localStorage.setItem(storageKey, JSON.stringify(value)) } catch { /* convenience only */ } return value })
+  const [saved, setSaved] = useState(() => load(month, views?.filter('dashboard', (value) => value)))
+  const update = (next: Partial<Saved>) => setSaved((current) => { const value = { ...current, ...next }; try { localStorage.setItem(storageKey, JSON.stringify(value)) } catch { /* convenience only */ } views?.setFilter('dashboard', value); return value })
   const setFilter = (change: Partial<DashboardFilter>) => update({ filter: { ...saved.filter, ...change } })
   const today = todayIso()
   const months = periodMonths(saved.period)
