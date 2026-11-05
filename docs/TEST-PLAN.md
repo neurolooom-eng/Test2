@@ -1346,6 +1346,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-HIS-09 Reading Epic No and Feature No** — Req HIS-14 — L1 `history.test.mjs` ("historical hours: Epic No / Feature No cells written as Excel writes them are read; others are reported, never silently ignored (HIS-14)"); browser check: a stream whose rows carry Feature Nos is not listed under "Streams without an Epic No" when those Features are fetched; when listed, its "Why" names the cause.
 
+**TC-HIS-10 Changing the cut-off after reading** — Req HIS-15 — L1 `history.test.mjs` ("historical hours: the file is read with every month, so a later cut-off brings October back without uploading again (HIS-15)"); browser check: load the workbook, change the cut-off from October to November — Rows imported grows by the October rows and "Left out as expected" says how many rows are from November on; save, and the reports show October from the Excel.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1640,6 +1642,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-12 | TC-HIS-07 |
 | HIS-13 | TC-HIS-08 |
 | HIS-14 | TC-HIS-09 |
+| HIS-15 | TC-HIS-10 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1677,7 +1680,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
-| UC-27 | TC-HIS-01…09 |
+| UC-27 | TC-HIS-01…10 |
 
 ## 8. Result record
 
