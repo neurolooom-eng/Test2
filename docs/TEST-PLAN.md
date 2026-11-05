@@ -1322,6 +1322,16 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-MYD-05 Team overview tiles and tabs** — Req MYD-10, MYD-11, MYD-12 — E2E `shell.e2e.mjs` ("TC-MYD-05: Team overview shows six headline tiles; each opens its analysis, with a trail back; Delivery opens Pulse Check"); unit tests of the calculations as before (`dashboard.test.mjs`, `insights.test.mjs`); inspection: the menu offers no Insights workspace and `src/workspace.ts` is gone.
 
+**TC-HIS-01 Historical hours page** — Req HIS-01 — E2E `shell.e2e.mjs` ("TC-HIS-01: Settings → Historical hours explains the import and needs Git storage to upload"); browser check with Git storage and the real planning workbook: Upload Excel… reads TransformedData; the counts (rows May–Sep 2026, people, recorded hours, rows not imported with their reasons) match the workbook; Save to Git writes `history-hours.json` to the data repository (not to the app's repository); the page shows the source, cut-off and the Azure DevOps Tasks left out; Remove history removes the file.
+
+**TC-HIS-02 Reading the workbook** — Req HIS-02, HIS-03 — L1 `history.test.mjs` ("historical hours: the TransformedData sheet read before the cut-off; every other row listed with its reason (HIS-02, HIS-03)").
+
+**TC-HIS-03 The history file in Git** — Req HIS-04, HIS-08 — L1 `history.test.mjs` ("historical hours: the Git file keeps known shapes only (HIS-04)"); browser check: upload again after saving — earlier name and stream choices are kept.
+
+**TC-HIS-04 History in the reports** — Req HIS-05, HIS-07, HIS-09 — L1 `history.test.mjs` ("historical hours in the reports: before the cut-off the history only, from it Azure DevOps only; real Epics and mapped streams used (HIS-05, HIS-07)"); browser check: after the import the Team overview and Pulse Check show May–Sep 2026 per person and stream (a person who has left by name), October from Azure DevOps only; Assigned to Me, Bulk actions and Monthly Time Writing show no imported row.
+
+**TC-HIS-05 Names** — Req HIS-06 — L1 `history.test.mjs` ("historical hours: Excel names matched to Azure DevOps names in any order; ambiguous or unknown names stay as written (HIS-06)"); browser check: change a report name in the People list and save — the person's history follows the new name.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1595,6 +1605,15 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MYD-10 | TC-MYD-05 |
 | MYD-11 | TC-MYD-05 |
 | MYD-12 | TC-MYD-05 |
+| HIS-01 | TC-HIS-01 |
+| HIS-02 | TC-HIS-02 |
+| HIS-03 | TC-HIS-02 |
+| HIS-04 | TC-HIS-03 |
+| HIS-05 | TC-HIS-04 |
+| HIS-06 | TC-HIS-05 |
+| HIS-07 | TC-HIS-04 |
+| HIS-08 | TC-HIS-03 |
+| HIS-09 | TC-HIS-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1632,6 +1651,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
+| UC-27 | TC-HIS-01…05 |
 
 ## 8. Result record
 

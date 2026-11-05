@@ -32,6 +32,8 @@ import { useGitStorage } from './useGitStorage'
 import { useWindchill } from './useWindchill'
 import { WindchillExportImport, WindchillPage } from './components/WindchillViews'
 import { BacklogHealthPage } from './pages/BacklogHealthPage'
+import { useHistory } from './useHistory'
+import { withHistory } from './history'
 import { PulseCheckPage } from './pages/PulseCheckPage'
 import { PiReviewPage } from './pages/PiReviewPage'
 import { BritePage } from './pages/BritePage'
@@ -138,6 +140,10 @@ export default function App() {
   const access = useAccess(git, azure)
   // MYD-06…MYD-09: each person's sections, menu and filters, in Git per person.
   const personalViews = usePersonalViews(git, azure.creatorEmail)
+  // Historical hours (HIS-05): the report pages read the Azure DevOps items with the history merged in before its
+  // cut-off month; every other page (and every write) keeps the Azure DevOps items only.
+  const history = useHistory(git)
+  const reportAzure = useMemo(() => history.file ? { ...azure, items: withHistory(azure.items, history.file).items } : azure, [azure, history.file])
   const [menuEditor, setMenuEditor] = useState(false)
   const featureSetup = useFeatureSetup(git, azure.creatorEmail)
   const qeMapping = useQeMapping(git)
@@ -269,9 +275,9 @@ export default function App() {
       {guideOpen && <SetupGuide steps={steps} busy={azure.busy} onClose={() => setGuideOpen(false)} onDismiss={dismissGuide} onOpenTab={(tab, section) => { openSettings(tab, section); setGuideOpen(false) }} onFetch={() => void azure.refresh()} />}
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
-      {page === 'mydash' && <MyDashboardPage month={month} azure={azure} store={store} my={my} navigate={setPage} views={personalViews} canSetDefault={access.can('settings.manage')} />}
-      {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} views={personalViews} canSetDefault={access.can('settings.manage')} />}
-      {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} git={git} pack={monthlyPack} views={personalViews} />}
+      {page === 'mydash' && <MyDashboardPage month={month} azure={reportAzure} store={store} my={my} navigate={setPage} views={personalViews} canSetDefault={access.can('settings.manage')} />}
+      {page === 'overview' && <DashboardPage month={month} azure={reportAzure} navigate={setPage} store={store} setMonth={setMonth} my={my} views={personalViews} canSetDefault={access.can('settings.manage')} />}
+      {page === 'pulse' && <PulseCheckPage month={month} azure={reportAzure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} git={git} pack={monthlyPack} views={personalViews} />}
       {page === 'pireview' && <PiReviewPage />}
       {page === 'brite' && <BritePage />}
       {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} resources={qeResources} />}
@@ -283,7 +289,7 @@ export default function App() {
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage key={`${settingsTab}:${settingsVisit}`} tab={settingsTab} onOpenTab={openSettings} {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} monthlyPack={monthlyPack} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
+      {page === 'admin' && <AdminPage key={`${settingsTab}:${settingsVisit}`} tab={settingsTab} onOpenTab={openSettings} {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} monthlyPack={monthlyPack} history={history} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
   </div></HeaderSlot.Provider></TableDefaultsContext.Provider>

@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.25.0 — 2026-11-05
+
+**Added**
+- **Historical hours** (Settings → Historical hours, roles with Manage shared settings): upload the team's planning workbook once and its **TransformedData** sheet brings the planned (Expected) and recorded (Actual) hours of the months before Time Writing in Azure DevOps into My dashboard, the Team overview, Pulse Check and the Monthly pack — people who have left included, by name. Before the cut-off month (default October 2026) only the history counts and the Azure DevOps Time Writing Tasks of those months are left out (they stay in Azure DevOps, the page shows how many); from the cut-off on, only Azure DevOps. Names are matched to Azure DevOps names (checked and changeable before saving), streams without an Epic No are assigned an Epic, and every row not imported is listed with its reason. Kept in the Git data repository (`history-hours.json`), never in the app's source; nothing is written to Azure DevOps (HIS-01…HIS-09, UR-24, SR-28, UC-27, TC-HIS-01…05, DF-50, SM-29, KB-29).
+
 ## v1.24.2 — 2026-11-05
 
 **Fixed**
