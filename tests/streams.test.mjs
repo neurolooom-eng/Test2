@@ -131,6 +131,16 @@ test('Pulse Check is worked out once per data set: the same sources and month gi
   assert.equal(read(item, 'B.Type'), 'Release Notes')
   assert.equal(read(item, 'title'), 'x')
   assert.equal(read(item, 'Missing'), undefined)
+  // DP fields by name, with any prefix, the first matching field winning; DP months read once and picked per month.
+  const { fieldOf } = await import('../src/dpReleases.ts')
+  const { dpMonthCounts } = await import('../src/dpMilestones.ts')
+  const dpItem = { id: 7, workItemType: 'Release', title: 'x', state: 'Active', fields: { 'Custom.DDTDate': '2026-10-05T00:00:00Z', 'Other.DDTDate': 'later', 'Custom.DDTStatus': 'Done', PsName: 'DoseNav', Release: '2.1.0' } }
+  assert.equal(fieldOf(dpItem, 'ddtdate'), '2026-10-05T00:00:00Z')
+  assert.equal(fieldOf(dpItem, 'Custom.DDTStatus'), 'Done')
+  assert.equal(fieldOf(dpItem, 'Missing'), undefined)
+  const dpItems = [dpItem]
+  assert.equal(dpMonthCounts(dpItems, '2026-10', 'UTC').completed.length, 1)
+  assert.equal(dpMonthCounts(dpItems, '2026-09', 'UTC').completed.length, 0)
   // Approval months in the viewer's time zone (one formatter per zone).
   assert.equal(approvalMonthOf('2026-10-31T23:30:00Z', 'Asia/Kolkata'), '2026-11')
   assert.equal(approvalMonthOf('2026-10-31T23:30:00Z', 'UTC'), '2026-10')

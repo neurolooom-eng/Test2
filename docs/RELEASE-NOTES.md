@@ -6,6 +6,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 **Fixed**
 - **S&S IT Supported releases**: a release now counts in every month in which one of its documents was signed (Last Modified), not only in the month of its newest document. The same applies to the month filter of every Windchill export page, the Quarter / Half-year / Year Pulse Check and the Monthly pack (CON-73, QV-33, KB-28).
+- **Pulse Check over a Quarter, Half-year or Year** opens much faster the first time (it works out 24 months): DP and CP figures are read once per data set and picked per month (QV-51, KB-27).
 
 ## v1.24.1 — 2026-11-05
 

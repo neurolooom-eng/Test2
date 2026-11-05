@@ -1,7 +1,7 @@
 import { windchillReleases, windchillSupported } from '../windchillReleases'
 import { DataTable } from '../components/DataTable'
 import { SupportedReleasesTable } from '../components/DpMonthCounts'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ReleaseQuadrants, SupportedSummary, type SupportedLine } from '../components/ReleaseQuadrants'
 import { CapacityMetrics, MonthSections } from '../components/MonthOverview'
 import { GapsPanel } from '../components/GapsPanel'
@@ -173,7 +173,8 @@ function LastMonth({ month, last, azure, store, my, navigate, current }: { month
 // A quarter, half-year or year (QV-50): each stream's releases in the period (each release once) against the period
 // before, and the Features and User Stories opened and closed in it.
 function PeriodPulse({ label, previous, months, rows, azure, absenceEpicId }: { label: string; previous: string; months: string[]; rows: ReturnType<typeof periodComparison>; azure: AzureWorkspace; absenceEpicId: number }) {
-  const flow = periodWorkFlow(azure.items, months, absenceEpicId)
+  const monthsKey = months.join(',')
+  const flow = useMemo(() => periodWorkFlow(azure.items, monthsKey.split(','), absenceEpicId), [azure.items, monthsKey, absenceEpicId])
   const total = rows.reduce((sum, row) => sum + row.releases, 0), totalBefore = rows.reduce((sum, row) => sum + row.previousReleases, 0)
   const elapsed = months.filter((entry) => entry <= todayIso().slice(0, 7)).length
   return <>
