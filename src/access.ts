@@ -9,7 +9,7 @@ export type Role = typeof roles[number]
 export const areas = [
   { key: 'overview', label: 'My dashboard' },
   // MYD-05: the team's insights for selected roles only (Dashboard, Pulse Check, PI Review); My dashboard is for everyone.
-  { key: 'insights', label: 'Team insights (Dashboard, Pulse Check, PI Review)' },
+  { key: 'insights', label: 'Team insights (Team overview, Pulse Check, PI Review)' },
   { key: 'mywork', label: 'Assigned to Me' },
   { key: 'bulk', label: 'Bulk actions' },
   { key: 'monthly', label: 'Monthly Time Writing' },

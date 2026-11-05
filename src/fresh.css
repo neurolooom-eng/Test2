@@ -459,3 +459,16 @@ table.resizable.wrap th,table.resizable.wrap td{white-space:pre-wrap;overflow-wr
 .layout-section{display:grid;gap:18px}
 .nav-pinned .nav-group{cursor:default}
 .sidebar-footer .customize-menu{color:var(--sidebar-text);padding:0 0 8px;font-size:12px}
+
+/* Team overview (MYD-10, MYD-11): six headline tiles, each opening its analysis, and the trail back. */
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px}
+.dash-tile{display:grid;gap:4px;align-content:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.dash-tile>span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.dash-tile>strong{font-size:24px;font-variant-numeric:tabular-nums}
+.dash-tile>small{color:var(--muted);font-size:12px}
+.dash-tile>.text-button{justify-self:start;padding-left:0;margin-top:4px}
+.dash-tile-danger{border-left:3px solid var(--danger)}
+.dash-tile-warning{border-left:3px solid var(--warning,#b7791f)}
+.dash-tile-ok{border-left:3px solid var(--success)}
+.dash-trail{font-size:13px;color:var(--muted);margin:4px 0 12px;display:flex;gap:6px;align-items:center}
+.dash-trail .text-button{padding:0}

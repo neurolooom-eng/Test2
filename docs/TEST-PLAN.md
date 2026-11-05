@@ -1292,19 +1292,19 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 ### 6.23 Insights workspace
 
-**TC-WSP-01 KPI helpers and data completeness** — Req WSP-02 — L1 `workspace.test.mjs` ("KPI helpers: deltas, signed text, month utilization and data completeness (WSP-01, WSP-02)": the change in points, the month's planned utilisation, the share of planned Tasks with actuals, people without region or role, a future month without a value, the cumulative sum).
+**TC-WSP-01 KPI helpers and data completeness** — *(Retired — see TC-MYD-05)* Req WSP-02 — L1 `workspace.test.mjs` ("KPI helpers: deltas, signed text, month utilization and data completeness (WSP-01, WSP-02)": the change in points, the month's planned utilisation, the share of planned Tasks with actuals, people without region or role, a future month without a value, the cumulative sum).
 
-**TC-WSP-02 Exception queue** — Req WSP-03 — L1 `workspace.test.mjs` ("exception queue: over baseline, missing baseline and capacity risk, high first then by impact (WSP-03)": +60% high and +30% medium, within 25% and a closed release without scope left out, 95% not a capacity risk, the order, the stream with most planned hours, the month decides the capacity rows).
+**TC-WSP-02 Exception queue** — *(Retired — see TC-MYD-05)* Req WSP-03 — L1 `workspace.test.mjs` ("exception queue: over baseline, missing baseline and capacity risk, high first then by impact (WSP-03)": +60% high and +30% medium, within 25% and a closed release without scope left out, 95% not a capacity risk, the order, the stream with most planned hours, the month decides the capacity rows).
 
-**TC-WSP-03 Timeline health** — Req WSP-04 — L1 `workspace.test.mjs` ("timeline health: Features with a Target Date in the window per Epic — completed, overdue, at risk, planned (WSP-04)": the window, outside dates, Removed, undated Features and User Stories left out, the per-Epic and total counts, the sort by date).
+**TC-WSP-03 Timeline health** — *(Retired — see TC-MYD-05)* Req WSP-04 — L1 `workspace.test.mjs` ("timeline health: Features with a Target Date in the window per Epic — completed, overdue, at risk, planned (WSP-04)": the window, outside dates, Removed, undated Features and User Stories left out, the per-Epic and total counts, the sort by date).
 
-**TC-WSP-04 Insight cards** — Req WSP-05 — L1 `workspace.test.mjs` ("insight cards: each rule names its evidence, tone and pack line (WSP-05)": the seven rules with their tones, texts, bars and evidence columns, a stream not set up, the pack lines, the cards without data).
+**TC-WSP-04 Insight cards** — *(Retired — see TC-MYD-05)* Req WSP-05 — L1 `workspace.test.mjs` ("insight cards: each rule names its evidence, tone and pack line (WSP-05)": the seven rules with their tones, texts, bars and evidence columns, a stream not set up, the pack lines, the cards without data).
 
-**TC-WSP-05 Page, filters and routing** — Req WSP-01 — L1 `format.test.mjs` ("page registry …": the page in the Data Insights group with the header month); browser check: Settings → Access shows the page under Data Insights; a role without that area does not see it.
+**TC-WSP-05 Page, filters and routing** — *(Retired — see TC-MYD-05)* Req WSP-01 — L1 `format.test.mjs` ("page registry …": the page in the Data Insights group with the header month); browser check: Settings → Access shows the page under Data Insights; a role without that area does not see it.
 
-**TC-WSP-07 Insights workspace hidden** — Req WSP-07 — **UAT** — E2E `workspace.e2e.mjs` ("TC-WSP-07": synthetic sample, the menu has no Insights workspace, Data Insights still lists Dashboard and Pulse Check, the Dashboard keeps its six tabs).
+**TC-WSP-07 Insights workspace hidden** — *(Retired — see TC-MYD-05)* Req WSP-07 — E2E `workspace.e2e.mjs` ("TC-WSP-07": synthetic sample, the menu has no Insights workspace, Data Insights still lists Dashboard and Pulse Check, the Dashboard keeps its six tabs).
 
-**TC-WSP-06 Insights workspace end to end** — Req WSP-01…06 — E2E `workspace.e2e.mjs` ("TC-WSP-06": synthetic sample, the KPI tiles with their change, the two charts, the exception queue filtered by a kind chip, the timeline from target dates; the insight cards with filters and what was checked, the evidence rows, Add to monthly pack and the queue count, Save refused with the sample, the presentation preview, a suggested question jumping to the queue filtered on Over 25% baseline; the Dashboard unchanged with its six tabs); browser check with Git connected (writable token): queue two cards, Save to monthly pack, then Pulse Check → Monthly pack of that month shows them under Key takeaways and the Git history has the commit. Suspended while WSP-07 hides the page; its E2E scenario is in the Git history of `workspace.e2e.mjs` and returns with the page.
+**TC-WSP-06 Insights workspace end to end** — *(Retired — see TC-MYD-05)* Req WSP-01…06 — E2E `workspace.e2e.mjs` ("TC-WSP-06": synthetic sample, the KPI tiles with their change, the two charts, the exception queue filtered by a kind chip, the timeline from target dates; the insight cards with filters and what was checked, the evidence rows, Add to monthly pack and the queue count, Save refused with the sample, the presentation preview, a suggested question jumping to the queue filtered on Over 25% baseline; the Dashboard unchanged with its six tabs); browser check with Git connected (writable token): queue two cards, Save to monthly pack, then Pulse Check → Monthly pack of that month shows them under Key takeaways and the Git history has the commit. Suspended while WSP-07 hides the page; its E2E scenario is in the Git history of `workspace.e2e.mjs` and returns with the page.
 
 ### 6.24 My dashboard and team insights
 
@@ -1315,6 +1315,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-MYD-03 Personal views model** — Req MYD-06, MYD-09 — L1 `personal-views.test.mjs` ("personal views: a file per person, only known shapes kept, defaults under my own changes (MYD-06…MYD-09, TC-MYD-03)"; "sections in my order: removed sections dropped, new ones placed after their neighbour, hidden apart (MYD-06, TC-MYD-03)").
 
 **TC-MYD-04 Customize sections and menu** — Req MYD-06, MYD-07, MYD-08 — E2E `shell.e2e.mjs` ("TC-MYD-04: a person hides and moves the sections of My dashboard and pins a page to the menu; both survive a reload"); browser check (Git storage, work email): the file `personal-views/<email>.json` appears in Git and the layout comes back on another computer; an admin's "Use as default for everyone" applies to a person who changed nothing; the Dashboard and Pulse Check periods are remembered.
+
+**TC-MYD-05 Team overview tiles and tabs** — Req MYD-10, MYD-11, MYD-12 — E2E `shell.e2e.mjs` ("TC-MYD-05: Team overview shows six headline tiles; each opens its analysis, with a trail back; Delivery opens Pulse Check"); unit tests of the calculations as before (`dashboard.test.mjs`, `insights.test.mjs`); inspection: the menu offers no Insights workspace and `src/workspace.ts` is gone.
 
 ## 7. Requirements coverage matrix
 
@@ -1584,6 +1586,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MYD-07 | TC-MYD-04 |
 | MYD-08 | TC-MYD-04 |
 | MYD-09 | TC-MYD-03 |
+| MYD-10 | TC-MYD-05 |
+| MYD-11 | TC-MYD-05 |
+| MYD-12 | TC-MYD-05 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1620,7 +1625,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…04, TC-QV-31 |
+| UC-26 | TC-MYD-01…05, TC-QV-31 |
 
 ## 8. Result record
 
