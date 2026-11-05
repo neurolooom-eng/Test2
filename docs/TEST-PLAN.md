@@ -852,6 +852,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-31 Pulse Check over a quarter, half-year or year** — Req QV-50 — L1 `pulse-check.test.mjs` ("Pulse Check periods: calendar quarter, half-year and year against the period before; each release once (QV-50, TC-QV-31)"); E2E `shell.e2e.mjs` (TC-MYD-01: Quarter shows "Releases · Qn yyyy vs Qn yyyy" and the work opened and closed; Month brings the tabs back); browser check: a release seen in two months of the quarter counts once.
 
+**TC-QV-32 Pulse Check opens without recalculating** — Req QV-51 — L1 `streams.test.mjs` ("Pulse Check is worked out once per data set: the same sources and month give the same streams; new data recalculates (QV-51, KB-27)"); browser check with the real DP, CP, IOCC and S&S IT data loaded: open Pulse Check, switch to Year and back, leave and reopen — the page opens without a pause after the first time; Refresh, then the figures follow the new data.
+
 
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
@@ -1489,6 +1491,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-48 | TC-QV-28 |
 | QV-49 | TC-QV-30 |
 | QV-50 | TC-QV-31 |
+| QV-51 | TC-QV-32 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1628,7 +1631,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…05, TC-QV-31 |
+| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 
 ## 8. Result record
 
