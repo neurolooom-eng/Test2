@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { HistoryPanel } from '../components/HistoryPanel'
+import type { HistoryStore } from '../useHistory'
 import { TableDefaultsPanel } from '../components/TableDefaultsPanel'
 import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
@@ -26,7 +28,7 @@ const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month:
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
 // Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
-export function AdminPage({ store, month, azure, git, access, featureSetup, monthlyPack, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; monthlyPack: MonthlyPackStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, access, featureSetup, monthlyPack, history, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; monthlyPack: MonthlyPackStore; history: HistoryStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
   const [everything, setEverything] = useState<{ busy: boolean; loaded?: string[]; failed?: string[] }>({ busy: false })
   const shared = access.can('settings.manage')
   const [reason, setReason] = useState('Approved operational extension')
@@ -160,6 +162,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     ]} />}
     {tab === 'features' && <FeatureSetupPanel setup={featureSetup} git={git} items={azure.items} />}
     {tab === 'pack' && shared && <MonthlyPackSetupPanel pack={monthlyPack} git={git} items={azure.items} />}
+    {tab === 'history' && shared && <HistoryPanel history={history} git={git} items={azure.items} profileNames={Object.keys(capacityContext(store.state).profiles ?? {})} editable={git.connected && !git.readOnly && !git.isSample} importedBy={access.email} />}
     {tab === 'tables' && <TableDefaultsPanel store={store} git={git} canEdit={shared} />}
     {tab === 'access' && <AccessPanel access={access} git={git} people={people} />}
     {!shared && tab === 'access' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}

@@ -68,6 +68,7 @@ This document lists every software component of the system: the in-house source 
 | FeatureEditor | `src/components/FeatureEditor.tsx` | Modal to add a Feature under an Epic or complete a Feature's children, shared by Backlogs and Assigned to Me; the Parent Epic starts blank. | ATM, CON, BKL |
 | JobsIndicator | `src/components/JobsIndicator.tsx` | Top-bar list of the background jobs: running count, results, Clear finished; asks before leaving the page while one runs. | NAV |
 | MonthlyPackPanel | `src/components/MonthlyPackPanel.tsx` | Pulse Check → Monthly pack: the two slides as boxes with generated lines and the month's text, Save to Git, copy, Download .pptx. | PCK |
+| HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |
 | MonthlyPackSetupPanel | `src/components/MonthlyPackSetupPanel.tsx` | Settings → Monthly pack: slide lines (streams, Epics) and KPI rows (Epic, metric), saved to Git. | PCK |
 | FeatureSetupPanel | `src/components/FeatureSetupPanel.tsx` | Settings → Feature setup: per-Epic optional stories, Time Writing story and month Task defaults, shared and personal layers. | CON |
 | GapsPanel | `src/components/GapsPanel.tsx` | Lists items the page did not pick up for the month and why. | MON, TWN |
@@ -132,6 +133,8 @@ This document lists every software component of the system: the in-house source 
 | pulsePeriods | `src/pulsePeriods.ts` | Pulse Check over calendar quarters, half-years and years: periods, the period before, releases once per period, work opened and closed. | QV, MYD |
 | personalViews | `src/personalViews.ts` | Personal views file: path per person, validated parse, defaults merge, section order. | MYD |
 | usePersonalViews | `src/usePersonalViews.ts` | Personal views state: browser cache, Git per person with retry, admin defaults, filters per page. | MYD, GIT |
+| history | `src/history.ts` | Historical hours: workbook sheet and rows, name matching, validated Git file, merge into the report items before the cut-off. | HIS |
+| useHistory | `src/useHistory.ts` | Historical hours state: read from Git, save (conflict retried once) and remove. | HIS, GIT |
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY (flat and tree / links queries), field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream (CP from QA/QE signatures, cpReporting), with counts and totals. | OVR, QV |
@@ -261,6 +264,7 @@ This document lists every software component of the system: the in-house source 
 | my-work.test | `tests/my-work.test.mjs` | My pending work, month-task and move candidates, constrained updates and desktop proxy limits, the ad-hoc tag on a new month Task, the New User Story fields. | ATM, MON, BKL |
 | pulse-check.test | `tests/pulse-check.test.mjs` | Previous month, release comparison, work flow and ongoing activities. | OVR |
 | personal-views.test | `tests/personal-views.test.mjs` | Personal views: file path per person, validated parse, defaults merge, section order and moves. | MYD |
+| history.test | `tests/history.test.mjs` | Historical hours: sheet and rows, skipped reasons, name matching, Git file shapes, cut-off and merge into the reports. | HIS |
 | nested-groups.test | `tests/nested-groups.test.mjs` | Nested grouping: levels, order, blank last, unique keys. | QV |
 | monthly-pack.test | `tests/monthly-pack.test.mjs` | Monthly pack files, Epic counts, lines, YoY, slide text and the .pptx writer. | PCK |
 | qe-mapping.test | `tests/qe-mapping.test.mjs` | xlsx/CSV read/write and QE Mapping editing and Git file handling. | QEM |

@@ -2,7 +2,7 @@ import test, { after, before } from 'node:test'
 import assert from 'node:assert/strict'
 import { loadSample, navigate, openPage, startApp, text } from './helpers.mjs'
 
-// Shell, navigation and first-run scenarios of the UAT (TC-NAV-01, TC-NAV-03, TC-NAV-37, TC-NAV-31, TC-NAV-33, TC-UI-01, TC-SMP-01,
+// Shell, navigation and first-run scenarios of the UAT (TC-NAV-01, TC-NAV-03, TC-NAV-37, TC-HIS-01, TC-NAV-31, TC-NAV-33, TC-UI-01, TC-SMP-01,
 // TC-UPD-02, TC-GIT-06, TC-SET-05), automated against the built web app.
 let app
 before(async () => { app = await startApp() })
@@ -155,6 +155,17 @@ test('TC-SET-05: Reports to accepts a manager who is not on the board, shown at 
   assert.match(await text(root), /Maria Lopez\s*not on the board\s*Chen Wei/, 'the outside manager is a root with Chen Wei under her')
   // Offered to everyone else too, under "Not on the board".
   assert.equal(await page.getByLabel('Diya Sharma reports to').locator('optgroup[label="Not on the board"] option', { hasText: 'Maria Lopez' }).count(), 1)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-HIS-01: Settings → Historical hours explains the import and needs Git storage to upload', async () => {
+  const { page, context, errors } = await openPage(app)
+  await navigate(page, 'Historical hours')
+  assert.equal(await text(page.locator('header.topbar h1')), 'Historical hours')
+  const panel = page.locator('.panel', { has: page.locator('h2, h3', { hasText: /^Historical hours/ }) }).first()
+  assert.match(await text(panel), /Connect Git storage/, 'without Git storage nothing can be imported')
+  assert.equal(await panel.getByRole('button', { name: /Upload Excel/ }).count(), 0, 'no upload without Git storage')
   assert.deepEqual(errors, [])
   await context.close()
 })
