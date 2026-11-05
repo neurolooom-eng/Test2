@@ -848,6 +848,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-30 CP Platform titles (PF1.0 / PF2.0)** — Req QV-49 — L1 `cp-reporting.test.mjs` ("Platform titles: \"PF1.0 / PF2.0 <Name>-<Number>\" give the name with its variant and an alphanumeric number (QV-49, TC-QV-30)"); browser check: a CP container "PF2.0 Carpo-A12" shows as "PF2.0 Carpo A12" with no warning, and Create Feature offers "PF2.0 Carpo | A12".
 
+**TC-QV-31 Pulse Check over a quarter, half-year or year** — Req QV-50 — L1 `pulse-check.test.mjs` ("Pulse Check periods: calendar quarter, half-year and year against the period before; each release once (QV-50, TC-QV-31)"); E2E `shell.e2e.mjs` (TC-MYD-01: Quarter shows "Releases · Qn yyyy vs Qn yyyy" and the work opened and closed; Month brings the tabs back); browser check: a release seen in two months of the quarter counts once.
+
 
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
@@ -1304,6 +1306,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-WSP-06 Insights workspace end to end** — Req WSP-01…06 — E2E `workspace.e2e.mjs` ("TC-WSP-06": synthetic sample, the KPI tiles with their change, the two charts, the exception queue filtered by a kind chip, the timeline from target dates; the insight cards with filters and what was checked, the evidence rows, Add to monthly pack and the queue count, Save refused with the sample, the presentation preview, a suggested question jumping to the queue filtered on Over 25% baseline; the Dashboard unchanged with its six tabs); browser check with Git connected (writable token): queue two cards, Save to monthly pack, then Pulse Check → Monthly pack of that month shows them under Key takeaways and the Git history has the commit. Suspended while WSP-07 hides the page; its E2E scenario is in the Git history of `workspace.e2e.mjs` and returns with the page.
 
+### 6.24 My dashboard and team insights
+
+**TC-MYD-01 My dashboard as the start page** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work and my streams; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match Assigned to Me.
+
+**TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Admin and People Manager; older files keep them for those two (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1471,6 +1479,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-47 | TC-QV-27 |
 | QV-48 | TC-QV-28 |
 | QV-49 | TC-QV-30 |
+| QV-50 | TC-QV-31 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1562,6 +1571,11 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | WSP-05 | TC-WSP-04, TC-WSP-06 |
 | WSP-06 | TC-WSP-06 |
 | WSP-07 | TC-WSP-07 |
+| MYD-01 | TC-MYD-01 |
+| MYD-02 | TC-MYD-01 |
+| MYD-03 | TC-MYD-01 |
+| MYD-04 | TC-MYD-01 |
+| MYD-05 | TC-MYD-02 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1598,6 +1612,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
+| UC-26 | TC-MYD-01…02, TC-QV-31 |
 
 ## 8. Result record
 

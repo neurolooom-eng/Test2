@@ -11,6 +11,7 @@ import { DataNotices, DataStatus } from './components/DataStatus'
 import { JobsIndicator } from './components/JobsIndicator'
 import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
+import { MyDashboardPage } from './pages/MyDashboardPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { MonthlyPage } from './pages/MonthlyPage'
 import { BaselinesPage } from './pages/BaselinesPage'
@@ -138,7 +139,7 @@ export default function App() {
   const qeMapping = useQeMapping(git)
   // Who creates new work items (the email on the Time Writing connection) and whether they may assign them to others.
   const assign = { me: azure.creatorEmail.trim().toLowerCase(), canChoose: access.can('azure.createForOthers') }
-  const [requested, setPage] = useState<Page>('overview')
+  const [requested, setPage] = useState<Page>('mydash')
   const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   // The selected month starts on the viewer's current month (their time zone).
   const [month, setMonth] = useState(() => todayIso().slice(0, 7))
@@ -160,7 +161,7 @@ export default function App() {
   const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setPage('board') }
   // Access roles: each menu entry belongs to an area; Settings is always there (each person's own connections and tokens).
   // A page the viewer's roles do not include falls back to the first one they do.
-  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' || id === 'brite' ? 'release' : id === 'pulse' || id === 'pireview' || id === 'workspace' ? 'overview' : id
+  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' || id === 'brite' ? 'release' : id === 'overview' || id === 'pulse' || id === 'pireview' || id === 'workspace' ? 'insights' : id === 'mydash' ? 'overview' : id
   const allowed = (id: Page) => { const area = areaOf(id); return area == null || access.sees(area) }
   const page = allowed(requested) ? requested : pages.find((entry) => allowed(entry.id))?.id ?? 'admin'
   const meta = pageMeta(page)
@@ -258,6 +259,7 @@ export default function App() {
       {guideOpen && <SetupGuide steps={steps} busy={azure.busy} onClose={() => setGuideOpen(false)} onDismiss={dismissGuide} onOpenTab={(tab, section) => { openSettings(tab, section); setGuideOpen(false) }} onFetch={() => void azure.refresh()} />}
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
+      {page === 'mydash' && <MyDashboardPage month={month} azure={azure} store={store} my={my} navigate={setPage} />}
       {page === 'overview' && <DashboardPage month={month} azure={azure} navigate={setPage} store={store} setMonth={setMonth} my={my} />}
       {page === 'workspace' && <WorkspacePage month={month} azure={azure} store={store} git={git} windchill={windchill} />}
       {page === 'pulse' && <PulseCheckPage month={month} azure={azure} store={store} my={my} navigate={setPage} windchill={windchill} openWindchill={openWindchill} git={git} pack={monthlyPack} />}
