@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildHistoryFile, featureChecks, matchPeople, monthOfCell, parseHistoryFile, parseHistorySheet, pickHistorySheet, serializeHistory, streamsWithoutEpic, withHistory } from '../src/history.ts'
+import { buildHistoryFile, featureChecks, groupOf, matchPeople, monthOfCell, parseHistoryFile, parseHistorySheet, pickHistorySheet, serializeHistory, streamsWithoutEpic, withHistory } from '../src/history.ts'
 import { capacityModel } from '../src/capacity.ts'
 import { personMonths } from '../src/dashboard.ts'
 
@@ -122,4 +122,32 @@ test('historical hours: holidays, leave and trainings under their Features count
   assert.equal(person('Ben Ode').npra, 4, 'training under the absence Epic is training (NPRA)')
   assert.deepEqual([person('Ana Costa').work, person('Ben Ode').work], [100, 100], 'leave, holidays and training are not work')
   assert.deepEqual(august.sharedTime, [], 'nothing spread over the region')
+})
+
+test('historical hours: All, All-BLR, All-NL and All-US rows apply to everyone in that group (HIS-13)', () => {
+  assert.deepEqual(['All', 'All-BLR', 'all - nl', 'All-US', 'All India', 'Allan Poe', 'All-XYZ'].map(groupOf), ['everyone', 'India', 'Netherlands', 'US', 'India', undefined, undefined])
+  const base = { organization: 'org', project: 'Quality', state: 'Active', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '', assignedTo: '' }
+  const item = (id, workItemType, title, parentId) => ({ ...base, key: `org/q/${id}`, id, workItemType, title, ...(parentId ? { parentId } : {}) })
+  const ado = [item(37778, 'Epic', 'Team Holidays and Training'), item(500, 'Epic', 'Alpha stream'), item(900, 'Epic', 'Common activities')]
+  const head = ['QA/QE', 'Month(Date)', 'Epic No', 'Stream(Features)', 'Project / Release Title', 'Expected', 'Actual']
+  const parsed = parseHistorySheet([head,
+    ['All-BLR', '2026-08-01', '37778', 'Holidays', 'Independence Day', '8', '8'],
+    ['All-NL', '2026-08-01', '37778', 'Holidays', 'Bevrijdingsdag', '8', '8'],
+    ['All', '2026-08-01', '900', 'Town hall', 'Town hall', '2', '2'],
+    ['All-XYZ', '2026-08-01', '900', 'Town hall', 'Town hall', '2', '2'],
+    ['Ana Costa', '2026-08-01', '500', 'Alpha', 'Alpha 1.0', '100', '100'],
+    ['Ben Ode', '2026-08-01', '500', 'Alpha', 'Alpha 1.0', '100', '100'],
+    ['Cleo Dunn', '2026-08-01', '500', 'Alpha', 'Alpha 1.0', '100', '100'],
+  ], '2026-10')
+  assert.deepEqual(parsed.skipped.map((entry) => entry.reason), ['unknown group "All-XYZ" (use All, All-BLR, All-NL or All-US)'])
+  const file = buildHistoryFile({ rows: parsed.rows, cutoff: '2026-10', source: 'plan.xlsx', sheet: 'TransformedData', importedBy: '', streamEpics: {}, people: {} })
+  const merged = withHistory(ado, file)
+  assert.equal(merged.added.people, 3, 'groups are not people')
+  const settings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, profiles: { 'Ana Costa': { region: 'India' }, 'Ben Ode': { region: 'India' }, 'Cleo Dunn': { region: 'Netherlands' } } }
+  const august = capacityModel(merged.items, '2026-08', settings)
+  const person = (name) => august.people.find((entry) => entry.name === name)
+  assert.deepEqual(august.people.map((entry) => entry.name).sort(), ['Ana Costa', 'Ben Ode', 'Cleo Dunn'], 'no person called All-BLR')
+  assert.deepEqual(['Ana Costa', 'Ben Ode', 'Cleo Dunn'].map((name) => person(name).absenceByKind['Public holiday']), [8, 8, 8], 'BLR holiday for each India person, NL holiday for the Netherlands person')
+  assert.deepEqual(['Ana Costa', 'Ben Ode', 'Cleo Dunn'].map((name) => person(name).reserved), [2, 2, 2], '"All": the town hall for everyone')
+  assert.deepEqual(['Ana Costa', 'Ben Ode', 'Cleo Dunn'].map((name) => person(name).work), [100, 100, 100])
 })

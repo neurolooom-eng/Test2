@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.25.2 — 2026-11-05
+
+**Fixed**
+- **Historical hours**: rows whose person is a group now apply to everyone in it, like a regional holiday Feature — **All** for everyone, **All-BLR**, **All-NL** and **All-US** for everyone in that region (Settings → Resources). Holidays under the Team Holidays and Training Epic count as public holidays, other group rows as reserved common time. Before, "All" rows were dropped and "All-BLR" counted as a person (HIS-13, TC-HIS-08, KB-31).
+
 ## v1.25.1 — 2026-11-05
 
 **Fixed**

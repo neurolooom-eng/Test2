@@ -31,6 +31,18 @@ const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
 const text = (value: unknown) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : typeof value === 'number' && Number.isFinite(value) ? String(value) : ''
 const hoursOf = (value: string) => { const cleaned = value.trim().replace(',', '.'); if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return undefined; const number = Number(cleaned); return Number.isFinite(number) && number >= 0 && number <= 1000 ? Math.round(number * 100) / 100 : undefined }
 const placeholder = (value: string) => !value || /^(#n\/a|n\/a|tbd|0|-|none|all)$/i.test(value)
+// A group in the person column (HIS-13): "All" is everyone, "All-BLR" / "All-NL" / "All-US" everyone in that region.
+export type GroupScope = 'everyone' | 'India' | 'Netherlands' | 'US'
+export function groupOf(person: string): GroupScope | undefined {
+  const match = /^all(?:[\s_–—-]*(.+))?$/i.exec(person.trim())
+  if (!match) return undefined
+  const region = (match[1] ?? '').trim().toLowerCase()
+  if (!region) return 'everyone'
+  if (/^(blr|bangalore|bengaluru|india|in|ind)$/.test(region)) return 'India'
+  if (/^(nl|netherlands|holland|best|eindhoven)$/.test(region)) return 'Netherlands'
+  if (/^(us|usa|united states)$/.test(region)) return 'US'
+  return undefined
+}
 
 // The columns, found by their heading (any case, extra columns ignored).
 const columns = {
@@ -84,7 +96,8 @@ export function parseHistorySheet(rows: string[][], cutoff = defaultCutoff) {
     const number = index + 1
     const person = cell(row, 'person'), month = monthOfCell(cell(row, 'month'))
     const planned = hoursOf(cell(row, 'planned')), actual = hoursOf(cell(row, 'actual'))
-    if (placeholder(person)) { skipped.push({ row: number, reason: 'no person' }); continue }
+    if (!groupOf(person) && placeholder(person)) { skipped.push({ row: number, reason: 'no person' }); continue }
+    if (!groupOf(person) && /^all\b/i.test(person)) { skipped.push({ row: number, reason: `unknown group "${person}" (use All, All-BLR, All-NL or All-US)` }); continue }
     if (!month) { skipped.push({ row: number, reason: 'no month (Month(Date) is not a date)' }); continue }
     if (month >= cutoff) { skipped.push({ row: number, reason: `${month}: from the cut-off on, Azure DevOps counts` }); continue }
     if (!planned && !actual) { skipped.push({ row: number, reason: 'no hours' }); continue }
@@ -199,10 +212,12 @@ export function withHistory(items: AzureWorkItem[], file: HistoryFile | null): H
       featureId = features.get(featureName)
       if (featureId == null) { featureId = next--; features.set(featureName, featureId); added.push({ ...base, key: `history/feature/${-featureId}`, id: featureId, workItemType: 'Feature', title: activity, assignedTo: '', parentId: epicId }) }
     }
-    const person = file.people[row.person] || row.person
+    const group = groupOf(row.person)
+    const person = group ? '' : file.people[row.person] || row.person
     const id = next--
-    added.push({ ...base, key: `history/task/${-id}`, id, workItemType: 'Task', title: `${row.month} | ${activity}`, assignedTo: person, parentId: featureId, ...(row.planned ? { originalEstimate: row.planned } : {}), ...(row.actual ? { completedWork: row.actual } : {}) })
-    hours += row.actual ?? 0; people.add(person)
+    // A group row is shared time: its hours apply to each person in the group (counted once per person in the reports).
+    added.push({ ...base, key: `history/task/${-id}`, id, workItemType: 'Task', title: `${row.month} | ${activity}`, assignedTo: person, parentId: featureId, ...(group ? { tags: `History import; Shared: ${group}` } : {}), ...(row.planned ? { originalEstimate: row.planned } : {}), ...(row.actual ? { completedWork: row.actual } : {}) })
+    if (!group) { hours += row.actual ?? 0; people.add(person) }
   }
   const result = { items: [...kept, ...added], leftOut: { tasks: leftTasks, hours: Math.round(leftHours * 10) / 10 }, added: { rows: file.rows.filter((row) => row.month < file.cutoff).length, hours: Math.round(hours * 10) / 10, people: people.size } }
   byFile.set(file, result)

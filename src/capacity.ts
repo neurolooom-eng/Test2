@@ -172,11 +172,22 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const streams = new Map<string, StreamSummary & { names: Set<string>; featureKeys: Set<string> }>()
   const emptyKinds = (): Record<AbsenceKind, number> => ({ 'PTO': 0, 'Sick Leave': 0, 'Unplanned Leave': 0, 'Public holiday': 0, 'Other absence': 0 })
   // Shared time (holidays, common activities): hours per mapped Epic / Feature, applied to the people in scope below.
-  const shared = new Map<number, SharedTimeRule & { source: AzureWorkItem; hours: number; tasks: number }>()
+  const shared = new Map<number | string, SharedTimeRule & { source: AzureWorkItem; hours: number; tasks: number }>()
   for (const task of monthlyTasks) {
     const chain = ancestors(task)
     const epic = chain.find(item => item.workItemType === 'Epic')
     const feature = chain.find(item => item.workItemType === 'Feature')
+    // An imported row for a group (HIS-13: "All", "All-BLR", "All-NL", "All-US") is shared time for that group: a
+    // holiday under the absence Epic (or a mapped holiday Feature), else a common activity; trainings count as activity.
+    const group = task.id < 0 && task.organization === 'history' ? /(?:^|;)\s*Shared:\s*(everyone|India|Netherlands|US)\s*(?:;|$)/.exec(task.tags)?.[1] as SharedTimeScope | undefined : undefined
+    if (group) {
+      const mapped = sharedTimeOf(task, chain, settings)
+      const kind: SharedTimeKind = mapped?.kind ?? (epic?.id === settings.absenceEpicId && !isTrainingWork(task, chain) ? 'holiday' : 'activity')
+      const id = feature?.id ?? task.id, key = `history:${id}:${group}`
+      const entry = shared.get(key) ?? { id, kind, scope: group, source: feature ?? task, hours: 0, tasks: 0 }
+      entry.hours += hours(task.completedWork) || hours(task.originalEstimate); entry.tasks += 1
+      shared.set(key, entry); continue
+    }
     const rule = sharedTimeOf(task, chain, settings)
     // An imported historical row (HIS-12) is one person's own hours: under a holiday or common-activity Feature it
     // counts for that person only, never added up and spread over everyone in scope like an Azure DevOps booking.

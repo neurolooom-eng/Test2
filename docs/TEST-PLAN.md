@@ -1336,6 +1336,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-HIS-07 Holidays, leave and trainings in the history** — Req HIS-12 — L1 `history.test.mjs` ("historical hours: holidays, leave and trainings under their Features count for the row's own person only (HIS-12)"); browser check: after importing a workbook whose holiday rows carry the regional holiday Feature's ID, Capacity and workload shows each person's own holiday hours for the month, not the team's total.
 
+**TC-HIS-08 Group rows (All, All-BLR, All-NL, All-US)** — Req HIS-13 — L1 `history.test.mjs` ("historical hours: All, All-BLR, All-NL and All-US rows apply to everyone in that group (HIS-13)"); browser check: import a workbook with an All-BLR holiday — the check shows the group rows apart from the People list, and after saving every India person has that holiday in the month, Netherlands and US people do not.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1621,6 +1623,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-10 | TC-HIS-06 |
 | HIS-11 | TC-HIS-06 |
 | HIS-12 | TC-HIS-07 |
+| HIS-13 | TC-HIS-08 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1658,7 +1661,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
-| UC-27 | TC-HIS-01…07 |
+| UC-27 | TC-HIS-01…08 |
 
 ## 8. Result record
 

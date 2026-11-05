@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { buildHistoryFile, defaultCutoff, featureChecks, matchPeople, parseHistorySheet, pickHistorySheet, streamsWithoutEpic, withHistory, type HistoryRow, type SkippedRow } from '../history'
+import { buildHistoryFile, defaultCutoff, featureChecks, groupOf, matchPeople, parseHistorySheet, pickHistorySheet, streamsWithoutEpic, withHistory, type HistoryRow, type SkippedRow } from '../history'
 import type { HistoryStore } from '../useHistory'
 import type { GitStorage } from '../useGitStorage'
 import { readXlsx } from '../xlsx'
@@ -52,7 +52,7 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
       if (!sheet) throw new Error('No sheet with a person (QA/QE), a Month(Date) and an Expected / Actual column was found. The planning workbook\'s "TransformedData" sheet has them.')
       const cutoff = file?.cutoff ?? defaultCutoff
       const parsed = parseHistorySheet(sheet.rows, cutoff)
-      const names = [...new Set(parsed.rows.map((row) => row.person))]
+      const names = [...new Set(parsed.rows.map((row) => row.person))].filter((name) => !groupOf(name))
       // Earlier choices are kept for the names and streams they covered; new names are matched automatically.
       const people = { ...matchPeople(names, known), ...Object.fromEntries(Object.entries(file?.people ?? {}).filter(([name]) => names.includes(name))) }
       const streamEpics = Object.fromEntries(Object.entries(file?.streamEpics ?? {}).filter(([stream]) => parsed.rows.some((row) => row.epicId == null && (row.stream || '(no stream)') === stream)))
@@ -77,7 +77,9 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
   }
 
   const rowsOf = (person: string) => draft?.rows.filter((row) => row.person === person && row.month < draft.cutoff).length ?? 0
-  const draftNames = draft ? [...new Set(draft.rows.filter((row) => row.month < draft.cutoff).map((row) => row.person))].sort((a, b) => a.localeCompare(b)) : []
+  const draftNames = draft ? [...new Set(draft.rows.filter((row) => row.month < draft.cutoff).map((row) => row.person))].filter((name) => !groupOf(name)).sort((a, b) => a.localeCompare(b)) : []
+  // Group rows (All, All-BLR, All-NL, All-US): shared time for everyone in the group (HIS-13).
+  const groups = draft ? Object.entries(draft.rows.filter((row) => row.month < draft.cutoff && groupOf(row.person)).reduce<Record<string, number>>((all, row) => { const label = groupOf(row.person) === 'everyone' ? 'everyone' : `everyone in ${groupOf(row.person)}`; all[label] = (all[label] ?? 0) + 1; return all }, {})) : []
   const features = useMemo(() => new Set(items.filter((item) => item.workItemType === 'Feature').map((item) => item.id)), [items])
   // Rows placed by a Feature in the data need no stream; the others are placed by Epic No, else by their stream (HIS-07, HIS-10).
   const draftStreams = draft ? streamsWithoutEpic(draft.rows.filter((row) => row.month < draft.cutoff && !(row.featureId && features.has(row.featureId)))) : []
@@ -118,6 +120,7 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
         <Metric label="By Feature ID" value={byFeature} hint="rows under a Feature in Azure DevOps" />
         <Metric label="Rows not imported" value={draft.skipped.length} hint={reasons.map(([reason, count]) => `${count} ${reason}`).join(' · ') || 'none'} />
       </Metrics>
+      {groups.length > 0 && <Notice tone="info">Rows for a group apply to each person in it, like a regional holiday Feature: {groups.map(([label, count]) => `${count} for ${label}`).join(' · ')}. Holidays and leave under the Team Holidays and Training Epic count as public holidays, everything else as reserved common time. People need their region in Settings → Resources.</Notice>}
       <h4>People</h4>
       <p className="muted">Each name in the Excel, and the name the reports use. A name matched to Azure DevOps joins that person's hours from the cut-off on; “As written” keeps the Excel name (for people who have left).</p>
       <div className="azure-table"><table><thead><tr><th>Name in the Excel</th><th>Rows</th><th>Name in the reports</th></tr></thead><tbody>
