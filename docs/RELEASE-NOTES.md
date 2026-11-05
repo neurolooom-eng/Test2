@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.22.0 — 2026-11-05
+
+**Added**
+- **Your own views** (Phase 2 of the insights plan): **Customize** on My dashboard shows, hides and reorders its sections; **Customize menu** pins pages to the top of the menu and hides others; the Dashboard and Pulse Check remember your period and filters. Kept in Git per person (`personal-views/<email>.json`) so they follow you to every computer; admins can save their layout as the default for everyone (MYD-06…MYD-09, TC-MYD-03, TC-MYD-04, DF-48, SM-28).
+
 ## v1.21.0 — 2026-11-05
 
 **Added**

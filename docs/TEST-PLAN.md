@@ -1312,6 +1312,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Admin and People Manager; older files keep them for those two (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
 
+**TC-MYD-03 Personal views model** — Req MYD-06, MYD-09 — L1 `personal-views.test.mjs` ("personal views: a file per person, only known shapes kept, defaults under my own changes (MYD-06…MYD-09, TC-MYD-03)"; "sections in my order: removed sections dropped, new ones placed after their neighbour, hidden apart (MYD-06, TC-MYD-03)").
+
+**TC-MYD-04 Customize sections and menu** — Req MYD-06, MYD-07, MYD-08 — E2E `shell.e2e.mjs` ("TC-MYD-04: a person hides and moves the sections of My dashboard and pins a page to the menu; both survive a reload"); browser check (Git storage, work email): the file `personal-views/<email>.json` appears in Git and the layout comes back on another computer; an admin's "Use as default for everyone" applies to a person who changed nothing; the Dashboard and Pulse Check periods are remembered.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1576,6 +1580,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MYD-03 | TC-MYD-01 |
 | MYD-04 | TC-MYD-01 |
 | MYD-05 | TC-MYD-02 |
+| MYD-06 | TC-MYD-03, TC-MYD-04 |
+| MYD-07 | TC-MYD-04 |
+| MYD-08 | TC-MYD-04 |
+| MYD-09 | TC-MYD-03 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1612,7 +1620,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…02, TC-QV-31 |
+| UC-26 | TC-MYD-01…04, TC-QV-31 |
 
 ## 8. Result record
 

@@ -449,3 +449,13 @@ table.resizable.wrap th,table.resizable.wrap td{white-space:pre-wrap;overflow-wr
 .data-table td.align-right,.data-table th.align-right{text-align:right}
 .data-table td.align-center,.data-table th.align-center{text-align:center}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Personal views (MYD-06, MYD-07): the Customize bar and editor of a page's sections, and the pinned menu group. */
+.layout-bar{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:-6px 0 6px}
+.layout-editor{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px;margin-bottom:16px;display:grid;gap:10px}
+.layout-editor ol{margin:0;padding-left:1.4em;display:grid;gap:6px}
+.layout-editor li{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.layout-editor li .ghost{padding:3px 9px}
+.layout-section{display:grid;gap:18px}
+.nav-pinned .nav-group{cursor:default}
+.sidebar-footer .customize-menu{color:var(--sidebar-text);padding:0 0 8px;font-size:12px}

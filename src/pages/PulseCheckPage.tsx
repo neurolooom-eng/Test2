@@ -25,6 +25,7 @@ import { MonthlyPackPanel } from '../components/MonthlyPackPanel'
 import type { MyWork } from '../useMyWork'
 import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
+import type { PersonalViewsStore } from '../usePersonalViews'
 
 type Tab = 'releases' | 'last' | 'ongoing' | 'current' | 'pack'
 const tabKeys: Tab[] = ['releases', 'last', 'ongoing', 'current', 'pack']
@@ -36,7 +37,7 @@ const change = (now: number, before: number) => now === before ? <span className
 // Pulse Check: the selected month's approved releases per stream (moved from the Dashboard), and Last month — the month
 // before the selected one: the Dashboard's "This month" picture for it, its releases next to the selected month's, the
 // Features and User Stories created and closed, and its Time Writing gaps.
-export function PulseCheckPage({ month, azure, store, my, navigate, windchill, openWindchill, git, pack }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; windchill: WindchillWorkspace; openWindchill: (id: string) => void; git: GitStorage; pack: MonthlyPackStore }) {
+export function PulseCheckPage({ month, azure, store, my, navigate, windchill, openWindchill, git, pack, views }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; windchill: WindchillWorkspace; openWindchill: (id: string) => void; git: GitStorage; pack: MonthlyPackStore; views?: PersonalViewsStore }) {
   const [tab, setTabState] = useState<Tab>(() => { try { const saved = localStorage.getItem(tabKey) as Tab; return tabKeys.includes(saved) ? saved : 'releases' } catch { return 'releases' } })
   const setTab = (next: Tab) => { setTabState(next); try { localStorage.setItem(tabKey, next) } catch { /* convenience only */ } }
   // QV-32: the DP Supported Releases list is folded by default (the Supported summary already names them); "Show list"
@@ -45,8 +46,8 @@ export function PulseCheckPage({ month, azure, store, my, navigate, windchill, o
   const setDpList = (open: boolean) => { setDpListState(open); try { localStorage.setItem(dpListKey, open ? 'open' : 'closed') } catch { /* convenience only */ } }
   const last = previousMonth(month)
   // QV-50: Month (the tabs below), or a calendar Quarter / Half-year / Year compared with the period before.
-  const [period, setPeriodState] = useState<{ kind: PeriodKind; key: string }>(() => { try { const saved = JSON.parse(localStorage.getItem(periodKey) ?? '{}') as { kind?: PeriodKind; key?: string }; return periodKinds.some(([kind]) => kind === saved.kind) ? { kind: saved.kind!, key: saved.key ?? '' } : { kind: 'month', key: '' } } catch { return { kind: 'month', key: '' } } })
-  const setPeriod = (next: { kind: PeriodKind; key: string }) => { setPeriodState(next); try { localStorage.setItem(periodKey, JSON.stringify(next)) } catch { /* convenience only */ } }
+  const [period, setPeriodState] = useState<{ kind: PeriodKind; key: string }>(() => { try { const saved = (views?.filter('pulse', (value) => value && typeof value === 'object' ? value : undefined) ?? JSON.parse(localStorage.getItem(periodKey) ?? '{}')) as { kind?: PeriodKind; key?: string }; return periodKinds.some(([kind]) => kind === saved.kind) ? { kind: saved.kind!, key: saved.key ?? '' } : { kind: 'month', key: '' } } catch { return { kind: 'month', key: '' } } })
+  const setPeriod = (next: { kind: PeriodKind; key: string }) => { setPeriodState(next); try { localStorage.setItem(periodKey, JSON.stringify(next)) } catch { /* convenience only */ } views?.setFilter('pulse', next) }
   // The default streams, in order: DP, CP, IOCC, Content and Tool Validations from their connections, S&S IT (and
   // later ECP) from their Windchill exports.
   // Each ECP export on its own line (CON-87).
