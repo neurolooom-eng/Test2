@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildHistoryFile, matchPeople, monthOfCell, parseHistoryFile, parseHistorySheet, pickHistorySheet, serializeHistory, streamsWithoutEpic, withHistory } from '../src/history.ts'
+import { buildHistoryFile, featureChecks, matchPeople, monthOfCell, parseHistoryFile, parseHistorySheet, pickHistorySheet, serializeHistory, streamsWithoutEpic, withHistory } from '../src/history.ts'
 import { capacityModel } from '../src/capacity.ts'
 import { personMonths } from '../src/dashboard.ts'
 
@@ -80,4 +80,20 @@ test('historical hours in the reports: before the cut-off the history only, from
   const own = withHistory(ado, { ...file, streamEpics: {} })
   assert.deepEqual(capacityModel(own.items, '2026-06').streams.map((stream) => stream.title), ['CAPA'])
   assert.equal(withHistory(ado, null).items, ado, 'no history: the Azure DevOps items unchanged')
+})
+
+test('historical hours: a Feature ID of a Feature in the data wins over Epic No and stream; disagreements and unknown Features listed (HIS-10)', () => {
+  const head = ['QA/QE', 'Month(Date)', 'Epic No', 'Stream(Features)', 'Project / Release Title', 'Expected', 'Actual', 'Feature ID']
+  const parsed = parseHistorySheet([head, ['Ana Costa', '2026-05-01', '500', 'Alpha', 'Alpha 1.0', '4', '6', '701'], ['Ana Costa', '2026-06-01', '500', 'Alpha', 'Alpha 2.0', '', '3', '999'], ['Ben Ode', '2026-06-01', '', 'CAPA', 'CAPA 1', '', '2', '702']], '2026-10')
+  assert.deepEqual(parsed.rows.map((row) => [row.featureId, row.epicId]), [[701, 500], [999, 500], [702, undefined]])
+  const base = { organization: 'org', project: 'Quality', state: 'Active', areaPath: '', iterationPath: '', tags: '', url: '', syncedAt: '', assignedTo: '' }
+  const item = (id, workItemType, title, parentId) => ({ ...base, key: `org/q/${id}`, id, workItemType, title, ...(parentId ? { parentId } : {}) })
+  const ado = [item(500, 'Epic', 'Alpha stream'), item(600, 'Epic', 'Beta stream'), item(601, 'Epic', 'CAPA stream'), item(701, 'Feature', 'Alpha 1.0 (in Azure DevOps)', 600), item(702, 'Feature', 'CAPA work', 601)]
+  assert.deepEqual(featureChecks(parsed.rows, ado), { missing: [999], conflicts: [{ featureId: 701, epicNo: 500, epicOfFeature: 600 }] })
+  const file = buildHistoryFile({ rows: parsed.rows, cutoff: '2026-10', source: 'plan.xlsx', sheet: 'TransformedData', importedBy: '', streamEpics: {}, people: {} })
+  assert.deepEqual(parseHistoryFile(serializeHistory(file)).rows.map((row) => row.featureId), [701, 999, 702], 'the Feature ID is kept in Git')
+  const merged = withHistory(ado, file).items
+  assert.deepEqual(capacityModel(merged, '2026-05').streams.map((stream) => [stream.title, stream.work]), [['Beta stream', 6]], 'the Feature\'s Epic, not Epic No 500')
+  assert.deepEqual(capacityModel(merged, '2026-06').streams.map((stream) => [stream.title, stream.work]).sort(), [['Alpha stream', 3], ['CAPA stream', 2]], 'unknown Feature 999: Epic No 500; Feature 702: its Epic, no stream mapping needed')
+  assert.equal(merged.filter((entry) => entry.parentId === 701 && entry.id < 0).length, 1, 'the history Task sits under the real Feature')
 })

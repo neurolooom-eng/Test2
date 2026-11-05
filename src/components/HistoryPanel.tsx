@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { buildHistoryFile, defaultCutoff, matchPeople, parseHistorySheet, pickHistorySheet, streamsWithoutEpic, withHistory, type HistoryRow, type SkippedRow } from '../history'
+import { buildHistoryFile, defaultCutoff, featureChecks, matchPeople, parseHistorySheet, pickHistorySheet, streamsWithoutEpic, withHistory, type HistoryRow, type SkippedRow } from '../history'
 import type { HistoryStore } from '../useHistory'
 import type { GitStorage } from '../useGitStorage'
 import { readXlsx } from '../xlsx'
@@ -23,12 +23,31 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
   const file = history.file
   const merged = file ? withHistory(items, file) : null
 
+  const [workbooks, setWorkbooks] = useState<{ name: string; path: string }[] | null>(null)
+  const listWorkbooks = async () => {
+    setStatus('')
+    try { const found = await git.listWorkbooks(); setWorkbooks(found); if (!found.length) setStatus('No .xlsx file in the data repository (its folder or history/). Add the planning workbook there, or upload it from this computer.') }
+    catch (failure) { setStatus(`Not read: ${failure instanceof Error ? failure.message : String(failure)}`) }
+  }
+  const fromGit = async (path: string) => {
+    if (!path) return
+    setBusy(true)
+    try { await read(path.split('/').pop() || path, await git.readWorkbook(path)) } catch (failure) { setStatus(`Not read: ${failure instanceof Error ? failure.message : String(failure)}`) }
+    setBusy(false)
+  }
   const onUpload = async (chosen?: File) => {
     if (!chosen) return
-    setStatus(''); setDraft(null)
     try {
       if (chosen.size > 30 * 1024 * 1024) throw new Error('The file is larger than 30 MB.')
-      const sheets = await readXlsx(new Uint8Array(await chosen.arrayBuffer()))
+      await read(chosen.name, new Uint8Array(await chosen.arrayBuffer()))
+    } catch (failure) { setStatus(`Not read: ${failure instanceof Error ? failure.message : String(failure)}`) }
+    finally { if (upload.current) upload.current.value = '' }
+  }
+  const read = async (source: string, bytes: Uint8Array) => {
+    setStatus(''); setDraft(null)
+    try {
+      if (bytes.length > 30 * 1024 * 1024) throw new Error('The file is larger than 30 MB.')
+      const sheets = await readXlsx(bytes)
       const sheet = pickHistorySheet(sheets)
       if (!sheet) throw new Error('No sheet with a person (QA/QE), a Month(Date) and an Expected / Actual column was found. The planning workbook\'s "TransformedData" sheet has them.')
       const cutoff = file?.cutoff ?? defaultCutoff
@@ -37,9 +56,8 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
       // Earlier choices are kept for the names and streams they covered; new names are matched automatically.
       const people = { ...matchPeople(names, known), ...Object.fromEntries(Object.entries(file?.people ?? {}).filter(([name]) => names.includes(name))) }
       const streamEpics = Object.fromEntries(Object.entries(file?.streamEpics ?? {}).filter(([stream]) => parsed.rows.some((row) => row.epicId == null && (row.stream || '(no stream)') === stream)))
-      setDraft({ source: chosen.name, sheet: sheet.name, rows: parsed.rows, skipped: parsed.skipped, cutoff, people, streamEpics })
+      setDraft({ source, sheet: sheet.name, rows: parsed.rows, skipped: parsed.skipped, cutoff, people, streamEpics })
     } catch (failure) { setStatus(`Not read: ${failure instanceof Error ? failure.message : String(failure)}`) }
-    finally { if (upload.current) upload.current.value = '' }
   }
   const save = async () => {
     if (!draft) return
@@ -60,12 +78,16 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
 
   const rowsOf = (person: string) => draft?.rows.filter((row) => row.person === person && row.month < draft.cutoff).length ?? 0
   const draftNames = draft ? [...new Set(draft.rows.filter((row) => row.month < draft.cutoff).map((row) => row.person))].sort((a, b) => a.localeCompare(b)) : []
-  const draftStreams = draft ? streamsWithoutEpic(draft.rows.filter((row) => row.month < draft.cutoff)) : []
+  const features = useMemo(() => new Set(items.filter((item) => item.workItemType === 'Feature').map((item) => item.id)), [items])
+  // Rows placed by a Feature in the data need no stream; the others are placed by Epic No, else by their stream (HIS-07, HIS-10).
+  const draftStreams = draft ? streamsWithoutEpic(draft.rows.filter((row) => row.month < draft.cutoff && !(row.featureId && features.has(row.featureId)))) : []
+  const checks = draft ? featureChecks(draft.rows.filter((row) => row.month < draft.cutoff), items) : { missing: [], conflicts: [] }
+  const byFeature = draft ? draft.rows.filter((row) => row.month < draft.cutoff && row.featureId && features.has(row.featureId)).length : 0
   const draftMonths = draft ? [...new Set(draft.rows.filter((row) => row.month < draft.cutoff).map((row) => row.month))].sort() : []
   const draftHours = draft ? draft.rows.filter((row) => row.month < draft.cutoff).reduce((sum, row) => sum + (row.actual ?? 0), 0) : 0
   const reasons = draft ? Object.entries(draft.skipped.reduce<Record<string, number>>((all, entry) => { const reason = entry.reason.replace(/^\d{4}-\d{2}: /, ''); all[reason] = (all[reason] ?? 0) + 1; return all }, {})) : []
 
-  return <Panel className="admin-section" eyebrow="SHARED DATA" title="Historical hours" info={<ul><li>The planned and recorded hours of the months before Time Writing in Azure DevOps, from the planning workbook (sheet TransformedData: QA/QE, Month(Date), Epic No, Stream(Features), Project / Release Title, Expected, Actual).</li><li>Before the cut-off month the history is the only source of hours: Azure DevOps Time Writing Tasks of those months are not counted (they stay in Azure DevOps). From the cut-off on, only Azure DevOps counts.</li><li>The rows are kept in the Git data repository (history-hours.json), never in the app's source; nothing is written to Azure DevOps.</li><li>People who have left appear by name; add them in Settings → Resources (region, role, Left on) so their utilization has a capacity.</li></ul>}>
+  return <Panel className="admin-section" eyebrow="SHARED DATA" title="Historical hours" info={<ul><li>The planned and recorded hours of the months before Time Writing in Azure DevOps, from the planning workbook (sheet TransformedData: QA/QE, Month(Date), Epic No, Stream(Features), Project / Release Title, Expected, Actual, and an optional Feature ID column), uploaded from this computer or read from the Git data repository (its folder or history/).</li><li>Where a row has a Feature ID of a Feature in the fetched data, its hours count under that Feature and its Epic; else under the Epic No; else under the Epic chosen for its stream.</li><li>Before the cut-off month the history is the only source of hours: Azure DevOps Time Writing Tasks of those months are not counted (they stay in Azure DevOps). From the cut-off on, only Azure DevOps counts.</li><li>The rows are kept in the Git data repository (history-hours.json), never in the app's source; nothing is written to Azure DevOps.</li><li>People who have left appear by name; add them in Settings → Resources (region, role, Left on) so their utilization has a capacity.</li></ul>}>
     {!git.connected && <Notice tone="info">Connect Git storage (Settings → Storage): the historical hours are shared with everyone through Git.</Notice>}
     {history.note && <Notice tone="warning">{history.note}</Notice>}
     {file ? <SettingsSummary rows={[
@@ -78,6 +100,8 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
     {editable && <div className="button-row">
       <input ref={upload} type="file" accept=".xlsx" hidden onChange={(event) => void onUpload(event.target.files?.[0])} />
       <button type="button" className="primary" disabled={busy} onClick={() => upload.current?.click()}>{file ? 'Replace from Excel…' : 'Upload Excel…'}</button>
+      {workbooks === null ? <button type="button" className="ghost" disabled={busy} onClick={() => void listWorkbooks()}>From Git storage…</button>
+        : workbooks.length > 0 && <label className="inline-select">Workbook in Git storage<select value="" disabled={busy} onChange={(event) => void fromGit(event.target.value)}><option value="">Choose…</option>{workbooks.map((entry) => <option key={entry.path} value={entry.path}>{entry.path}</option>)}</select></label>}
       {file && <button type="button" className="ghost" disabled={busy} onClick={() => void remove()}>Remove history</button>}
       {file && git.historyFileHistory && <a href={git.historyFileHistory} target="_blank" rel="noreferrer">History in Git</a>}
     </div>}
@@ -91,6 +115,7 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
         <Metric label="Rows imported" value={draft.rows.filter((row) => row.month < draft.cutoff).length} hint={draftMonths.length ? `${monthName(draftMonths[0])} – ${monthName(draftMonths[draftMonths.length - 1])}` : 'no month'} />
         <Metric label="People" value={draftNames.length} hint={`${draftNames.filter((name) => draft.people[name]).length} matched to Azure DevOps / Resources`} />
         <Metric label="Recorded hours" value={`${formatHours(draftHours)}h`} />
+        <Metric label="By Feature ID" value={byFeature} hint="rows under a Feature in Azure DevOps" />
         <Metric label="Rows not imported" value={draft.skipped.length} hint={reasons.map(([reason, count]) => `${count} ${reason}`).join(' · ') || 'none'} />
       </Metrics>
       <h4>People</h4>
@@ -110,6 +135,10 @@ export function HistoryPanel({ history, git, items, profileNames, editable, impo
         </tbody></table></div>
         {!epics.length && <small className="muted">No Epics fetched yet: refresh the Time Writing connection to choose from its Epics.</small>}
       </>}
+      {(checks.missing.length > 0 || checks.conflicts.length > 0) && <Notice tone="warning">
+        {checks.missing.length > 0 && <>Feature IDs not in the fetched data (placed by Epic No or stream instead): {checks.missing.slice(0, 40).map((id) => `#${id}`).join(', ')}{checks.missing.length > 40 ? ', …' : ''}. Refresh the Time Writing connection if they should be there. </>}
+        {checks.conflicts.length > 0 && <>Feature ID and Epic No disagree (the Feature's Epic is used): {checks.conflicts.slice(0, 40).map((entry) => `#${entry.featureId} → Epic ${entry.epicOfFeature ? `#${entry.epicOfFeature}` : 'none'}, Epic No ${entry.epicNo}`).join('; ')}{checks.conflicts.length > 40 ? '; …' : ''}.</>}
+      </Notice>}
       {draft.skipped.length > 0 && <details><summary>The {draft.skipped.length} rows not imported</summary><ul className="plain">{draft.skipped.slice(0, 500).map((entry) => <li key={entry.row}>Row {entry.row}: {entry.reason}</li>)}</ul>{draft.skipped.length > 500 && <small className="muted">… and {draft.skipped.length - 500} more.</small>}</details>}
       <div className="button-row"><button type="button" className="ghost" disabled={busy} onClick={() => setDraft(null)}>Cancel</button><button type="button" className="primary" disabled={busy || !git.connected || !draft.rows.some((row) => row.month < draft.cutoff)} onClick={() => void save()}>Save to Git for everyone</button></div>
     </div>}

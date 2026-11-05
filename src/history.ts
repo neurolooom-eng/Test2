@@ -13,7 +13,7 @@ export const defaultCutoff = '2026-10'
 export const maxHistoryRows = 20000
 const kind = 'history-hours'
 
-export interface HistoryRow { person: string; month: string; epicId?: number; stream: string; activity: string; type?: string; planned?: number; actual?: number }
+export interface HistoryRow { person: string; month: string; featureId?: number; epicId?: number; stream: string; activity: string; type?: string; planned?: number; actual?: number }
 export interface HistoryFile {
   schema: 1; kind: typeof kind
   // The first month taken from Azure DevOps: the history counts only before it.
@@ -38,6 +38,7 @@ const columns = {
   month: /^month\s*\(date\)$/i,
   monthText: /^month$/i,
   epic: /^epic\s*(no|nr|id|number)\.?$/i,
+  feature: /^feature\s*(id|no|nr|number)\.?$/i,
   stream: /^stream/i,
   activity: /^(project\s*\/\s*release title|activity|title|topic explanation)$/i,
   type: /^(service\s*\/\s*project\s*\/\s*release|type)$/i,
@@ -87,9 +88,9 @@ export function parseHistorySheet(rows: string[][], cutoff = defaultCutoff) {
     if (!month) { skipped.push({ row: number, reason: 'no month (Month(Date) is not a date)' }); continue }
     if (month >= cutoff) { skipped.push({ row: number, reason: `${month}: from the cut-off on, Azure DevOps counts` }); continue }
     if (!planned && !actual) { skipped.push({ row: number, reason: 'no hours' }); continue }
-    const epic = Number(cell(row, 'epic'))
+    const epic = Number(cell(row, 'epic')), feature = Number(cell(row, 'feature'))
     const stream = cell(row, 'stream'), activity = cell(row, 'activity'), type = cell(row, 'type')
-    taken.push({ person, month, ...(Number.isInteger(epic) && epic > 0 ? { epicId: epic } : {}), stream: placeholder(stream) ? '' : stream, activity: placeholder(activity) ? '' : activity, ...(placeholder(type) ? {} : { type }), ...(planned ? { planned } : {}), ...(actual ? { actual } : {}) })
+    taken.push({ person, month, ...(Number.isInteger(feature) && feature > 0 ? { featureId: feature } : {}), ...(Number.isInteger(epic) && epic > 0 ? { epicId: epic } : {}), stream: placeholder(stream) ? '' : stream, activity: placeholder(activity) ? '' : activity, ...(placeholder(type) ? {} : { type }), ...(planned ? { planned } : {}), ...(actual ? { actual } : {}) })
     if (taken.length > maxHistoryRows) throw new Error(`More than ${maxHistoryRows} rows: split the history or remove rows outside the months to import.`)
   }
   return { rows: taken, skipped, header: headerAt + 1 }
@@ -140,9 +141,10 @@ export function parseHistoryFile(textValue: string | null | undefined): HistoryF
     const person = short(row.person, 120).trim(), month = short(row.month, 7)
     if (!person || !monthPattern.test(month)) continue
     const number = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1000 ? value : undefined
-    const epicId = typeof row.epicId === 'number' && Number.isInteger(row.epicId) && row.epicId > 0 ? row.epicId : undefined
+    const id = (value: unknown) => typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined
+    const epicId = id(row.epicId), featureId = id(row.featureId)
     const planned = number(row.planned), actual = number(row.actual)
-    rows.push({ person, month, ...(epicId ? { epicId } : {}), stream: short(row.stream), activity: short(row.activity), ...(short(row.type) ? { type: short(row.type, 80) } : {}), ...(planned ? { planned } : {}), ...(actual ? { actual } : {}) })
+    rows.push({ person, month, ...(featureId ? { featureId } : {}), ...(epicId ? { epicId } : {}), stream: short(row.stream), activity: short(row.activity), ...(short(row.type) ? { type: short(row.type, 80) } : {}), ...(planned ? { planned } : {}), ...(actual ? { actual } : {}) })
   }
   const record = (value: unknown, check: (entry: unknown) => boolean) => value && typeof value === 'object' && !Array.isArray(value) ? Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([name, entry]) => name.length <= 200 && check(entry)).slice(0, 2000)) : {}
   return {
@@ -171,6 +173,7 @@ export function withHistory(items: AzureWorkItem[], file: HistoryFile | null): H
     kept.push(item)
   }
   const real = new Map(items.filter((item) => item.workItemType === 'Epic').map((item) => [item.id, item]))
+  const realFeatures = new Map(items.filter((item) => item.workItemType === 'Feature').map((item) => [item.id, item]))
   const base = { organization: 'history', project: 'history', state: 'Closed', areaPath: '', iterationPath: '', tags: 'History import', url: '', syncedAt: file.importedAt }
   const added: AzureWorkItem[] = []
   let next = -1
@@ -187,11 +190,15 @@ export function withHistory(items: AzureWorkItem[], file: HistoryFile | null): H
   const people = new Set<string>()
   for (const row of file.rows) {
     if (row.month >= file.cutoff) continue
-    const epicId = epicFor(row)
     const activity = row.activity || row.stream || 'Historical hours'
-    const featureName = `${epicId}:${activity.toLowerCase()}`
-    let featureId = features.get(featureName)
-    if (featureId == null) { featureId = next--; features.set(featureName, featureId); added.push({ ...base, key: `history/feature/${-featureId}`, id: featureId, workItemType: 'Feature', title: activity, assignedTo: '', parentId: epicId }) }
+    // A Feature ID of a Feature in the data wins: the hours sit under that Feature and count for its Epic (HIS-10).
+    let featureId = row.featureId && realFeatures.has(row.featureId) ? row.featureId : undefined
+    if (featureId == null) {
+      const epicId = epicFor(row)
+      const featureName = `${epicId}:${activity.toLowerCase()}`
+      featureId = features.get(featureName)
+      if (featureId == null) { featureId = next--; features.set(featureName, featureId); added.push({ ...base, key: `history/feature/${-featureId}`, id: featureId, workItemType: 'Feature', title: activity, assignedTo: '', parentId: epicId }) }
+    }
     const person = file.people[row.person] || row.person
     const id = next--
     added.push({ ...base, key: `history/task/${-id}`, id, workItemType: 'Task', title: `${row.month} | ${activity}`, assignedTo: person, parentId: featureId, ...(row.planned ? { originalEstimate: row.planned } : {}), ...(row.actual ? { completedWork: row.actual } : {}) })
@@ -202,3 +209,19 @@ export function withHistory(items: AzureWorkItem[], file: HistoryFile | null): H
   return result
 }
 export const isHistoryItem = (item: Pick<AzureWorkItem, 'id' | 'organization'>) => item.id < 0 && item.organization === 'history'
+
+// Rows whose Feature ID points elsewhere than their Epic No, or to a Feature not in the fetched data (HIS-10): listed on
+// import for a check; the Feature ID still wins when its Feature is in the data.
+export function featureChecks(rows: HistoryRow[], items: AzureWorkItem[]) {
+  const byId = new Map(items.map((item) => [item.id, item]))
+  const epicOf = (item: AzureWorkItem | undefined) => { const seen = new Set<number>(); let current = item; while (current && !seen.has(current.id)) { if (current.workItemType === 'Epic') return current; seen.add(current.id); current = current.parentId == null ? undefined : byId.get(current.parentId) } return undefined }
+  const missing = new Set<number>(), conflicts = new Map<number, { featureId: number; epicNo: number; epicOfFeature?: number }>()
+  for (const row of rows) {
+    if (!row.featureId) continue
+    const feature = byId.get(row.featureId)
+    if (!feature || feature.workItemType !== 'Feature') { missing.add(row.featureId); continue }
+    const epic = epicOf(feature)
+    if (row.epicId && epic?.id !== row.epicId) conflicts.set(row.featureId, { featureId: row.featureId, epicNo: row.epicId, ...(epic ? { epicOfFeature: epic.id } : {}) })
+  }
+  return { missing: [...missing].sort((a, b) => a - b), conflicts: [...conflicts.values()].sort((a, b) => a.featureId - b.featureId) }
+}

@@ -812,6 +812,8 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | HIS-07 | Rows without an Epic No shall be listed per Stream name with their row count, and each stream can be assigned an Epic from the fetched data; an unassigned stream counts under its own name, an Epic No not in the fetched data under "Epic <number>". | T | S | UC-27 |
 | HIS-08 | A new upload shall keep the earlier name and stream choices for the names and streams still in the file; replacing or removing the history shall be a single commit in Git (its history linked from the page). | T | C | UC-27 |
 | HIS-09 | People who have left shall appear by name in the reports for the months of their history; their capacity comes from Settings → Resources (region, role, Joined / Left on) like everyone else's. | T | S | UC-27 |
+| HIS-10 | A **Feature ID** column (optional) shall place a row under that Feature when it is in the fetched Time Writing data, counting for the Feature's Epic whatever the Epic No says; rows whose Feature ID is not in the data, and rows whose Feature ID and Epic No disagree, shall be listed before saving, and a row without a usable Feature ID is placed by its Epic No, else its stream (HIS-07). | T | S | UC-27 |
+| HIS-11 | Besides an upload from the computer, the page shall offer **From Git storage…**: the .xlsx files in the data repository's folder and its `history/` folder, read through Git storage without downloading them first (no other path is read). | T | S | UC-27 |
 
 ## 6. Non-functional requirements
 
