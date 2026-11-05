@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.26.2 — 2026-11-05
+
+**Fixed**
+- **Month locks**: every month now has its own planning and actuals lock dates — by default planning locks after the 5th of the month and actuals after the 4th of the next month (both days set in Settings → Capacity & periods → Period control), and any month can get dates of its own or be locked early, with a reason. The locks are kept with the capacity settings in **Git**, so every computer applies the same ones, and are worked out from the current time (checked every minute), so a new month starts open when the month rolls over. Before, locks were kept only in each browser, a month's actuals lock sat on the next month and the Monthly page checked the time only when opened (MON-06, MON-07, MON-21…MON-24, TC-MON-09, TC-MON-10, KB-34).
+
 ## v1.26.1 — 2026-11-05
 
 **Fixed**

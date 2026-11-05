@@ -563,13 +563,17 @@ Cases marked **UAT** are also run in acceptance testing.
   - Azure adds the tag `ad-hoc`.
   - The row's tag shows "ad-hoc", and its OE input is disabled.
 
-**TC-MON-08 Ad-hoc tag on Tasks created after the lock** — Req MON-20 — L1 `planning-lock.test.mjs` ("planning lock: the 5th by default…", "ad-hoc after the lock…"), `azure-devops.test.mjs` ("after the planning lock, a new Time Writing Task…"), `my-work.test.mjs` ("Bulk month Tasks after the planning lock…"); browser check:
+**TC-MON-08 Ad-hoc tag on Tasks created after the lock** — Req MON-20 — L1 `planning-lock.test.mjs` ("ad-hoc after the lock…"), `azure-devops.test.mjs` ("after the planning lock, a new Time Writing Task…"), `my-work.test.mjs` ("Bulk month Tasks after the planning lock…"); browser check:
 - Pre: planning of the current month locked (after the 5th, or locked in Settings).
 - Steps: (1) New Feature on an Epic: the Time Writing section says the new Task is tagged `ad-hoc`; Save. (2) Bulk actions → Create month tasks: the confirmation says so; confirm.
 - Expected:
   - The new month Tasks carry the tag `ad-hoc`; the Feature and User Stories do not; the job result names the tag.
   - An existing month Task that is reused is not tagged.
   - With planning open (or extended in Settings), nothing is tagged.
+
+**TC-MON-09 Period control** — Req MON-21, MON-23 — E2E `shell.e2e.mjs` ("TC-MON-09: Period control shows each month's own plan and actuals lock dates and locks a month early"); browser check with Git storage: set the default days to 5 and 4 — November planning shows "Locks after 5 Nov (default)", actuals "after 4 Dec"; set a date of its own for November, Use default, Lock now and Undo early lock; save to Git and open on another computer — the same locks show.
+
+**TC-MON-10 Month locks over the month change and in Git** — Req MON-06, MON-07, MON-22, MON-24 — L1 `planning-lock.test.mjs` ("month locks: by default November planning locks after 5 November and November actuals after 4 December…", "month locks reset when the month rolls over…", "month locks: each month can have its own dates…", "month locks are kept with the capacity settings in the Git planning data…"); browser check: keep Monthly Time Writing open over midnight at a lock date — the pill changes within a minute.
 
 **TC-MON-07 Gaps panel** — Req MON-18
 - Expected (TD-02a, October 2026):
@@ -1456,6 +1460,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MON-15 | TC-MON-06 |
 | MON-18 | TC-MON-07 |
 | MON-20 | TC-MON-08 |
+| MON-21 | TC-MON-09 |
+| MON-22 | TC-MON-10 |
+| MON-23 | TC-MON-09 |
+| MON-24 | TC-MON-10 |
 | ATM-01…03 | TC-ATM-01 |
 | ATM-04, ATM-05 | TC-ATM-02 |
 | ATM-06 | TC-ATM-03, TC-ATM-08 |
@@ -1657,7 +1665,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
 | UC-03 | TC-CON-03, TC-FET-01…06 |
-| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06 |
+| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |

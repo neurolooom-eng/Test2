@@ -1,3 +1,5 @@
+import { capacityContext } from '../capacity'
+import { useNow } from '../useNow'
 import { useState, useSyncExternalStore } from 'react'
 import { DataTable } from '../components/DataTable'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
@@ -21,7 +23,8 @@ const numberOrText = (value: string | number | undefined) => { const text = Stri
 
 export function MonthlyPage({ azure, month, store, my }: { azure: AzureWorkspace; month: string; store: PageProps['store']; my: MyWork }) {
   const [today] = useState(todayIso)
-  const [now] = useState(() => new Date())
+  // Worked out from the current time (checked every minute), so a page left open across the month change follows it.
+  const now = useNow(60000)
   const [edits, setEdits] = useState<Record<number, Edit>>({})
   const saving = useSyncExternalStore(subscribeJobs, () => isRunning('monthly:save'))
   // Individual (default: me) shows only that person's Tasks; Team shows everyone's.
@@ -32,8 +35,9 @@ export function MonthlyPage({ azure, month, store, my }: { azure: AzureWorkspace
   const allGaps = timeWritingGaps(items, month)
   // For one person, a story counts as theirs when it holds one of their Tasks or is assigned to them.
   const gaps = scope ? { ...allGaps, storiesWithoutTask: allGaps.storiesWithoutTask.filter((story) => isMine(story, scope) || items.some((item) => item.parentId === story.id && item.workItemType === 'Task')) } : allGaps
-  const planningLocked = isPlanningLocked(store.state.periods, month, now)
-  const actualsLocked = isActualsLocked(store.state.periods, month, now)
+  const locks = capacityContext(store.state)
+  const planningLocked = isPlanningLocked(locks, month, now)
+  const actualsLocked = isActualsLocked(locks, month, now)
   const staged = Object.keys(edits).length
   // The Feature above each month Task, found through its parent links (the story between them can have any name).
   const byId = new Map(azure.items.map((item) => [item.id, item]))
