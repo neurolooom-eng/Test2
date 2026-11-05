@@ -55,7 +55,7 @@ export function PulseCheckPage({ month, azure, store, my, navigate, windchill, o
   const streams = defaultStreamReleases(store.state, azure.connectionProfiles, month)
   const lastStreams = defaultStreamReleases(store.state, azure.connectionProfiles, last)
   // The Supported summary (QV-33, QV-34, QV-36): DP's and IOCC's Supported Releases, the Tool Validations' unique tools, then the Windchill
-  // streams' releases with the latest date in the month — every line for the tab's month (the month filter follows the
+  // streams' releases with a document dated in the month — every line for the tab's month (the month filter follows the
   // page: Releases shows last month, Current month releases the header month), in the default stream order.
   const supportedLines = (shown: ReleaseStream[], at: string): SupportedLine[] => [
     ...shown.filter((stream) => stream.supportedEntries).map((stream) => ({ name: stream.name, releases: stream.supportedEntries!.map((entry) => entry.label) })),
