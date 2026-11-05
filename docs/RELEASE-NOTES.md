@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.25.3 — 2026-11-05
+
+**Fixed**
+- **Historical hours**: Epic No and Feature No cells are read as Excel writes them ("37753.0", "#37753", several IDs — the first counts); any other text is listed with its row instead of being ignored, and each stream still needing an Epic says why (Feature No not in the fetched data, or neither column filled) (HIS-14, TC-HIS-09, KB-32).
+
 ## v1.25.2 — 2026-11-05
 
 **Fixed**

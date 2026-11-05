@@ -1338,6 +1338,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-HIS-08 Group rows (All, All-BLR, All-NL, All-US)** — Req HIS-13 — L1 `history.test.mjs` ("historical hours: All, All-BLR, All-NL and All-US rows apply to everyone in that group (HIS-13)"); browser check: import a workbook with an All-BLR holiday — the check shows the group rows apart from the People list, and after saving every India person has that holiday in the month, Netherlands and US people do not.
 
+**TC-HIS-09 Reading Epic No and Feature No** — Req HIS-14 — L1 `history.test.mjs` ("historical hours: Epic No / Feature No cells written as Excel writes them are read; others are reported, never silently ignored (HIS-14)"); browser check: a stream whose rows carry Feature Nos is not listed under "Streams without an Epic No" when those Features are fetched; when listed, its "Why" names the cause.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1624,6 +1626,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-11 | TC-HIS-06 |
 | HIS-12 | TC-HIS-07 |
 | HIS-13 | TC-HIS-08 |
+| HIS-14 | TC-HIS-09 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1661,7 +1664,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
-| UC-27 | TC-HIS-01…08 |
+| UC-27 | TC-HIS-01…09 |
 
 ## 8. Result record
 
