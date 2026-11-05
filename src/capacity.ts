@@ -178,7 +178,10 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const epic = chain.find(item => item.workItemType === 'Epic')
     const feature = chain.find(item => item.workItemType === 'Feature')
     const rule = sharedTimeOf(task, chain, settings)
-    if (rule) {
+    // An imported historical row (HIS-12) is one person's own hours: under a holiday or common-activity Feature it
+    // counts for that person only, never added up and spread over everyone in scope like an Azure DevOps booking.
+    const ownShare = rule && task.organization === 'history' && task.id < 0 ? rule : undefined
+    if (rule && !ownShare) {
       const entry = shared.get(rule.id) ?? { ...rule, hours: 0, tasks: 0 }
       entry.hours += hours(task.originalEstimate) || hours(task.completedWork) || settings.hoursPerDay; entry.tasks += 1
       shared.set(rule.id, entry); continue
@@ -193,6 +196,11 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, streamMap: new Map() }
     people.set(name, person)
     const work = hours(task.completedWork), planned = hours(task.originalEstimate)
+    if (ownShare) {
+      const own = work || planned
+      if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own } else person.reserved += own
+      continue
+    }
     // Team Holidays and Training (CAP-16): leave is absence; training is NPRA.
     const training = epic?.id === settings.absenceEpicId && isTrainingWork(task, chain)
     if (epic?.id === settings.absenceEpicId && !training) {

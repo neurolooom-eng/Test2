@@ -1334,6 +1334,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-HIS-06 Feature ID and Git storage source** — Req HIS-10, HIS-11 — L1 `history.test.mjs` ("historical hours: a Feature ID of a Feature in the data wins over Epic No and stream; disagreements and unknown Features listed (HIS-10)"); browser check with Git storage: put the planning workbook in the data repository (or its history/ folder) — From Git storage… lists it and reads it like an upload; a TransformedData sheet with a Feature ID column shows "By Feature ID" and the warning lists Feature IDs not fetched and those whose Epic No disagrees.
 
+**TC-HIS-07 Holidays, leave and trainings in the history** — Req HIS-12 — L1 `history.test.mjs` ("historical hours: holidays, leave and trainings under their Features count for the row's own person only (HIS-12)"); browser check: after importing a workbook whose holiday rows carry the regional holiday Feature's ID, Capacity and workload shows each person's own holiday hours for the month, not the team's total.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1618,6 +1620,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-09 | TC-HIS-04 |
 | HIS-10 | TC-HIS-06 |
 | HIS-11 | TC-HIS-06 |
+| HIS-12 | TC-HIS-07 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1655,7 +1658,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-24 | TC-PCK-01…07 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
-| UC-27 | TC-HIS-01…06 |
+| UC-27 | TC-HIS-01…07 |
 
 ## 8. Result record
 
