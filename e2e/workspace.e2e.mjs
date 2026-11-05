@@ -14,7 +14,7 @@ test('TC-WSP-07: the Insights workspace is hidden from the menu; Data Insights k
   const menu = await text(page.locator('.sidebar nav'))
   assert.doesNotMatch(menu, /Insights workspace/, 'no menu entry')
   assert.match(menu, /Dashboard.*Pulse Check/, 'the other Data Insights pages stay')
-  await navigate(page, 'Dashboard')
+  await navigate(page, /Dashboard$/)
   assert.match(await text(page.locator('.content')), /Planned utilization.*Summary.*Insights.*Months.*People.*Streams.*Definitions/, 'the Dashboard keeps its six tabs')
   assert.deepEqual(errors, [])
   await context.close()

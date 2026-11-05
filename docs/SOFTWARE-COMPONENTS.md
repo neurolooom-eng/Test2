@@ -41,6 +41,7 @@ This document lists every software component of the system: the in-house source 
 | PiReviewPage | `src/pages/PiReviewPage.tsx` | PI Review placeholder page (planned PI summary). | NAV |
 | WorkspacePage | `src/pages/WorkspacePage.tsx` | Insights workspace: KPI tiles, trend and cumulative releases charts, exception queue, timeline health, insight cards with evidence, the pack preview and the insights queue saved to the Monthly pack. | WSP |
 | PulseCheckPage | `src/pages/PulseCheckPage.tsx` | Pulse Check: last month's and this month's releases per stream, Supported Releases, Windchill exports, analysis and ongoing activities. | OVR, NAV, QV |
+| MyDashboardPage | `src/pages/MyDashboardPage.tsx` | My dashboard: the person's hours against capacity, open work, streams and releases for the header month; the start page. | MYD |
 | QeMappingPage | `src/pages/QeMappingPage.tsx` | QE Mapping: upload Excel/CSV, edit cells/rows/columns, filter and group, then save to Git or export. | QEM |
 | SnapshotsPage | `src/pages/SnapshotsPage.tsx` | Snapshots: SharePoint snapshot history, browser storage and backup recovery, legacy snapshot records. | SNP, STO |
 
@@ -129,6 +130,7 @@ This document lists every software component of the system: the in-house source 
 | closeChain | `src/closeChain.ts` | After a close: the follow-up question and the staged closing of the related User Stories or Feature, each write read back. | ATM |
 | myWork | `src/myWork.ts` | "Me" matching, pending work, month-task and move candidates, state checks and next states, Feature children. | ATM |
 | pulseCheck | `src/pulseCheck.ts` | Pulse Check: previous month, release comparison, work flow opened/closed and ongoing work. | OVR |
+| pulsePeriods | `src/pulsePeriods.ts` | Pulse Check over calendar quarters, half-years and years: periods, the period before, releases once per period, work opened and closed. | QV, MYD |
 | qeMapping | `src/qeMapping.ts` | QE Mapping table model: sheets with stable column/row ids, edits, filter, group, CSV, Git file parse/serialise. | QEM |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY (flat and tree / links queries), field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream (CP from QA/QE signatures, cpReporting), with counts and totals. | OVR, QV |

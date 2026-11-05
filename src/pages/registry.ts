@@ -1,11 +1,12 @@
 // Single source for navigation labels, header text and grouping so the sidebar and page header always agree.
-export type Page = 'overview' | 'workspace' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'brite' | 'snapshots' | 'qemapping' | 'admin' | 'docs'
+export type Page = 'mydash' | 'overview' | 'workspace' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'brite' | 'snapshots' | 'qemapping' | 'admin' | 'docs'
 export type PageGroup = 'Data Insights' | 'My Work' | 'I&D Board' | 'Release Details' | 'Other views' | 'Data & governance' | 'Settings'
 
 // hidden: kept in the build but not offered in the menu (Insights workspace, for now).
 export interface PageMeta { id: Page; label: string; icon: string; group: PageGroup; detail: string; usesMonth: boolean; hidden?: boolean }
 
 export const pages: PageMeta[] = [
+  { id: 'mydash', label: 'My dashboard', icon: '◐', group: 'Data Insights', detail: 'Your hours against your capacity, your open work and your streams and releases.', usesMonth: true },
   { id: 'overview', label: 'Dashboard', icon: '▦', group: 'Data Insights', detail: 'Demand, capacity and the decisions ahead: utilization, overload, rebalancing, region and role, trends, people and streams for a period and filters.', usesMonth: false },
   { id: 'workspace', label: 'Insights workspace', icon: '◍', group: 'Data Insights', hidden: true, detail: 'A separate page after the Overview and AI-insights mock-ups: KPI tiles, trends, the exception queue, timeline health and evidence-based insights that feed the Monthly pack. The Dashboard is unchanged.', usesMonth: true },
   { id: 'pulse', label: 'Pulse Check', icon: '◔', group: 'Data Insights', detail: 'Last month’s releases and analysis, ongoing activities, and the current month’s releases.', usesMonth: true },
