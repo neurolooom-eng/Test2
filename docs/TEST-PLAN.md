@@ -1364,7 +1364,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-02 My Activities lists the month and saves once** — Req ACT-03, ACT-05, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline"); L1 `my-work.test.mjs` (TC-ATM-16…19, the month-task rules it reuses); browser check with the Time Writing connection: a Feature of yours without a task is ticked — enter hours, Save adds "<Month> \| <Feature>" with those hours, once; change an actual and Save updates Completed Work; tick a leave row and its task is added under your leave story; with sample data or during View as nothing is saved and the reason is shown; the ring, the last day and the recent updates follow.
 
-**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — the hint says the hours are updated, and no second task is added.
+**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — its current hours show in the fields and the hint says what you save replaces them; Save replaces them and adds no second task; only Active Epics are offered as streams.
 
 ## 7. Requirements coverage matrix
 

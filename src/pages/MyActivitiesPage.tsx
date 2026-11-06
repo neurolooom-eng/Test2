@@ -6,7 +6,7 @@ import { capacityContext } from '../capacity'
 import { PersonPicker } from '../components/PersonPicker'
 import { EmptyState, Page } from '../components/ui'
 import type { AzureWorkItem } from '../domain'
-import { formatDate, formatHours, monthName } from '../format'
+import { formatDate, monthName } from '../format'
 import { absenceStoryType, isMine, isPending, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
 import type { AzureWorkspace } from '../useAzureWorkspace'
@@ -82,13 +82,15 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const planDay = planLockDate(locks, month), actualsDay = actualsLockDate(locks, month)
   const deadline = planLocked ? actualsDay : planDay
   const daysLeft = Math.ceil((new Date(`${deadline}T23:59:59`).getTime() - now.getTime()) / 86400000)
-  const recent = mine.toSorted((a, b) => (b.changedDate ?? '').localeCompare(a.changedDate ?? '') || b.id - a.id).slice(0, 5)
 
   // Add a new activity: a stream (Epic) and a pending Feature under it; mine first.
-  const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.id !== absenceEpicId && item.state.trim().toLowerCase() !== 'removed').sort((a, b) => a.title.localeCompare(b.title))
+  // Streams are the Active Epics (the absence Epic has its own list).
+  const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.id !== absenceEpicId && item.state.trim().toLowerCase() === 'active').sort((a, b) => a.title.localeCompare(b.title))
   const features = stream ? azure.items.filter((item) => item.workItemType === 'Feature' && isPending(item) && epicOf(item)?.id === Number(stream)).sort((a, b) => Number(isMine(b, my.me)) - Number(isMine(a, my.me)) || a.title.localeCompare(b.title)) : []
   const chosenFeature = features.find((item) => item.id === Number(featureId))
-  const featureHasTask = chosenFeature ? mine.some((task) => featureOf(task)?.id === chosenFeature.id) : false
+  // My month Task already under the chosen Feature: its hours are shown and what is entered replaces them.
+  const existingTask = chosenFeature ? mine.find((task) => featureOf(task)?.id === chosenFeature.id) : undefined
+  const newValue = (field: keyof Hours) => newHours[field] ?? (existingTask ? hoursText(field === 'planned' ? existingTask.originalEstimate : existingTask.completedWork) : '')
 
   const checkHours = (entries: Hours[]) => {
     for (const entry of entries) {
@@ -142,9 +144,12 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   function saveNew() {
     if (blocked) { setMessage({ tone: 'info', text: blocked }); return }
     if (!chosenFeature) return
-    const problem = checkHours([newHours])
+    // Only what differs from the existing task is sent (an unchanged planned value is not a change after the plan lock).
+    const changedOnly = (field: keyof Hours) => { const value = newValue(field); return existingTask && value === hoursText(field === 'planned' ? existingTask.originalEstimate : existingTask.completedWork) ? undefined : value }
+    const entryToSave: Hours = { planned: changedOnly('planned'), actual: changedOnly('actual') }
+    const problem = checkHours([entryToSave])
     if (problem) { setMessage({ tone: 'error', text: problem }); return }
-    const config = azure.config!, pat = azure.pat, feature = chosenFeature, entry = newHours
+    const config = azure.config!, pat = azure.pat, feature = chosenFeature, entry = entryToSave
     const started = runInBackground('activities:save', `Add ${feature.title} for ${label}`, async (progress) => {
       try {
         progress('Adding the month task…')
@@ -219,16 +224,16 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
 
       <section className="act-card" aria-labelledby="act-new">
         <h3 id="act-new">Add a new activity</h3>
-        <p className="act-sub">A month task under one of the team's Features.</p>
+        <p className="act-sub">Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</p>
         <div className="act-form">
           <label>Stream<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">Select a stream</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>{epic.title}</option>)}</select></label>
           <label>Project or release<select value={featureId} disabled={!stream} onChange={(event) => setFeatureId(event.target.value)}><option value="">{stream ? features.length ? 'Select a project or release' : 'No open Features in this stream' : 'Select a stream first'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>{feature.title}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select></label>
           <label>Reporting period<input value={label} readOnly /></label>
           <div className="act-pair">
-            <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newHours.planned ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
-            <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newHours.actual ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
+            <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newValue('planned')} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
+            <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newValue('actual')} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
           </div>
-          {featureHasTask && <p className="act-hint">You already have a {label} task here; saving updates its hours instead of adding another.</p>}
+          {existingTask && <p className="act-hint">You already have this task for {label} (#{existingTask.id}). Its hours are shown above; what you save replaces them — nothing is added up, and no second task is created.</p>}
           {planLocked && <p className="act-hint">Planning for {label} is locked: a new task is tagged ad-hoc and takes actual hours only.</p>}
           <button type="button" className="act-primary" disabled={!chosenFeature || saving} onClick={saveNew}>Save activity</button>
           <p className="act-sub">Feature not listed? <button type="button" className="act-link" onClick={() => onOpen('mywork')}>Create a new Feature</button></p>
@@ -253,10 +258,6 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
           <h4>Suggested missing items</h4>
           {toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).slice(0, 3).map((row) => <div className="act-suggest" key={row.key}><div><strong>{row.title}</strong><small>No {label} task yet</small></div><button type="button" className="act-ghost" onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}
         </div>}
-        <div className="act-block">
-          <h4>Your recent updates</h4>
-          {recent.length ? <ul className="act-recent">{recent.map((task) => <li key={task.id}><i className={(task.completedWork ?? 0) > 0 ? 'dot-done' : 'dot-open'} /><span>{featureOf(task)?.title ?? task.title}</span><small>{formatHours(task.completedWork ?? 0)} h{task.changedDate ? ` · ${formatDate(task.changedDate.slice(0, 10))}` : ''}</small></li>)}</ul> : <p className="act-sub">Nothing recorded for {label} yet.</p>}
-        </div>
       </aside>
     </div>}
   </Page>
