@@ -7,7 +7,7 @@ import { PersonPicker } from '../components/PersonPicker'
 import { EmptyState, Page } from '../components/ui'
 import type { AzureWorkItem } from '../domain'
 import { formatDate, monthName } from '../format'
-import { absenceStoryType, isMine, isPending, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
+import { absenceStoryType, isMine, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -27,6 +27,8 @@ type Row = {
   kind: 'work' | 'leave' | 'training'
   task?: AzureWorkItem
   candidate?: MonthTaskCandidate
+  // The item the row's ID links to in Azure DevOps (its Feature, or a leave / training story).
+  link?: AzureWorkItem
 }
 const hoursText = (value?: number) => value == null ? '' : String(value)
 const validHours = (text: string) => text.trim() === '' || (Number.isFinite(Number(text)) && Number(text) >= 0 && Number(text) <= 1000)
@@ -57,12 +59,13 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
 
   // This month's tasks of mine, then the Features still without one (work ticked, leave and training not).
   const mine = my.known ? azure.items.filter((item) => item.workItemType === 'Task' && item.state.trim().toLowerCase() !== 'removed' && isMine(item, my.me) && timeWritingMonth(item.title) === month) : []
-  const existing: Row[] = mine.map((task) => { const feature = featureOf(task); return { key: `task:${task.id}`, title: feature?.title ?? task.title, stream: epicOf(task)?.title ?? 'No stream', kind: kindOf(task), task } })
+  const existing: Row[] = mine.map((task) => { const feature = featureOf(task); return { key: `task:${task.id}`, title: feature?.title ?? task.title, stream: epicOf(task)?.title ?? 'No stream', kind: kindOf(task), task, link: feature ?? task } })
   const work = my.known ? monthTaskCandidates(azure.items, my.me, label, absenceEpicId) : []
   const leave = my.known ? leaveTaskCandidates(azure.items, my.me, label, absenceEpicId) : []
   const toAdd: Row[] = [...work, ...leave].filter((row) => row.status === 'needs-task' || row.status === 'needs-story').map((row) => ({
     key: row.story ? `story:${row.story.id}` : row.kind ? `feature:${row.feature.id}:${row.kind}` : `feature:${row.feature.id}`,
     title: row.leave ? row.story?.title ?? row.storyTitle : row.feature.title,
+    link: row.story ?? row.feature,
     stream: epicOf(row.feature)?.title ?? 'No stream',
     kind: !row.leave ? 'work' : row.kind === 'Training' ? 'training' : 'leave',
     candidate: row,
@@ -86,7 +89,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   // Add a new activity: a stream (Epic) and a pending Feature under it; mine first.
   // Streams are the Active Epics (the absence Epic has its own list).
   const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.id !== absenceEpicId && item.state.trim().toLowerCase() === 'active').sort((a, b) => a.title.localeCompare(b.title))
-  const features = stream ? azure.items.filter((item) => item.workItemType === 'Feature' && isPending(item) && epicOf(item)?.id === Number(stream)).sort((a, b) => Number(isMine(b, my.me)) - Number(isMine(a, my.me)) || a.title.localeCompare(b.title)) : []
+  const features = stream ? azure.items.filter((item) => item.workItemType === 'Feature' && ['active', 'new'].includes(item.state.trim().toLowerCase()) && epicOf(item)?.id === Number(stream)).sort((a, b) => Number(isMine(b, my.me)) - Number(isMine(a, my.me)) || a.title.localeCompare(b.title)) : []
   const chosenFeature = features.find((item) => item.id === Number(featureId))
   // My month Task already under the chosen Feature: its hours are shown and what is entered replaces them.
   const existingTask = chosenFeature ? mine.find((task) => featureOf(task)?.id === chosenFeature.id) : undefined
@@ -175,6 +178,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const kindPill = (kind: Row['kind']) => kind === 'work' ? null : <span className={`act-kind act-${kind}`}>{kind === 'training' ? 'Training' : 'Leave'}</span>
   const hourInput = (row: Row, field: keyof Hours, disabled: boolean) => <input className="act-hours" aria-label={`${field === 'planned' ? 'Planned' : 'Actual'} hours for ${row.title}`} inputMode="decimal" placeholder="0" disabled={disabled || saving} value={valueOf(row, field)} onChange={(event) => setValue(row, field, event.target.value)} />
   const leaveRows = toAdd.filter((row) => row.kind !== 'work')
+  // The Azure DevOps ID, opening the item in a new tab.
+  const idLink = (item?: AzureWorkItem) => item && item.id > 0 ? <a className="act-id" href={item.url} target="_blank" rel="noreferrer" title={`Open #${item.id} in Azure DevOps`}>#{item.id}</a> : null
+  const chosenEpic = epics.find((epic) => epic.id === Number(stream))
 
   return <Page className="activities-page">
     <header className="act-header">
@@ -188,18 +194,18 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         <h3 id="act-copy">Your activities for {label}</h3>
         <p className="act-sub">Ticked activities without a task yet are added for {label}; enter or change your hours and save once.</p>
         <table className="act-table">
-          <thead><tr><th aria-label="Add" /><th>Activity</th><th className="act-stream">Stream</th><th>Planned</th><th>Actual</th></tr></thead>
+          <thead><tr><th aria-label="Add" /><th>Activity</th><th className="act-stream">Epic</th><th>Planned</th><th>Actual</th></tr></thead>
           <tbody>
             {existing.map((row) => <tr key={row.key}>
               <td><span className="act-done" title="Already added for this month" aria-label="Added">✓</span></td>
-              <td><strong>{row.title}</strong>{kindPill(row.kind)}<small><span className="act-stream-inline">{row.stream} · </span>Added{adhocTask(row.task!) ? ' · ad-hoc' : ''}</small></td>
+              <td><strong>{idLink(row.link)}{row.title}</strong>{kindPill(row.kind)}<small><span className="act-stream-inline">{row.stream} · </span>Added{adhocTask(row.task!) ? ' · ad-hoc' : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
               <td>{hourInput(row, 'planned', planLocked || adhocTask(row.task!))}</td>
               <td>{hourInput(row, 'actual', actualLocked)}</td>
             </tr>)}
             {toAdd.filter((row) => row.kind === 'work').map((row) => <tr key={row.key} className={isTicked(row) ? '' : 'act-off'}>
               <td><input type="checkbox" aria-label={`Add ${row.title}`} checked={isTicked(row)} disabled={saving} onChange={(event) => setTicked((current) => ({ ...current, [row.key]: event.target.checked }))} /></td>
-              <td><strong>{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
+              <td><strong>{idLink(row.link)}{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
               <td>{hourInput(row, 'planned', planLocked || !isTicked(row))}</td>
               <td>{hourInput(row, 'actual', actualLocked || !isTicked(row))}</td>
@@ -213,7 +219,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
           <table className="act-table"><tbody>
             {leaveRows.map((row) => <tr key={row.key} className={isTicked(row) ? '' : 'act-off'}>
               <td><input type="checkbox" aria-label={`Add ${row.title}`} checked={isTicked(row)} disabled={saving} onChange={(event) => setTicked((current) => ({ ...current, [row.key]: event.target.checked }))} /></td>
-              <td><strong>{row.title}</strong>{kindPill(row.kind)}<small>{row.candidate!.story ? 'New task' : 'New story and task'}</small></td>
+              <td><strong>{idLink(row.link)}{row.title}</strong>{kindPill(row.kind)}<small>{row.candidate!.story ? 'New task' : 'New story and task'}</small></td>
               <td>{hourInput(row, 'planned', planLocked || !isTicked(row))}</td>
               <td>{hourInput(row, 'actual', actualLocked || !isTicked(row))}</td>
             </tr>)}
@@ -222,43 +228,45 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         <button type="button" className="act-primary" disabled={!pendingCount || saving} onClick={saveAll}>{saving ? 'Saving…' : pendingCount ? `Save ${pendingCount} activit${pendingCount === 1 ? 'y' : 'ies'}` : 'Nothing to save'}</button>
       </section>
 
-      <section className="act-card" aria-labelledby="act-new">
-        <h3 id="act-new">Add a new activity</h3>
-        <p className="act-sub">Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</p>
-        <div className="act-form">
-          <label>Stream<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">Select a stream</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>{epic.title}</option>)}</select></label>
-          <label>Project or release<select value={featureId} disabled={!stream} onChange={(event) => setFeatureId(event.target.value)}><option value="">{stream ? features.length ? 'Select a project or release' : 'No open Features in this stream' : 'Select a stream first'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>{feature.title}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select></label>
-          <label>Reporting period<input value={label} readOnly /></label>
-          <div className="act-pair">
-            <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newValue('planned')} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
-            <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newValue('actual')} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
+      <div className="act-side">
+        <aside className="act-card act-summary" aria-labelledby="act-progress">
+          <h3 id="act-progress">Your monthly update</h3>
+          <p className="act-sub">Track your progress for {label}.</p>
+          <div className="act-ring-row">
+            <div className="act-ring" style={{ ['--pct' as string]: `${percent}` }} role="img" aria-label={`${percent}% of activities updated`}><span>{percent}%</span></div>
+            <div>
+              <strong className="act-count">{updated} of {tracked.length}</strong><span className="act-sub">activities updated</span>
+              <ul className="act-legend"><li><i className="dot-done" />{updated} completed</li><li><i className="dot-open" />{Math.max(tracked.length - updated, 0)} remaining</li></ul>
+            </div>
           </div>
-          {existingTask && <p className="act-hint">You already have this task for {label} (#{existingTask.id}). Its hours are shown above; what you save replaces them — nothing is added up, and no second task is created.</p>}
-          {planLocked && <p className="act-hint">Planning for {label} is locked: a new task is tagged ad-hoc and takes actual hours only.</p>}
-          <button type="button" className="act-primary" disabled={!chosenFeature || saving} onClick={saveNew}>Save activity</button>
-          <p className="act-sub">Feature not listed? <button type="button" className="act-link" onClick={() => onOpen('mywork')}>Create a new Feature</button></p>
-        </div>
-      </section>
+          <div className={`act-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
+            <span aria-hidden="true">⏱</span>
+            <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
+          </div>
+          {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
+            <h4>Suggested missing items</h4>
+            {toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).slice(0, 3).map((row) => <div className="act-suggest" key={row.key}><div><strong>{row.title}</strong><small>No {label} task yet</small></div><button type="button" className="act-ghost" onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}
+          </div>}
+        </aside>
 
-      <aside className="act-card act-summary" aria-labelledby="act-progress">
-        <h3 id="act-progress">Your monthly update</h3>
-        <p className="act-sub">Track your progress for {label}.</p>
-        <div className="act-ring-row">
-          <div className="act-ring" style={{ ['--pct' as string]: `${percent}` }} role="img" aria-label={`${percent}% of activities updated`}><span>{percent}%</span></div>
-          <div>
-            <strong className="act-count">{updated} of {tracked.length}</strong><span className="act-sub">activities updated</span>
-            <ul className="act-legend"><li><i className="dot-done" />{updated} completed</li><li><i className="dot-open" />{Math.max(tracked.length - updated, 0)} remaining</li></ul>
+        <section className="act-card" aria-labelledby="act-new">
+          <h3 id="act-new">Add a new activity</h3>
+          <p className="act-sub">Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</p>
+          <div className="act-form">
+            <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">Select an Epic</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
+            <label>Feature<select value={featureId} disabled={!stream} onChange={(event) => setFeatureId(event.target.value)}><option value="">{stream ? features.length ? 'Select a Feature' : 'No Active or New Features under this Epic' : 'Select an Epic first'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>#{feature.id} {feature.title}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select>{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</label>
+            <label>Reporting period<input value={label} readOnly /></label>
+            <div className="act-pair">
+              <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newValue('planned')} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
+              <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newValue('actual')} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
+            </div>
+            {existingTask && <p className="act-hint">You already have this task for {label} (#{existingTask.id}). Its hours are shown above; what you save replaces them — nothing is added up, and no second task is created.</p>}
+            {planLocked && <p className="act-hint">Planning for {label} is locked: a new task is tagged ad-hoc and takes actual hours only.</p>}
+            <button type="button" className="act-primary" disabled={!chosenFeature || saving} onClick={saveNew}>Save activity</button>
+            <p className="act-sub">Feature not listed? <button type="button" className="act-link" onClick={() => onOpen('mywork')}>Create a new Feature</button></p>
           </div>
-        </div>
-        <div className={`act-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
-          <span aria-hidden="true">⏱</span>
-          <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
-        </div>
-        {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
-          <h4>Suggested missing items</h4>
-          {toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).slice(0, 3).map((row) => <div className="act-suggest" key={row.key}><div><strong>{row.title}</strong><small>No {label} task yet</small></div><button type="button" className="act-ghost" onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}
-        </div>}
-      </aside>
+        </section>
+      </div>
     </div>}
   </Page>
 }
