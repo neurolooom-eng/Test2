@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.28.1 — 2026-11-06
+
+**Changed** (My Activities, under Testing)
+- **Add a new activity** says what it adds: your month's Time Writing task under the Feature (in your Time Writing story there, created when you have none). Streams are the **Active** Epics only. When you already have the task, its current hours are shown and what you save replaces them — never added up, no second task (ACT-04).
+- **Your recent updates** removed from Your monthly update: it ran outside its box (ACT-05).
+
 ## v1.28.0 — 2026-11-06
 
 **New**
