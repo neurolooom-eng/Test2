@@ -2,7 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
-## v1.31.1 — 2026-11-06
+## v1.32.0 — 2026-11-06
+
+**New**
+- **My Activities**: the suggested missing items can be filtered by the Feature's state — **Active**, **New** or **Both** — and **Add all** moves the shown ones into Your activities (saved only with Save) (ACT-09).
+- Creating your month task under a Feature that is still **New** sets the Feature to **Active** in Azure DevOps (ACT-10).
 
 **Fixed**
 - **My Activities** (under Testing): Features without a task this month are no longer pre-selected in Your activities — they are only **suggestions** (with Epic and ID) in Your monthly update; **Add** puts one in your list, unticking returns it, and nothing is created until Save. This prevents saving tasks by accident (ACT-03, ACT-05; KB-37).

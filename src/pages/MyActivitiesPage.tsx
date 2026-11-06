@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort } from '../azureDevOps'
+import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort, updateAzureWorkItem, type AzureConfig } from '../azureDevOps'
 import { timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { PersonPicker } from '../components/PersonPicker'
@@ -44,6 +44,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   // Add a new activity adds a Time Writing task, or a User Story (title, description, an optional first comment).
   const [addKind, setAddKind] = useState<'task' | 'story'>('task')
   const [story, setStory] = useState({ title: '', description: '', comment: '' })
+  // Suggestions by the Feature's state (ACT-09): Active, New or both.
+  const [suggestState, setSuggestState] = useState<'both' | 'active' | 'new'>('both')
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
   const saving = useSyncExternalStore(subscribeJobs, () => isRunning('activities:save'))
   const label = monthName(month)
@@ -107,6 +109,13 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     }
     return ''
   }
+  // ACT-10: a month Task added under a Feature still in state New makes the Feature Active (work has started).
+  const activated = new Set<number>()
+  async function activateIfNew(config: AzureConfig, pat: string, feature: AzureWorkItem, failed: string[]) {
+    if (feature.state.trim().toLowerCase() !== 'new' || activated.has(feature.id)) return
+    activated.add(feature.id)
+    try { await updateAzureWorkItem(config, pat, feature.id, { state: 'Active' }) } catch (failure) { failed.push(`#${feature.id} could not be set to Active: ${failure instanceof Error ? failure.message : 'failed'}`) }
+  }
   const effortOf = (entry: Hours) => ({ plan: entry.planned?.trim() ? Number(entry.planned) : undefined, actual: entry.actual?.trim() ? Number(entry.actual) : undefined })
 
   function saveAll() {
@@ -127,6 +136,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             : await ensureMonthTask(config, pat, candidate.feature.id, assignee, label, undefined, planLocked)
           const effort = effortOf(edits[row.key] ?? {})
           if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
+          if (result.status === 'created') await activateIfNew(config, pat, candidate.feature, failed)
           created += 1
         } catch (failure) { failed.push(`${row.title}: ${failure instanceof Error ? failure.message : 'failed'}`) }
       }
@@ -192,9 +202,11 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked)
         const effort = effortOf(entry)
         if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
+        const activation: string[] = []
+        if (result.status === 'created') await activateIfNew(config, pat, feature, activation)
         setNewHours({}); setFeatureId('')
         await azure.refresh()
-        const text = result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}.`
+        const text = (result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}${feature.state.trim().toLowerCase() === 'new' && !activation.length ? '; the Feature is now Active' : ''}.`) + (activation.length ? ` ${activation.join(' ')}` : '')
         setMessage({ tone: 'success', text })
         return { text }
       } catch (failure) {
@@ -211,6 +223,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const kindPill = (kind: Row['kind']) => kind === 'work' ? null : <span className={`act-kind act-${kind}`}>{kind === 'training' ? 'Training' : 'Leave'}</span>
   const hourInput = (row: Row, field: keyof Hours, disabled: boolean) => <input className="act-hours" aria-label={`${field === 'planned' ? 'Planned' : 'Actual'} hours for ${row.title}`} inputMode="decimal" placeholder="0" disabled={disabled || saving} value={valueOf(row, field)} onChange={(event) => setValue(row, field, event.target.value)} />
   const leaveRows = toAdd.filter((row) => row.kind !== 'work')
+  const suggestions = toAdd.filter((row) => row.kind === 'work' && !isTicked(row) && (suggestState === 'both' || row.candidate!.feature.state.trim().toLowerCase() === suggestState))
   // The Azure DevOps ID, opening the item in a new tab.
   const idLink = (item?: AzureWorkItem) => item && item.id > 0 ? <a className="act-id" href={item.url} target="_blank" rel="noreferrer" title={`Open #${item.id} in Azure DevOps`}>#{item.id}</a> : null
   const chosenEpic = epics.find((epic) => epic.id === Number(stream))
@@ -277,9 +290,13 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
           </div>
           {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
-            <h4>Suggested missing items <small className="muted">({toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).length})</small></h4>
+            <h4>Suggested missing items <small className="muted">({suggestions.length})</small></h4>
             <p className="act-sub">Your open Features without a {label} task. Nothing is added until you choose Add and then Save.</p>
-            <div className="act-suggest-list">{toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).map((row) => <div className="act-suggest" key={row.key}><div><strong>{idLink(row.link)}{row.title}</strong><small>{row.stream} · {row.candidate!.status === 'needs-story' ? 'new story and task' : 'new task'}</small></div><button type="button" className="act-ghost" disabled={saving} onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}</div>
+            <div className="act-suggest-bar">
+              <div className="ovw-chips" role="group" aria-label="Feature state">{(['active', 'new', 'both'] as const).map((value) => <button key={value} type="button" aria-pressed={suggestState === value} className={suggestState === value ? 'active' : ''} onClick={() => setSuggestState(value)}>{value === 'both' ? 'Both' : value === 'active' ? 'Active' : 'New'}</button>)}</div>
+              <button type="button" className="act-ghost" disabled={!suggestions.length || saving} onClick={() => setTicked((current) => ({ ...current, ...Object.fromEntries(suggestions.map((row) => [row.key, true])) }))}>Add all ({suggestions.length})</button>
+            </div>
+            {suggestions.length ? <div className="act-suggest-list">{suggestions.map((row) => <div className="act-suggest" key={row.key}><div><strong>{idLink(row.link)}{row.title}</strong><small>{row.stream} · {row.candidate!.feature.state}{row.candidate!.status === 'needs-story' ? ' · new story and task' : ' · new task'}</small></div><button type="button" className="act-ghost" disabled={saving} onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}</div> : <p className="act-sub">No {suggestState === 'new' ? 'New' : 'Active'} Features to suggest.</p>}
           </div>}
         </aside>
 
