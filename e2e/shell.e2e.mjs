@@ -360,6 +360,8 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   const heights = await content.locator('.act-top .metric-grid > article').evaluateAll((tiles) => tiles.map((tile) => Math.round(tile.getBoundingClientRect().height)))
   assert.equal(new Set(heights).size, 1, `tiles of one height: ${heights}`)
   assert.equal(await content.locator('.act-ring').count(), 1, 'the ring is back')
+  // Save sits in the heading row of Your activities.
+  assert.equal(await content.locator('.act-card-head').getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).count(), 1, 'Save is next to the heading')
   // Suggested missing items sit below Your activities, in the first column.
   assert.equal(await content.locator('.act-main #act-copy').count(), 1)
   // The Feature list is a drop-down you type into: only my Features, narrowed as I type.
@@ -465,5 +467,24 @@ test('TC-FET-09: the start-up fetch does not wait for slow Git and shows in the 
   assert.ok(Date.now() - started < 16000, 'the fetch starts within the 10-second wait, not after Git')
   await page.locator('.jobs-button').click()
   assert.match(await text(page.getByRole('dialog', { name: 'Background jobs' })), /Fetch Azure DevOps at start/)
+  await context.close()
+})
+
+test('TC-ACT-10: My Activities can show another person, chosen at the top right', async () => {
+  const { page, context, errors } = await openPage(app, { init: ([text, name]) => { localStorage.setItem('demand-planning-access-v1', text); localStorage.setItem('demand-planning-my-name-v1', name) }, initArg: [policyFor('Admin'), 'Ana Costa'] })
+  await loadSample(page)
+  await navigate(page, 'My Activities')
+  const content = page.locator('.content')
+  await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
+  const picker = content.locator('.act-header').getByRole('combobox', { name: 'Activities of' })
+  assert.equal(await picker.count(), 1, 'the person picker is in the header row')
+  const before = await text(content.locator('.act-table').first())
+  await picker.click()
+  await page.keyboard.type('Fatima')
+  await page.getByRole('option', { name: 'Fatima Zahra' }).click()
+  await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
+  assert.notEqual(await text(content.locator('.act-table').first()), before, 'the list follows the person chosen')
+  assert.equal(await picker.inputValue(), 'Fatima Zahra')
+  assert.deepEqual(errors, [])
   await context.close()
 })
