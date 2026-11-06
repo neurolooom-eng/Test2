@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v2.0.0 — 2026-11-06
+
+**Changed** (the way people work)
+- **My Activities** moves from Testing to **My Work**, first, for everyone with the My Activities area (formerly *Monthly Time Writing* in access.json) (ACT-15, ACT-01).
+- **Monthly Time Writing** is removed: the month's tasks and hours are entered on My Activities. Its Team view of every person's month Tasks goes with it (ACT-15; MON-01…05, MON-08…13, MON-16…19 retired).
+- **Bulk actions** becomes **Sprint check**: Move to current PI + Sprint and the State checks stay; the month tasks are on My Activities. Creating month Tasks ahead up to a Feature's Target date is removed (ATM-07; ATM-10…12, ATM-18, ATM-21 retired).
+- Links to the removed pages (My dashboard, Assigned to Me, Settings hints) open My Activities or Sprint check.
+
 ## v1.35.0 — 2026-11-06
 
 **Changed**

@@ -15,7 +15,6 @@ import { JobsIndicator } from './components/JobsIndicator'
 import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
 import { MyDashboardPage } from './pages/MyDashboardPage'
-import { MonthlyPage } from './pages/MonthlyPage'
 import { MyActivitiesPage } from './pages/MyActivitiesPage'
 import { PlanningOverviewPage } from './pages/PlanningOverviewPage'
 import { CapacityActualPage } from './pages/CapacityActualPage'
@@ -53,7 +52,7 @@ import type { Area } from './access'
 import { useMyWork } from './useMyWork'
 import { setLockSettings } from './planningLock'
 import { MyWorkPage } from './pages/MyWorkPage'
-import { BulkActionsPage } from './pages/BulkActionsPage'
+import { SprintCheckPage } from './pages/SprintCheckPage'
 import { DesktopDownload } from './components/DesktopDownload'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
@@ -307,12 +306,11 @@ export default function App() {
       {page === 'pireview' && <PiReviewPage />}
       {page === 'brite' && <BritePage />}
       {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} resources={qeResources} />}
-      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.setups} />}
-      {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
+      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenActivities={() => setPage('activities')} assign={assign} featureSetup={featureSetup.setups} />}
+      {page === 'bulk' && <SprintCheckPage azure={azure} store={store} my={my} />}
       {page === 'capactual' && <CapacityActualPage azure={reportAzure} store={store} month={month} />}
       {page === 'planover' && <PlanningOverviewPage azure={reportAzure} store={store} month={month} onOpenPack={() => openSettings('pack')} />}
       {page === 'activities' && <MyActivitiesPage azure={azure} store={store} my={my} month={month} assign={assign} onOpen={setPage} />}
-      {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => openSettings('storage', 'git')} canEdit={access.can('baselines.edit')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} month={month} board={{ azure, stream: windchillStreamExports(windchillViews).find((entry) => entry.view?.id === windchillView.id)?.stream.name ?? windchillView.name, threshold: normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold, assign, featureSetup: featureSetup.setups }} /> : access.can('windchill.import') ? <WindchillExportImport key={windchillFor} stream={windchillFor} windchill={windchill} git={git} onImported={(id) => openWindchill(id)} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
