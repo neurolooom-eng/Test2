@@ -554,3 +554,9 @@ details.act-leave{border:1px solid var(--line);border-radius:10px;padding:8px 12
 .ovw-queue{width:100%;border-collapse:collapse;font-size:12.5px}.ovw-queue th{background:transparent;border:0;border-bottom:1px solid var(--line);padding:8px 8px;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;text-align:left;font-weight:650}
 .ovw-queue td{padding:9px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top}.ovw-queue td:first-child{min-width:220px}.ovw-queue td small{color:var(--muted);font-size:11px}
 .ovw-queue td:last-child,.ovw-queue td:nth-child(4){white-space:nowrap}
+/* Capacity vs Actual (CVA-01…CVA-06). */
+.cva-over{fill:var(--danger)}.cva-meter{display:inline-block;width:64px;height:6px;border-radius:4px;background:var(--surface-2);margin-right:8px;vertical-align:middle;overflow:hidden}.cva-meter i{display:block;height:100%}
+.cva-meter .cva-over{background:var(--danger)}.cva-meter .cva-ok{background:var(--success)}.cva-meter .cva-under{background:var(--warning)}
+.cva-band-over{background:var(--danger-soft);color:var(--danger-text)}.cva-band-ontrack{background:var(--success-soft);color:var(--success-text)}.cva-band-under{background:var(--warning-soft);color:var(--warning-text)}.cva-band-nocapacity{background:var(--surface-2);color:var(--muted)}
+.ovw-stack .cva-stream{background:var(--accent)}
+.cva-epics li{grid-template-columns:minmax(0,120px) 1fr 70px}.cva-epics b{white-space:nowrap}

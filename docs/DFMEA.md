@@ -100,13 +100,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-53 | Create a missing leave or training story (ATM-27) | A duplicate story or month Task, or one for another person | Hours booked twice or under the wrong person | A story of that type already exists under another title; a second run | 3 | 2 | 2 | 12 | The Feature's stories are re-read before creating: a story of the person's of that type is used; the month Task is looked up under it first; creation assigned to the person's email, read back and checked; unticked by default (unit test: running again creates nothing) | 3×1×1 = 3 | TC-ATM-19 | — |
 | DF-54 | Record the month on My Activities (ACT-02…ACT-07) | Hours saved to the wrong task, a duplicate task, or a page under trial seen by everyone | Wrong hours in Azure DevOps; users rely on an unfinished page | One page that both creates tasks and edits hours; menu gating | 3 | 2 | 2 | 12 | Reuses the month-task functions (Feature re-read, existing task reused, read back and checked) and the effort save with the lock days; Admin-only Testing heading (E2E); background job reports each failure | 3×1×1 = 3 | TC-ACT-01, TC-ACT-02, TC-ACT-03 | — |
 | DF-55 | Show the team's month on the Planning Overview (OVW-01…OVW-08) | A wrong figure (utilization, delivery, exceptions) is read as true | Decisions on capacity or delivery made on wrong numbers | Filters applied to some figures but not others; Target dates missing | 3 | 2 | 3 | 18 | One model computes every figure from the same filtered data (unit tests for delivery, exceptions and filters); figures reuse the capacity model and baselines already verified; Features without a Target date are left out and the page says what each tile counts; read only | 3×1×2 = 6 | TC-OVW-01, TC-OVW-02, TC-OVW-03 | — |
+| DF-56 | Compare capacity with actual hours (CVA-01…CVA-06) | Utilization or a person's status shown wrongly | Someone wrongly seen as over- or under-loaded | An Epic filter that also cut capacity; a band threshold misread | 3 | 2 | 2 | 12 | Capacity from the capacity model already verified; the Epic filter changes only the hours, never capacity (unit test); bands from the Settings thresholds, named on the page; read only | 3×1×1 = 3 | TC-CVA-01, TC-CVA-02 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 55 |
+| Failure modes analysed | 56 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 3 (DF-01, DF-02, DF-23) — all reduced to 5 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

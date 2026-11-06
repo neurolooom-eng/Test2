@@ -138,6 +138,7 @@ Stakeholders:
 | UC-27 | Bring the planned and recorded hours of the months before Time Writing in Azure DevOps — people who have left included — into the reports from the team's planning workbook, once, without writing to Azure DevOps | Lead, manager |
 | UC-28 | Record my month in one place — add this month's tasks for my recurring work, enter planned and actual hours, add a new activity and see what is left before the deadline — on a page first tried out by admins | Team member, admin |
 | UC-29 | See the team's month on one page — workload against capacity, delivery against Target dates and what needs attention — filtered by region, Epic and owner, on a page first tried out by admins | Lead, manager |
+| UC-30 | Compare what the team had — capacity after leave and holidays — with the hours it booked, for the month and the year before, per person and per Epic, on a page first tried out by admins | Lead, manager |
 | UC-24 | Prepare the two monthly Pulse Check slides (2x2 and Performance Pulse) for the month before the header month from the app's data, with the month's text kept in Git, and download them as .pptx | Lead, manager |
 
 ## 3. User requirements
@@ -170,9 +171,11 @@ User requirements are what the stakeholders of §2 need from the tool, written a
 | SR-28 | The system shall import historical planned and recorded hours per person, month and activity from the planning workbook into the Git data repository and count them in the report pages before a cut-off month, in place of Azure DevOps Time Writing, under the person's report name and the row's Epic. | UR-24 | HIS (§5.26) |
 | SR-29 | The system shall offer a person's month on one My Activities page — this month's tasks with planned and actual hours, the Features still without one, a new activity under a stream and Feature, progress and the deadline — using the month-task rules, and shall keep pages being tried out in a Testing menu group for the Admin role only. | UR-25 | ACT (§5.27) |
 | SR-30 | The system shall show a Planning Overview of the team's month — filters, headline figures against the month before, 12 months of workload against capacity, an exception queue and delivery health per Epic — from the fetched data, the capacity settings and the baselines, read only, under the Testing heading. | UR-26 | OVW (§5.28) |
+| SR-31 | The system shall compare capacity with actual hours — tiles against the month before, 12 months, each person with a status band and the hours per Epic — from the capacity model, read only, under the Testing heading. | UR-27 | CVA (§5.29) |
 | UR-24 | I need the hours of the months before we recorded them in Azure DevOps — also of people no longer in the team, who cannot be assigned work there — in the same reports as today's hours, without counting a month twice, so that the trends start from the real history. | Lead, manager | UC-27 | SR-28 |
 | UR-25 | I need to record my whole month on one clean page — copy my recurring work, enter hours, add something new, and see what is left before the deadline — and new pages tried out by admins before everyone gets them. | Team member, admin | UC-28 | SR-29 |
 | UR-26 | I need the team's month at a glance — are we overloaded, are we delivering on time, what needs my attention — narrowed to a region, an Epic or a person, and a quick way to the monthly pack. | Lead, manager | UC-29 | SR-30 |
+| UR-27 | I need to see whether the team used the capacity it had — who is over or under, how it moved over the year and where the hours went. | Lead, manager | UC-30 | SR-31 |
 | UR-22 | *(Retired — see UR-23)* I need a management view like the Overview and AI-insights mock-ups — key figures with their change, the exceptions, the timeline health and insights that show their evidence — without replacing the Dashboard, so that the monthly review starts from the data, not from a hunch. | Lead, manager | UC-25 | SR-26 |
 | UR-23 | I need to start from my own hours, open work and releases without wading through the whole team's figures, and the team's insights to reach only the people who lead the team, over a month, quarter, half-year or year, and to arrange my own pages — which sections, in which order, which pages in my menu, which filters — on every computer, so that each of us sees what we act on. | All; lead, manager | UC-26 | SR-27 |
 | UR-19 | Credentials must stay on my computer, writes must go to Azure DevOps Services only, and no production data, tokens or employee details may enter the source repository. | App owner, security | UC-02, UC-12, UC-17 | SR-02, SR-17, SR-23, SR-24 |
@@ -864,6 +867,17 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | OVW-06 | The **Exception queue** shall list every exception — *Over 25% baseline* (impact = % over), *Missing baseline* and *Capacity risk* (impact = hours over capacity) — with item (ID linking to Azure DevOps), Epic, region, owner and Target date, filterable by type with counts. | T | M | UC-29 |
 | OVW-07 | **Delivery health** shall show, for the six months from the header month, the Features by Target date per Epic — completed, open with the date ahead, overdue (open, date passed) — as totals and a bar per Epic with a legend. | T | S | UC-29 |
 | OVW-08 | **Generate Monthly Pack** shall open Settings → Monthly pack (MPK), where the pack is set up and downloaded. | T | C | UC-29 |
+
+### 5.29 Capacity vs Actual (CVA) — UC-30
+
+| ID | Requirement | Ver. | Pri. | Trace |
+|---|---|---|---|---|
+| CVA-01 | Under the **Testing** heading (ACT-01, Admin role only), a **Capacity vs Actual** page shall show the header month, read only, with **Region**, **Epic** (Active Epics with IDs) and **Owner** filters and **Clear filters**; the Epic filter narrows the actual and planned hours to that Epic while capacity stays the people's own. | T | M | UC-30 |
+| CVA-02 | Four tiles shall show **Capacity** (hours after leave and holidays, CAP), **Actual** (Completed Work booked), **Actual utilization** (actual ÷ capacity, with how many people are over, on track and under) and **Headroom** (capacity − actual; **Over capacity** when negative), each with the change against the month before. | T | M | UC-30 |
+| CVA-03 | A chart shall show, for the 12 months up to the header month, actual hours (bars, red when over capacity) against capacity (line) on one hours axis, with a legend, the month's figures on hover and a table view. | T | S | UC-30 |
+| CVA-04 | **By person** shall list everyone with capacity or hours in the month — region and role, capacity, actual, planned, % used with a bar and a status **Over** (above the overload threshold), **On track** or **Under** (below the available threshold, Settings → Capacity) — most used first. | T | M | UC-30 |
+| CVA-05 | **Where the hours went** shall show the month's actual hours per Epic, largest first (up to ten). | T | S | UC-30 |
+| CVA-06 | The page shall read on a phone: the tiles stack and the tables scroll inside their cards. | I | C | UC-30 |
 
 ## 6. Non-functional requirements
 
