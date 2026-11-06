@@ -81,6 +81,7 @@ This document lists every software component of the system: the in-house source 
 | MonthOverview | `src/components/MonthOverview.tsx` | "This month" overview sections: capacity model and metrics for a month. | OVR, CAP |
 | MultiSelect | `src/components/MultiSelect.tsx` | Multi-value checkbox filter button ("All", one value or "n selected"). | OVR, UI |
 | PersonPicker | `src/components/PersonPicker.tsx` | Typeable person list with "me" first and keyboard selection. | ATM, UI |
+| SearchSelect | `src/components/SearchSelect.tsx` | Drop-down list you can type into to search it (label and hint), with keyboard selection; the Feature list of My Activities. | ACT, UI |
 | QueryView | `src/components/QueryView.tsx` | Read-only query results view: summary strip, query columns, sorting, filters, search and CSV export. | QV |
 | WorkItemEditor | `src/components/WorkItemEditor.tsx` | Edit form for a Feature, User Story or Task (Backlogs, Assigned to Me): fresh read, changed fields only, locks, Discussion; saves as a background job. | BKL, ATM |
 | StoryEditor | `src/components/StoryEditor.tsx` | New User Story form under a Feature (Backlogs, Assigned to Me), laid out like New Feature with the Azure DevOps story fields; saves as a background job. | BKL, ATM |
