@@ -2,6 +2,19 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.34.0 — 2026-11-06
+
+**Added**
+- **New Feature**: an optional **Your own User Story** (title, description), created under the new Feature in the Sprint chosen (BKL-25).
+- **My Activities → Add a new activity → Feature**: **Add a User Story under it** — title, description and an optional comment, in the current Sprint (ACT-13).
+
+**Changed**
+- **My Activities layout**: KPI cards on top in the order Capacity, Planned hours, Actual hours, Tasks, with a small **% of capacity** badge on Planned and Actual (Actual also as % of plan); **Unsaved changes** only while you edit; **Your monthly update** with the progress ring and last day beside them; **Suggested missing items** below Your activities; columns **Epic, Activity, Planned, Actual** (ACT-02, ACT-05, ACT-11).
+- **My Activities → Feature** is one drop-down you can type into to search (ID, title, Epic) (ACT-04).
+
+**Fixed**
+- **Fetch at start**: the Time Writing data was often not fetched when the app opened. The fetch now waits only for the connection setup from Git (at most 10 seconds) and shows in the top bar with its result or why it was skipped (FET-21; KB-38).
+
 ## v1.33.0 — 2026-11-06
 
 **Added**

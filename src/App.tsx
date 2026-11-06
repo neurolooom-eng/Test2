@@ -1,3 +1,4 @@
+import { runInBackground } from './backgroundJobs'
 import { BrandMark } from './components/BrandMark'
 import { TableDefaultsContext } from './components/tableDesign'
 import { normalizeTableDefaults } from './tableDefaults'
@@ -97,9 +98,10 @@ export default function App() {
     if (pulled.current || !store.ready || !git.connected || azure.isSample || git.status === 'loading') return
     pulled.current = true
     const web = !window.azureDevOps
+    // The start-up fetch waits only for the connection setup (KB-38): the on-prem views' data is read from Git after it.
     void git.syncViews().catch(() => null)
-      .then(() => web ? git.pullSnapshots() : undefined).catch(() => { /* shown when loading from Settings */ })
       .finally(() => { azure.reloadConnectionProfiles(); setSetupSynced(true) })
+      .then(() => web ? git.pullSnapshots() : undefined).catch(() => { /* shown when loading from Settings */ })
     void git.pullWindchill().then(() => windchill.reload()).catch(() => { /* shown when loading from Git on the import page */ })
   }, [store.ready, git, azure, windchill])
   // Duplicate connections (same server, project, role and query — e.g. one from the shared setup and one set up again)
@@ -122,13 +124,23 @@ export default function App() {
     }
   }, [store, git, azure, setupSynced])
   // Every start (opening the app, Force Update, reload) fetches the cloud connections once, after the shared
-  // connection setup from Git is in place.
+  // connection setup from Git is in place — or after 10 seconds when Git is slow or does not answer (KB-38). The fetch
+  // runs as a background job, so the top bar shows it, its result, or why the Time Writing connection was not fetched.
+  const [gitWaitOver, setGitWaitOver] = useState(false)
+  useEffect(() => { const timer = window.setTimeout(() => setGitWaitOver(true), 10000); return () => window.clearTimeout(timer) }, [])
   const autoFetched = useRef(false)
   useEffect(() => {
-    if (autoFetched.current || !store.ready || azure.isSample || (git.connected && !setupSynced)) return
+    if (autoFetched.current || !store.ready || azure.isSample || (git.connected && !setupSynced && !gitWaitOver)) return
     autoFetched.current = true
-    void azure.fetchCloud()
-  }, [store.ready, azure, git.connected, setupSynced])
+    // Nothing is shown when no connection is set up here (first start, sample data only).
+    if (!azure.connectionProfiles.length) return
+    runInBackground('startup:fetch', 'Fetch Azure DevOps at start', async (progress) => {
+      progress('Fetching the Time Writing connection…')
+      const result = await azure.fetchCloud()
+      const text = result.skipped || (result.targets ? `${result.ok} of ${result.targets} connection${result.targets === 1 ? '' : 's'} fetched and saved.${result.ok < result.targets ? ' See Settings → Azure DevOps for the one that failed.' : ''}` : 'Nothing to fetch.')
+      return { text, failed: Boolean(result.skipped) || result.ok < result.targets }
+    })
+  }, [store.ready, azure, git.connected, setupSynced, gitWaitOver])
   // View as (CON-89…CON-92): an Admin sees the app as a person or a role, read-only, for this page load only.
   const [viewAs, setViewAs] = useState<ViewAs | null>(null)
   const [viewAsOpen, setViewAsOpen] = useState(false)

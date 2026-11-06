@@ -460,6 +460,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-FET-06 Unscoped cache hidden** — Req FET-16
 - L1: `azure-devops.test.mjs` (scoped cache, no project fallback).
 
+**TC-FET-09 Start-up fetch does not wait for slow Git** — Req FET-21, FET-20 — E2E `shell.e2e.mjs` ("TC-FET-09: the start-up fetch does not wait for slow Git and shows in the top bar"); browser check: with Git storage and many on-prem views, opening the app shows "Fetch Azure DevOps at start" in the top bar right after the connection setup is read, with "1 of 1 connection fetched" or the reason (no PAT here, on-premises); with no connection set up nothing is shown.
+
 **TC-FET-08 Cloud fetch at start** — Req FET-20, CON-45 — browser check with Azure DevOps mocked: with a cloud Time Writing connection and an on-prem connection, opening the app sends the cloud fetch once and nothing to the on-prem server; a rejected PAT shows the usual error and keeps the saved data. Settings shows one tab at a time, the shared tabs only with "manage shared settings", and reopens on the last tab; "Fetch work items from Azure DevOps →" opens the Azure DevOps tab. Live check needed: the QMS-0025 data refreshes after Force Update. **UAT**
 
 **TC-FET-07 Query fields and names** — Req FET-18, FET-19, QV-04
@@ -719,6 +721,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-BKL-12 Backlog filtered to me; ＋ Time Writing Task** — Req BKL-21, BKL-22 — E2E `backlog.e2e.mjs` ("TC-BKL-12: QMS-0025 opens filtered to the person browsing; clearing the filter shows everyone; rows offer ＋ Time Writing Task"); L1 `my-work.test.mjs` ("QMS-0025 shows mine by default: my items with everything above and below; featureOf finds the Feature of a Story (TC-BKL-12)"); browser check with the QMS-0025 board and your work email: the backlog shows your items with their Epic / Feature above and the work below; Assigned to me ✕ clears to everyone and a restart filters again; ＋ Time Writing Task on a Feature (and on a Story) creates this month's Task for you under your own Time Writing story, or reports that it exists; the same button on Assigned to Me rows.
 
 **TC-BKL-13 Parent Epic blank on New Feature** — Req BKL-23 — E2E `backlog.e2e.mjs` ("TC-BKL-13: New Feature opens with the Parent Epic blank; every Epic is offered"); browser check: the same from Assigned to Me and from Create Feature on Release Details; Create without an Epic says "Choose the parent Epic."
+
+**TC-BKL-15 Your own User Story on New Feature** — Req BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature"); browser check with the Time Writing connection: enter a title and description, Save — the story is created under the new Feature in the Sprint chosen, assigned like the Feature, and named in the result; left empty, nothing extra is created; not shown on Complete Feature children.
 
 **TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
 
@@ -1372,6 +1376,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-07 Create a Feature** — Req ACT-12, ACT-06, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice asks for Feature title and Feature DoD, the month-task box is ticked, Create Feature stays disabled without a DoD); browser check with the Time Writing connection: choose Feature, an Active Epic, enter a title, a DoD and hours, Create Feature — the Feature appears under the Epic, assigned to you, in the current PI, with "Feature DoD: …" in its Description, your month task with the hours under it and the Feature Active; untick the task box and only the Feature is created (state New); with sample data or during View as nothing is saved.
 
+**TC-ACT-08 A User Story with the new Feature** — Req ACT-13, ACT-12 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": ticking Add a User Story under it asks for its title and keeps Create Feature disabled until one is entered); browser check with the Time Writing connection: create a Feature with a User Story title, description and comment — the story appears under the new Feature, assigned to you, in the current Sprint, with the comment in its Discussion; a failing story is reported and the Feature stays.
+
+**TC-ACT-09 Layout, KPI order and the Feature drop-down** — Req ACT-02, ACT-04, ACT-05, ACT-11 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": columns Epic, Activity, Planned, Actual; KPI cards Capacity, Planned hours, Actual hours, Tasks, Unsaved changes only after an hour is changed; the ring and last day beside them; suggestions below Your activities; the Feature drop-down lists only your Features, typing narrows it, picking one fills in its Epic); browser check: the % badges equal Planned ÷ Capacity and Actual ÷ Capacity, and Actual's hint shows Actual ÷ Planned.
+
 **TC-ACT-05 Suggestions by state, Add all, New → Active** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the New Feature is then Active in Azure DevOps (the same when adding a task under a New Feature with Add a new activity); a Feature already Active is left as it is.
 
 ### 6.26 Planning Overview
@@ -1487,6 +1495,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | FET-15, FET-17 | TC-FET-05 |
 | FET-16 | TC-FET-06 |
 | FET-18, FET-19 | TC-FET-07 |
+| FET-20 | TC-FET-08, TC-FET-09 |
+| FET-21 | TC-FET-09 |
 | TWN-01…06 | TC-TWN-01 |
 | TWN-07, TWN-08 | TC-TWN-02 |
 | TWN-09 | TC-TWN-03, TC-ATM-05 |
@@ -1535,6 +1545,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-22 | TC-BKL-12 |
 | BKL-23 | TC-BKL-13 |
 | BKL-24 | TC-BKL-14 |
+| BKL-25 | TC-BKL-15 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1693,17 +1704,18 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-15 | TC-HIS-10 |
 | HIS-16 | TC-HIS-11 |
 | ACT-01 | TC-ACT-01 |
-| ACT-02 | TC-ACT-01 |
+| ACT-02 | TC-ACT-01, TC-ACT-09 |
 | ACT-03 | TC-ACT-02 |
-| ACT-04 | TC-ACT-03 |
-| ACT-05 | TC-ACT-02, TC-ACT-06 |
+| ACT-04 | TC-ACT-03, TC-ACT-09 |
+| ACT-05 | TC-ACT-02, TC-ACT-06, TC-ACT-09 |
 | ACT-06 | TC-ACT-02, TC-ACT-03 |
 | ACT-07 | TC-ACT-01 |
 | ACT-08 | TC-ACT-04 |
 | ACT-09 | TC-ACT-05 |
 | ACT-10 | TC-ACT-05, TC-ACT-07 |
-| ACT-11 | TC-ACT-06 |
-| ACT-12 | TC-ACT-07 |
+| ACT-11 | TC-ACT-06, TC-ACT-09 |
+| ACT-12 | TC-ACT-07, TC-ACT-08 |
+| ACT-13 | TC-ACT-08 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1731,11 +1743,11 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
-| UC-03 | TC-CON-03, TC-FET-01…06 |
+| UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
-| UC-07 | TC-BKL-01…09, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
+| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
@@ -1756,7 +1768,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…07 |
+| UC-28 | TC-ACT-01…09 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 

@@ -4,6 +4,7 @@ import { addComment, createAzureFeature, createUserStory, currentIterationPairs,
 import { azureInsights, timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { PersonPicker } from '../components/PersonPicker'
+import { SearchSelect } from '../components/SearchSelect'
 import { EmptyState, Metric, Metrics, Page } from '../components/ui'
 import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
@@ -41,12 +42,11 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const [hours, setHours] = useState<Record<string, Hours>>({})
   const [stream, setStream] = useState('')
   const [featureId, setFeatureId] = useState('')
-  const [featureSearch, setFeatureSearch] = useState('')
   const [newHours, setNewHours] = useState<Hours>({})
   // Add a new activity adds a Time Writing task, or a User Story (title, description, an optional first comment).
   const [addKind, setAddKind] = useState<'task' | 'story' | 'feature'>('task')
   // A new Feature (ACT-12): under the chosen Epic, assigned to the person, with its mandatory DoD.
-  const [draft, setDraft] = useState({ title: '', dod: '', description: '', withTask: true })
+  const [draft, setDraft] = useState({ title: '', dod: '', description: '', withTask: true, withStory: false, storyTitle: '', storyDescription: '', storyComment: '' })
   const [story, setStory] = useState({ title: '', description: '', comment: '' })
   // Suggestions by the Feature's state (ACT-09): Active, New or both.
   const [suggestState, setSuggestState] = useState<'both' | 'active' | 'new'>('both')
@@ -102,6 +102,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const personName = my.me.name ?? ''
   const capacity = personName ? totals(personMonths(azure.items, [month], todayIso(), locks).filter((row) => row.person === personName)).capacity : null
   const unsaved = pendingCount + Object.keys(newHours).filter((key) => newHours[key as keyof Hours]?.trim()).length
+  // A small share of capacity next to the planned and actual hours (ACT-11).
+  const pctOf = (hours: number | null, whole: number | null) => whole && hours != null ? <span className="act-pct" title="Share of your capacity">{Math.round(hours / whole * 100)}%</span> : null
 
   // Add a new activity: a stream (Epic) and a pending Feature under it; mine first.
   // Streams are the Active Epics (the absence Epic has its own list).
@@ -111,11 +113,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   // Only the person's own Features (ACT-04): assigned to them, or holding a User Story or Task of theirs; typed text
   // narrows them by ID, title or Epic.
   const ownFeatureIds = new Set(my.known ? azure.items.flatMap((item) => isMine(item, my.me) ? [featureOf(item)?.id].filter((id): id is number => id != null) : []) : [])
-  const query = featureSearch.trim().toLowerCase()
-  const features = azure.items.filter((item) => item.workItemType === 'Feature' && ownFeatureIds.has(item.id) && ['active', 'new'].includes(item.state.trim().toLowerCase()) && epicIds.has(epicOf(item)?.id ?? -1) && (!stream || epicOf(item)?.id === Number(stream)) && (!query || `#${item.id} ${item.title} ${epicOf(item)?.title ?? ''}`.toLowerCase().includes(query) || String(item.id) === query.replace('#', ''))).sort((a, b) => a.title.localeCompare(b.title))
-  // The chosen Feature stays chosen while the search text changes.
+  const features = azure.items.filter((item) => item.workItemType === 'Feature' && ownFeatureIds.has(item.id) && ['active', 'new'].includes(item.state.trim().toLowerCase()) && epicIds.has(epicOf(item)?.id ?? -1) && (!stream || epicOf(item)?.id === Number(stream))).sort((a, b) => a.title.localeCompare(b.title))
   const chosenFeature = azure.items.find((item) => item.workItemType === 'Feature' && item.id === Number(featureId) && ownFeatureIds.has(item.id))
-  const featureOptions = chosenFeature && !features.includes(chosenFeature) ? [chosenFeature, ...features] : features
   // My month Task already under the chosen Feature: its hours are shown and what is entered replaces them.
   const existingTask = chosenFeature ? mine.find((task) => featureOf(task)?.id === chosenFeature.id) : undefined
   const newValue = (field: keyof Hours) => newHours[field] ?? (existingTask ? hoursText(field === 'planned' ? existingTask.originalEstimate : existingTask.completedWork) : '')
@@ -216,15 +215,28 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     const entry: Hours = draft.withTask ? { planned: newHours.planned, actual: newHours.actual } : {}
     const problem = checkHours([entry])
     if (problem) { setMessage({ tone: 'error', text: problem }); return }
+    const storyEntry = draft.withStory ? { title: draft.storyTitle.trim(), description: draft.storyDescription.trim(), comment: draft.storyComment.trim() } : null
+    if (storyEntry && (!storyEntry.title || storyEntry.title.length > 255)) { setMessage({ tone: 'error', text: 'Enter a User Story title of 1–255 characters.' }); return }
     const config = azure.config!, pat = azure.pat, withTask = draft.withTask
     const started = runInBackground('activities:save', `New Feature “${title}”`, async (progress) => {
       try {
         // The Feature goes into the team's current PI (else Azure's default), assigned to the person.
         progress('Reading the current PI…')
-        const pi = currentIterationPairs(await readAzureIterations(config, pat))[0]?.pi.path
+        const current = currentIterationPairs(await readAzureIterations(config, pat))[0]
+        const pi = current?.pi.path
         progress('Creating the Feature…')
         const feature = await createAzureFeature(config, pat, { parentId: epic.id, title, description, acceptanceCriteria: '', iterationPath: pi, assignedTo: assignee })
         const notes: string[] = []
+        // ACT-13: a User Story under the new Feature, assigned to the person, in the current Sprint (else the PI).
+        let storyNote = ''
+        if (storyEntry) {
+          try {
+            progress('Creating the User Story…')
+            const created = await createUserStory(config, pat, { parentId: feature.id, title: storyEntry.title, description: storyEntry.description, acceptanceCriteria: '', iterationPath: current?.sprint.path || pi || config.project, assignedTo: assignee })
+            storyNote = ` User Story #${created.id} added under it.`
+            if (storyEntry.comment) { try { await addComment(config, pat, created.id, storyEntry.comment) } catch (failure) { notes.push(`The comment could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) } }
+          } catch (failure) { notes.push(`The User Story could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) }
+        }
         if (withTask) {
           try {
             progress('Adding the month task…')
@@ -234,9 +246,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             await activateIfNew(config, pat, feature, notes)
           } catch (failure) { notes.push(`The ${label} task could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) }
         }
-        setDraft({ title: '', dod: '', description: '', withTask: true }); setNewHours({})
+        setDraft({ title: '', dod: '', description: '', withTask: true, withStory: false, storyTitle: '', storyDescription: '', storyComment: '' }); setNewHours({})
         await azure.refresh()
-        const text = `Feature #${feature.id} “${feature.title}” created under ${epic.title}${withTask && !notes.length ? `, with your ${label} task; it is now Active` : ''}.${notes.length ? ` ${notes.join(' ')}` : ''}`
+        const text = `Feature #${feature.id} “${feature.title}” created under ${epic.title}${withTask && !notes.length ? `, with your ${label} task; it is now Active` : ''}.${storyNote}${notes.length ? ` ${notes.join(' ')}` : ''}`
         setMessage({ tone: notes.length ? 'error' : 'success', text })
         return { text, failed: notes.length > 0 }
       } catch (failure) {
@@ -296,32 +308,48 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     </header>
     {message && <div className={`act-message act-${message.tone}`} role="status">{message.text}<button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setMessage(null)}>×</button></div>}
     {!my.known ? <EmptyState title="Who are you in Azure DevOps?" detail="Set your work email in Settings → Azure DevOps, or choose your name above, to see your activities." /> : <>
+    <div className="act-top">
     <Metrics>
-      <Metric label="Tasks" value={kpi.monthlyTasks.length} hint={`Your ${label} Time Writing Tasks`} />
-      <Metric label="Planned hours" value={formatHours(kpi.plan.value)} hint="Original Estimate" />
-      <Metric label="Actual hours" value={formatHours(kpi.actual.value)} hint="Completed Work" />
       <Metric label="Capacity" value={capacity == null ? '—' : `${formatHours(capacity)}h`} hint={capacity == null ? 'Your name is not known yet' : 'Working days less absence'} />
-      <Metric label="Monthly update" value={`${percent}%`} hint={`${updated} of ${tracked.length} activities updated`} />
-      <Metric label="Unsaved changes" value={unsaved} hint="Saved with Save" />
+      <Metric label="Planned hours" value={<>{formatHours(kpi.plan.value)}{pctOf(kpi.plan.value, capacity)}</>} hint="Original Estimate · % of capacity" />
+      <Metric label="Actual hours" value={<>{formatHours(kpi.actual.value)}{pctOf(kpi.actual.value, capacity)}</>} hint={`Completed Work${kpi.plan.value ? ` · ${Math.round((kpi.actual.value ?? 0) / kpi.plan.value * 100)}% of plan` : ''}`} />
+      <Metric label="Tasks" value={kpi.monthlyTasks.length} hint={`Your ${label} Time Writing Tasks`} />
+      {unsaved > 0 && <Metric label="Unsaved changes" value={unsaved} hint="Saved with Save" tone="negative" />}
     </Metrics>
+    <aside className="act-card act-summary" aria-labelledby="act-progress">
+      <h3 id="act-progress">Your monthly update</h3>
+      <div className="act-ring-row">
+        <div className="act-ring" style={{ ['--pct' as string]: `${percent}` }} role="img" aria-label={`${percent}% of activities updated`}><span>{percent}%</span></div>
+        <div>
+          <strong className="act-count">{updated} of {tracked.length}</strong><span className="act-sub">activities updated</span>
+          <ul className="act-legend"><li><i className="dot-done" />{updated} completed</li><li><i className="dot-open" />{Math.max(tracked.length - updated, 0)} remaining</li></ul>
+        </div>
+      </div>
+      <div className={`act-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
+        <span aria-hidden="true">⏱</span>
+        <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
+      </div>
+    </aside>
+    </div>
     <div className="act-grid">
+      <div className="act-main">
       <section className="act-card" aria-labelledby="act-copy">
         <h3 id="act-copy">Your activities for {label}</h3>
         <p className="act-sub">Your {label} tasks with their hours. Activities you add from the suggestions appear here until you save; enter or change hours and save once.</p>
         <table className="act-table">
-          <thead><tr><th aria-label="Add" /><th>Activity</th><th className="act-stream">Epic</th><th>Planned</th><th>Actual</th></tr></thead>
+          <thead><tr><th aria-label="Add" /><th className="act-stream">Epic</th><th>Activity</th><th>Planned</th><th>Actual</th></tr></thead>
           <tbody>
             {existing.map((row) => <tr key={row.key}>
               <td><span className="act-done" title="Already added for this month" aria-label="Added">✓</span></td>
-              <td><strong>{idLink(row.link)}{row.title}</strong>{kindPill(row.kind)}<small><span className="act-stream-inline">{row.stream} · </span>Added{adhocTask(row.task!) ? ' · ad-hoc' : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
+              <td><strong>{idLink(row.link)}{row.title}</strong>{kindPill(row.kind)}<small><span className="act-stream-inline">{row.stream} · </span>Added{adhocTask(row.task!) ? ' · ad-hoc' : ''}</small></td>
               <td>{hourInput(row, 'planned', planLocked || adhocTask(row.task!))}</td>
               <td>{hourInput(row, 'actual', actualLocked)}</td>
             </tr>)}
             {toAdd.filter((row) => row.kind === 'work' && isTicked(row)).map((row) => <tr key={row.key}>
               <td><input type="checkbox" aria-label={`Add ${row.title}`} checked={isTicked(row)} disabled={saving} onChange={(event) => setTicked((current) => ({ ...current, [row.key]: event.target.checked }))} /></td>
-              <td><strong>{idLink(row.link)}{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
+              <td><strong>{idLink(row.link)}{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
               <td>{hourInput(row, 'planned', planLocked || !isTicked(row))}</td>
               <td>{hourInput(row, 'actual', actualLocked || !isTicked(row))}</td>
             </tr>)}
@@ -342,25 +370,18 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         </details>}
         <button type="button" className="act-primary" disabled={!pendingCount || saving} onClick={saveAll}>{saving ? 'Saving…' : pendingCount ? `Save ${pendingCount} activit${pendingCount === 1 ? 'y' : 'ies'}` : 'Nothing to save'}</button>
       </section>
-
-      <div className="act-side">
-        <aside className="act-card act-summary" aria-labelledby="act-progress">
-          <h3 id="act-progress">Your monthly update</h3>
-          <p className="act-sub">The last day for {label}, and what you could still add.</p>
-          <div className={`act-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
-            <span aria-hidden="true">⏱</span>
-            <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
-          </div>
-          {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
-            <h4>Suggested missing items <small className="muted">({suggestions.length})</small></h4>
+      {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <section className="act-card act-block" aria-labelledby="act-suggest">
+            <h3 id="act-suggest">Suggested missing items <small className="muted">({suggestions.length})</small></h3>
             <p className="act-sub">Your open Features without a {label} task. Nothing is added until you choose Add and then Save.</p>
             <div className="act-suggest-bar">
               <div className="ovw-chips" role="group" aria-label="Feature state">{(['active', 'new', 'both'] as const).map((value) => <button key={value} type="button" aria-pressed={suggestState === value} className={suggestState === value ? 'active' : ''} onClick={() => setSuggestState(value)}>{value === 'both' ? 'Both' : value === 'active' ? 'Active' : 'New'}</button>)}</div>
               <button type="button" className="act-ghost" disabled={!suggestions.length || saving} onClick={() => setTicked((current) => ({ ...current, ...Object.fromEntries(suggestions.map((row) => [row.key, true])) }))}>Add all ({suggestions.length})</button>
             </div>
             {suggestions.length ? <div className="act-suggest-list">{suggestions.map((row) => <div className="act-suggest" key={row.key}><div><strong>{idLink(row.link)}{row.title}</strong><small>{row.stream} · {row.candidate!.feature.state}{row.candidate!.status === 'needs-story' ? ' · new story and task' : ' · new task'}</small></div><button type="button" className="act-ghost" disabled={saving} onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}</div> : <p className="act-sub">No {suggestState === 'new' ? 'New' : 'Active'} Features to suggest.</p>}
-          </div>}
-        </aside>
+      </section>}
+      </div>
+
+      <div className="act-side">
 
         <section className="act-card" aria-labelledby="act-new">
           <h3 id="act-new">Add a new activity</h3>
@@ -372,17 +393,25 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
           <p className="act-sub">{addKind === 'feature' ? <>Creates a Feature under an Active Epic, assigned to you, in the team's current PI — with its Feature DoD — and, if you keep it ticked, your {label} Time Writing task with its hours (the Feature is then Active).</> : addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
           <div className="act-form">
             <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">{addKind === 'feature' ? 'Choose an Active Epic' : 'All Epics'}</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
-            {addKind !== 'feature' && <label>Feature<input type="search" className="act-search" aria-label="Search your Features" placeholder="Type to search your Features (ID, title, Epic)" value={featureSearch} onChange={(event) => setFeatureSearch(event.target.value)} /><select aria-label="Feature" value={featureId} onChange={(event) => { const id = event.target.value; setFeatureId(id); const chosen = featureOptions.find((feature) => feature.id === Number(id)); const own = chosen ? epicOf(chosen) : undefined; if (own) setStream(String(own.id)) }}><option value="">{features.length ? stream ? 'Select a Feature' : 'Select a Feature (or an Epic first)' : query ? 'No Feature of yours matches' : 'No Active or New Features of yours here'}</option>{featureOptions.map((feature) => <option key={feature.id} value={feature.id}>#{feature.id} {feature.title}{stream ? '' : ` — ${epicOf(feature)?.title ?? ''}`}</option>)}</select>{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</label>}
+            {addKind !== 'feature' && <div className="act-field"><span id="act-feature-label">Feature</span><SearchSelect label="Feature" value={featureId} placeholder={features.length ? 'Choose or type to search your Features (ID, title, Epic)' : 'No Active or New Features of yours here'} empty="No Feature of yours matches"
+              options={features.map((feature) => ({ value: String(feature.id), label: `#${feature.id} ${feature.title}`, hint: epicOf(feature)?.title }))}
+              onChange={(id) => { setFeatureId(id); const own = epicOf(features.find((feature) => feature.id === Number(id))!); if (own) setStream(String(own.id)) }} />{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</div>}
             {addKind === 'feature' ? <>
               <label>Feature title<input value={draft.title} maxLength={255} placeholder="What the Feature delivers" onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label>
               <label>Feature DoD <small className="muted">(required)</small><textarea value={draft.dod} rows={2} placeholder="When is this Feature done?" onChange={(event) => setDraft((current) => ({ ...current, dod: event.target.value }))} /></label>
               <label>Description <small className="muted">(optional)</small><textarea value={draft.description} rows={3} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></label>
               <label className="act-check"><input type="checkbox" checked={draft.withTask} onChange={(event) => setDraft((current) => ({ ...current, withTask: event.target.checked }))} />Add my {label} Time Writing task</label>
+              <label className="act-check"><input type="checkbox" checked={draft.withStory} onChange={(event) => setDraft((current) => ({ ...current, withStory: event.target.checked }))} />Add a User Story under it</label>
+              {draft.withStory && <>
+                <label>User Story title<input value={draft.storyTitle} maxLength={255} placeholder="What the story is about" onChange={(event) => setDraft((current) => ({ ...current, storyTitle: event.target.value }))} /></label>
+                <label>User Story description<textarea value={draft.storyDescription} rows={3} placeholder="What needs to be done, and why" onChange={(event) => setDraft((current) => ({ ...current, storyDescription: event.target.value }))} /></label>
+                <label>Comment <small className="muted">(optional, added to its Discussion)</small><textarea value={draft.storyComment} rows={2} onChange={(event) => setDraft((current) => ({ ...current, storyComment: event.target.value }))} /></label>
+              </>}
               {draft.withTask && <div className="act-pair">
                 <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newHours.planned ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
                 <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newHours.actual ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
               </div>}
-              <button type="button" className="act-primary" disabled={!chosenEpic || !draft.title.trim() || !draft.dod.trim() || saving} onClick={saveFeature}>Create Feature</button>
+              <button type="button" className="act-primary" disabled={!chosenEpic || !draft.title.trim() || !draft.dod.trim() || (draft.withStory && !draft.storyTitle.trim()) || saving} onClick={saveFeature}>Create Feature</button>
             </> : addKind === 'story' ? <>
               <label>Title<input value={story.title} maxLength={255} placeholder="What the story is about" onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
               <label>Description<textarea value={story.description} rows={4} placeholder="What needs to be done, and why" onChange={(event) => setStory((current) => ({ ...current, description: event.target.value }))} /></label>

@@ -349,23 +349,31 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
   assert.ok(await content.locator('.act-table tbody tr').count() > 0, 'the month tasks are listed')
   assert.ok(await content.getByRole('textbox', { name: /^Actual hours for / }).count() > 0, 'actual hours can be entered')
-  // The KPI cards on top: the Monthly Time Writing figures, capacity and the monthly update.
-  const kpis = await text(content.locator('.metric-grid'))
-  for (const card of ['Tasks', 'Planned hours', 'Actual hours', 'Capacity', 'Monthly update', 'Unsaved changes']) assert.match(kpis, new RegExp(card))
-  assert.match(kpis, /activities updated/)
-  assert.match(await text(content.locator('.act-summary')), /last day/)
-  // Only my Features, and typing narrows them.
-  const featureOptions = async () => content.getByRole('combobox', { name: 'Feature' }).locator('option').count()
-  const all = await featureOptions()
-  await content.getByRole('searchbox', { name: 'Search your Features' }).fill('zzz-no-such-feature')
-  assert.equal(await featureOptions(), 1, 'nothing matches: only the placeholder')
-  await content.getByRole('searchbox', { name: 'Search your Features' }).fill('')
-  assert.equal(await featureOptions(), all)
+  // Columns: Epic, Activity, Planned, Actual.
+  assert.deepEqual((await content.locator('.act-table').first().locator('thead th').allInnerTexts()).map((cell) => cell.trim().toLowerCase()).filter(Boolean), ['epic', 'activity', 'planned', 'actual'])
+  // KPI cards on top in this order, Unsaved changes only while editing; the monthly update (ring and last day) beside them.
+  const kpis = await text(content.locator('.act-top .metric-grid'))
+  assert.match(kpis, /Capacity.*Planned hours.*Actual hours.*Tasks/s)
+  assert.doesNotMatch(kpis, /Unsaved changes/)
+  assert.match(await text(content.locator('.act-summary')), /activities updated.*last day/s)
+  assert.equal(await content.locator('.act-ring').count(), 1, 'the ring is back')
+  // Suggested missing items sit below Your activities, in the first column.
+  assert.equal(await content.locator('.act-main #act-copy').count(), 1)
+  // The Feature list is a drop-down you type into: only my Features, narrowed as I type.
+  const feature = content.getByRole('combobox', { name: 'Feature' })
+  const listed = async () => page.getByRole('listbox', { name: 'Feature' }).getByRole('option').count()
+  await feature.click()
+  const all = await listed()
+  assert.ok(all > 0, 'my Features are listed')
+  await page.keyboard.type('zzz-no-such-feature')
+  assert.match(await text(page.getByRole('listbox', { name: 'Feature' })), /No Feature of yours matches/)
+  await feature.fill('')
+  assert.equal(await listed(), all)
   // A Feature can be picked first: its Epic fills in.
-  await content.getByRole('combobox', { name: 'Feature' }).selectOption({ index: 1 })
+  await page.getByRole('listbox', { name: 'Feature' }).getByRole('option').first().click()
   assert.notEqual(await content.getByRole('combobox', { name: 'Epic' }).inputValue(), '', 'the Epic follows the Feature')
-  await content.getByRole('combobox', { name: 'Epic' }).selectOption({ index: 1 })
-  assert.ok(await content.getByRole('combobox', { name: 'Feature' }).isEnabled(), 'an Epic narrows its Features')
+  await content.getByRole('textbox', { name: /^Actual hours for / }).first().fill('1')
+  assert.match(await text(content.locator('.act-top .metric-grid')), /Unsaved changes/)
   await content.getByRole('radio', { name: 'User Story' }).check()
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
@@ -376,6 +384,11 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   await content.getByRole('textbox', { name: /^Feature title/ }).fill('Sample Feature')
   assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isDisabled(), 'no DoD, no Feature')
   await content.getByRole('textbox', { name: /^Feature DoD/ }).fill('Released')
+  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isEnabled())
+  // ACT-13: a User Story can be added with the new Feature; it needs a title.
+  await content.getByRole('checkbox', { name: 'Add a User Story under it' }).check()
+  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isDisabled(), 'User Story ticked without a title')
+  await content.getByRole('textbox', { name: /^User Story title/ }).fill('Write the plan')
   assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isEnabled())
   await content.getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).first().waitFor()
   assert.deepEqual(errors, [])
@@ -430,5 +443,24 @@ test('TC-ACT-05: suggestions filter by Active / New / Both and Add all moves the
   assert.equal(await content.locator('.act-table tbody tr').count(), before + shown, 'every suggestion moved into Your activities')
   assert.match(await text(content.getByRole('button', { name: /^Save \d+ activit/ })), new RegExp(`Save ${shown} activit`))
   assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-FET-09: the start-up fetch does not wait for slow Git and shows in the top bar', async () => {
+  const profile = { id: 'tw-start', url: 'https://dev.azure.com/example/Project/Team', reason: 'Time Writing', token: 'x'.repeat(52), role: 'time-tracking', creatorEmail: 'person@example.com' }
+  const { page, context } = await openPage(app, { init: (connection) => {
+    localStorage.setItem('demand-planning-azure-connection-profiles-v1', JSON.stringify([connection]))
+    localStorage.setItem('demand-planning-git-storage-v1', JSON.stringify({ owner: 'example', repo: 'storage', branch: 'main', path: 'planning-data.json' }))
+    localStorage.setItem('demand-planning-git-token-v1', 'test-token')
+  }, initArg: profile })
+  // Git answers every request only after 20 seconds; Azure DevOps refuses the (fake) PAT.
+  await context.route('https://api.github.com/**', async (route) => { await new Promise((done) => setTimeout(done, 20000)); await route.fulfill({ status: 404, contentType: 'application/json', body: '{"message":"Not Found"}' }).catch(() => undefined) })
+  await context.route('https://dev.azure.com/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }))
+  await page.reload()
+  const started = Date.now()
+  await page.locator('.jobs-button').waitFor({ timeout: 16000 })
+  assert.ok(Date.now() - started < 16000, 'the fetch starts within the 10-second wait, not after Git')
+  await page.locator('.jobs-button').click()
+  assert.match(await text(page.getByRole('dialog', { name: 'Background jobs' })), /Fetch Azure DevOps at start/)
   await context.close()
 })
