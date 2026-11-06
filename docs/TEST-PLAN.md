@@ -1362,11 +1362,15 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-01 Testing heading for admins only** — Req ACT-01, ACT-02, ACT-07 — E2E `shell.e2e.mjs` ("TC-ACT-01: the Testing heading with My Activities is shown to the Admin role only"); browser check: with access.json, an Admin sees TESTING › My Activities, a Team Member does not (also not through View as a Team Member); without a policy nobody sees it; on a phone the cards stack and the stream shows under the activity.
 
-**TC-ACT-02 My Activities lists the month and saves once** — Req ACT-03, ACT-05, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline"); L1 `my-work.test.mjs` (TC-ATM-16…19, the month-task rules it reuses); browser check with the Time Writing connection: a Feature of yours without a task is listed only under Suggested missing items, not in Your activities, and Save stays disabled; Add moves it into Your activities, enter hours, Save adds "<Month> \| <Feature>" with those hours, once; unticking it returns it to the suggestions; change an actual and Save updates Completed Work; tick a leave row and its task is added under your leave story; with sample data or during View as nothing is saved and the reason is shown; the ring, the last day and the recent updates follow.
+**TC-ACT-02 My Activities lists the month and saves once** — Req ACT-03, ACT-05, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline"); L1 `my-work.test.mjs` (TC-ATM-16…19, the month-task rules it reuses); browser check with the Time Writing connection: a Feature of yours without a task is listed only under Suggested missing items, not in Your activities, and Save stays disabled; Add moves it into Your activities, enter hours, Save adds "<Month> \| <Feature>" with those hours, once; unticking it returns it to the suggestions; change an actual and Save updates Completed Work; tick a leave row and its task is added under your leave story; with sample data or during View as nothing is saved and the reason is shown; the KPI cards, the last day and the suggestions follow.
 
-**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — its current hours show in the fields and the hint says what you save replaces them; Save replaces them and adds no second task; only Active Epics and their Active or New Features are offered, each with its ID; a Feature can be chosen first and its Epic fills in; the chosen Epic's and Feature's ID and each activity's ID open the item in Azure DevOps.
+**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — its current hours show in the fields and the hint says what you save replaces them; Save replaces them and adds no second task; only Active Epics and their Active or New Features are offered, each with its ID; only your own Features are listed and typing in the search box narrows them; a Feature can be chosen first and its Epic fills in; the chosen Epic's and Feature's ID and each activity's ID open the item in Azure DevOps.
 
-**TC-ACT-04 Add a User Story** — Req ACT-08, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline": the User Story choice shows Title, Description and Comment); browser check with the Time Writing connection: choose User Story, an Epic and a Feature, enter a title, a description and a comment, Add User Story — the story appears under the Feature, assigned to you, in the current Sprint, with the description and the comment in its Discussion; without a title the button stays disabled; with sample data or during View as nothing is saved.
+**TC-ACT-04 Add a User Story** — Req ACT-08, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the User Story choice shows Title, Description and Comment); browser check with the Time Writing connection: choose User Story, an Epic and a Feature, enter a title, a description and a comment, Add User Story — the story appears under the Feature, assigned to you, in the current Sprint, with the description and the comment in its Discussion; without a title the button stays disabled; with sample data or during View as nothing is saved.
+
+**TC-ACT-06 KPI cards on top** — Req ACT-11, ACT-05 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": Tasks, Planned hours, Actual hours, Capacity, Monthly update and Unsaved changes above the cards); browser check: with your work email set, Tasks, Planned hours and Actual hours equal Monthly Time Writing in Individual (Me) for the same month, Capacity equals My dashboard; change an hour and Unsaved changes counts it.
+
+**TC-ACT-07 Create a Feature** — Req ACT-12, ACT-06, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice asks for Feature title and Feature DoD, the month-task box is ticked, Create Feature stays disabled without a DoD); browser check with the Time Writing connection: choose Feature, an Active Epic, enter a title, a DoD and hours, Create Feature — the Feature appears under the Epic, assigned to you, in the current PI, with "Feature DoD: …" in its Description, your month task with the hours under it and the Feature Active; untick the task box and only the Feature is created (state New); with sample data or during View as nothing is saved.
 
 **TC-ACT-05 Suggestions by state, Add all, New → Active** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the New Feature is then Active in Azure DevOps (the same when adding a task under a New Feature with Add a new activity); a Feature already Active is left as it is.
 
@@ -1692,12 +1696,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-02 | TC-ACT-01 |
 | ACT-03 | TC-ACT-02 |
 | ACT-04 | TC-ACT-03 |
-| ACT-05 | TC-ACT-02 |
+| ACT-05 | TC-ACT-02, TC-ACT-06 |
 | ACT-06 | TC-ACT-02, TC-ACT-03 |
 | ACT-07 | TC-ACT-01 |
 | ACT-08 | TC-ACT-04 |
 | ACT-09 | TC-ACT-05 |
-| ACT-10 | TC-ACT-05 |
+| ACT-10 | TC-ACT-05, TC-ACT-07 |
+| ACT-11 | TC-ACT-06 |
+| ACT-12 | TC-ACT-07 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1750,7 +1756,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…05 |
+| UC-28 | TC-ACT-01…07 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 
