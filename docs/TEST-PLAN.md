@@ -1378,7 +1378,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-08 A User Story with the new Feature** — Req ACT-13, ACT-12 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": ticking Add a User Story under it asks for its title and keeps Create Feature disabled until one is entered); browser check with the Time Writing connection: create a Feature with a User Story title, description and comment — the story appears under the new Feature, assigned to you, in the current Sprint, with the comment in its Discussion; a failing story is reported and the Feature stays.
 
-**TC-ACT-09 Layout, KPI order and the Feature drop-down** — Req ACT-02, ACT-04, ACT-05, ACT-11 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": columns Epic, Activity, Planned, Actual; KPI cards Capacity, Planned hours, Actual hours, Tasks, Unsaved changes only after an hour is changed; the ring and the last day as tiles in the same row, all tiles one height; suggestions below Your activities; the Feature drop-down lists only your Features, typing narrows it, picking one fills in its Epic); browser check: the % badges equal Planned ÷ Capacity and Actual ÷ Capacity, and Actual's hint shows Actual ÷ Planned.
+**TC-ACT-09 Layout, KPI order and the Feature drop-down** — Req ACT-02, ACT-04, ACT-05, ACT-11 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": columns Epic, Activity, Planned, Actual; Save in the heading row of Your activities; KPI cards Capacity, Planned hours, Actual hours, Tasks, Unsaved changes only after an hour is changed; the ring and the last day as tiles in the same row, all tiles one height; suggestions below Your activities; the Feature drop-down lists only your Features, typing narrows it, picking one fills in its Epic); browser check: the % badges equal Planned ÷ Capacity and Actual ÷ Capacity, and Actual's hint shows Actual ÷ Planned.
+
+**TC-ACT-10 Activities of another person** — Req ACT-14 — E2E `shell.e2e.mjs` ("TC-ACT-10: My Activities can show another person, chosen at the top right"); browser check with the Time Writing connection: as a person without the right to create work for others, choose a colleague — their month shows and saving says it needs that right; with the right, add a task for them — it is assigned to them, not to you; choose Me to go back.
 
 **TC-ACT-05 Suggestions by state, Add all, New → Active** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the New Feature is then Active in Azure DevOps (the same when adding a task under a New Feature with Add a new activity); a Feature already Active is left as it is.
 
@@ -1716,6 +1718,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-11 | TC-ACT-06, TC-ACT-09 |
 | ACT-12 | TC-ACT-07, TC-ACT-08 |
 | ACT-13 | TC-ACT-08 |
+| ACT-14 | TC-ACT-10 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1768,7 +1771,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…09 |
+| UC-28 | TC-ACT-01…10 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 

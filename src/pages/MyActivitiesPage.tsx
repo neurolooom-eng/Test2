@@ -9,7 +9,7 @@ import { EmptyState, Metric, Metrics, Page } from '../components/ui'
 import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
 import { formatDate, formatHours, monthName, todayIso } from '../format'
-import { absenceStoryType, isMine, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
+import { absenceStoryType, assignablePeople, isMine, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -56,8 +56,12 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const locks = capacityContext(store.state)
   const absenceEpicId = locks.absenceEpicId
   const planLocked = isPlanningLocked(locks, month, now), actualLocked = isActualsLocked(locks, month, now)
-  const assignee = (assign?.me || azure.creatorEmail).trim().toLowerCase()
-  const blocked = azure.isSample ? 'Synthetic sample data is loaded: nothing is saved to Azure DevOps.' : !azure.config || !azure.pat.trim() ? 'Connect the Time Writing connection (with its PAT) to save to Azure DevOps.' : !assignee ? 'Set your work email (Settings → Azure DevOps) so new tasks are assigned to you.' : ''
+  // ACT-14: the person whose activities are shown — me, or someone chosen at the top right. Work added for someone
+  // else is assigned to them, and only by people allowed to create work for others (as in Bulk actions).
+  const self = !my.chosenName || Boolean(my.me.email) || !(assign?.me || azure.creatorEmail).trim()
+  const otherEmail = self ? '' : assignablePeople(azure.items).find((person) => person.name === my.me.name)?.email ?? ''
+  const assignee = (self ? assign?.me || azure.creatorEmail : assign?.canChoose ? otherEmail : '').trim().toLowerCase()
+  const blocked = azure.isSample ? 'Synthetic sample data is loaded: nothing is saved to Azure DevOps.' : !azure.config || !azure.pat.trim() ? 'Connect the Time Writing connection (with its PAT) to save to Azure DevOps.' : !self && !assign?.canChoose ? `You are viewing ${my.me.name}'s activities: saving for another person needs the right to create work for others.` : !self && !assignee ? `No work email is known for ${my.me.name}, so nothing can be assigned to them.` : !assignee ? 'Set your work email (Settings → Azure DevOps) so new tasks are assigned to you.' : ''
 
   // The parent chain of an item, nearest first.
   const byId = new Map(azure.items.map((item) => [item.id, item]))
@@ -304,8 +308,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   return <Page className="activities-page">
     <header className="act-header">
       <div><h2>Add activities</h2><p>Record your activities for {label}. Copy your recurring activities or add a new one.</p></div>
-      {!my.me.email && <label className="act-person">Activities of<PersonPicker label="Activities of" value={my.chosenName} people={my.people} onChange={my.setName} meLabel="Choose a person…" /></label>}
+      <label className="act-person">Activities of<PersonPicker label="Activities of" value={my.chosenName} people={my.people} onChange={my.setName} meLabel={assign?.me || azure.creatorEmail ? 'Me' : 'Choose a person…'} /></label>
     </header>
+    {!self && my.known && <div className="act-message act-info" role="status">Showing {my.me.name}'s activities. {assignee ? `What you save here is written for ${my.me.name} (assigned to them).` : 'Saving is not available for another person here.'} Choose “Me” to go back.</div>}
     {message && <div className={`act-message act-${message.tone}`} role="status">{message.text}<button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setMessage(null)}>×</button></div>}
     {!my.known ? <EmptyState title="Who are you in Azure DevOps?" detail="Set your work email in Settings → Azure DevOps, or choose your name above, to see your activities." /> : <>
     {/* One row of equal tiles (ACT-11, ACT-05): the hours, the tasks, the monthly update and the last day. */}
@@ -333,7 +338,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     <div className="act-grid">
       <div className="act-main">
       <section className="act-card" aria-labelledby="act-copy">
-        <h3 id="act-copy">Your activities for {label}</h3>
+        <div className="act-card-head"><h3 id="act-copy">Your activities for {label}</h3><button type="button" className="act-primary act-save-top" disabled={!pendingCount || saving} onClick={saveAll}>{saving ? 'Saving…' : pendingCount ? `Save ${pendingCount} activit${pendingCount === 1 ? 'y' : 'ies'}` : 'Nothing to save'}</button></div>
         <p className="act-sub">Your {label} tasks with their hours. Activities you add from the suggestions appear here until you save; enter or change hours and save once.</p>
         <table className="act-table">
           <thead><tr><th aria-label="Add" /><th className="act-stream">Epic</th><th>Activity</th><th>Planned</th><th>Actual</th></tr></thead>
@@ -367,7 +372,6 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             </tr>)}
           </tbody></table>
         </details>}
-        <button type="button" className="act-primary" disabled={!pendingCount || saving} onClick={saveAll}>{saving ? 'Saving…' : pendingCount ? `Save ${pendingCount} activit${pendingCount === 1 ? 'y' : 'ies'}` : 'Nothing to save'}</button>
       </section>
       {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <section className="act-card act-block" aria-labelledby="act-suggest">
             <h3 id="act-suggest">Suggested missing items <small className="muted">({suggestions.length})</small></h3>
