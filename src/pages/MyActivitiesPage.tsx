@@ -36,7 +36,7 @@ const hoursText = (value?: number) => value == null ? '' : String(value)
 const validHours = (text: string) => text.trim() === '' || (Number.isFinite(Number(text)) && Number(text) >= 0 && Number(text) <= 1000)
 const adhocTask = (task: AzureWorkItem) => task.tags.split(';').some((tag) => tag.trim().toLowerCase() === 'ad-hoc')
 
-export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; month: string; assign?: { me: string; canChoose: boolean }; onOpen: (page: 'mywork' | 'bulk' | 'monthly') => void }) {
+export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; month: string; assign?: { me: string; canChoose: boolean }; onOpen: (page: 'mywork' | 'bulk') => void }) {
   const now = useNow(60000)
   const [ticked, setTicked] = useState<Record<string, boolean>>({})
   const [hours, setHours] = useState<Record<string, Hours>>({})
@@ -360,7 +360,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
           </tbody>
         </table>
         {!existing.length && !toAdd.some((row) => row.kind === 'work' && isTicked(row)) && <p className="act-sub">No {label} tasks yet. Add one from the suggestions or with Add a new activity.</p>}
-        {conflicts.length > 0 && <p className="act-sub">{conflicts.length} Feature{conflicts.length === 1 ? ' has' : 's have'} more than one possible story: <button type="button" className="act-link" onClick={() => onOpen('bulk')}>choose in Bulk actions</button>.</p>}
+        {conflicts.length > 0 && <p className="act-sub">{conflicts.length} Feature{conflicts.length === 1 ? ' has' : 's have'} more than one possible story: <button type="button" className="act-link" onClick={() => onOpen('bulk')}>choose in Sprint check</button>.</p>}
         {leaveRows.length > 0 && <details className="act-leave">
           <summary>Leave and training <small>— tick only what you take in {label}</small></summary>
           <table className="act-table"><tbody>

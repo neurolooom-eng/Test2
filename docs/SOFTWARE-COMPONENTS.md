@@ -32,10 +32,9 @@ This document lists every software component of the system: the in-house source 
 | BacklogHealthPage | `src/pages/BacklogHealthPage.tsx` | Backlog Health: open work in ended Sprints, Features without DoD and unassigned work, with person filter, chosen columns, sorting and CSV. | CON |
 | BaselinesPage | `src/pages/BaselinesPage.tsx` | Baselines: estimation rules editor, release baselines vs booked hours, and the monthly Time Writing task plan check. | BAS, GIT |
 | BoardPage | `src/pages/BoardPage.tsx` | Backlogs / Release Details: editable Time Writing tree, read-only query views, release views, the CP release report and the DP table with DDT month filter and board match. | CON, FET, QV, ATM |
-| BulkActionsPage | `src/pages/BulkActionsPage.tsx` | Bulk actions: move my User Stories from past Sprints to the current PI + Sprint, state checks, and create this month's Time Writing story and task. | ATM, CON |
+| SprintCheckPage | `src/pages/SprintCheckPage.tsx` | Sprint check (formerly Bulk actions): move my User Stories from past Sprints to the current PI + Sprint, and the state checks of my Features and User Stories. | ATM, CON |
 | DashboardPage | `src/pages/DashboardPage.tsx` | Dashboard: demand vs capacity for a period and filters — utilization, overload, rebalancing, trends, Epic mix, insights and releases. | OVR, CAP |
 | DocsPage | `src/pages/DocsPage.tsx` | Documentation page: reads the bundled project documents in-app, remembers the chosen one, keeps document and anchor links in the page. | DOC |
-| MonthlyPage | `src/pages/MonthlyPage.tsx` | Monthly Time Writing: the selected month's Time Writing Tasks (team or individual) with planned/completed hours and gaps. | MON, TWN |
 | MyActivitiesPage | `src/pages/MyActivitiesPage.tsx` | My Activities (Testing, Admin only): the person's month — this month's activities with planned and actual hours, Features still to add, a new activity under a stream and Feature, progress and the deadline. | ACT, ATM, MON |
 | PlanningOverviewPage | `src/pages/PlanningOverviewPage.tsx` | Planning Overview (Testing, Admin only): filters, four tiles, workload and capacity chart, exception queue, delivery health per Epic. | OVW |
 | CapacityActualPage | `src/pages/CapacityActualPage.tsx` | Capacity vs Actual (Testing, Admin only): filters, four tiles, 12-month chart, by person, hours by Epic. | CVA |
