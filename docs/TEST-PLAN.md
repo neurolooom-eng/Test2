@@ -1364,7 +1364,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-02 My Activities lists the month and saves once** — Req ACT-03, ACT-05, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline"); L1 `my-work.test.mjs` (TC-ATM-16…19, the month-task rules it reuses); browser check with the Time Writing connection: a Feature of yours without a task is ticked — enter hours, Save adds "<Month> \| <Feature>" with those hours, once; change an actual and Save updates Completed Work; tick a leave row and its task is added under your leave story; with sample data or during View as nothing is saved and the reason is shown; the ring, the last day and the recent updates follow.
 
-**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — its current hours show in the fields and the hint says what you save replaces them; Save replaces them and adds no second task; only Active Epics are offered as streams.
+**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — its current hours show in the fields and the hint says what you save replaces them; Save replaces them and adds no second task; only Active Epics and their Active or New Features are offered, each with its ID; the chosen Epic's and Feature's ID and each activity's ID open the item in Azure DevOps.
+
+**TC-ACT-04 Add a User Story** — Req ACT-08, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline": the User Story choice shows Title, Description and Comment); browser check with the Time Writing connection: choose User Story, an Epic and a Feature, enter a title, a description and a comment, Add User Story — the story appears under the Feature, assigned to you, in the current Sprint, with the description and the comment in its Discussion; without a title the button stays disabled; with sample data or during View as nothing is saved.
 
 ## 7. Requirements coverage matrix
 
@@ -1675,6 +1677,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-05 | TC-ACT-02 |
 | ACT-06 | TC-ACT-02, TC-ACT-03 |
 | ACT-07 | TC-ACT-01 |
+| ACT-08 | TC-ACT-04 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1713,7 +1716,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…03 |
+| UC-28 | TC-ACT-01…04 |
 
 ## 8. Result record
 
