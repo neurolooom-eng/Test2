@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.28.0 — 2026-11-06
+
+**New**
+- **Testing** menu heading, for the Admin role only: pages being tried out before they replace others (ACT-01).
+- **My Activities** (under Testing): a person's month on one page, in three cards — **Your activities** (month tasks with planned and actual hours; Features still without a task ticked to add; leave and training in a fold-out list), **Add a new activity** (stream, Feature, hours) and **Your monthly update** (progress ring, next last day to update, suggested missing items, recent updates). Same month-task rules as Bulk actions and Monthly Time Writing (ACT-02…ACT-07).
+
 ## v1.27.0 — 2026-11-06
 
 **Changed**

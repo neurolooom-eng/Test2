@@ -98,13 +98,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-51 | View as another person or role (CON-89…CON-92) | A change is made while viewing as someone else, or the Admin forgets View as is on and misreads what they see | A change in Azure DevOps or Git that looks like another person's; wrong conclusions | Switching views | 4 | 2 | 2 | 16 | Admin role only; read only — Azure DevOps and Git writes refused before sending (unit test); a banner on every page names who is viewed with Exit; never stored, ends on reload | 4×1×1 = 4 | TC-ACC-04, TC-ACC-05 | — |
 | DF-52 | Tell training from leave under the absence Epic (CAP-32, HIS-16) | Leave is counted as training (or training as leave) | Wrong absence and NPRA figures, wrong utilization | Leave and training share one Feature whose title says "Training"; a tag mistyped | 3 | 3 | 3 | 27 | Only the Task's and User Story's titles and Training / NPRA tags decide, never the shared Feature's or Epic's (unit tests with a Feature titled "… Training"); the history Tag column follows the same rule and cannot set the app's own tags | 3×1×2 = 6 | TC-CAP-08, TC-HIS-11 | — |
 | DF-53 | Create a missing leave or training story (ATM-27) | A duplicate story or month Task, or one for another person | Hours booked twice or under the wrong person | A story of that type already exists under another title; a second run | 3 | 2 | 2 | 12 | The Feature's stories are re-read before creating: a story of the person's of that type is used; the month Task is looked up under it first; creation assigned to the person's email, read back and checked; unticked by default (unit test: running again creates nothing) | 3×1×1 = 3 | TC-ATM-19 | — |
+| DF-54 | Record the month on My Activities (ACT-02…ACT-07) | Hours saved to the wrong task, a duplicate task, or a page under trial seen by everyone | Wrong hours in Azure DevOps; users rely on an unfinished page | One page that both creates tasks and edits hours; menu gating | 3 | 2 | 2 | 12 | Reuses the month-task functions (Feature re-read, existing task reused, read back and checked) and the effort save with the lock days; Admin-only Testing heading (E2E); background job reports each failure | 3×1×1 = 3 | TC-ACT-01, TC-ACT-02, TC-ACT-03 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 53 |
+| Failure modes analysed | 54 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 3 (DF-01, DF-02, DF-23) — all reduced to 5 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

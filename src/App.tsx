@@ -15,6 +15,7 @@ import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
 import { DashboardPage } from './pages/DashboardPage'
 import { MyDashboardPage } from './pages/MyDashboardPage'
 import { MonthlyPage } from './pages/MonthlyPage'
+import { MyActivitiesPage } from './pages/MyActivitiesPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
@@ -178,8 +179,10 @@ export default function App() {
   const openView = (id: string) => { setViewId(id); saveBacklogTab(id); setPage('board') }
   // Access roles: each menu entry belongs to an area; Settings is always there (each person's own connections and tokens).
   // A page the viewer's roles do not include falls back to the first one they do.
-  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' || id === 'brite' ? 'release' : id === 'overview' || id === 'pulse' || id === 'pireview' ? 'insights' : id === 'mydash' ? 'overview' : id
-  const allowed = (id: Page) => { const area = areaOf(id); return area == null || access.sees(area) }
+  const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' || id === 'brite' ? 'release' : id === 'overview' || id === 'pulse' || id === 'pireview' ? 'insights' : id === 'mydash' ? 'overview' : id === 'activities' ? 'monthly' : id
+  // Testing (ACT-01): pages being tried out, for the Admin role only (an access policy must name it; View as follows the viewed rights).
+  const testing = access.rights.roles.includes('Admin')
+  const allowed = (id: Page) => { if (pageMeta(id).group === 'Testing' && !testing) return false; const area = areaOf(id); return area == null || access.sees(area) }
   const page = allowed(requested) ? requested : pages.find((entry) => allowed(entry.id))?.id ?? 'admin'
   const meta = pageMeta(page)
   // Windchill exports, each in the sidebar under Release Details ('' = the import page).
@@ -292,6 +295,7 @@ export default function App() {
       {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} resources={qeResources} />}
       {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenBulk={() => setPage('bulk')} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'bulk' && <BulkActionsPage azure={azure} store={store} my={my} assign={assign} />}
+      {page === 'activities' && <MyActivitiesPage azure={azure} store={store} my={my} month={month} assign={assign} onOpen={setPage} />}
       {page === 'monthly' && <MonthlyPage azure={azure} month={month} store={store} my={my} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => openSettings('storage', 'git')} canEdit={access.can('baselines.edit')} />}
       {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} month={month} board={{ azure, stream: windchillStreamExports(windchillViews).find((entry) => entry.view?.id === windchillView.id)?.stream.name ?? windchillView.name, threshold: normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold, assign, featureSetup: featureSetup.setups }} /> : access.can('windchill.import') ? <WindchillExportImport key={windchillFor} stream={windchillFor} windchill={windchill} git={git} onImported={(id) => openWindchill(id)} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}

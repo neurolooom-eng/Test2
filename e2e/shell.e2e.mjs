@@ -322,3 +322,37 @@ test('TC-MYD-05: Team overview shows six headline tiles; each opens its analysis
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+// An access policy cached in this browser with the given default role (no Git storage in the test).
+const policyFor = (defaultRole) => JSON.stringify({ schema: 1, defaultRole, roles: { 'Admin': { areas: ['overview', 'insights', 'mywork', 'monthly', 'bulk', 'board', 'health', 'release', 'baselines', 'qemapping', 'snapshots', 'docs'], actions: ['azure.write', 'settings.manage', 'access.manage'] }, 'Product Owner': { areas: [], actions: [] }, 'People Manager': { areas: [], actions: [] }, 'Scrum Master': { areas: [], actions: [] }, 'Team Member': { areas: ['overview', 'mywork', 'monthly', 'docs'], actions: [] } }, members: {} })
+
+test('TC-ACT-01: the Testing heading with My Activities is shown to the Admin role only', async () => {
+  const admin = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-access-v1', text), initArg: policyFor('Admin') })
+  assert.match(await text(admin.page.locator('.sidebar nav')), /TESTING.*My Activities/s)
+  assert.deepEqual(admin.errors, [])
+  await admin.context.close()
+  const member = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-access-v1', text), initArg: policyFor('Team Member') })
+  const menu = await text(member.page.locator('.sidebar nav'))
+  assert.ok(!/TESTING|My Activities/.test(menu), 'a Team Member has no Testing heading')
+  assert.match(menu, /Monthly Time Writing/, 'their other pages stay')
+  await member.context.close()
+  const open = await openPage(app)
+  assert.ok(!/TESTING/.test(await text(open.page.locator('.sidebar nav'))), 'without an access policy nobody sees Testing')
+  await open.context.close()
+})
+
+test('TC-ACT-02: My Activities shows the person\'s month tasks, hours, progress and deadline', async () => {
+  const { page, context, errors } = await openPage(app, { init: ([text, name]) => { localStorage.setItem('demand-planning-access-v1', text); localStorage.setItem('demand-planning-my-name-v1', name) }, initArg: [policyFor('Admin'), 'Ana Costa'] })
+  await loadSample(page)
+  await navigate(page, 'My Activities')
+  const content = page.locator('.content')
+  await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
+  assert.ok(await content.locator('.act-table tbody tr').count() > 0, 'the month tasks are listed')
+  assert.ok(await content.getByRole('textbox', { name: /^Actual hours for / }).count() > 0, 'actual hours can be entered')
+  assert.match(await text(content.locator('.act-summary')), /activities updated.*last day/s)
+  await content.getByRole('combobox', { name: 'Stream' }).selectOption({ index: 1 })
+  assert.ok(await content.getByRole('combobox', { name: 'Project or release' }).isEnabled(), 'a stream opens its Features')
+  await content.getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).first().waitFor()
+  assert.deepEqual(errors, [])
+  await context.close()
+})
