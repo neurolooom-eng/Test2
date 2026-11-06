@@ -376,3 +376,18 @@ test('TC-OVW-03: an Admin opens the Planning Overview with its tiles, chart, que
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+test('TC-CVA-03: an Admin opens Capacity vs Actual with its tiles, chart and people', async () => {
+  const { page, context, errors } = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-access-v1', text), initArg: policyFor('Admin') })
+  await loadSample(page)
+  await navigate(page, 'Capacity vs Actual')
+  const content = page.locator('.content')
+  await content.getByRole('heading', { name: 'Capacity vs actual', exact: true }).waitFor()
+  for (const tile of ['Capacity', 'Actual', 'Actual utilization']) assert.match(await text(content.locator('.ovw-tiles')), new RegExp(tile))
+  assert.ok(await content.locator('#cva-people').count() === 1)
+  assert.ok(await content.locator('.ovw-queue tbody tr').count() > 0, 'people listed')
+  await content.getByRole('combobox', { name: 'Owner' }).selectOption({ index: 1 })
+  assert.equal(await content.locator('.ovw-queue tbody tr').count(), 1, 'one person')
+  assert.deepEqual(errors, [])
+  await context.close()
+})

@@ -1376,6 +1376,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-OVW-03 The page for admins** — Req OVW-01, OVW-05, OVW-08 — E2E `shell.e2e.mjs` ("TC-OVW-03: an Admin opens the Planning Overview with its tiles, chart, queue and health"); browser check: the chart shows 12 months with the legend, hover gives the month's figures and "Show as a table" the same numbers; Generate Monthly Pack opens Settings → Monthly pack; a Team Member does not see the page.
 
+### 6.27 Capacity vs Actual
+
+**TC-CVA-01 Tiles, people and Epics** — Req CVA-02, CVA-04, CVA-05 — L1 `capacity-actual.test.mjs` ("Capacity vs Actual: tiles, bands per person and hours by Epic (TC-CVA-01)"); browser check: Testing → Capacity vs Actual — Actual equals the Completed Work booked in the month; utilization = actual ÷ capacity; a person over the overload threshold shows **Over**, below the available threshold **Under**; the Epic list adds up to Actual.
+
+**TC-CVA-02 Filters** — Req CVA-01 — L1 `capacity-actual.test.mjs` ("Capacity vs Actual: Region, Owner and Epic filters (TC-CVA-02)"); browser check: Region and Owner narrow the people and every figure; an Epic narrows the actual hours to that Epic while capacity stays the same; Clear filters restores all.
+
+**TC-CVA-03 The page for admins** — Req CVA-01, CVA-03, CVA-06 — E2E `shell.e2e.mjs` ("TC-CVA-03: an Admin opens Capacity vs Actual with its tiles, chart and people"); browser check: 12 months on the chart, bars over capacity in red, hover and the table view give the same figures; on a phone the tiles stack; a Team Member does not see the page.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1694,6 +1702,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | OVW-06 | TC-OVW-02 |
 | OVW-07 | TC-OVW-01 |
 | OVW-08 | TC-OVW-03 |
+| CVA-01 | TC-CVA-02, TC-CVA-03 |
+| CVA-02 | TC-CVA-01 |
+| CVA-03 | TC-CVA-03 |
+| CVA-04 | TC-CVA-01 |
+| CVA-05 | TC-CVA-01 |
+| CVA-06 | TC-CVA-03 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1734,6 +1748,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-27 | TC-HIS-01…11 |
 | UC-28 | TC-ACT-01…04 |
 | UC-29 | TC-OVW-01…03 |
+| UC-30 | TC-CVA-01…03 |
 
 ## 8. Result record
 

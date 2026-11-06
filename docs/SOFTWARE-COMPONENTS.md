@@ -38,6 +38,7 @@ This document lists every software component of the system: the in-house source 
 | MonthlyPage | `src/pages/MonthlyPage.tsx` | Monthly Time Writing: the selected month's Time Writing Tasks (team or individual) with planned/completed hours and gaps. | MON, TWN |
 | MyActivitiesPage | `src/pages/MyActivitiesPage.tsx` | My Activities (Testing, Admin only): the person's month — this month's activities with planned and actual hours, Features still to add, a new activity under a stream and Feature, progress and the deadline. | ACT, ATM, MON |
 | PlanningOverviewPage | `src/pages/PlanningOverviewPage.tsx` | Planning Overview (Testing, Admin only): filters, four tiles, workload and capacity chart, exception queue, delivery health per Epic. | OVW |
+| CapacityActualPage | `src/pages/CapacityActualPage.tsx` | Capacity vs Actual (Testing, Admin only): filters, four tiles, 12-month chart, by person, hours by Epic. | CVA |
 | MyWorkPage | `src/pages/MyWorkPage.tsx` | Assigned to Me: my pending Azure DevOps items, resolve/close them, and create a Feature under an Epic with its stories and task. | ATM, CON |
 | BritePage | `src/pages/BritePage.tsx` | BRITE placeholder at the root of Release Details, until its exports and rules are known (CON-84). | CON |
 | PiReviewPage | `src/pages/PiReviewPage.tsx` | PI Review placeholder page (planned PI summary). | NAV |
@@ -119,6 +120,7 @@ This document lists every software component of the system: the in-house source 
 | csv | `src/csv.ts` | CSV cell escaping with spreadsheet-formula injection guard. | CON |
 | dashboard | `src/dashboard.ts` | Person-month records (plan, actual, capacity) with filters, periods, totals, overload, concentration and rebalancing. | OVR, CAP |
 | planningOverview | `src/planningOverview.ts` | The Planning Overview's figures: person-months filtered by region, Epic and owner, delivery by Target date, baseline and capacity exceptions, health per Epic. | OVW, CAP, BAS |
+| capacityActual | `src/capacityActual.ts` | Capacity vs Actual figures: person-months filtered by region, owner and Epic, tiles, status bands, hours per Epic. | CVA, CAP |
 | domain | `src/domain.ts` | Core TypeScript types: AppState, activities, efforts, baselines, periods, snapshots, Azure work items, release plans. | — |
 | cpReporting | `src/cpReporting.ts` | CP release reporting: Release containers of the release-folder tree, QA/QE signatures from the approver slots, monthly Supported / Completed, shared containers, data issues and release names from CP_Releases. | QV |
 | dpBoardMatch | `src/dpBoardMatch.ts` | Fuzzy match of DP rows and Windchill (S&S IT) releases to QMS-0025 Features/User Stories by name and version; DP and Windchill Feature title builders. | QV |
@@ -268,6 +270,7 @@ This document lists every software component of the system: the in-house source 
 | monthly-hours.test | `tests/monthly-hours.test.mjs` | Monthly hours series, Epic colours and chart geometry (Pareto, donut). | CAP, OVR, MON |
 | my-work.test | `tests/my-work.test.mjs` | My pending work, month-task and move candidates, constrained updates and desktop proxy limits, the ad-hoc tag on a new month Task, the New User Story fields. | ATM, MON, BKL |
 | planning-overview.test | `tests/planning-overview.test.mjs` | Planning Overview figures: delivery, exceptions, filters (TC-OVW-01, TC-OVW-02). | OVW |
+| capacity-actual.test | `tests/capacity-actual.test.mjs` | Capacity vs Actual figures and filters (TC-CVA-01, TC-CVA-02). | CVA |
 | pulse-check.test | `tests/pulse-check.test.mjs` | Previous month, release comparison, work flow and ongoing activities. | OVR |
 | personal-views.test | `tests/personal-views.test.mjs` | Personal views: file path per person, validated parse, defaults merge, section order and moves. | MYD |
 | history.test | `tests/history.test.mjs` | Historical hours: sheet and rows, skipped reasons, name matching, Git file shapes, cut-off and merge into the reports. | HIS |
