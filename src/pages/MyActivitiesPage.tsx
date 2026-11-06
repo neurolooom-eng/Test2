@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, updateAzureTimeWritingEffort } from '../azureDevOps'
+import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort } from '../azureDevOps'
 import { timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { PersonPicker } from '../components/PersonPicker'
@@ -41,6 +41,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const [stream, setStream] = useState('')
   const [featureId, setFeatureId] = useState('')
   const [newHours, setNewHours] = useState<Hours>({})
+  // Add a new activity adds a Time Writing task, or a User Story (title, description, an optional first comment).
+  const [addKind, setAddKind] = useState<'task' | 'story'>('task')
+  const [story, setStory] = useState({ title: '', description: '', comment: '' })
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
   const saving = useSyncExternalStore(subscribeJobs, () => isRunning('activities:save'))
   const label = monthName(month)
@@ -140,6 +143,35 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
       const text = `${created} activit${created === 1 ? 'y' : 'ies'} added, ${saved} updated for ${label}.${failed.length ? ` ${failed.length} failed — ${failed.join(' · ')}` : ''}`
       setMessage({ tone: failed.length ? 'error' : 'success', text })
       return { text, failed: failed.length > 0 }
+    })
+    if (!started) setMessage({ tone: 'info', text: 'Your activities are already being saved (see the top bar).' })
+  }
+
+  function saveStory() {
+    if (blocked) { setMessage({ tone: 'info', text: blocked }); return }
+    if (!chosenFeature) return
+    const title = story.title.trim()
+    if (!title || title.length > 255) { setMessage({ tone: 'error', text: 'Enter a User Story title of 1–255 characters.' }); return }
+    const config = azure.config!, pat = azure.pat, feature = chosenFeature, entry = { title, description: story.description.trim(), comment: story.comment.trim() }
+    const started = runInBackground('activities:save', `New User Story “${title}”`, async (progress) => {
+      try {
+        // The story goes into the current Sprint of the team (else the Feature's iteration), assigned to the person.
+        progress('Reading the current Sprint…')
+        const sprint = currentIterationPairs(await readAzureIterations(config, pat))[0]?.sprint.path || feature.iterationPath || config.project
+        progress('Creating the User Story…')
+        const created = await createUserStory(config, pat, { parentId: feature.id, title: entry.title, description: entry.description, acceptanceCriteria: '', iterationPath: sprint, assignedTo: assignee })
+        let note = ''
+        if (entry.comment) { try { progress('Adding the comment…'); await addComment(config, pat, created.id, entry.comment) } catch (failure) { note = ` The comment could not be added: ${failure instanceof Error ? failure.message : 'failed'}` } }
+        setStory({ title: '', description: '', comment: '' })
+        await azure.refresh()
+        const text = `User Story #${created.id} “${created.title}” added under ${feature.title}${entry.comment && !note ? ', with your comment' : ''}.${note}`
+        setMessage({ tone: note ? 'error' : 'success', text })
+        return { text, failed: Boolean(note) }
+      } catch (failure) {
+        const text = failure instanceof Error ? failure.message : 'The User Story could not be added.'
+        setMessage({ tone: 'error', text })
+        return { text, failed: true }
+      }
     })
     if (!started) setMessage({ tone: 'info', text: 'Your activities are already being saved (see the top bar).' })
   }
@@ -251,10 +283,20 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
 
         <section className="act-card" aria-labelledby="act-new">
           <h3 id="act-new">Add a new activity</h3>
-          <p className="act-sub">Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</p>
+          <div className="segmented" role="radiogroup" aria-label="What to add">
+            <label className={addKind === 'task' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'task'} onChange={() => setAddKind('task')} />Time Writing task</label>
+            <label className={addKind === 'story' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'story'} onChange={() => setAddKind('story')} />User Story</label>
+          </div>
+          <p className="act-sub">{addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
           <div className="act-form">
             <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">Select an Epic</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
             <label>Feature<select value={featureId} disabled={!stream} onChange={(event) => setFeatureId(event.target.value)}><option value="">{stream ? features.length ? 'Select a Feature' : 'No Active or New Features under this Epic' : 'Select an Epic first'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>#{feature.id} {feature.title}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select>{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</label>
+            {addKind === 'story' ? <>
+              <label>Title<input value={story.title} maxLength={255} placeholder="What the story is about" onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
+              <label>Description<textarea value={story.description} rows={4} placeholder="What needs to be done, and why" onChange={(event) => setStory((current) => ({ ...current, description: event.target.value }))} /></label>
+              <label>Comment <small className="muted">(optional, added to its Discussion)</small><textarea value={story.comment} rows={3} onChange={(event) => setStory((current) => ({ ...current, comment: event.target.value }))} /></label>
+              <button type="button" className="act-primary" disabled={!chosenFeature || !story.title.trim() || saving} onClick={saveStory}>Add User Story</button>
+            </> : <>
             <label>Reporting period<input value={label} readOnly /></label>
             <div className="act-pair">
               <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newValue('planned')} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
@@ -263,6 +305,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             {existingTask && <p className="act-hint">You already have this task for {label} (#{existingTask.id}). Its hours are shown above; what you save replaces them — nothing is added up, and no second task is created.</p>}
             {planLocked && <p className="act-hint">Planning for {label} is locked: a new task is tagged ad-hoc and takes actual hours only.</p>}
             <button type="button" className="act-primary" disabled={!chosenFeature || saving} onClick={saveNew}>Save activity</button>
+            </>}
             <p className="act-sub">Feature not listed? <button type="button" className="act-link" onClick={() => onOpen('mywork')}>Create a new Feature</button></p>
           </div>
         </section>
