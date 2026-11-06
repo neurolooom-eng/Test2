@@ -341,7 +341,7 @@ test('TC-ACT-01: the Testing heading with My Activities is shown to the Admin ro
   await open.context.close()
 })
 
-test('TC-ACT-02: My Activities shows the person\'s month tasks, hours, progress and deadline', async () => {
+test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours and deadline', async () => {
   const { page, context, errors } = await openPage(app, { init: ([text, name]) => { localStorage.setItem('demand-planning-access-v1', text); localStorage.setItem('demand-planning-my-name-v1', name) }, initArg: [policyFor('Admin'), 'Ana Costa'] })
   await loadSample(page)
   await navigate(page, 'My Activities')
@@ -349,7 +349,18 @@ test('TC-ACT-02: My Activities shows the person\'s month tasks, hours, progress 
   await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
   assert.ok(await content.locator('.act-table tbody tr').count() > 0, 'the month tasks are listed')
   assert.ok(await content.getByRole('textbox', { name: /^Actual hours for / }).count() > 0, 'actual hours can be entered')
-  assert.match(await text(content.locator('.act-summary')), /activities updated.*last day/s)
+  // The KPI cards on top: the Monthly Time Writing figures, capacity and the monthly update.
+  const kpis = await text(content.locator('.metric-grid'))
+  for (const card of ['Tasks', 'Planned hours', 'Actual hours', 'Capacity', 'Monthly update', 'Unsaved changes']) assert.match(kpis, new RegExp(card))
+  assert.match(kpis, /activities updated/)
+  assert.match(await text(content.locator('.act-summary')), /last day/)
+  // Only my Features, and typing narrows them.
+  const featureOptions = async () => content.getByRole('combobox', { name: 'Feature' }).locator('option').count()
+  const all = await featureOptions()
+  await content.getByRole('searchbox', { name: 'Search your Features' }).fill('zzz-no-such-feature')
+  assert.equal(await featureOptions(), 1, 'nothing matches: only the placeholder')
+  await content.getByRole('searchbox', { name: 'Search your Features' }).fill('')
+  assert.equal(await featureOptions(), all)
   // A Feature can be picked first: its Epic fills in.
   await content.getByRole('combobox', { name: 'Feature' }).selectOption({ index: 1 })
   assert.notEqual(await content.getByRole('combobox', { name: 'Epic' }).inputValue(), '', 'the Epic follows the Feature')
@@ -358,6 +369,14 @@ test('TC-ACT-02: My Activities shows the person\'s month tasks, hours, progress 
   await content.getByRole('radio', { name: 'User Story' }).check()
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
+  // A new Feature: title and Feature DoD under the chosen Epic, with the month task ticked.
+  await content.getByRole('radio', { name: 'Feature' }).check()
+  for (const name of ['Feature title', 'Feature DoD']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is asked for a Feature`)
+  assert.ok(await content.getByRole('checkbox', { name: /Time Writing task/ }).isChecked())
+  await content.getByRole('textbox', { name: /^Feature title/ }).fill('Sample Feature')
+  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isDisabled(), 'no DoD, no Feature')
+  await content.getByRole('textbox', { name: /^Feature DoD/ }).fill('Released')
+  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isEnabled())
   await content.getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).first().waitFor()
   assert.deepEqual(errors, [])
   await context.close()

@@ -102,13 +102,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-55 | Show the team's month on the Planning Overview (OVW-01…OVW-08) | A wrong figure (utilization, delivery, exceptions) is read as true | Decisions on capacity or delivery made on wrong numbers | Filters applied to some figures but not others; Target dates missing | 3 | 2 | 3 | 18 | One model computes every figure from the same filtered data (unit tests for delivery, exceptions and filters); figures reuse the capacity model and baselines already verified; Features without a Target date are left out and the page says what each tile counts; read only | 3×1×2 = 6 | TC-OVW-01, TC-OVW-02, TC-OVW-03 | — |
 | DF-56 | Compare capacity with actual hours (CVA-01…CVA-06) | Utilization or a person's status shown wrongly | Someone wrongly seen as over- or under-loaded | An Epic filter that also cut capacity; a band threshold misread | 3 | 2 | 2 | 12 | Capacity from the capacity model already verified; the Epic filter changes only the hours, never capacity (unit test); bands from the Settings thresholds, named on the page; read only | 3×1×1 = 3 | TC-CVA-01, TC-CVA-02 | — |
 | DF-57 | Set a New Feature Active when its month Task is created (ACT-10) | A Feature activated by mistake, or left New after work started | Wrong Feature state in Azure DevOps and the reports | Task added under the wrong Feature; the state change refused | 2 | 2 | 2 | 8 | Only after the person's own Task was created under that Feature (not when it already existed); only New → Active; a refusal is reported and the Task kept; the person chose the Feature (suggestions are never pre-selected, ACT-03) | 2×1×1 = 2 | TC-ACT-05 | — |
+| DF-58 | Create a Feature from My Activities (ACT-12) | A Feature under the wrong Epic, a duplicate Feature, or one without its DoD | Wrong or duplicate backlog items; Backlog Health flags it | Wrong Epic chosen; a retry after a create that could not be verified; DoD left empty | 3 | 2 | 2 | 12 | Only Active Epics offered and the Epic shown with its ID; the DoD is required (button disabled, create refused without it); the existing createAzureFeature validates the parent Epic and project and verifies the created item, telling the person to check before retrying; a failed month Task is reported, not retried (TC-ACT-07) | 3×1×1 = 3 | TC-ACT-07 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 57 |
+| Failure modes analysed | 58 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 3 (DF-01, DF-02, DF-23) — all reduced to 5 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

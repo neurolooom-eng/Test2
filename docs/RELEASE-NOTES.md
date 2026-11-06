@@ -2,6 +2,15 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.33.0 — 2026-11-06
+
+**Added**
+- **My Activities → KPI cards on top**: Tasks, Planned hours and Actual hours (the same figures as Monthly Time Writing for you), your Capacity (as on My dashboard), the Monthly update (% of activities updated, which replaces the ring) and Unsaved changes (ACT-11).
+- **My Activities → Add a new activity → Feature**: create a Feature under an Active Epic — title, the mandatory Feature DoD and a description — assigned to you in the current PI, with your month Time Writing task and its hours when ticked; the Feature is then Active (ACT-12, ACT-10).
+
+**Changed**
+- **My Activities → Add a new activity**: the Feature list shows only **your** Features (assigned to you, or holding a story or task of yours), with a **search box** — type an ID, a title or an Epic to narrow it (ACT-04).
+
 ## v1.32.0 — 2026-11-06
 
 **New**
