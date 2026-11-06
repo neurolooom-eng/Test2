@@ -30,5 +30,5 @@ test('page registry has unique ids, known groups and header text for every page'
   assert.equal(pageMeta('overview').label, 'Team overview')
   assert.deepEqual(pages.filter((page) => page.usesMonth).map((page) => page.id), ['mydash', 'pulse', 'activities', 'monthly', 'baselines', 'windchill', 'snapshots', 'admin'])
   assert.deepEqual(pages.filter((page) => page.group === 'Data Insights').map((page) => page.id), ['mydash', 'overview', 'pulse', 'pireview'])
-  assert.deepEqual(pages.filter((page) => page.group === 'My Work').map((page) => page.label), ['My Activities', 'Assigned to Me', 'Monthly Time Writing', 'Bulk actions'])
+  assert.deepEqual(pages.filter((page) => page.group === 'My Work').map((page) => page.label), ['Assigned to Me', 'Monthly Time Writing', 'Bulk actions'])
 })

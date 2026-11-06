@@ -14,7 +14,7 @@ import type { MyWork } from '../useMyWork'
 import { useNow } from '../useNow'
 import type { PageProps } from './types'
 
-// My Activities (ACT-01…ACT-06): one page for a person's month — this month's activities with their planned and actual
+// My Activities (ACT-02…ACT-07): one page for a person's month — this month's activities with their planned and actual
 // hours (the ones still to add ticked, like copying last month's), a new activity under a stream and Feature, and the
 // month's progress with the deadline. Every write uses the existing month-task rules (no duplicates, the lock days, the
 // person's own stories) and goes to Azure DevOps only.

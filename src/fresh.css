@@ -489,7 +489,7 @@ table.resizable.wrap th,table.resizable.wrap td{white-space:pre-wrap;overflow-wr
 .segmented label{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12.5px;cursor:pointer;color:var(--text-2)}
 .segmented label.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow)}.segmented input{width:auto;margin:0}
 @media(max-width:1000px){.sidebar-tools .download-link{font-size:0;justify-content:center}.sidebar-tools .download-link span{font-size:16px}}
-/* My Activities (ACT-01…ACT-06): three clean cards — your activities, add a new one, your monthly update. */
+/* My Activities (ACT-02…ACT-07): three clean cards — your activities, add a new one, your monthly update. */
 .activities-page{max-width:1500px}
 .act-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px}.act-header h2{margin:0;font-size:28px;color:var(--navy)}.act-header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .act-person{min-width:240px}

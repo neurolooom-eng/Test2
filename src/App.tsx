@@ -180,7 +180,9 @@ export default function App() {
   // Access roles: each menu entry belongs to an area; Settings is always there (each person's own connections and tokens).
   // A page the viewer's roles do not include falls back to the first one they do.
   const areaOf = (id: Page): Area | null => id === 'admin' ? null : id === 'board' ? (view.onPrem ? 'release' : 'board') : id === 'windchill' || id === 'brite' ? 'release' : id === 'overview' || id === 'pulse' || id === 'pireview' ? 'insights' : id === 'mydash' ? 'overview' : id === 'activities' ? 'monthly' : id
-  const allowed = (id: Page) => { const area = areaOf(id); return area == null || access.sees(area) }
+  // Testing (ACT-01): pages being tried out, for the Admin role only (an access policy must name it; View as follows the viewed rights).
+  const testing = access.rights.roles.includes('Admin')
+  const allowed = (id: Page) => { if (pageMeta(id).group === 'Testing' && !testing) return false; const area = areaOf(id); return area == null || access.sees(area) }
   const page = allowed(requested) ? requested : pages.find((entry) => allowed(entry.id))?.id ?? 'admin'
   const meta = pageMeta(page)
   // Windchill exports, each in the sidebar under Release Details ('' = the import page).

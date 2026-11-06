@@ -1358,6 +1358,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-HIS-11 Tag column** — Req HIS-16, CAP-32 — L1 `history.test.mjs` ("historical hours: a Tag column marks training / NPRA rows; the app's own tags cannot be set from it (TC-HIS-11)"); browser check: add a Tag column to the workbook and mark training rows "Training" under the person's absence Feature — after saving, Pulse Check and My dashboard count them as NPRA and the untagged PTO rows as absence; a Tag "Shared: everyone" is ignored.
 
+### 6.25 My Activities and Testing
+
+**TC-ACT-01 Testing heading for admins only** — Req ACT-01, ACT-02, ACT-07 — E2E `shell.e2e.mjs` ("TC-ACT-01: the Testing heading with My Activities is shown to the Admin role only"); browser check: with access.json, an Admin sees TESTING › My Activities, a Team Member does not (also not through View as a Team Member); without a policy nobody sees it; on a phone the cards stack and the stream shows under the activity.
+
+**TC-ACT-02 My Activities lists the month and saves once** — Req ACT-03, ACT-05, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline"); L1 `my-work.test.mjs` (TC-ATM-16…19, the month-task rules it reuses); browser check with the Time Writing connection: a Feature of yours without a task is ticked — enter hours, Save adds "<Month> \| <Feature>" with those hours, once; change an actual and Save updates Completed Work; tick a leave row and its task is added under your leave story; with sample data or during View as nothing is saved and the reason is shown; the ring, the last day and the recent updates follow.
+
+**TC-ACT-03 Add a new activity** — Req ACT-04, ACT-06 — browser check: choose a stream, then a Feature (yours listed first), enter hours, Save activity — your month task appears under it with the hours; choose a Feature where you already have one — the hint says the hours are updated, and no second task is added.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1660,6 +1668,13 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | HIS-14 | TC-HIS-09 |
 | HIS-15 | TC-HIS-10 |
 | HIS-16 | TC-HIS-11 |
+| ACT-01 | TC-ACT-01 |
+| ACT-02 | TC-ACT-01 |
+| ACT-03 | TC-ACT-02 |
+| ACT-04 | TC-ACT-03 |
+| ACT-05 | TC-ACT-02 |
+| ACT-06 | TC-ACT-02, TC-ACT-03 |
+| ACT-07 | TC-ACT-01 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1698,6 +1713,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
+| UC-28 | TC-ACT-01…03 |
 
 ## 8. Result record
 
