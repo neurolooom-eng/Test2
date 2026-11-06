@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.30.0 — 2026-11-06
+
+**New**
+- **Planning Overview** (under Testing, Admin role only): the team's month on one page — Region, Epic and Owner filters; tiles for **planned utilization**, **delivery** (Features due this month done), **baseline exceptions** (more than 25% over) and **capacity risk**, against the month before where it applies; **workload and capacity** over 12 months (planned and actual hours against capacity, with a table view); an **exception queue** (over 25% baseline, missing baseline, capacity risk) linking to the items; **delivery health** per Epic for the next six months; and **Generate Monthly Pack** (OVW-01…OVW-08). Data completeness waits for its definition.
+
 ## v1.29.0 — 2026-11-06
 
 **New**

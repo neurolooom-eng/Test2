@@ -1,5 +1,5 @@
 // Single source for navigation labels, header text and grouping so the sidebar and page header always agree.
-export type Page = 'mydash' | 'activities' | 'overview' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'brite' | 'snapshots' | 'qemapping' | 'admin' | 'docs'
+export type Page = 'mydash' | 'activities' | 'planover' | 'overview' | 'pulse' | 'pireview' | 'mywork' | 'bulk' | 'monthly' | 'baselines' | 'board' | 'health' | 'windchill' | 'brite' | 'snapshots' | 'qemapping' | 'admin' | 'docs'
 export type PageGroup = 'Data Insights' | 'My Work' | 'Testing' | 'I&D Board' | 'Release Details' | 'Other views' | 'Data & governance' | 'Settings'
 
 // hidden: kept in the build but not offered in the menu.
@@ -11,6 +11,7 @@ export const pages: PageMeta[] = [
   { id: 'pulse', label: 'Pulse Check', icon: '◔', group: 'Data Insights', detail: 'Last month’s releases and analysis, ongoing activities, and the current month’s releases.', usesMonth: true },
   { id: 'pireview', label: 'PI Review', icon: '◈', group: 'Data Insights', detail: 'PI summary for the PI Review (planned).', usesMonth: false },
   { id: 'activities', label: 'My Activities', icon: '✎', group: 'Testing', detail: 'Your activities for the month: add this month’s tasks, enter planned and actual hours, and see what is left before the deadline.', usesMonth: true },
+  { id: 'planover', label: 'Planning Overview', icon: '▥', group: 'Testing', detail: 'The team’s month at a glance: workload against capacity, delivery against Target dates, baseline and capacity exceptions, health per Epic.', usesMonth: true },
   { id: 'mywork', label: 'Assigned to Me', icon: '◉', group: 'My Work', detail: 'Your pending Azure DevOps items; finish them with Resolved or Closed.', usesMonth: false },
   { id: 'monthly', label: 'Monthly Time Writing', icon: '◫', group: 'My Work', detail: 'Selected-month Tasks are the source for Azure Original Estimate and Completed Work.', usesMonth: true },
   { id: 'bulk', label: 'Bulk actions', icon: '⇉', group: 'My Work', detail: 'Move your User Stories from past Sprints to the current one, and add this month’s Time Writing story and task for your Features.', usesMonth: false },

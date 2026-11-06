@@ -1368,6 +1368,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-04 Add a User Story** — Req ACT-08, ACT-06 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's month tasks, hours, progress and deadline": the User Story choice shows Title, Description and Comment); browser check with the Time Writing connection: choose User Story, an Epic and a Feature, enter a title, a description and a comment, Add User Story — the story appears under the Feature, assigned to you, in the current Sprint, with the description and the comment in its Discussion; without a title the button stays disabled; with sample data or during View as nothing is saved.
 
+### 6.26 Planning Overview
+
+**TC-OVW-01 Delivery and health by Target date** — Req OVW-03, OVW-07, OVW-01 — L1 `planning-overview.test.mjs` ("Planning Overview: delivery by Target date — done, overdue, open; the absence Epic left out (TC-OVW-01)"); browser check: Testing → Planning Overview — the Delivery tile counts the Features due this month that are done; Delivery health lists the Epics with completed / open / overdue Features of the next six months; only Active Epics in the Epic filter.
+
+**TC-OVW-02 Exceptions and filters** — Req OVW-02, OVW-04, OVW-06, OVW-01 — L1 `planning-overview.test.mjs` ("Planning Overview: exceptions — over 25% baseline, missing baseline, capacity risk; filters narrow them (TC-OVW-02)"); browser check: with baselines set, a release booked more than 25% over its baseline is listed with its % over and the tile counts it; a release without a baseline is "Missing baseline"; a person planned over the overload threshold is "Capacity risk"; Region, Epic and Owner narrow every figure; the type chips filter the queue; an item's ID opens it in Azure DevOps.
+
+**TC-OVW-03 The page for admins** — Req OVW-01, OVW-05, OVW-08 — E2E `shell.e2e.mjs` ("TC-OVW-03: an Admin opens the Planning Overview with its tiles, chart, queue and health"); browser check: the chart shows 12 months with the legend, hover gives the month's figures and "Show as a table" the same numbers; Generate Monthly Pack opens Settings → Monthly pack; a Team Member does not see the page.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1678,6 +1686,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-06 | TC-ACT-02, TC-ACT-03 |
 | ACT-07 | TC-ACT-01 |
 | ACT-08 | TC-ACT-04 |
+| OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
+| OVW-02 | TC-OVW-02 |
+| OVW-03 | TC-OVW-01 |
+| OVW-04 | TC-OVW-02 |
+| OVW-05 | TC-OVW-03 |
+| OVW-06 | TC-OVW-02 |
+| OVW-07 | TC-OVW-01 |
+| OVW-08 | TC-OVW-03 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1717,6 +1733,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
 | UC-28 | TC-ACT-01…04 |
+| UC-29 | TC-OVW-01…03 |
 
 ## 8. Result record
 
