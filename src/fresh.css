@@ -560,3 +560,5 @@ details.act-leave{border:1px solid var(--line);border-radius:10px;padding:8px 12
 .cva-band-over{background:var(--danger-soft);color:var(--danger-text)}.cva-band-ontrack{background:var(--success-soft);color:var(--success-text)}.cva-band-under{background:var(--warning-soft);color:var(--warning-text)}.cva-band-nocapacity{background:var(--surface-2);color:var(--muted)}
 .ovw-stack .cva-stream{background:var(--accent)}
 .cva-epics li{grid-template-columns:minmax(0,120px) 1fr 70px}.cva-epics b{white-space:nowrap}
+.act-suggest-list{max-height:320px;overflow:auto;display:grid;gap:8px}.act-suggest-list .act-suggest{margin:0}
+.act-suggest-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 10px}

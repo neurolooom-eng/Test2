@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort } from '../azureDevOps'
+import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort, updateAzureWorkItem, type AzureConfig } from '../azureDevOps'
 import { timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { PersonPicker } from '../components/PersonPicker'
@@ -44,6 +44,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   // Add a new activity adds a Time Writing task, or a User Story (title, description, an optional first comment).
   const [addKind, setAddKind] = useState<'task' | 'story'>('task')
   const [story, setStory] = useState({ title: '', description: '', comment: '' })
+  // Suggestions by the Feature's state (ACT-09): Active, New or both.
+  const [suggestState, setSuggestState] = useState<'both' | 'active' | 'new'>('both')
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
   const saving = useSyncExternalStore(subscribeJobs, () => isRunning('activities:save'))
   const label = monthName(month)
@@ -74,7 +76,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     candidate: row,
   }))
   const conflicts = work.filter((row) => row.status === 'conflict')
-  const isTicked = (row: Row) => ticked[row.key] ?? row.kind === 'work'
+  // Nothing is chosen for the person (ACT-03): Features without a task are only suggested; Add puts one in the list.
+  const isTicked = (row: Row) => ticked[row.key] ?? false
   const valueOf = (row: Row, field: keyof Hours) => hours[row.key]?.[field] ?? (row.task ? hoursText(field === 'planned' ? row.task.originalEstimate : row.task.completedWork) : '')
   const setValue = (row: Row, field: keyof Hours, text: string) => setHours((current) => ({ ...current, [row.key]: { ...current[row.key], [field]: text } }))
   const changedExisting = existing.filter((row) => (['planned', 'actual'] as const).some((field) => hours[row.key]?.[field] != null && hours[row.key]![field] !== hoursText(field === 'planned' ? row.task!.originalEstimate : row.task!.completedWork)))
@@ -92,7 +95,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   // Add a new activity: a stream (Epic) and a pending Feature under it; mine first.
   // Streams are the Active Epics (the absence Epic has its own list).
   const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.id !== absenceEpicId && item.state.trim().toLowerCase() === 'active').sort((a, b) => a.title.localeCompare(b.title))
-  const features = stream ? azure.items.filter((item) => item.workItemType === 'Feature' && ['active', 'new'].includes(item.state.trim().toLowerCase()) && epicOf(item)?.id === Number(stream)).sort((a, b) => Number(isMine(b, my.me)) - Number(isMine(a, my.me)) || a.title.localeCompare(b.title)) : []
+  // Features in state Active or New under an Active Epic; the chosen Epic narrows them, and picking a Feature first fills in its Epic (ACT-04).
+  const epicIds = new Set(epics.map((epic) => epic.id))
+  const features = azure.items.filter((item) => item.workItemType === 'Feature' && ['active', 'new'].includes(item.state.trim().toLowerCase()) && epicIds.has(epicOf(item)?.id ?? -1) && (!stream || epicOf(item)?.id === Number(stream))).sort((a, b) => Number(isMine(b, my.me)) - Number(isMine(a, my.me)) || a.title.localeCompare(b.title))
   const chosenFeature = features.find((item) => item.id === Number(featureId))
   // My month Task already under the chosen Feature: its hours are shown and what is entered replaces them.
   const existingTask = chosenFeature ? mine.find((task) => featureOf(task)?.id === chosenFeature.id) : undefined
@@ -105,6 +110,13 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
       if (actualLocked && entry.actual?.trim()) return `Actuals for ${label} are locked.`
     }
     return ''
+  }
+  // ACT-10: a month Task added under a Feature still in state New makes the Feature Active (work has started).
+  const activated = new Set<number>()
+  async function activateIfNew(config: AzureConfig, pat: string, feature: AzureWorkItem, failed: string[]) {
+    if (feature.state.trim().toLowerCase() !== 'new' || activated.has(feature.id)) return
+    activated.add(feature.id)
+    try { await updateAzureWorkItem(config, pat, feature.id, { state: 'Active' }) } catch (failure) { failed.push(`#${feature.id} could not be set to Active: ${failure instanceof Error ? failure.message : 'failed'}`) }
   }
   const effortOf = (entry: Hours) => ({ plan: entry.planned?.trim() ? Number(entry.planned) : undefined, actual: entry.actual?.trim() ? Number(entry.actual) : undefined })
 
@@ -126,6 +138,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             : await ensureMonthTask(config, pat, candidate.feature.id, assignee, label, undefined, planLocked)
           const effort = effortOf(edits[row.key] ?? {})
           if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
+          if (result.status === 'created') await activateIfNew(config, pat, candidate.feature, failed)
           created += 1
         } catch (failure) { failed.push(`${row.title}: ${failure instanceof Error ? failure.message : 'failed'}`) }
       }
@@ -191,9 +204,11 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked)
         const effort = effortOf(entry)
         if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
+        const activation: string[] = []
+        if (result.status === 'created') await activateIfNew(config, pat, feature, activation)
         setNewHours({}); setFeatureId('')
         await azure.refresh()
-        const text = result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}.`
+        const text = (result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}${feature.state.trim().toLowerCase() === 'new' && !activation.length ? '; the Feature is now Active' : ''}.`) + (activation.length ? ` ${activation.join(' ')}` : '')
         setMessage({ tone: 'success', text })
         return { text }
       } catch (failure) {
@@ -210,6 +225,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const kindPill = (kind: Row['kind']) => kind === 'work' ? null : <span className={`act-kind act-${kind}`}>{kind === 'training' ? 'Training' : 'Leave'}</span>
   const hourInput = (row: Row, field: keyof Hours, disabled: boolean) => <input className="act-hours" aria-label={`${field === 'planned' ? 'Planned' : 'Actual'} hours for ${row.title}`} inputMode="decimal" placeholder="0" disabled={disabled || saving} value={valueOf(row, field)} onChange={(event) => setValue(row, field, event.target.value)} />
   const leaveRows = toAdd.filter((row) => row.kind !== 'work')
+  const suggestions = toAdd.filter((row) => row.kind === 'work' && !isTicked(row) && (suggestState === 'both' || row.candidate!.feature.state.trim().toLowerCase() === suggestState))
   // The Azure DevOps ID, opening the item in a new tab.
   const idLink = (item?: AzureWorkItem) => item && item.id > 0 ? <a className="act-id" href={item.url} target="_blank" rel="noreferrer" title={`Open #${item.id} in Azure DevOps`}>#{item.id}</a> : null
   const chosenEpic = epics.find((epic) => epic.id === Number(stream))
@@ -224,7 +240,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     <div className="act-grid">
       <section className="act-card" aria-labelledby="act-copy">
         <h3 id="act-copy">Your activities for {label}</h3>
-        <p className="act-sub">Ticked activities without a task yet are added for {label}; enter or change your hours and save once.</p>
+        <p className="act-sub">Your {label} tasks with their hours. Activities you add from the suggestions appear here until you save; enter or change hours and save once.</p>
         <table className="act-table">
           <thead><tr><th aria-label="Add" /><th>Activity</th><th className="act-stream">Epic</th><th>Planned</th><th>Actual</th></tr></thead>
           <tbody>
@@ -235,7 +251,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
               <td>{hourInput(row, 'planned', planLocked || adhocTask(row.task!))}</td>
               <td>{hourInput(row, 'actual', actualLocked)}</td>
             </tr>)}
-            {toAdd.filter((row) => row.kind === 'work').map((row) => <tr key={row.key} className={isTicked(row) ? '' : 'act-off'}>
+            {toAdd.filter((row) => row.kind === 'work' && isTicked(row)).map((row) => <tr key={row.key}>
               <td><input type="checkbox" aria-label={`Add ${row.title}`} checked={isTicked(row)} disabled={saving} onChange={(event) => setTicked((current) => ({ ...current, [row.key]: event.target.checked }))} /></td>
               <td><strong>{idLink(row.link)}{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
@@ -244,7 +260,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             </tr>)}
           </tbody>
         </table>
-        {!existing.length && !toAdd.some((row) => row.kind === 'work') && <p className="act-sub">No open Features for you this month. Add an activity on the right.</p>}
+        {!existing.length && !toAdd.some((row) => row.kind === 'work' && isTicked(row)) && <p className="act-sub">No {label} tasks yet. Add one from the suggestions or with Add a new activity.</p>}
         {conflicts.length > 0 && <p className="act-sub">{conflicts.length} Feature{conflicts.length === 1 ? ' has' : 's have'} more than one possible story: <button type="button" className="act-link" onClick={() => onOpen('bulk')}>choose in Bulk actions</button>.</p>}
         {leaveRows.length > 0 && <details className="act-leave">
           <summary>Leave and training <small>— tick only what you take in {label}</small></summary>
@@ -276,8 +292,13 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
           </div>
           {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
-            <h4>Suggested missing items</h4>
-            {toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).slice(0, 3).map((row) => <div className="act-suggest" key={row.key}><div><strong>{row.title}</strong><small>No {label} task yet</small></div><button type="button" className="act-ghost" onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}
+            <h4>Suggested missing items <small className="muted">({suggestions.length})</small></h4>
+            <p className="act-sub">Your open Features without a {label} task. Nothing is added until you choose Add and then Save.</p>
+            <div className="act-suggest-bar">
+              <div className="ovw-chips" role="group" aria-label="Feature state">{(['active', 'new', 'both'] as const).map((value) => <button key={value} type="button" aria-pressed={suggestState === value} className={suggestState === value ? 'active' : ''} onClick={() => setSuggestState(value)}>{value === 'both' ? 'Both' : value === 'active' ? 'Active' : 'New'}</button>)}</div>
+              <button type="button" className="act-ghost" disabled={!suggestions.length || saving} onClick={() => setTicked((current) => ({ ...current, ...Object.fromEntries(suggestions.map((row) => [row.key, true])) }))}>Add all ({suggestions.length})</button>
+            </div>
+            {suggestions.length ? <div className="act-suggest-list">{suggestions.map((row) => <div className="act-suggest" key={row.key}><div><strong>{idLink(row.link)}{row.title}</strong><small>{row.stream} · {row.candidate!.feature.state}{row.candidate!.status === 'needs-story' ? ' · new story and task' : ' · new task'}</small></div><button type="button" className="act-ghost" disabled={saving} onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}</div> : <p className="act-sub">No {suggestState === 'new' ? 'New' : 'Active'} Features to suggest.</p>}
           </div>}
         </aside>
 
@@ -289,8 +310,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
           </div>
           <p className="act-sub">{addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
           <div className="act-form">
-            <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">Select an Epic</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
-            <label>Feature<select value={featureId} disabled={!stream} onChange={(event) => setFeatureId(event.target.value)}><option value="">{stream ? features.length ? 'Select a Feature' : 'No Active or New Features under this Epic' : 'Select an Epic first'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>#{feature.id} {feature.title}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select>{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</label>
+            <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">All Epics</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
+            <label>Feature<select value={featureId} onChange={(event) => { const id = event.target.value; setFeatureId(id); const chosen = features.find((feature) => feature.id === Number(id)); const own = chosen ? epicOf(chosen) : undefined; if (own) setStream(String(own.id)) }}><option value="">{features.length ? stream ? 'Select a Feature' : 'Select a Feature (or an Epic first)' : 'No Active or New Features under this Epic'}</option>{features.map((feature) => <option key={feature.id} value={feature.id}>#{feature.id} {feature.title}{stream ? '' : ` — ${epicOf(feature)?.title ?? ''}`}{isMine(feature, my.me) ? ' (yours)' : ''}</option>)}</select>{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</label>
             {addKind === 'story' ? <>
               <label>Title<input value={story.title} maxLength={255} placeholder="What the story is about" onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
               <label>Description<textarea value={story.description} rows={4} placeholder="What needs to be done, and why" onChange={(event) => setStory((current) => ({ ...current, description: event.target.value }))} /></label>
