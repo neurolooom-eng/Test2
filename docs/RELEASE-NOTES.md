@@ -6,6 +6,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 **New**
 - **My Activities**: the suggested missing items can be filtered by the Feature's state — **Active**, **New** or **Both** — and **Add all** moves the shown ones into Your activities (saved only with Save) (ACT-09).
+- **Add a new activity**: the Feature can be chosen first — all Active and New Features are listed with their Epic, and choosing one fills in the Epic (ACT-04).
 - Creating your month task under a Feature that is still **New** sets the Feature to **Active** in Azure DevOps (ACT-10).
 
 **Fixed**

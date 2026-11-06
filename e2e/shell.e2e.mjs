@@ -350,8 +350,11 @@ test('TC-ACT-02: My Activities shows the person\'s month tasks, hours, progress 
   assert.ok(await content.locator('.act-table tbody tr').count() > 0, 'the month tasks are listed')
   assert.ok(await content.getByRole('textbox', { name: /^Actual hours for / }).count() > 0, 'actual hours can be entered')
   assert.match(await text(content.locator('.act-summary')), /activities updated.*last day/s)
+  // A Feature can be picked first: its Epic fills in.
+  await content.getByRole('combobox', { name: 'Feature' }).selectOption({ index: 1 })
+  assert.notEqual(await content.getByRole('combobox', { name: 'Epic' }).inputValue(), '', 'the Epic follows the Feature')
   await content.getByRole('combobox', { name: 'Epic' }).selectOption({ index: 1 })
-  assert.ok(await content.getByRole('combobox', { name: 'Feature' }).isEnabled(), 'an Epic opens its Features')
+  assert.ok(await content.getByRole('combobox', { name: 'Feature' }).isEnabled(), 'an Epic narrows its Features')
   await content.getByRole('radio', { name: 'User Story' }).check()
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
