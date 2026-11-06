@@ -308,28 +308,27 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     </header>
     {message && <div className={`act-message act-${message.tone}`} role="status">{message.text}<button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setMessage(null)}>×</button></div>}
     {!my.known ? <EmptyState title="Who are you in Azure DevOps?" detail="Set your work email in Settings → Azure DevOps, or choose your name above, to see your activities." /> : <>
+    {/* One row of equal tiles (ACT-11, ACT-05): the hours, the tasks, the monthly update and the last day. */}
     <div className="act-top">
     <Metrics>
       <Metric label="Capacity" value={capacity == null ? '—' : `${formatHours(capacity)}h`} hint={capacity == null ? 'Your name is not known yet' : 'Working days less absence'} />
       <Metric label="Planned hours" value={<>{formatHours(kpi.plan.value)}{pctOf(kpi.plan.value, capacity)}</>} hint="Original Estimate · % of capacity" />
       <Metric label="Actual hours" value={<>{formatHours(kpi.actual.value)}{pctOf(kpi.actual.value, capacity)}</>} hint={`Completed Work${kpi.plan.value ? ` · ${Math.round((kpi.actual.value ?? 0) / kpi.plan.value * 100)}% of plan` : ''}`} />
       <Metric label="Tasks" value={kpi.monthlyTasks.length} hint={`Your ${label} Time Writing Tasks`} />
+      <article className="act-summary act-tile-update" aria-labelledby="act-progress">
+        <span id="act-progress">Monthly update</span>
+        <div className="act-ring-row">
+          <div className="act-ring" style={{ ['--pct' as string]: `${percent}` }} role="img" aria-label={`${percent}% of activities updated`}><span>{percent}%</span></div>
+          <small><b>{updated} of {tracked.length}</b> activities updated · {Math.max(tracked.length - updated, 0)} remaining</small>
+        </div>
+      </article>
+      <article className={`act-tile-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
+        <span>{planLocked ? 'Actuals' : 'Plan'}: last day</span>
+        <strong>{formatDate(deadline)}</strong>
+        <small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small>
+      </article>
       {unsaved > 0 && <Metric label="Unsaved changes" value={unsaved} hint="Saved with Save" tone="negative" />}
     </Metrics>
-    <aside className="act-card act-summary" aria-labelledby="act-progress">
-      <h3 id="act-progress">Your monthly update</h3>
-      <div className="act-ring-row">
-        <div className="act-ring" style={{ ['--pct' as string]: `${percent}` }} role="img" aria-label={`${percent}% of activities updated`}><span>{percent}%</span></div>
-        <div>
-          <strong className="act-count">{updated} of {tracked.length}</strong><span className="act-sub">activities updated</span>
-          <ul className="act-legend"><li><i className="dot-done" />{updated} completed</li><li><i className="dot-open" />{Math.max(tracked.length - updated, 0)} remaining</li></ul>
-        </div>
-      </div>
-      <div className={`act-deadline${daysLeft <= 3 ? ' act-urgent' : ''}`}>
-        <span aria-hidden="true">⏱</span>
-        <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
-      </div>
-    </aside>
     </div>
     <div className="act-grid">
       <div className="act-main">

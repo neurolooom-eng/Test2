@@ -355,7 +355,10 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   const kpis = await text(content.locator('.act-top .metric-grid'))
   assert.match(kpis, /Capacity.*Planned hours.*Actual hours.*Tasks/s)
   assert.doesNotMatch(kpis, /Unsaved changes/)
-  assert.match(await text(content.locator('.act-summary')), /activities updated.*last day/s)
+  // One row of equal tiles: the monthly update ring and the last day are tiles too.
+  assert.match(kpis, /Tasks.*Monthly update.*activities updated.*last day/s)
+  const heights = await content.locator('.act-top .metric-grid > article').evaluateAll((tiles) => tiles.map((tile) => Math.round(tile.getBoundingClientRect().height)))
+  assert.equal(new Set(heights).size, 1, `tiles of one height: ${heights}`)
   assert.equal(await content.locator('.act-ring').count(), 1, 'the ring is back')
   // Suggested missing items sit below Your activities, in the first column.
   assert.equal(await content.locator('.act-main #act-copy').count(), 1)
