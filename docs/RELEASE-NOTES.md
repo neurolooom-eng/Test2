@@ -2,6 +2,17 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v1.27.0 — 2026-11-06
+
+**Changed**
+- **Training versus leave**: under the Team Holidays and Training Epic a month Task is training (NPRA) when it or its User Story says "Training" — each person's "<Name> | Training | Time Writing" story — or carries a **Training** or **NPRA** tag; the Feature's title is no longer read, because leave and training share one Feature per person. A Training tag counts as NPRA anywhere (CAP-16, CAP-32; KB-35).
+- **Historical hours**: an optional **Tag** column marks training / NPRA rows, so leave and training in the same Feature are told apart (HIS-16).
+- **Bulk actions → Create month tasks**: the Leave list becomes **Leave and training** — your leave and training stories, each marked, unticked; training is no longer counted as missing work. A type you have no story for (PTO, Training, Sick Leave, Unplanned Leave) shows "Story + task missing" and creates **<Name> | <Type> | Time Writing** with the month's Task, like a Time Writing story (ATM-24, ATM-27).
+- **Month locks**: Settings now says **Last day to update the plan / actuals** — the day entered is still open, the month locks from the next day (behaviour unchanged; MON-21, MON-23).
+
+**Fixed**
+- **Customize menu and View as** look tidy: full-width sidebar buttons, the menu listed by group with Pinned / In menu boxes, a stacked View as form, and the banner no longer repeats the role (MYD-07, CON-89; KB-36).
+
 ## v1.26.3 — 2026-11-06
 
 **Security / dependencies** (daily check)
