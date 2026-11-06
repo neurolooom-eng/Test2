@@ -74,7 +74,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     candidate: row,
   }))
   const conflicts = work.filter((row) => row.status === 'conflict')
-  const isTicked = (row: Row) => ticked[row.key] ?? row.kind === 'work'
+  // Nothing is chosen for the person (ACT-03): Features without a task are only suggested; Add puts one in the list.
+  const isTicked = (row: Row) => ticked[row.key] ?? false
   const valueOf = (row: Row, field: keyof Hours) => hours[row.key]?.[field] ?? (row.task ? hoursText(field === 'planned' ? row.task.originalEstimate : row.task.completedWork) : '')
   const setValue = (row: Row, field: keyof Hours, text: string) => setHours((current) => ({ ...current, [row.key]: { ...current[row.key], [field]: text } }))
   const changedExisting = existing.filter((row) => (['planned', 'actual'] as const).some((field) => hours[row.key]?.[field] != null && hours[row.key]![field] !== hoursText(field === 'planned' ? row.task!.originalEstimate : row.task!.completedWork)))
@@ -224,7 +225,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     <div className="act-grid">
       <section className="act-card" aria-labelledby="act-copy">
         <h3 id="act-copy">Your activities for {label}</h3>
-        <p className="act-sub">Ticked activities without a task yet are added for {label}; enter or change your hours and save once.</p>
+        <p className="act-sub">Your {label} tasks with their hours. Activities you add from the suggestions appear here until you save; enter or change hours and save once.</p>
         <table className="act-table">
           <thead><tr><th aria-label="Add" /><th>Activity</th><th className="act-stream">Epic</th><th>Planned</th><th>Actual</th></tr></thead>
           <tbody>
@@ -235,7 +236,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
               <td>{hourInput(row, 'planned', planLocked || adhocTask(row.task!))}</td>
               <td>{hourInput(row, 'actual', actualLocked)}</td>
             </tr>)}
-            {toAdd.filter((row) => row.kind === 'work').map((row) => <tr key={row.key} className={isTicked(row) ? '' : 'act-off'}>
+            {toAdd.filter((row) => row.kind === 'work' && isTicked(row)).map((row) => <tr key={row.key}>
               <td><input type="checkbox" aria-label={`Add ${row.title}`} checked={isTicked(row)} disabled={saving} onChange={(event) => setTicked((current) => ({ ...current, [row.key]: event.target.checked }))} /></td>
               <td><strong>{idLink(row.link)}{row.title}</strong><small><span className="act-stream-inline">{row.stream} · </span>{row.candidate!.status === 'needs-story' ? 'New story and task' : 'New task'}{row.candidate!.shared ? ` · shared with ${row.candidate!.shared.owner}` : ''}</small></td>
               <td className="act-stream">{row.stream}</td>
@@ -244,7 +245,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             </tr>)}
           </tbody>
         </table>
-        {!existing.length && !toAdd.some((row) => row.kind === 'work') && <p className="act-sub">No open Features for you this month. Add an activity on the right.</p>}
+        {!existing.length && !toAdd.some((row) => row.kind === 'work' && isTicked(row)) && <p className="act-sub">No {label} tasks yet. Add one from the suggestions or with Add a new activity.</p>}
         {conflicts.length > 0 && <p className="act-sub">{conflicts.length} Feature{conflicts.length === 1 ? ' has' : 's have'} more than one possible story: <button type="button" className="act-link" onClick={() => onOpen('bulk')}>choose in Bulk actions</button>.</p>}
         {leaveRows.length > 0 && <details className="act-leave">
           <summary>Leave and training <small>— tick only what you take in {label}</small></summary>
@@ -276,8 +277,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             <div><strong>{planLocked ? 'Actuals' : 'Plan'}: last day {formatDate(deadline)}</strong><small>{daysLeft > 1 ? `${daysLeft} days left` : daysLeft === 1 ? 'Last day tomorrow' : daysLeft === 0 ? 'Today is the last day' : 'Locked'}{!planLocked ? ` · actuals until ${formatDate(actualsDay)}` : ''}</small></div>
           </div>
           {toAdd.some((row) => row.kind === 'work' && !isTicked(row)) && <div className="act-block">
-            <h4>Suggested missing items</h4>
-            {toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).slice(0, 3).map((row) => <div className="act-suggest" key={row.key}><div><strong>{row.title}</strong><small>No {label} task yet</small></div><button type="button" className="act-ghost" onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}
+            <h4>Suggested missing items <small className="muted">({toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).length})</small></h4>
+            <p className="act-sub">Your open Features without a {label} task. Nothing is added until you choose Add and then Save.</p>
+            <div className="act-suggest-list">{toAdd.filter((row) => row.kind === 'work' && !isTicked(row)).map((row) => <div className="act-suggest" key={row.key}><div><strong>{idLink(row.link)}{row.title}</strong><small>{row.stream} · {row.candidate!.status === 'needs-story' ? 'new story and task' : 'new task'}</small></div><button type="button" className="act-ghost" disabled={saving} onClick={() => setTicked((current) => ({ ...current, [row.key]: true }))}>Add</button></div>)}</div>
           </div>}
         </aside>
 

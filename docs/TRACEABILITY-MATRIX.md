@@ -608,7 +608,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | HIS-16 | SR-28 | UR-24 | T | M | TC-HIS-11 | — | `history.test.mjs` | — |
 | ACT-01 | SR-29 | UR-25 | T | M | TC-ACT-01 | — | — | — |
 | ACT-02 | SR-29 | UR-25 | T | M | TC-ACT-01 | — | — | — |
-| ACT-03 | SR-29 | UR-25 | T | M | TC-ACT-02 | — | `my-work.test.mjs` | — |
+| ACT-03 | SR-29 | UR-25 | T | M | TC-ACT-02 | — | `my-work.test.mjs` | KB-37 |
 | ACT-04 | SR-29 | UR-25 | T | M | TC-ACT-03 | — | — | — |
 | ACT-08 | SR-29 | UR-25 | T | M | TC-ACT-04 | — | — | — |
 | ACT-05 | SR-29 | UR-25 | T | S | TC-ACT-02 | — | `my-work.test.mjs` | — |
