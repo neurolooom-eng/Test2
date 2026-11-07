@@ -465,3 +465,24 @@ test('ensureAbsenceStoryMonthTask creates "<Name> | <Type> | Time Writing" and i
   assert.equal(calls.filter((call) => call.operation === 'create-child' && !call.validateOnly).length, 3, 'two for training (story, task), one for PTO (task)')
   await assert.rejects(ensureAbsenceStoryMonthTask(config, 'pat', 96, 'PTO', 'x', absenceStoryType, 'ana@x.com', 'October 2026', transport), /not an accessible Feature/)
 })
+
+import { activateFeatureOf } from '../src/closeChain.ts'
+test('ATM-28: a Feature becomes Active only when one of its User Stories is Active', async () => {
+  const me = { email: 'ana@x.com' }
+  const mine = (id, type, state, parentId) => item(id, type, `${type} ${id}`, { state, parentId, assignedTo: 'Ana', assignedToEmail: 'ana@x.com' })
+  const items = [mine(1, 'Feature', 'New'), mine(11, 'User Story', 'New', 1), mine(2, 'Feature', 'New'), mine(21, 'User Story', 'Active', 2), mine(22, 'User Story', 'Removed', 2)]
+  // Offered on Assigned to Me only with an Active story; the state check flags a New Feature with one.
+  assert.equal(nextStateFor(items[0], items), null, 'no Active User Story: not offered')
+  assert.deepEqual(nextStateFor(items[2], items), { state: 'Active', label: 'Set Feature to Active' })
+  assert.deepEqual(stateChecks(items, me).map((check) => [check.kind, check.item.id, check.children.map((child) => child.id)]), [['activate-feature', 2, [21]]])
+  // A User Story set to Active makes its New Feature Active; nothing else is written.
+  const writes = []
+  const write = async (_config, _pat, id, update) => { writes.push([id, update.state]); return { ...items.find((entry) => entry.id === id), state: update.state } }
+  const story = { ...items[1], state: 'Active' }
+  assert.equal((await activateFeatureOf({}, 'pat', items, story, write)).state, 'Active')
+  assert.deepEqual(writes, [[1, 'Active']])
+  assert.equal(await activateFeatureOf({}, 'pat', items, items[1], write), null, 'a New story changes nothing')
+  const activeFeature = items.map((entry) => entry.id === 1 ? { ...entry, state: 'Active' } : entry)
+  assert.equal(await activateFeatureOf({}, 'pat', activeFeature, story, write), null, 'an Active Feature is left as it is')
+  assert.equal(writes.length, 1)
+})

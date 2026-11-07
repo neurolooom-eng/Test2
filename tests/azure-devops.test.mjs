@@ -392,6 +392,10 @@ test('release naming and India month rollover implement the final task-title cor
   assert.equal(pu.timeWriting, 'Example | Service | v1.0 - Time Writing')
   assert.equal(pu.task, 'October 2026 | Example | Service | v1.0')
   assert.deepEqual(releaseHierarchyTitles('Example | Service | v1.0', 'Release', 'October 2026').reviews.map((item) => item.milestone), ['PRD', 'SFV', 'DT', 'IQOQ'])
+  // BKL-04: a free-text title; milestone stories then carry the whole title.
+  const free = releaseHierarchyTitles('Audit readiness 2027', 'PU', 'October 2026')
+  assert.deepEqual([free.reviews[0].title, free.timeWriting, free.task], ['SFV : Review of Deliverables (Audit readiness 2027)', 'Audit readiness 2027 - Time Writing', 'October 2026 | Audit readiness 2027'])
+  assert.throws(() => releaseHierarchyTitles('  ', 'PU', 'October 2026'), /Enter the Feature title/)
   assert.equal(currentIndiaMonth(new Date('2026-10-31T18:29:00Z')), 'October 2026')
   assert.equal(currentIndiaMonth(new Date('2026-10-31T18:30:00Z')), 'November 2026')
 })

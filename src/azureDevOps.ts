@@ -404,9 +404,11 @@ export function mergeAzureWorkItems(current: AzureWorkItem[], incoming: AzureWor
 }
 
 export function releaseHierarchyTitles(title: string, kind: 'PU' | 'Release', monthLabel: string) {
-  const parts = title.split('|').map((part) => part.trim())
-  if (parts.length !== 3 || parts.some((part) => !part)) throw new Error('Use the Feature title format Program | Service | Release.')
-  const identifier = `${parts[1]} ${parts[2].replace(/^v/i, '')}`
+  // BKL-04: the title is free text; a "Program | Service | Release" title names the milestone stories by its service and
+  // release, any other title by the whole title.
+  const clean = title.trim(), parts = clean.split('|').map((part) => part.trim())
+  if (!clean) throw new Error('Enter the Feature title.')
+  const identifier = parts.length === 3 && parts.every(Boolean) ? `${parts[1]} ${parts[2].replace(/^v/i, '')}` : clean
   return {
     reviews: (kind === 'PU' ? ['SFV', 'DT', 'IQOQ'] : ['PRD', 'SFV', 'DT', 'IQOQ']).map((milestone) => ({ milestone, title: `${milestone} : Review of Deliverables (${identifier})` })),
     review: reviewStoryTitle(title),
