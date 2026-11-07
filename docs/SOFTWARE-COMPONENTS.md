@@ -73,7 +73,7 @@ This document lists every software component of the system: the in-house source 
 | HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |
 | ViewAsDialog | `src/components/ViewAsDialog.tsx` | View as: choose a person or a role to view the app as, read only. | CON |
 | MonthlyPackSetupPanel | `src/components/MonthlyPackSetupPanel.tsx` | Settings → Monthly pack: slide lines (streams, Epics) and KPI rows (Epic, metric), saved to Git. | PCK |
-| FeatureSetupPanel | `src/components/FeatureSetupPanel.tsx` | Settings → Feature setup: per-Epic optional stories, Time Writing story and month Task defaults, shared and personal layers. | CON |
+| FeatureSetupPanel | `src/components/FeatureSetupPanel.tsx` | Settings → Feature setup: per-Epic optional stories, title fields, Feature DoD and the month Task's default hours, shared and personal layers. | CON |
 | GapsPanel | `src/components/GapsPanel.tsx` | Lists items the page did not pick up for the month and why. | MON, TWN |
 | GitStorage | `src/components/GitStorage.tsx` | Settings panel for the Git data file location and token, plus a Git sync bar. | GIT |
 | Markdown | `src/components/Markdown.tsx` | Renders parsed Markdown blocks as React elements; internal links via callback, external https in new tab. | DOC |

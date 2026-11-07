@@ -7,7 +7,7 @@ import { currentIndiaMonth, updateAzureWorkItem } from '../azureDevOps'
 import { capacityContext } from '../capacity'
 import { featureChildren, hasOptionalStories, isMine, matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
 import { activateFeatureOf, closeRelated, type FollowUpResult } from '../closeChain'
-import { formatHours } from '../format'
+import { formatHours, monthName } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -21,7 +21,7 @@ type Log = { tone: 'success' | 'error' | 'info'; text: string }
 const stateTone = (state: string): Tone => /new|proposed|to do/i.test(state) ? 'info' : /active|in progress|committed|doing/i.test(state) ? 'open' : 'neutral'
 const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || path
 
-export function MyWorkPage({ azure, store, my, onOpenActivities, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; onOpenActivities: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null }) {
+export function MyWorkPage({ azure, store, my, month: headerMonth, onOpenActivities, assign, featureSetup }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; month?: string; onOpenActivities: () => void; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null }) {
   const [busy, setBusy] = useState('')
   const [log, setLog] = useState<Log[]>([])
   // Opens on Features; the list is always in ascending ID order.
@@ -104,7 +104,7 @@ export function MyWorkPage({ azure, store, my, onOpenActivities, assign, feature
           <div className="query-toolbar my-work-search"><input type="search" className="search" aria-label="Search all assigned work" placeholder="Search all types (ID, title, state, Feature, path…)" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setSearch('') }} />{searching && <span className="muted">{shown.length} of {pending.length} match, all types</span>}</div>
           {/* UI-07: the work list on the table default; a Feature opens its children as rows of the same table. */}
           {shown.length > 0 && (() => {
-            const monthButton = (entry: AzureWorkItem) => (entry.workItemType === 'Feature' || entry.workItemType === 'User Story') && config && meEmail ? <button type="button" className="text-button" disabled={Boolean(blocked) || busy.startsWith('month-')} title="Add this month's Time Writing Task for you under this Feature (or the Feature above this Story)" onClick={() => { setBusy(`month-${entry.id}`); void addMonthTask(config, pat, azure.items, entry, meEmail).then((done) => { azure.applyWorkItems(done.changed, 'Add Time Writing Task', done.text); setLog((current) => [{ tone: 'success', text: done.text }, ...current]) }, (failure) => setLog((current) => [{ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }, ...current])).finally(() => setBusy('')) }}>{busy === `month-${entry.id}` ? 'Adding…' : '＋ Time Writing Task'}</button> : null
+            const monthButton = (entry: AzureWorkItem) => (entry.workItemType === 'Feature' || entry.workItemType === 'User Story') && config && meEmail ? <button type="button" className="text-button" disabled={Boolean(blocked) || busy.startsWith('month-')} title="Add your Time Writing Task for the month in the header under this Feature (or the Feature above this Story)" onClick={() => { setBusy(`month-${entry.id}`); void addMonthTask(config, pat, azure.items, entry, meEmail, headerMonth ? monthName(headerMonth) : undefined, featureSetup).then((done) => { azure.applyWorkItems(done.changed, 'Add Time Writing Task', done.text); setLog((current) => [{ tone: 'success', text: done.text }, ...current]) }, (failure) => setLog((current) => [{ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }, ...current])).finally(() => setBusy('')) }}>{busy === `month-${entry.id}` ? 'Adding…' : '＋ Time Writing Task'}</button> : null
             const editButton = (entry: AzureWorkItem) => ['Feature', 'User Story', 'Task'].includes(entry.workItemType) ? <button type="button" className="text-button" disabled={Boolean(blocked)} title={`Edit ${entry.workItemType} #${entry.id}`} onClick={() => setEditing(entry)}>Edit</button> : null
             const action = (entry: AzureWorkItem) => { const next = nextStateFor(entry, azure.items); return next ? <button type="button" className="ghost" disabled={Boolean(blocked) || busy === `state-${entry.id}`} onClick={() => void finish(entry, next.state)}>{busy === `state-${entry.id}` ? 'Saving…' : next.label}</button> : entry.workItemType === 'Feature' && /new/i.test(entry.state) ? <small className="muted" title="A Feature becomes Active only when one of its User Stories is Active">Set a User Story to Active first</small> : <small className="muted" title="Only an Active Feature or User Story can be closed">Set to Active first</small> }
             type WorkRow = { item: AzureWorkItem; feature?: AzureWorkItem; depth: 0 | 1 | 2; below: AzureWorkItem[]; top: AzureWorkItem }

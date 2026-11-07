@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v3.0.0 — 2026-11-07
+
+**Changed** (shared setup and the way people work)
+- **One Time Writing Task rule on every page**: New Feature and Complete children, My Activities and ＋ Time Writing Task all create the month Task the same way — "<Month> | <Feature>" under "<Feature> - Time Writing" (the person's own story first), assigned to the person, in the Feature's Area Path and the project root; any month Task of the person for that month under the Feature is reused (New Feature used to match only the exact setup title) (BKL-28, BKL-14).
+- **Feature setup**: the Time Writing story and Task templates (titles, descriptions, assignees, Area and Iteration Paths) are removed and no longer used; only the **default hours** of a new month Task remain, now applied on every page unless hours are typed. Existing setup files still load (CON-52, CON-53, CON-61, CON-62; CON-66 retired).
+- **＋ Time Writing Task** (Backlogs, Assigned to Me) creates the Task for the **month selected in the header** (BKL-22).
+
 ## v2.3.0 — 2026-11-07
 
 **Changed**

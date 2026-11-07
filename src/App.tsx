@@ -306,7 +306,7 @@ export default function App() {
       {page === 'pireview' && <PiReviewPage />}
       {page === 'brite' && <BritePage />}
       {page === 'qemapping' && <QeMappingPage git={git} store={qeMapping} resources={qeResources} />}
-      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} onOpenActivities={() => setPage('activities')} assign={assign} featureSetup={featureSetup.setups} />}
+      {page === 'mywork' && <MyWorkPage azure={azure} store={store} my={my} month={month} onOpenActivities={() => setPage('activities')} assign={assign} featureSetup={featureSetup.setups} />}
       {page === 'bulk' && <SprintCheckPage azure={azure} store={store} my={my} />}
       {page === 'capactual' && <CapacityActualPage azure={reportAzure} store={store} month={month} />}
       {page === 'planover' && <PlanningOverviewPage azure={reportAzure} store={store} month={month} onOpenPack={() => openSettings('pack')} />}
