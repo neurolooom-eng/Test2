@@ -393,6 +393,13 @@ test('TC-MYD-05: Team overview shows six headline tiles; each opens its analysis
   await editor.getByRole('button', { name: 'Save Standard Hours' }).click()
   assert.match(await text(content.getByRole('group', { name: 'Standard Hours' })), /Standard Hours: 24h.*Team meetings 8h · Admin 16h/)
   assert.equal(Number((await firstNet()).replace(/[^\d.]/g, '')), before + 8, 'Net Capacity grows by the 8 h no longer deducted')
+  // TC-CAP-12: the shared-time groups All / All-<Region> can be left out of the calculation (ticked by default).
+  const groups = content.getByRole('group', { name: 'Shared time counted' })
+  assert.deepEqual((await groups.getByRole('checkbox').all()).length, 4)
+  for (const name of ['All', 'All-India', 'All-Netherlands', 'All-US']) assert.ok(await groups.getByRole('checkbox', { name: new RegExp(`^${name} \\(`) }).isChecked(), `${name} is counted by default`)
+  await groups.getByRole('checkbox', { name: /^All-India \(/ }).uncheck()
+  assert.equal(await content.getByRole('group', { name: 'Shared time counted' }).getByRole('checkbox', { name: /^All-India \(/ }).isChecked(), false, 'All-India left out')
+  await content.getByRole('group', { name: 'Shared time counted' }).getByRole('checkbox', { name: /^All-India \(/ }).check()
   await content.getByRole('tab', { name: 'Overview' }).click()
   await tiles.filter({ hasText: /^Plan accuracy/i }).getByRole('button').click()
   assert.equal(await content.getByRole('tab', { name: 'Plan quality' }).getAttribute('aria-selected'), 'true')

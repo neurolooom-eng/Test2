@@ -37,7 +37,7 @@ export function normalizeStandardHours(value: unknown): StandardHourLine[] {
 }
 export const standardHoursTotal = (lines: StandardHourLine[] | undefined) => Math.round((lines ?? defaultStandardHours).reduce((sum, line) => sum + line.hours, 0) * 100) / 100
 export interface MonthLock { planOn?: string; actualsOn?: string; planLocked?: boolean; actualsLocked?: boolean; reason?: string; updatedAt?: string; updatedBy?: string }
-export interface CapacitySettings { planLockDay?: number; actualsLockDay?: number; monthLocks?: Record<string, MonthLock>; absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; standardHours?: StandardHourLine[]; profiles?: Record<string, ResourceProfile> }
+export interface CapacitySettings { planLockDay?: number; actualsLockDay?: number; monthLocks?: Record<string, MonthLock>; absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; standardHours?: StandardHourLine[]; oldCalcExcludedScopes?: SharedTimeScope[]; profiles?: Record<string, ResourceProfile> }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, defaultJoinedOn: '2026-05-01' }
 export const npraTag = /^(npra|trainings?)\b/i
 export const isNpra = (item: Pick<AzureWorkItem, 'tags'>) => (item.tags ?? '').split(';').some((tag) => npraTag.test(tag.trim()))
@@ -112,6 +112,8 @@ export interface PersonLoad {
   // CAP-35 (Old Calculation): every hour of the person — work, absence, holidays, training, NPRA and the shared time
   // that applies to them — planned (Original Estimate) and actual (Completed Work).
   allPlanned: number; allActual: number
+  // CAP-37: the shared time ('All' / 'All-<Region>') in allPlanned / allActual, by scope, so the Old Calculation can leave a group out.
+  sharedByScope: Partial<Record<SharedTimeScope, { planned: number; actual: number }>>
 }
 export interface StreamSummary extends StreamLoad { people: number; features: number; share: number | null }
 
@@ -126,7 +128,10 @@ export function normalizeCapacitySettings(value: unknown): CapacitySettings {
   const locks = normalizeLocks(value)
   // CAP-36: kept only once set (an empty breakup is 0 h); without one the default 32 h applies.
   const standard = (value as { standardHours?: unknown } | null)?.standardHours
-  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}) }
+  // CAP-37: the shared-time groups left out of the Old Calculation (kept only when some are).
+  const excluded = (value as { oldCalcExcludedScopes?: unknown } | null)?.oldCalcExcludedScopes
+  const oldCalcExcludedScopes = Array.isArray(excluded) ? sharedTimeScopes.filter((scope) => excluded.includes(scope)) : []
+  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}), ...(oldCalcExcludedScopes.length ? { oldCalcExcludedScopes } : {}) }
   return withLocks.availableBelow < withLocks.overloadedAt ? withLocks : { ...withLocks, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
 }
 const lockDay = (value: unknown) => { const day = Number(value); return Number.isInteger(day) && day >= 1 && day <= 28 ? day : undefined }
@@ -175,6 +180,9 @@ export function sharedTimeOf(task: AzureWorkItem, chain: AzureWorkItem[], settin
   const region = epic?.id === settings.absenceEpicId && feature ? holidayRegion(feature.title) : null
   return region && feature ? { id: feature.id, kind: 'holiday', scope: region, source: feature } : undefined
 }
+// The shared-time groups: 'All' (everyone) and 'All-<Region>'.
+export const sharedTimeScopes: SharedTimeScope[] = ['everyone', ...regions]
+export const sharedTimeScopeLabel = (scope: SharedTimeScope) => scope === 'everyone' ? 'All' : `All-${scope}`
 export const inScope = (scope: SharedTimeScope, region: Region | undefined) => scope === 'everyone' || scope === region
 
 export function capacityContext(state: { capacitySettings?: unknown; resourceProfiles?: unknown }): CapacitySettings {
@@ -255,7 +263,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const days = employedDays(month, employment)
     if (!days) { const entry = outside.get(name) ?? { name, tasks: 0, hours: 0, joinedOn: employment.joinedOn, leftOn: employment.leftOn }; entry.tasks += 1; entry.hours += hours(task.completedWork); outside.set(name, entry); continue }
     const personFunded = days * settings.hoursPerDay
-    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, allPlanned: 0, allActual: 0, streamMap: new Map() }
+    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, allPlanned: 0, allActual: 0, sharedByScope: {}, streamMap: new Map() }
     people.set(name, person)
     const work = hours(task.completedWork), planned = hours(task.originalEstimate)
     person.allPlanned += planned; person.allActual += work
@@ -285,6 +293,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       if (entry.kind === 'holiday') { person.absence += entry.hours; person.absenceByKind['Public holiday'] += entry.hours }
       else person.reserved += entry.hours
       person.allPlanned += entry.hours; person.allActual += entry.actual
+      const byScope = person.sharedByScope[entry.scope] ?? { planned: 0, actual: 0 }
+      byScope.planned += entry.hours; byScope.actual += entry.actual; person.sharedByScope[entry.scope] = byScope
     }
     const { source, actual: _actual, ...rule } = entry
     return { ...rule, title: rule.label || source.title, item: source, people: inside.length }
@@ -454,10 +464,14 @@ export function oldCalculation(model: CapacityModel): { rows: OldCalculationRow[
   const round = (value: number) => Math.round(value * 100) / 100
   // CAP-36: Net Capacity = working days employed × funded hours per day − Standard Hours (never below 0).
   const standardHours = standardHoursTotal(model.settings.standardHours)
+  const excluded = model.settings.oldCalcExcludedScopes ?? []
   const rows = model.people.filter((person) => person.name !== 'Unassigned').map((person) => {
     const net = Math.max(0, person.funded - standardHours)
-    const plannedUtilization = person.allPlanned > 0 ? percent(person.allPlanned, net) : null
-    return { name: person.name, funded: round(person.funded), netCapacity: round(net), planned: round(person.allPlanned), plannedUtilization, available: round(net - person.allPlanned), status: loadStatus(plannedUtilization, model.settings), actual: round(person.allActual), actualUtilization: person.allActual > 0 ? percent(person.allActual, net) : null }
+    // CAP-37: a disabled group's shared hours leave both Planned and Actual Hours.
+    const left = excluded.reduce((sum, scope) => ({ planned: sum.planned + (person.sharedByScope[scope]?.planned ?? 0), actual: sum.actual + (person.sharedByScope[scope]?.actual ?? 0) }), { planned: 0, actual: 0 })
+    const planned = Math.max(0, person.allPlanned - left.planned), actual = Math.max(0, person.allActual - left.actual)
+    const plannedUtilization = planned > 0 ? percent(planned, net) : null
+    return { name: person.name, funded: round(person.funded), netCapacity: round(net), planned: round(planned), plannedUtilization, available: round(net - planned), status: loadStatus(plannedUtilization, model.settings), actual: round(actual), actualUtilization: actual > 0 ? percent(actual, net) : null }
   }).sort((a, b) => a.name.localeCompare(b.name))
   const sum = (key: 'funded' | 'netCapacity' | 'planned' | 'actual') => round(rows.reduce((total, row) => total + row[key], 0))
   const netCapacity = sum('netCapacity'), planned = sum('planned'), actual = sum('actual')
