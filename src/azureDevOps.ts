@@ -528,6 +528,26 @@ export async function addUserStory(config: AzureConfig, pat: string, input: Stor
   catch (failure) { return { story, commentError: failure instanceof Error ? failure.message : 'the comment was not added' } }
 }
 
+// NAV-39: the work email of the PAT's owner, read from work items rather than from an identity service (the
+// connectionData lookup did not work in this setup, CON-41). WIQL's @Me is the token's owner: the most recent item
+// assigned to them, else created by them, else changed by them, gives their identity as Azure DevOps stores it
+// ("Name <email>" / uniqueName). Read-only (query + items); null when the person has no work item yet.
+export async function detectWorkEmail(config: AzureConfig, pat: string, transport: AzureTransport = requestAzure): Promise<{ email: string; name: string; via: 'Assigned To' | 'Created By' | 'Changed By' } | null> {
+  if (!pat.trim()) throw new Error('Enter your Azure DevOps token (PAT) first.')
+  const fields = [['System.AssignedTo', 'Assigned To'], ['System.CreatedBy', 'Created By'], ['System.ChangedBy', 'Changed By']] as const
+  for (const [field, via] of fields) {
+    const page = await transport({ ...config, pat, operation: 'query', query: `SELECT [System.Id] FROM WorkItems WHERE [${field}] = @Me ORDER BY [System.ChangedDate] DESC` }) as { workItems?: { id: number }[] }
+    const id = page.workItems?.find((entry) => Number.isSafeInteger(entry.id) && entry.id > 0)?.id
+    if (!id) continue
+    const read = await transport({ ...config, pat, operation: 'items', ids: [id] }) as { value?: RawItem[] }
+    const value = read.value?.find((item) => item.id === id)?.fields[field]
+    const identity = typeof value === 'string' ? { uniqueName: /<([^>]+)>/.exec(value)?.[1] ?? value, displayName: value.replace(/\s*<[^>]*>\s*$/, '') } : value && typeof value === 'object' ? value as { uniqueName?: unknown; displayName?: unknown } : null
+    const email = typeof identity?.uniqueName === 'string' ? identity.uniqueName.trim().toLowerCase() : ''
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { email, name: typeof identity?.displayName === 'string' ? identity.displayName.trim() : '', via }
+  }
+  return null
+}
+
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.

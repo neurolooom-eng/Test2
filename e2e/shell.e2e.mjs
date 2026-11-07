@@ -62,6 +62,12 @@ test('TC-NAV-33: a new browser gets the Get started pop-up; dismissing it keeps 
   // NAV-38: the values are entered in the pop-up itself.
   assert.equal(await dialog.getByLabel('GitHub token').count(), 1, 'the Git token can be entered here')
   assert.equal(await dialog.getByLabel('Azure DevOps PAT').getAttribute('type'), 'password', 'the PAT can be entered here, hidden')
+  // NAV-39: Git, then the connection and token, then the email (with Detect from my token), then Fetch.
+  assert.match(await text(dialog), /Connect the shared Git storage.*Time Writing connection and enter your Azure DevOps token.*Your work email.*Fetch your data/)
+  assert.ok(await dialog.getByLabel('Your work email').isDisabled(), 'the email waits for the token')
+  await dialog.getByLabel('Azure DevOps PAT').fill('synthetic-token-for-the-test')
+  await dialog.getByRole('button', { name: 'Save PAT' }).click()
+  await dialog.getByRole('button', { name: 'Detect from my token' }).waitFor()
   assert.equal(await dialog.getByLabel('Your work email').getAttribute('autocomplete'), 'email', 'the browser may suggest the saved email')
   await dialog.getByLabel('Your work email').fill('ana.costa@example.com')
   await dialog.getByRole('button', { name: 'Save email' }).click()

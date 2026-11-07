@@ -94,7 +94,7 @@ This document lists every software component of the system: the in-house source 
 | TableDefaultsPanel | `src/components/TableDefaultsPanel.tsx` | Settings → Table defaults: the shared, audited design default of every table (UI-12). | UI, SET |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SectionTabs | `src/components/SectionTabs.tsx` | The section row of a Settings page: one section at a time, the last one remembered per page (SET-14). | SET, NAV |
-| SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status, fields to enter the Git token, work email and PAT right there (NAV-38) and buttons to the right place. | NAV |
+| SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status, fields to enter the Git token, PAT and work email right there (NAV-38), the email detected from the token (NAV-39) and buttons to the right place. | NAV |
 | SharedTimePanel | `src/components/SharedTimePanel.tsx` | Settings → Capacity: map Epics/Features as regional holidays or common activities applied to people in scope. | CAP, SET |
 | TeamFilterBar | `src/components/TeamFilterBar.tsx` | Region switch and role multi-select filter for team views. | OVR |
 | WindchillReleasesPanel | `src/components/WindchillReleasesPanel.tsx` | Lists a Windchill export's unique releases from Location or document names (source and columns chosen), filtered to the header month, sortable, with draggable widths and a QMS-0025 match column with Create Feature; the unique locations, CSV exports and Save locations to Git. | CON, QV |

@@ -8,7 +8,9 @@ import type { SettingsTab } from '../settingsTabs'
 // NAV-38: the values a step needs (the Git token, your work email, your Azure DevOps PAT) can be entered right here;
 // each is saved exactly as its Settings page saves it (tokens in this browser only, never in Git). The email field
 // lets the browser suggest the address it has saved (autocomplete "email"), as Settings → Your work email does.
-export interface SetupInputs { connectGit: (token: string) => Promise<void>; saveEmail: (email: string) => void; savePat: (pat: string) => void; gitMessage?: string }
+// detectEmail (NAV-39): reads the token owner's email from their work items; the found email fills the field and is saved
+// only when the user presses Save email.
+export interface SetupInputs { connectGit: (token: string) => Promise<void>; saveEmail: (email: string) => void; savePat: (pat: string) => void; detectEmail?: () => Promise<{ email: string; name: string; via: string } | null>; gitMessage?: string }
 const inputLabel: Record<SetupInput, { label: string; placeholder: string; button: string; secret: boolean }> = {
   'git-token': { label: 'GitHub token', placeholder: 'github_pat_… (fine-grained, this repository only)', button: 'Connect & load', secret: true },
   email: { label: 'Your work email', placeholder: 'name@company.com — as Azure DevOps shows it', button: 'Save email', secret: false },
@@ -33,10 +35,21 @@ function StepInput({ kind, disabled, inputs }: { kind: SetupInput; disabled: boo
     } catch (failure) { setNote({ tone: 'error', text: failure instanceof Error ? failure.message : 'Not saved.' }) }
     finally { setBusy(false) }
   }
+  async function detect() {
+    if (!inputs.detectEmail) return
+    setBusy(true); setNote(null)
+    try {
+      const found = await inputs.detectEmail()
+      if (found) { setValue(found.email); setNote({ tone: 'ok', text: `Found ${found.name ? `${found.name}, ` : ''}${found.email} (${found.via} on your work items). Check it and press Save email.` }) }
+      else setNote({ tone: 'error', text: 'No work item is assigned to, created or changed by you yet, so the email could not be read. Type it instead.' })
+    } catch (failure) { setNote({ tone: 'error', text: failure instanceof Error ? failure.message : 'The email could not be read.' }) }
+    finally { setBusy(false) }
+  }
   return <form className="setup-input" onSubmit={(event) => void submit(event)}>
     <label>{meta.label}<input type={meta.secret ? 'password' : 'email'} name={meta.secret ? undefined : 'email'} autoComplete={meta.secret ? 'off' : 'email'} value={value} placeholder={meta.placeholder} disabled={disabled || busy} onChange={(event) => setValue(event.target.value)} /></label>
     <button type="submit" className="primary" disabled={disabled || busy || !value.trim()}>{busy ? 'Saving…' : meta.button}</button>
     {note && <small className={note.tone === 'error' ? 'negative' : 'muted'} role={note.tone === 'error' ? 'alert' : 'status'}>{note.text}</small>}
+    {kind === 'email' && inputs.detectEmail && <button type="button" className="ghost setup-detect" disabled={disabled || busy} onClick={() => void detect()}>{busy ? 'Reading…' : 'Detect from my token'}</button>}
     {kind === 'git-token' && inputs.gitMessage && <small className="muted">{inputs.gitMessage}</small>}
   </form>
 }

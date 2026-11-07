@@ -57,7 +57,7 @@ import { DesktopDownload } from './components/DesktopDownload'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
 import { backlogViews, loadBacklogTab, otherMenuViews, saveBacklogTab, timeWritingView } from './backlogViews'
-import { mergeAzureWorkItems } from './azureDevOps'
+import { detectWorkEmail, mergeAzureWorkItems } from './azureDevOps'
 import { formatDateTime, todayIso } from './format'
 import { HeaderSlot } from './headerSlot'
 import { SetupGuide } from './components/SetupGuide'
@@ -298,7 +298,7 @@ export default function App() {
       {access.viewingAs && <div className="view-as-banner" role="status"><span>👁 Viewing as <strong>{viewAsLabel(access.viewingAs)}</strong>{access.viewingAs.kind === 'role' ? '' : access.rights.roles.length ? ` (${access.rights.roles.join(', ')})` : ' (default role)'} — read only: nothing is saved to Azure DevOps or Git.</span><button type="button" className="ghost" onClick={() => setViewAsOpen(true)}>Change</button><button type="button" className="primary" onClick={() => setViewAs(null)}>Exit View as</button></div>}
       {viewAsOpen && <ViewAsDialog current={access.viewingAs} people={viewAsPeople(azure.items, access.policy)} onStart={(next) => { setViewAs(next); setViewAsOpen(false); setPage('mydash') }} onClose={() => setViewAsOpen(false)} />}
       <DataNotices azure={azure} onOpenConnection={openConnection} />
-      {guideOpen && <SetupGuide steps={steps} busy={azure.busy} inputs={{ connectGit: (token) => git.connect({ ...defaultGitRepository, ...git.config }, token, true), saveEmail: (email) => { azure.setCreatorEmail(email) }, savePat: (token) => { azure.rememberPat(token); azure.reloadConnectionProfiles() }, gitMessage: git.status === 'error' ? git.message : undefined }} onClose={() => setGuideOpen(false)} onDismiss={dismissGuide} onOpenTab={(tab, section) => { openSettings(tab, section); setGuideOpen(false) }} onFetch={() => void azure.refresh()} />}
+      {guideOpen && <SetupGuide steps={steps} busy={azure.busy} inputs={{ connectGit: (token) => git.connect({ ...defaultGitRepository, ...git.config }, token, true), saveEmail: (email) => { azure.setCreatorEmail(email) }, savePat: (token) => { azure.rememberPat(token); azure.reloadConnectionProfiles() }, detectEmail: () => azure.config ? detectWorkEmail(azure.config, azure.pat) : Promise.reject(new Error('Set up the Time Writing connection first.')), gitMessage: git.status === 'error' ? git.message : undefined }} onClose={() => setGuideOpen(false)} onDismiss={dismissGuide} onOpenTab={(tab, section) => { openSettings(tab, section); setGuideOpen(false) }} onFetch={() => void azure.refresh()} />}
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
       {page === 'mydash' && <MyDashboardPage month={month} azure={reportAzure} store={store} my={my} navigate={setPage} views={personalViews} canSetDefault={access.can('settings.manage')} />}

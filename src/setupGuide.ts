@@ -15,7 +15,7 @@ export interface SetupFacts {
 export type StepState = 'done' | 'todo' | 'blocked'
 // input (NAV-38): the value the step needs, entered in the pop-up itself — the Git token, your work email, your PAT.
 export type SetupInput = 'git-token' | 'email' | 'pat'
-export interface SetupStep { id: string; title: string; why: string; how: string[]; state: StepState; required: boolean; tab?: SettingsTab; section?: string; action?: 'fetch'; input?: SetupInput }
+export interface SetupStep { id: string; title: string; why: string; how: string[]; state: StepState; required: boolean; tab?: SettingsTab; section?: string; action?: 'fetch' | 'detect-email'; input?: SetupInput }
 
 export function setupSteps(facts: SetupFacts): SetupStep[] {
   const azureReady = facts.timeWriting && Boolean(facts.email) && facts.pat
@@ -30,16 +30,17 @@ export function setupSteps(facts: SetupFacts): SetupStep[] {
       how: ['Settings → Storage → Git storage.', 'The team\'s data repository is already filled in (ponkritz/DemandPlanningStorage, branch main); change it only if your team uses another.', 'Paste a GitHub fine-grained token limited to that repository (Contents: Read, or Read and write to save changes), tick “Remember token in this browser” and press Connect & load.', ...(facts.gitConnected && facts.gitReadOnly ? ['Your token can read but not save: that is enough to use the app.'] : [])],
     },
     {
-      id: 'timewriting', title: 'Check the Time Writing connection and your email', required: true, tab: 'connections', section: facts.email ? 'mapping' : 'email', ...(facts.email ? {} : { input: 'email' as const }),
-      state: facts.timeWriting && facts.email ? 'done' : 'todo',
-      why: 'The QMS-0025 Time Writing backlog is where your Features, User Stories and month Tasks live. Your email tells the app which work is yours and who new work is assigned to.',
-      how: ['Settings → Azure DevOps.', facts.gitConnected ? 'The connections from Git are already listed: open “Time Writing” and check it.' : 'Add a connection with the role Time Writing: server https://dev.azure.com, your organization, project and team.', 'Settings → Azure DevOps → Your work email: enter the email Azure DevOps shows for you and save. It is kept on this computer on its own, not in the connection.'],
+      // NAV-39: the connection and the token come before the email, so the email can be read from the token.
+      id: 'pat', title: 'Check the Time Writing connection and enter your Azure DevOps token (PAT)', required: true, tab: 'connections', section: 'servers', ...(facts.timeWriting ? { input: 'pat' as const } : {}),
+      state: facts.timeWriting && facts.pat ? 'done' : 'todo',
+      why: 'The QMS-0025 Time Writing backlog is where your Features, User Stories and month Tasks live. The app reads and updates it as you, with your own Personal Access Token; it stays in this browser only and is never saved to Git.',
+      how: [facts.gitConnected ? 'The Time Writing connection comes from Git: it is already set up.' : 'Settings → Azure DevOps: add a connection with the role Time Writing (server https://dev.azure.com, your organization, project and team).', 'In Azure DevOps: User settings → Personal access tokens → New token, scope Work Items: Read & write.', 'Paste it below and press Save PAT. One token covers every connection on that server.'],
     },
     {
-      id: 'pat', title: 'Enter your Azure DevOps token (PAT)', required: true, tab: 'connections', section: 'servers', input: 'pat',
-      state: facts.pat ? 'done' : facts.timeWriting ? 'todo' : 'blocked',
-      why: 'The app reads and updates Azure DevOps as you, with your own Personal Access Token. It stays in this browser only and is never saved to Git.',
-      how: ['In Azure DevOps: User settings → Personal access tokens → New token, scope Work Items: Read & write.', 'Settings → Azure DevOps → the dev.azure.com server → paste the token and save. One token covers every connection on that server.'],
+      id: 'email', title: 'Your work email', required: true, tab: 'connections', section: 'email', input: 'email', action: 'detect-email',
+      state: facts.email ? 'done' : facts.timeWriting && facts.pat ? 'todo' : 'blocked',
+      why: 'Your email tells the app which work is yours and who new work is assigned to. It is kept on this computer on its own, not in the connection.',
+      how: ['Press Detect from my token: the app reads it from a work item assigned to, created or changed by you in Azure DevOps.', 'Or type it — the email Azure DevOps shows for you — and press Save email.'],
     },
     {
       id: 'fetch', title: 'Fetch your data', required: true, action: 'fetch',
