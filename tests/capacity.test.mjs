@@ -259,3 +259,14 @@ test('training under the absence Epic is read from the User Story or a Training 
   assert.equal(ana.npra, 11, 'Training story 6 + Training-tagged story 3 + NPRA-tagged Task 2')
   assert.equal(ben.npra, 5, 'a Training tag counts as NPRA outside the Epic too')
 })
+
+test('CAP-33: a person removed in Resources is left out of capacity, utilization and team totals (hours too), listed apart; restore brings them back', () => {
+  assert.deepEqual(normalizeProfiles({ Ben: { removed: true }, Ana: { removed: 'yes' } }), { Ben: { removed: true } }, 'only removed: true is kept')
+  const full = capacityModel(backlog, '2026-10', settings)
+  const without = capacityModel(backlog, '2026-10', { ...settings, profiles: { Ben: { removed: true } } })
+  assert.deepEqual(without.people.map((person) => person.name), ['Ana'])
+  assert.deepEqual(without.removed, [{ name: 'Ben', tasks: 1, hours: 50 }])
+  assert.equal(without.totals.funded, full.totals.funded - 176, 'their funded hours are gone')
+  assert.equal(without.totals.work, full.totals.work - 50, 'their booked hours are gone')
+  assert.deepEqual(capacityModel(backlog, '2026-10', { ...settings, profiles: {} }).removed, [])
+})

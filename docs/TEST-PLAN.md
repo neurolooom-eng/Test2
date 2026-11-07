@@ -935,6 +935,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-08 Training read from the User Story or a tag** — Req CAP-32 — L1 `capacity.test.mjs` ("training under the absence Epic is read from the User Story or a Training / NPRA tag, not the shared Feature (TC-CAP-08)"); browser check with the QMS-0025 board: a person's Feature under the Absence and Training Epic holds "<Name> \| PTO \| Time Writing" and "<Name> \| Training \| Time Writing" — Pulse Check counts the PTO Task as absence and the Training Task as NPRA; tag a leave Task "Training" or "NPRA" and it moves to NPRA; a Task tagged "Training" in a project stream counts as NPRA.
 
+**TC-CAP-09 Remove a person; who counts in capacity** — Req CAP-33, CAP-34 — L1 `capacity.test.mjs` ("CAP-33: a person removed in Resources is left out of capacity, utilization and team totals (hours too), listed apart; restore brings them back"); E2E `shell.e2e.mjs` ("TC-CAP-09: Resources shows who counts in the month's capacity; Remove takes a person out of capacity, Restore brings them back") — **UAT**; browser check with real data: Settings → Resources shows "Capacity in <Month>: n people, X h available" and Info lists the people; remove a person who left — the count drops by one, Pulse Check → Last month and the Team overview Utilization tile no longer count them; Save to Git, reload in another browser — still removed; Restore brings them back.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1625,6 +1627,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-30 | TC-CAP-07 |
 | CAP-31 | TC-CAP-07 |
 | CAP-32 | TC-CAP-08, TC-HIS-11 |
+| CAP-33, CAP-34 | TC-CAP-09 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1786,7 +1789,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07 |
+| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07, TC-CAP-09 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |

@@ -112,13 +112,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-65 | Enter setup values in the Get started pop-up (NAV-38) | A token or email saved in the wrong place, or the user believes it was saved when it was not | The app does not connect; or a secret stored where it should not be | A second, separate save path next to Settings | 3 | 2 | 2 | 12 | The pop-up calls the same save functions as Settings (no new storage); password fields; the step's status (Done) is read from the saved state; a refusal is shown in the step (TC-NAV-38) | 3×1×1 = 3 | TC-NAV-38 | — |
 | DF-66 | Detect the work email from the PAT (NAV-39) | A wrong email is taken (e.g. a shared token, or another person's identity) | Work assigned to or shown for the wrong person | Token of another person; identity field without an email | 3 | 2 | 2 | 12 | Only @Me (the token's owner) is read; the email is shown with its source and saved only after the user confirms with Save email; it stays editable; nothing found → the user types it (TC-NAV-39) | 3×1×1 = 3 | TC-NAV-39 | — |
 | DF-67 | Token links and short steps in Get started (NAV-40) | A link points to the wrong page, or a user misses how a step works | Setup stalls; token created with the wrong scope | Wrong or outdated link typed by an admin; details hidden behind Info | 2 | 2 | 2 | 8 | https-only links with defaults to the providers' token pages; links shared through Git with history; why/how kept in each step's Info (TC-NAV-40) | 2×1×1 = 2 | TC-NAV-40 | — |
+| DF-68 | Remove a person from Resources (CAP-33) and show who counts (CAP-34) | The wrong person is removed, or a removal is forgotten, so capacity and utilization are off | Wrong team capacity in reports and the Monthly pack | A click on the wrong row; people leaving without Left on | 3 | 2 | 2 | 12 | Confirmation naming the person; Removed people list with Restore; Pulse Check names who is not counted; the capacity count and person list on Resources and the Team overview make the total checkable (TC-CAP-09) | 3×1×1 = 3 | TC-CAP-09 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 67 |
+| Failure modes analysed | 68 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

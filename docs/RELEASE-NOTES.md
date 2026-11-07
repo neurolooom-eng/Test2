@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v3.3.0 — 2026-11-07
+
+**Added**
+- **Settings → Resources → Remove**: a person can be removed (and restored under Removed people). Removed people are left out of every capacity figure — capacity, utilization and team totals, their hours too — on every page; Pulse Check names them (CAP-33).
+- **Who counts in capacity**: Settings → Resources shows "Capacity in <Month>: n people, X h available = funded − absence − common activities − NPRA", the people in its Info and an Available column; the Team overview Utilization tile and Workload by person show the number of people and their capacity (CAP-34).
+
 ## v3.2.0 — 2026-11-07
 
 **Changed**
