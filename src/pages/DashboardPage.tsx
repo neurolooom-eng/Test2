@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { EmptyState, Info, Metric, Metrics, Notice, Page, Panel, Pill, TablePanel } from '../components/ui'
 import { EpicMixChart, ParetoChart } from '../components/WorkloadCharts'
 import { epicColors, shortFeatureTitle } from '../chartUtils'
-import { capacityContext, monthlyHours, problemBreakdown, regions, resourceRoles, type Region, type ResourceRole } from '../capacity'
+import { capacityContext, capacityModel, monthlyHours, oldCalculation, problemBreakdown, regions, resourceRoles, type Region, type ResourceRole } from '../capacity'
 import { applyFilter, bandOf, byPerson, byRole, byStream, change, concentration, groupBy, noFilter, periodMonths, persistentOverload, personMonths, plannedOverload, quarterOf, rebalancing, streamTotals, totals, type Bands, type Dimension, type Period, type PersonMonth, type DashboardFilter } from '../dashboard'
 import { MultiSelect } from '../components/MultiSelect'
 import { timeWritingMonth } from '../azureInsights'
@@ -24,7 +24,7 @@ import { CustomizableSections } from '../components/PersonalLayout'
 // Definitions. Hour differences are shown without colour; colour is reserved for utilization against capacity.
 // Team overview (MYD-10…MYD-12): the overview's six tiles each open the tab that explains them; delivery counts live on
 // Pulse Check only.
-const tabs = [['overview', 'Overview'], ['capacity', 'Capacity and workload'], ['streams', 'Streams'], ['quality', 'Plan quality'], ['definitions', 'Definitions']] as const
+const tabs = [['overview', 'Overview'], ['capacity', 'Capacity and workload'], ['streams', 'Streams'], ['quality', 'Plan quality'], ['old', 'Old Calculation'], ['definitions', 'Definitions']] as const
 type Tab = typeof tabs[number][0]
 interface Saved { tab: Tab; period: Period; filter: DashboardFilter }
 const storageKey = 'demand-planning-dashboard-v3'
@@ -137,6 +137,7 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
       {saved.tab === 'capacity' && <><SummaryTab rows={rows} months={months} bands={bands} parts={['rebalancing', 'monitor']} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['forecast', 'unusual']} /><MonthsTab rows={rows} months={months} bands={bands} /><PeopleTab rows={rows} months={months} bands={bands} /></>}
       {saved.tab === 'streams' && <><StreamsTab rows={rows} months={months} items={chartItems} settings={settings} streamFiltered={saved.filter.streams.length > 0} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['momentum', 'resilience']} /></>}
       {saved.tab === 'quality' && <><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['health', 'accuracy']} /><SummaryTab rows={rows} months={months} bands={bands} parts={['horizon']} /></>}
+      {saved.tab === 'old' && <OldCalculationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} />}
       {saved.tab === 'definitions' && <DefinitionsTab hoursPerDay={settings.hoursPerDay} absenceEpicId={settings.absenceEpicId} bands={bands} />}
     </>}
   </Page>
@@ -481,6 +482,26 @@ function InsightsTab({ rows, months, today, bands, delivery, parts }: { rows: Pe
       </tbody></table></div>{unusualRows.button}</> : <EmptyState title="No unusual months." detail="Nothing differs from a person's typical month by 50% or more — or fewer than 3 elapsed months with data." />}
     </Section>}
   </NoHours>
+}
+
+// CAP-35 Old Calculation: one month, per person, every hour against the full capacity (working days employed × funded
+// hours per day) — no absence, holiday, training or NPRA deducted. Region, role and team member filters apply.
+function OldCalculationTab({ items, months, headerMonth, settings, filter, profiles, bands }: { items: AzureWorkspace['items']; months: string[]; headerMonth: string; settings: ReturnType<typeof capacityContext>; filter: DashboardFilter; profiles: Record<string, { region?: Region; role?: ResourceRole }>; bands: Bands }) {
+  const fallback = months.includes(headerMonth) ? headerMonth : months[months.length - 1]
+  const [picked, setPicked] = useState(fallback)
+  const chosen = months.includes(picked) ? picked : fallback
+  const has = <T,>(list: T[], value: T | undefined) => !list.length || (value != null && list.includes(value))
+  const model = capacityModel(items, chosen, settings)
+  const kept = { ...model, people: model.people.filter((person) => has(filter.regions, profiles[person.name]?.region) && has(filter.roles, profiles[person.name]?.role) && has(filter.people, person.name)) }
+  const { rows, totals: sum } = oldCalculation(kept)
+  const info = `Net capacity = working days in ${monthName(chosen)} the person is employed (${model.workingDays} in the month) × ${settings.hoursPerDay}h funded per day. Planned hours = every planned hour (Original Estimate): work, absence, holidays, training, NPRA and the shared time that applies to the person. Planned utilization = planned ÷ net capacity. Available = net capacity − planned (negative: planned above capacity). Status from the planned utilization: Overloaded at or above ${bands.overloadedAt}%, Has capacity below ${bands.availableBelow}%, else Balanced. Actual hours = every hour recorded (Completed Work), absence, holidays and NPRA included. Actual utilization = actual ÷ net capacity. Removed people are not counted.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
+  return <Section eyebrow="OLD CALCULATION" title={`${monthName(chosen)} · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} info={info} action={<label className="dash-select">Month<select value={chosen} onChange={(event) => setPicked(event.target.value)}>{months.map((entry) => <option key={entry} value={entry}>{monthName(entry)}</option>)}</select></label>}>
+    {!rows.length ? <EmptyState title={`No Time Writing data for ${monthName(chosen)}.`} detail="Choose another month or change the filters." /> : <div className="azure-table"><table aria-label="Old Calculation">
+      <thead><tr><th>Person</th><th className="num">Net Capacity (h)</th><th className="num">Planned Hours</th><th className="num">Planned Utilisation</th><th className="num">Available Hours</th><th>Status</th><th className="num">Actual Hours</th><th className="num">Actual Utilisation</th></tr></thead>
+      <tbody>{rows.map((row) => <tr key={row.name}><td>{row.name}</td><td className="num">{formatHours(row.netCapacity)}</td><td className="num">{formatHours(row.planned)}</td><td className="num"><Util value={row.plannedUtilization} bands={bands} /></td><td className="num">{row.available < 0 ? '−' : ''}{formatHours(Math.abs(row.available))}</td><td>{row.status}</td><td className="num">{formatHours(row.actual)}</td><td className="num"><Util value={row.actualUtilization} bands={bands} /></td></tr>)}</tbody>
+      <tfoot><tr><th>Total</th><th className="num">{formatHours(sum.netCapacity)}</th><th className="num">{formatHours(sum.planned)}</th><th className="num"><Util value={sum.plannedUtilization} bands={bands} /></th><th className="num">{sum.available < 0 ? '−' : ''}{formatHours(Math.abs(sum.available))}</th><th /><th className="num">{formatHours(sum.actual)}</th><th className="num"><Util value={sum.actualUtilization} bands={bands} /></th></tr></tfoot>
+    </table></div>}
+  </Section>
 }
 
 function DefinitionsTab({ hoursPerDay, absenceEpicId, bands }: { hoursPerDay: number; absenceEpicId: number; bands: Bands }) {

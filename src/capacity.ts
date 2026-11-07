@@ -94,6 +94,9 @@ export interface PersonLoad {
   name: string; employedDays: number; funded: number; absence: number; absenceByKind: Record<AbsenceKind, number>; reserved: number; available: number
   npra: number; npraPlanned: number; npraTasks: number; npraAllowance: number; npraOver: number; npraDeducted: number
   work: number; planned: number; utilization: number | null; plannedUtilization: number | null; status: LoadStatus; tasks: number; streams: StreamLoad[]
+  // CAP-35 (Old Calculation): every hour of the person — work, absence, holidays, training, NPRA and the shared time
+  // that applies to them — planned (Original Estimate) and actual (Completed Work).
+  allPlanned: number; allActual: number
 }
 export interface StreamSummary extends StreamLoad { people: number; features: number; share: number | null }
 
@@ -201,7 +204,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const streams = new Map<string, StreamSummary & { names: Set<string>; featureKeys: Set<string> }>()
   const emptyKinds = (): Record<AbsenceKind, number> => ({ 'PTO': 0, 'Sick Leave': 0, 'Unplanned Leave': 0, 'Public holiday': 0, 'Other absence': 0 })
   // Shared time (holidays, common activities): hours per mapped Epic / Feature, applied to the people in scope below.
-  const shared = new Map<number | string, SharedTimeRule & { source: AzureWorkItem; hours: number; tasks: number }>()
+  const shared = new Map<number | string, SharedTimeRule & { source: AzureWorkItem; hours: number; actual: number; tasks: number }>()
   for (const task of monthlyTasks) {
     const chain = ancestors(task)
     const epic = chain.find(item => item.workItemType === 'Epic')
@@ -213,8 +216,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       const mapped = sharedTimeOf(task, chain, settings)
       const kind: SharedTimeKind = mapped?.kind ?? (epic?.id === settings.absenceEpicId && !isTrainingWork(task, chain) ? 'holiday' : 'activity')
       const id = feature?.id ?? task.id, key = `history:${id}:${group}`
-      const entry = shared.get(key) ?? { id, kind, scope: group, source: feature ?? task, hours: 0, tasks: 0 }
-      entry.hours += hours(task.completedWork) || hours(task.originalEstimate); entry.tasks += 1
+      const entry = shared.get(key) ?? { id, kind, scope: group, source: feature ?? task, hours: 0, actual: 0, tasks: 0 }
+      entry.hours += hours(task.completedWork) || hours(task.originalEstimate); entry.actual += hours(task.completedWork); entry.tasks += 1
       shared.set(key, entry); continue
     }
     const rule = sharedTimeOf(task, chain, settings)
@@ -222,8 +225,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     // counts for that person only, never added up and spread over everyone in scope like an Azure DevOps booking.
     const ownShare = rule && task.organization === 'history' && task.id < 0 ? rule : undefined
     if (rule && !ownShare) {
-      const entry = shared.get(rule.id) ?? { ...rule, hours: 0, tasks: 0 }
-      entry.hours += hours(task.originalEstimate) || hours(task.completedWork) || settings.hoursPerDay; entry.tasks += 1
+      const entry = shared.get(rule.id) ?? { ...rule, hours: 0, actual: 0, tasks: 0 }
+      entry.hours += hours(task.originalEstimate) || hours(task.completedWork) || settings.hoursPerDay; entry.actual += hours(task.completedWork); entry.tasks += 1
       shared.set(rule.id, entry); continue
     }
     const name = task.assignedTo || feature?.assignedTo || 'Unassigned'
@@ -235,9 +238,10 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const days = employedDays(month, employment)
     if (!days) { const entry = outside.get(name) ?? { name, tasks: 0, hours: 0, joinedOn: employment.joinedOn, leftOn: employment.leftOn }; entry.tasks += 1; entry.hours += hours(task.completedWork); outside.set(name, entry); continue }
     const personFunded = days * settings.hoursPerDay
-    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, streamMap: new Map() }
+    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, allPlanned: 0, allActual: 0, streamMap: new Map() }
     people.set(name, person)
     const work = hours(task.completedWork), planned = hours(task.originalEstimate)
+    person.allPlanned += planned; person.allActual += work
     if (ownShare) {
       const own = work || planned
       if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own } else person.reserved += own
@@ -263,8 +267,9 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     for (const person of inside) {
       if (entry.kind === 'holiday') { person.absence += entry.hours; person.absenceByKind['Public holiday'] += entry.hours }
       else person.reserved += entry.hours
+      person.allPlanned += entry.hours; person.allActual += entry.actual
     }
-    const { source, ...rule } = entry
+    const { source, actual: _actual, ...rule } = entry
     return { ...rule, title: rule.label || source.title, item: source, people: inside.length }
   }).sort((a, b) => a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title))
   // Regional holidays by region (kept for the Resources summary).
@@ -421,4 +426,20 @@ export function resourceRows(timeWriting: AzureResource[], assignees: string[], 
   for (const name of historyPeople) add(name, 'history')
   for (const [name, profile] of Object.entries(profiles)) add(name, profile.listed === 'team' ? 'team' : profile.listed === 'added' ? 'added' : 'profile')
   return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// CAP-35 Old Calculation (Team overview tab): per person for one month, every hour counted against the full capacity.
+// Net capacity = working days employed × funded hours per day; planned hours = all planned hours (work, absence,
+// holidays, training, NPRA, shared time); available = net capacity − planned (negative when planned above capacity);
+// status from the planned utilization in the Settings bands; actual hours = all hours recorded.
+export interface OldCalculationRow { name: string; netCapacity: number; planned: number; plannedUtilization: number | null; available: number; status: LoadStatus; actual: number; actualUtilization: number | null }
+export function oldCalculation(model: CapacityModel): { rows: OldCalculationRow[]; totals: Omit<OldCalculationRow, 'name' | 'status'> } {
+  const round = (value: number) => Math.round(value * 100) / 100
+  const rows = model.people.filter((person) => person.name !== 'Unassigned').map((person) => {
+    const plannedUtilization = person.allPlanned > 0 ? percent(person.allPlanned, person.funded) : null
+    return { name: person.name, netCapacity: round(person.funded), planned: round(person.allPlanned), plannedUtilization, available: round(person.funded - person.allPlanned), status: loadStatus(plannedUtilization, model.settings), actual: round(person.allActual), actualUtilization: person.allActual > 0 ? percent(person.allActual, person.funded) : null }
+  }).sort((a, b) => a.name.localeCompare(b.name))
+  const sum = (key: 'netCapacity' | 'planned' | 'actual') => round(rows.reduce((total, row) => total + row[key], 0))
+  const netCapacity = sum('netCapacity'), planned = sum('planned'), actual = sum('actual')
+  return { rows, totals: { netCapacity, planned, plannedUtilization: percent(planned, netCapacity), available: round(netCapacity - planned), actual, actualUtilization: percent(actual, netCapacity) } }
 }
