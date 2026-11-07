@@ -40,7 +40,8 @@ export const absenceKinds: AbsenceKind[] = ['PTO', 'Sick Leave', 'Unplanned Leav
 // after leaving gives them no capacity and leaves them out of the head-count; a month they join or leave in is prorated.
 export const resourceRoles = ['QE', 'QMS', 'CAPA', 'Lead', 'Manager'] as const
 export type ResourceRole = typeof resourceRoles[number]
-export interface ResourceProfile { region?: Region; role?: ResourceRole; reportsTo?: string; peopleManager?: boolean; joinedOn?: string; leftOn?: string; listed?: 'team' | 'added' }
+// removed (CAP-33): taken out of Settings → Resources and out of every capacity figure (their hours too); restorable.
+export interface ResourceProfile { region?: Region; role?: ResourceRole; reportsTo?: string; peopleManager?: boolean; joinedOn?: string; leftOn?: string; listed?: 'team' | 'added'; removed?: boolean }
 const isDay = (value: unknown): value is string => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().startsWith(value)
 
 export function normalizeProfiles(value: unknown): Record<string, ResourceProfile> {
@@ -57,6 +58,7 @@ export function normalizeProfiles(value: unknown): Record<string, ResourceProfil
     if (isDay(input.joinedOn)) profile.joinedOn = input.joinedOn
     if (isDay(input.leftOn) && !(profile.joinedOn && input.leftOn < profile.joinedOn)) profile.leftOn = input.leftOn
     if (input.listed === 'team' || input.listed === 'added') profile.listed = input.listed
+    if (input.removed === true) profile.removed = true
     if (Object.keys(profile).length) result[name] = profile
   }
   return result
@@ -190,6 +192,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const funded = workingDays(month) * settings.hoursPerDay
   const profiles = settings.profiles ?? {}
   const outside = new Map<string, { name: string; tasks: number; hours: number; joinedOn?: string; leftOn?: string }>()
+  const removedPeople = new Map<string, { name: string; tasks: number; hours: number }>()
   // A person's own Joined on wins; without one, the default Joined on of the settings applies.
   const employmentOf = (name: string) => ({ joinedOn: profiles[name]?.joinedOn ?? (settings.defaultJoinedOn || undefined), leftOn: profiles[name]?.leftOn })
   // Settings read before the NPRA allowance existed (or built by hand) take the default allowance.
@@ -224,6 +227,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       shared.set(rule.id, entry); continue
     }
     const name = task.assignedTo || feature?.assignedTo || 'Unassigned'
+    // CAP-33: a person removed in Settings → Resources is not counted — no capacity, no hours; listed apart.
+    if (profiles[name]?.removed) { const entry = removedPeople.get(name) ?? { name, tasks: 0, hours: 0 }; entry.tasks += 1; entry.hours += hours(task.completedWork); removedPeople.set(name, entry); continue }
     // Employed on no working day of the month (joined later or left earlier): no capacity, not counted; the hours
     // booked are listed apart (outsideEmployment) so they can be checked.
     const employment = employmentOf(name)
@@ -278,7 +283,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const available = Math.max(0, totals.funded - totals.absence - totals.reserved - totals.npraDeducted)
   const absenceByKind = personList.reduce((kinds, person) => { for (const kind of absenceKinds) kinds[kind] += person.absenceByKind[kind]; return kinds }, emptyKinds())
   return {
-    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, outsideEmployment: [...outside.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
+    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, outsideEmployment: [...outside.values()], removed: [...removedPeople.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
     totals: { ...totals, available, absenceByKind, utilization: personList.some(person => person.tasks) ? percent(totals.work, available) : null },
     counts: { npraOver: personList.filter(person => person.npraOver > 0).length, overloaded: personList.filter(person => person.status === 'Overloaded').length, balanced: personList.filter(person => person.status === 'Balanced').length, hasCapacity: personList.filter(person => person.status === 'Has capacity').length, noBookings: personList.filter(person => person.status === 'No bookings').length },
   }
