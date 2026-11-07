@@ -161,6 +161,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 | SM-48 | Get started on a failed fetch (NAV-41): the error text from Azure DevOps is shown as text in the pop-up (React escapes it, no HTML); the token is never shown or logged; the new token is saved as in Settings (this browser only). | NAV-41 | TC-NAV-41 |
 | SM-49 | Work Task from My Activities (ACT-17): one create-child (validate first, then create) and one add-comment to dev.azure.com with the user's own PAT; on-premises servers stay read-only; title, description and comment are sent as text and shown escaped by React. | ACT-17 | TC-ACT-13 |
 | SM-50 | Standard Hours breakup (CAP-36): edited only by roles with *Manage shared settings*; labels (80 characters) and hours (0–744, at most 20 lines) are normalised when read and saved, shown as text (React escapes them); stored with the capacity settings in the planning data in Git, with an audit entry; no credentials involved. | CAP-36 | TC-CAP-11 |
+| SM-51 | Old Calculation shared-time groups (CAP-37): changed only by roles with *Manage shared settings*; read back as a list limited to the known groups (All, India, Netherlands, US), unknown values dropped; kept with the capacity settings in Git with an audit entry; no credentials involved. | CAP-37 | TC-CAP-12 |
 
 ## 5. Re-assessment
 
