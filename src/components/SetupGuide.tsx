@@ -1,12 +1,47 @@
+import { useState } from 'react'
 import { Modal, Pill } from './ui'
-import type { SetupStep } from '../setupGuide'
+import type { SetupInput, SetupStep } from '../setupGuide'
 import type { SettingsTab } from '../settingsTabs'
 
 // The "Get started" pop-up: each setup step with its live status, why it matters, how to do it, and a button that
 // opens the right place. Dismissing it keeps it closed in this browser; the top-bar button reopens it.
+// NAV-38: the values a step needs (the Git token, your work email, your Azure DevOps PAT) can be entered right here;
+// each is saved exactly as its Settings page saves it (tokens in this browser only, never in Git).
+export interface SetupInputs { connectGit: (token: string) => Promise<void>; saveEmail: (email: string) => void; savePat: (pat: string) => void; gitMessage?: string }
+const inputLabel: Record<SetupInput, { label: string; placeholder: string; button: string; secret: boolean }> = {
+  'git-token': { label: 'GitHub token', placeholder: 'github_pat_… (fine-grained, this repository only)', button: 'Connect & load', secret: true },
+  email: { label: 'Your work email', placeholder: 'name@company.com — as Azure DevOps shows it', button: 'Save email', secret: false },
+  pat: { label: 'Azure DevOps PAT', placeholder: 'Work Items: Read & write — kept in this browser only', button: 'Save PAT', secret: true },
+}
+function StepInput({ kind, disabled, inputs }: { kind: SetupInput; disabled: boolean; inputs: SetupInputs }) {
+  const [value, setValue] = useState('')
+  const [note, setNote] = useState<{ tone: 'error' | 'ok'; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const meta = inputLabel[kind]
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    const clean = value.trim()
+    if (!clean) return
+    if (kind === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) { setNote({ tone: 'error', text: 'Enter an email address.' }); return }
+    setBusy(true); setNote(null)
+    try {
+      if (kind === 'git-token') await inputs.connectGit(clean)
+      else if (kind === 'email') inputs.saveEmail(clean)
+      else inputs.savePat(clean)
+      setValue(''); setNote({ tone: 'ok', text: kind === 'git-token' ? 'Connecting… the step turns Done when the shared setup is loaded.' : 'Saved in this browser.' })
+    } catch (failure) { setNote({ tone: 'error', text: failure instanceof Error ? failure.message : 'Not saved.' }) }
+    finally { setBusy(false) }
+  }
+  return <form className="setup-input" onSubmit={(event) => void submit(event)}>
+    <label>{meta.label}<input type={meta.secret ? 'password' : 'email'} autoComplete="off" value={value} placeholder={meta.placeholder} disabled={disabled || busy} onChange={(event) => setValue(event.target.value)} /></label>
+    <button type="submit" className="primary" disabled={disabled || busy || !value.trim()}>{busy ? 'Saving…' : meta.button}</button>
+    {note && <small className={note.tone === 'error' ? 'negative' : 'muted'} role={note.tone === 'error' ? 'alert' : 'status'}>{note.text}</small>}
+    {kind === 'git-token' && inputs.gitMessage && <small className="muted">{inputs.gitMessage}</small>}
+  </form>
+}
 const stateLabel = { done: 'Done', todo: 'To do', blocked: 'After the step above' } as const
 const stateTone = { done: 'open', todo: 'warning', blocked: 'neutral' } as const
-export function SetupGuide({ steps, busy, onOpenTab, onFetch, onClose, onDismiss }: { steps: SetupStep[]; busy: boolean; onOpenTab: (tab: SettingsTab, section?: string) => void; onFetch: () => void; onClose: () => void; onDismiss: () => void }) {
+export function SetupGuide({ steps, busy, inputs, onOpenTab, onFetch, onClose, onDismiss }: { steps: SetupStep[]; busy: boolean; inputs?: SetupInputs; onOpenTab: (tab: SettingsTab, section?: string) => void; onFetch: () => void; onClose: () => void; onDismiss: () => void }) {
   const required = steps.filter((step) => step.required), optional = steps.filter((step) => !step.required)
   const doneCount = required.filter((step) => step.state === 'done').length
   const next = steps.find((step) => step.state === 'todo')
@@ -15,8 +50,9 @@ export function SetupGuide({ steps, busy, onOpenTab, onFetch, onClose, onDismiss
     {step.state !== 'done' && <>
       <p className="muted">{step.why}</p>
       <ol className="setup-how">{step.how.map((line) => <li key={line}>{line}</li>)}</ol>
+      {step.input && inputs && <StepInput kind={step.input} disabled={step.state === 'blocked'} inputs={inputs} />}
       <div className="button-row">
-        {step.tab && <button type="button" className={step === next ? 'primary' : 'ghost'} disabled={step.state === 'blocked'} onClick={() => onOpenTab(step.tab!, step.section)}>Open {step.tab === 'storage' ? 'Storage' : step.tab === 'resources' ? 'Resources' : 'Azure DevOps'} settings</button>}
+        {step.tab && <button type="button" className={step === next && !(step.input && inputs) ? 'primary' : 'ghost'} disabled={step.state === 'blocked'} onClick={() => onOpenTab(step.tab!, step.section)}>{step.input && inputs ? 'Or open' : 'Open'} {step.tab === 'storage' ? 'Storage' : step.tab === 'resources' ? 'Resources' : 'Azure DevOps'} settings</button>}
         {step.action === 'fetch' && <button type="button" className={step === next ? 'primary' : 'ghost'} disabled={step.state === 'blocked' || busy} onClick={onFetch}>{busy ? 'Fetching…' : 'Fetch now'}</button>}
       </div>
     </>}

@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v3.1.0 — 2026-11-07
+
+**Added**
+- **Get started** (first-time setup) feedback: the pop-up now has a field for each value a step needs — the GitHub token (Connect & load), your work email (Save email) and your Azure DevOps PAT (Save PAT) — next to the button that opens the settings. Each is saved in this browser exactly as its Settings page saves it, never in Git (NAV-38).
+
 ## v3.0.0 — 2026-11-07
 
 **Changed** (shared setup and the way people work)
