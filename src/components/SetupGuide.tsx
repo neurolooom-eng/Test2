@@ -6,7 +6,8 @@ import type { SettingsTab } from '../settingsTabs'
 // The "Get started" pop-up: each setup step with its live status, why it matters, how to do it, and a button that
 // opens the right place. Dismissing it keeps it closed in this browser; the top-bar button reopens it.
 // NAV-38: the values a step needs (the Git token, your work email, your Azure DevOps PAT) can be entered right here;
-// each is saved exactly as its Settings page saves it (tokens in this browser only, never in Git).
+// each is saved exactly as its Settings page saves it (tokens in this browser only, never in Git). The email field
+// lets the browser suggest the address it has saved (autocomplete "email"), as Settings → Your work email does.
 export interface SetupInputs { connectGit: (token: string) => Promise<void>; saveEmail: (email: string) => void; savePat: (pat: string) => void; gitMessage?: string }
 const inputLabel: Record<SetupInput, { label: string; placeholder: string; button: string; secret: boolean }> = {
   'git-token': { label: 'GitHub token', placeholder: 'github_pat_… (fine-grained, this repository only)', button: 'Connect & load', secret: true },
@@ -33,7 +34,7 @@ function StepInput({ kind, disabled, inputs }: { kind: SetupInput; disabled: boo
     finally { setBusy(false) }
   }
   return <form className="setup-input" onSubmit={(event) => void submit(event)}>
-    <label>{meta.label}<input type={meta.secret ? 'password' : 'email'} autoComplete="off" value={value} placeholder={meta.placeholder} disabled={disabled || busy} onChange={(event) => setValue(event.target.value)} /></label>
+    <label>{meta.label}<input type={meta.secret ? 'password' : 'email'} name={meta.secret ? undefined : 'email'} autoComplete={meta.secret ? 'off' : 'email'} value={value} placeholder={meta.placeholder} disabled={disabled || busy} onChange={(event) => setValue(event.target.value)} /></label>
     <button type="submit" className="primary" disabled={disabled || busy || !value.trim()}>{busy ? 'Saving…' : meta.button}</button>
     {note && <small className={note.tone === 'error' ? 'negative' : 'muted'} role={note.tone === 'error' ? 'alert' : 'status'}>{note.text}</small>}
     {kind === 'git-token' && inputs.gitMessage && <small className="muted">{inputs.gitMessage}</small>}
