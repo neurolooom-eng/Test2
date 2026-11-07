@@ -63,7 +63,7 @@ test('TC-NAV-33: a new browser gets the Get started pop-up; dismissing it keeps 
   assert.equal(await dialog.getByLabel('GitHub token').count(), 1, 'the Git token can be entered here')
   assert.equal(await dialog.getByLabel('Azure DevOps PAT').getAttribute('type'), 'password', 'the PAT can be entered here, hidden')
   // NAV-39: Git, then the connection and token, then the email (with Detect from my token), then Fetch.
-  assert.match(await text(dialog), /Connect Git storage.*Azure DevOps token \(PAT\).*Your work email.*Fetch data.*Region and role.*TFS APAC settings \[DP\/CP\/IOCC\/Content\]/)
+  assert.match(await text(dialog), /Connect Git storage.*Azure DevOps token \(PAT\) \[QMS-0025\].*Your work email.*Fetch data.*Region and role.*TFS APAC settings \[DP\/CP\/IOCC\/Content\]/)
   // NAV-40: short steps; why and how are in each step's Info; each token step links to where the token is created.
   assert.doesNotMatch(await text(dialog), /Personal access tokens → New token/, 'the how-to is behind Info, not on the page')
   assert.equal(await dialog.getByRole('link', { name: /Create a GitHub token/ }).getAttribute('href'), 'https://github.com/settings/personal-access-tokens/new')

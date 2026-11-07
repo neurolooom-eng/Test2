@@ -31,7 +31,7 @@ export function setupSteps(facts: SetupFacts): SetupStep[] {
     },
     {
       // NAV-39: the connection and the token come before the email, so the email can be read from the token.
-      id: 'pat', title: 'Azure DevOps token (PAT)', required: true, tab: 'connections', section: 'servers', link: 'azure', ...(facts.timeWriting ? { input: 'pat' as const } : {}),
+      id: 'pat', title: 'Azure DevOps token (PAT) [QMS-0025]', required: true, tab: 'connections', section: 'servers', link: 'azure', ...(facts.timeWriting ? { input: 'pat' as const } : {}),
       state: facts.timeWriting && facts.pat ? 'done' : 'todo',
       why: 'The QMS-0025 Time Writing backlog is where your Features, User Stories and month Tasks live. The app reads and updates it as you, with your own Personal Access Token; it stays in this browser only and is never saved to Git.',
       how: [facts.gitConnected ? 'The Time Writing connection comes from Git: it is already set up.' : 'Settings → Azure DevOps: add a connection with the role Time Writing (server https://dev.azure.com, your organization, project and team).', 'In Azure DevOps: User settings → Personal access tokens → New token, scope Work Items: Read & write.', 'Paste it below and press Save PAT. One token covers every connection on that server.'],

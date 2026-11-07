@@ -6,7 +6,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 **Changed**
 - **Get started**: the work email is now the third step, after the Time Writing connection and your token (PAT). **Detect from my token** reads your email from a work item assigned to, created or changed by you in Azure DevOps (read-only, with your own token); you check it and press Save email. Typing it still works (NAV-39).
-- **Get started is short**: each step shows its title, status, field and buttons only; why and how are in its **Info**. Step 6 is renamed **TFS APAC settings [DP/CP/IOCC/Content]**. Each token step links to where the token is created (GitHub, Azure DevOps, TFS APAC); an Admin can set those links in the pop-up under Token links (admin), shared in Git with the planning data (NAV-40).
+- **Get started is short**: each step shows its title, status, field and buttons only; why and how are in its **Info**. Step 2 is **Azure DevOps token (PAT) [QMS-0025]**; step 6 is renamed **TFS APAC settings [DP/CP/IOCC/Content]**. Each token step links to where the token is created (GitHub, Azure DevOps, TFS APAC); an Admin can set those links in the pop-up under Token links (admin), shared in Git with the planning data (NAV-40).
 
 ## v3.1.1 — 2026-11-07
 
