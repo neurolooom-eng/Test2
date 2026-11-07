@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { completeFeatureFromSetup, createFeatureFromSetup, createUserStory, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, releaseClassifications, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
+import { completeFeatureFromSetup, createFeatureFromSetup, addUserStory, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, releaseClassifications, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
 import { Modal, Info } from './ui'
 import { PersonPicker } from './PersonPicker'
 import { assignablePeople } from '../myWork'
@@ -51,7 +51,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const [pat, setPat] = useState(savedPat)
   const [creating, setCreating] = useState(false)
   // BKL-25: a User Story of the person's own (title, description) created under the new Feature, in the Sprint chosen.
-  const [ownStory, setOwnStory] = useState({ title: '', description: '' })
+  const [ownStory, setOwnStory] = useState({ title: '', description: '', comment: '' })
   const submitting = useRef(false)
   const [error, setError] = useState('')
   const pairs = currentIterationPairs(iterationChoices)
@@ -139,13 +139,13 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
         if (task && feature.taskCompletedWork != null) { const updated = await updateAzureTimeWritingEffort(config, token, task.id, undefined, feature.taskCompletedWork); bundle = { ...bundle, items: bundle.items.map((item) => item.id === task.id ? updated : item) } }
       } else bundle = resumeFeature ? await completeReleaseHierarchy(config, token, resumeFeature.id, releaseKind, milestones, monthLabel, undefined, sprintPath, assignee, reviewStory, adhoc) : await createAzureReleaseHierarchy(config, token, feature, releaseKind, milestones, monthLabel, undefined, reviewStory, adhoc)
       let storyText = ''
-      const own = { title: ownStory.title.trim(), description: ownStory.description.trim() }
+      const own = { title: ownStory.title.trim(), description: ownStory.description.trim(), comment: ownStory.comment.trim() }
       if (!resumeFeature && own.title) {
         try {
           progress('Adding your User Story…')
-          const story = await createUserStory(config, token, { parentId: bundle.feature.id, title: own.title, description: own.description, acceptanceCriteria: '', iterationPath: sprintPath, assignedTo: assignee })
+          const { story, commentError } = await addUserStory(config, token, { parentId: bundle.feature.id, title: own.title, description: own.description, acceptanceCriteria: '', iterationPath: sprintPath, assignedTo: assignee, comment: own.comment })
           bundle = { ...bundle, items: [...bundle.items, story] }
-          storyText = ` Your User Story #${story.id} “${story.title}” was added.`
+          storyText = ` Your User Story #${story.id} “${story.title}” was added${own.comment && !commentError ? ', with your comment' : ''}.${commentError ? ` Its comment could not be added (${commentError}).` : ''}`
         } catch (failure) { storyText = ` Your User Story could not be added (${failure instanceof Error ? failure.message : 'failed'}); add it with New User Story.` }
       }
       onCreated?.(parent ? [parent, ...bundle.items] : bundle.items)
@@ -228,6 +228,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
         {!resumeFeature && <fieldset className="milestone-choices nf-own-story" disabled={creating}><legend>Your own User Story <small className="muted">(optional)</small></legend>
           <label>User Story title<input value={ownStory.title} maxLength={255} placeholder="Leave empty for none" onChange={(event) => setOwnStory((current) => ({ ...current, title: event.target.value }))} /></label>
           <label>User Story description<textarea value={ownStory.description} rows={2} placeholder="What needs to be done, and why" onChange={(event) => setOwnStory((current) => ({ ...current, description: event.target.value }))} /></label>
+          <label>Comment <small className="muted">(optional, added to its Discussion)</small><textarea value={ownStory.comment} rows={2} onChange={(event) => setOwnStory((current) => ({ ...current, comment: event.target.value }))} /></label>
           <small className="muted">Created under the new Feature in the Sprint chosen, assigned like the Feature.</small>
         </fieldset>}
         <p className="info-line"><Info label="Paths and assignment">Feature → {resumeFeature ? resumeFeature.iterationPath : iterationPath || 'the PI chosen'}. Optional User Stories → {sprintPath || 'the Sprint chosen'}. Time Writing story and Task → {epicSetup?.timeWritingStory.iterationPath || config.project}, never the Sprint. Area: the Feature and its User Stories take the Epic’s Area Path; the Time Writing story and Task the setup’s, else the Feature’s. Every new item is assigned to {assignee || 'the person chosen'}. {month ? `Time Writing month: ${monthLabel}.` : 'Current date uses India time.'}</Info></p>
