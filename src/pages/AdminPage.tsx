@@ -130,8 +130,8 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     const next = normalizeCapacitySettings({ absenceEpicId: data.get('absenceEpicId'), hoursPerDay: data.get('hoursPerDay'), overloadedAt: data.get('overloadedAt'), availableBelow: data.get('availableBelow'), npraHoursPerMonth: data.get('npraHoursPerMonth') })
     const now = new Date().toISOString()
     store.update((draft) => {
-      // The holiday and activity mappings and the default Joined on are kept: this form edits the numbers only.
-      draft.capacitySettings = normalizeCapacitySettings({ ...next, sharedTime: normalizeCapacitySettings(draft.capacitySettings).sharedTime, defaultJoinedOn: normalizeCapacitySettings(draft.capacitySettings).defaultJoinedOn })
+      // The holiday and activity mappings, the default Joined on and the Standard Hours (CAP-36) are kept: this form edits the numbers only.
+      draft.capacitySettings = normalizeCapacitySettings({ ...next, sharedTime: normalizeCapacitySettings(draft.capacitySettings).sharedTime, defaultJoinedOn: normalizeCapacitySettings(draft.capacitySettings).defaultJoinedOn, standardHours: normalizeCapacitySettings(draft.capacitySettings).standardHours })
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'capacity', detail: `Absence Epic #${next.absenceEpicId}, ${next.hoursPerDay}h/day, overloaded ≥ ${next.overloadedAt}%, capacity < ${next.availableBelow}%, NPRA ${next.npraHoursPerMonth}h/month` })
       return draft
     })

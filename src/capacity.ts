@@ -21,8 +21,23 @@ export interface SharedTimeRule { id: number; kind: SharedTimeKind; scope: Share
 // capacity (CAP-15).
 // Month locks (MON-06, MON-07, MON-21…MON-24): each month's plan and actuals lock dates (YYYY-MM-DD, the day itself still
 // open), an early lock per month, and the reason and who changed it — kept with the capacity settings in Git.
+// CAP-36: hours every person keeps for standard activities, deducted from the Old Calculation Net Capacity; the total
+// is the sum of the breakup lines (one set for everyone and every month, shared in Git with the capacity settings).
+export interface StandardHourLine { label: string; hours: number }
+export const defaultStandardHours: StandardHourLine[] = [{ label: 'Standard hours', hours: 32 }]
+export function normalizeStandardHours(value: unknown): StandardHourLine[] {
+  if (!Array.isArray(value)) return defaultStandardHours.map((line) => ({ ...line }))
+  return value.slice(0, 20).flatMap((raw) => {
+    const entry = (raw && typeof raw === 'object' ? raw : {}) as { label?: unknown; hours?: unknown }
+    const hours = Number(entry.hours)
+    if (!Number.isFinite(hours) || hours < 0 || hours > 744) return []
+    const label = typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim().slice(0, 80) : 'Standard hours'
+    return [{ label, hours: Math.round(hours * 100) / 100 }]
+  })
+}
+export const standardHoursTotal = (lines: StandardHourLine[] | undefined) => Math.round((lines ?? defaultStandardHours).reduce((sum, line) => sum + line.hours, 0) * 100) / 100
 export interface MonthLock { planOn?: string; actualsOn?: string; planLocked?: boolean; actualsLocked?: boolean; reason?: string; updatedAt?: string; updatedBy?: string }
-export interface CapacitySettings { planLockDay?: number; actualsLockDay?: number; monthLocks?: Record<string, MonthLock>; absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; profiles?: Record<string, ResourceProfile> }
+export interface CapacitySettings { planLockDay?: number; actualsLockDay?: number; monthLocks?: Record<string, MonthLock>; absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; standardHours?: StandardHourLine[]; profiles?: Record<string, ResourceProfile> }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, defaultJoinedOn: '2026-05-01' }
 export const npraTag = /^(npra|trainings?)\b/i
 export const isNpra = (item: Pick<AzureWorkItem, 'tags'>) => (item.tags ?? '').split(';').some((tag) => npraTag.test(tag.trim()))
@@ -109,7 +124,9 @@ export function normalizeCapacitySettings(value: unknown): CapacitySettings {
   const sharedTime = normalizeSharedTime((value as { sharedTime?: unknown } | null)?.sharedTime)
   const settings = { absenceEpicId: Math.trunc(number('absenceEpicId', 1)), hoursPerDay: number('hoursPerDay', 0.25), overloadedAt: number('overloadedAt', 1), availableBelow: number('availableBelow', 0), npraHoursPerMonth: number('npraHoursPerMonth', 0), defaultJoinedOn: defaultJoinedOf((value as { defaultJoinedOn?: unknown } | null)?.defaultJoinedOn), ...(sharedTime.length ? { sharedTime } : {}) }
   const locks = normalizeLocks(value)
-  const withLocks = { ...settings, ...locks }
+  // CAP-36: kept only once set (an empty breakup is 0 h); without one the default 32 h applies.
+  const standard = (value as { standardHours?: unknown } | null)?.standardHours
+  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}) }
   return withLocks.availableBelow < withLocks.overloadedAt ? withLocks : { ...withLocks, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
 }
 const lockDay = (value: unknown) => { const day = Number(value); return Number.isInteger(day) && day >= 1 && day <= 28 ? day : undefined }
@@ -432,14 +449,17 @@ export function resourceRows(timeWriting: AzureResource[], assignees: string[], 
 // Net capacity = working days employed × funded hours per day; planned hours = all planned hours (work, absence,
 // holidays, training, NPRA, shared time); available = net capacity − planned (negative when planned above capacity);
 // status from the planned utilization in the Settings bands; actual hours = all hours recorded.
-export interface OldCalculationRow { name: string; netCapacity: number; planned: number; plannedUtilization: number | null; available: number; status: LoadStatus; actual: number; actualUtilization: number | null }
-export function oldCalculation(model: CapacityModel): { rows: OldCalculationRow[]; totals: Omit<OldCalculationRow, 'name' | 'status'> } {
+export interface OldCalculationRow { name: string; funded: number; netCapacity: number; planned: number; plannedUtilization: number | null; available: number; status: LoadStatus; actual: number; actualUtilization: number | null }
+export function oldCalculation(model: CapacityModel): { rows: OldCalculationRow[]; standardHours: number; totals: Omit<OldCalculationRow, 'name' | 'status'> } {
   const round = (value: number) => Math.round(value * 100) / 100
+  // CAP-36: Net Capacity = working days employed × funded hours per day − Standard Hours (never below 0).
+  const standardHours = standardHoursTotal(model.settings.standardHours)
   const rows = model.people.filter((person) => person.name !== 'Unassigned').map((person) => {
-    const plannedUtilization = person.allPlanned > 0 ? percent(person.allPlanned, person.funded) : null
-    return { name: person.name, netCapacity: round(person.funded), planned: round(person.allPlanned), plannedUtilization, available: round(person.funded - person.allPlanned), status: loadStatus(plannedUtilization, model.settings), actual: round(person.allActual), actualUtilization: person.allActual > 0 ? percent(person.allActual, person.funded) : null }
+    const net = Math.max(0, person.funded - standardHours)
+    const plannedUtilization = person.allPlanned > 0 ? percent(person.allPlanned, net) : null
+    return { name: person.name, funded: round(person.funded), netCapacity: round(net), planned: round(person.allPlanned), plannedUtilization, available: round(net - person.allPlanned), status: loadStatus(plannedUtilization, model.settings), actual: round(person.allActual), actualUtilization: person.allActual > 0 ? percent(person.allActual, net) : null }
   }).sort((a, b) => a.name.localeCompare(b.name))
-  const sum = (key: 'netCapacity' | 'planned' | 'actual') => round(rows.reduce((total, row) => total + row[key], 0))
+  const sum = (key: 'funded' | 'netCapacity' | 'planned' | 'actual') => round(rows.reduce((total, row) => total + row[key], 0))
   const netCapacity = sum('netCapacity'), planned = sum('planned'), actual = sum('actual')
-  return { rows, totals: { netCapacity, planned, plannedUtilization: percent(planned, netCapacity), available: round(netCapacity - planned), actual, actualUtilization: percent(actual, netCapacity) } }
+  return { rows, standardHours, totals: { funded: sum('funded'), netCapacity, planned, plannedUtilization: percent(planned, netCapacity), available: round(netCapacity - planned), actual, actualUtilization: percent(actual, netCapacity) } }
 }
