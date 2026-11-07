@@ -140,6 +140,24 @@ test('TC-UPD-02: Force Update shows the running version, build number and build 
   await context.close()
 })
 
+test('TC-NAV-41: a fetch that fails shows the reason in Get started and opens the token step again', async () => {
+  const { page, context, errors } = await openPage(app, { guide: true })
+  // Every Azure DevOps request fails as an expired token would.
+  await context.route(/dev\.azure\.com/, (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"Unauthorized"}' }))
+  const dialog = page.getByRole('dialog').filter({ hasText: 'Get started' })
+  await dialog.waitFor()
+  await dialog.getByLabel('Azure DevOps PAT').fill('synthetic-expired-token')
+  await dialog.getByRole('button', { name: 'Save PAT' }).click()
+  await dialog.getByLabel('Your work email').fill('ana.costa@example.com')
+  await dialog.getByRole('button', { name: 'Save email' }).click()
+  await dialog.getByRole('button', { name: 'Fetch now' }).click()
+  await dialog.getByText('Could not fetch from Azure DevOps.').waitFor()
+  assert.match(await text(dialog), /token is missing, wrong or expired/)
+  assert.equal(await dialog.getByLabel('Azure DevOps PAT').count(), 1, 'the token step is open again to replace it')
+  assert.deepEqual(errors.filter((error) => !/401|Unauthorized/.test(error)), [])
+  await context.close()
+})
+
 test('TC-GIT-06: Connect Git storage starts with the team repository prefilled; only the token is missing', async () => {
   const { page, context, errors } = await openPage(app, { guide: true })
   const guide = page.getByRole('dialog').filter({ hasText: 'Get started' })
@@ -503,6 +521,10 @@ test('TC-FET-09: the start-up fetch does not wait for slow Git and shows in the 
   const started = Date.now()
   await page.locator('.jobs-button').waitFor({ timeout: 16000 })
   assert.ok(Date.now() - started < 16000, 'the fetch starts within the 10-second wait, not after Git')
+  // NAV-41: the refused PAT opens Get started with the reason; close it to look at the job.
+  const guide = page.getByRole('dialog').filter({ hasText: 'Could not fetch from Azure DevOps' })
+  await guide.waitFor()
+  await guide.getByRole('button', { name: 'Close', exact: true }).last().click()
   await page.locator('.jobs-button').click()
   assert.match(await text(page.getByRole('dialog', { name: 'Background jobs' })), /Fetch Azure DevOps at start/)
   await context.close()
