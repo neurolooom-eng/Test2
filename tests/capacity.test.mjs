@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { capacityModel, absenceKind, loadStatus, normalizeCapacitySettings, defaultCapacitySettings, employedDays } from '../src/capacity.ts'
+import { capacityModel, absenceKind, loadStatus, normalizeCapacitySettings, defaultCapacitySettings, employedDays, oldCalculation } from '../src/capacity.ts'
 
 const item = (id, extra = {}) => ({ key: `org/project/${id}`, id, title: 'Release - Time Writing', workItemType: 'User Story', state: 'Active', assignedTo: '', areaPath: '', iterationPath: '', tags: '', url: '', organization: 'org', project: 'project', syncedAt: '', ...extra })
 // Two streams (Epics 1 and 2) plus the absence Epic 900 with a per-person PTO / Sick Feature.
@@ -269,4 +269,18 @@ test('CAP-33: a person removed in Resources is left out of capacity, utilization
   assert.equal(without.totals.funded, full.totals.funded - 176, 'their funded hours are gone')
   assert.equal(without.totals.work, full.totals.work - 50, 'their booked hours are gone')
   assert.deepEqual(capacityModel(backlog, '2026-10', { ...settings, profiles: {} }).removed, [])
+})
+
+test('CAP-35: Old Calculation — every hour (absence, holidays, NPRA included) against working days × funded hours; status from planned', () => {
+  const holiday = [item(60, { workItemType: 'Feature', parentId: 900, title: 'Holidays' }), item(61, { parentId: 60, title: 'Holidays - Time Writing' }), item(62, { workItemType: 'Task', parentId: 61, title: 'October 2026 | Diwali', originalEstimate: 8, completedWork: 8 })]
+  const shared = { ...settings, sharedTime: [{ id: 60, kind: 'holiday', scope: 'everyone' }] }
+  const { rows, totals } = oldCalculation(capacityModel([...backlog, ...holiday], '2026-10', shared))
+  assert.deepEqual(rows.map((row) => row.name), ['Ana', 'Ben'])
+  const [ana, ben] = rows
+  // Ana: plan 100 + 20 + 8 holiday; actual 120 + 40 + 16 PTO + 8 sick + 8 holiday; 22 days × 8 h.
+  assert.deepEqual(ana, { name: 'Ana', netCapacity: 176, planned: 128, plannedUtilization: 72.73, available: 48, status: 'Has capacity', actual: 192, actualUtilization: 109.09 })
+  assert.deepEqual([ben.planned, ben.actual, ben.available, ben.status], [68, 58, 108, 'Has capacity'])
+  assert.deepEqual([totals.netCapacity, totals.planned, totals.actual, totals.available, totals.plannedUtilization], [352, 196, 250, 156, 55.68])
+  const over = oldCalculation(capacityModel([...backlog, item(70, { workItemType: 'Task', parentId: 20, title: 'October 2026 | Release 1', assignedTo: 'Ben', originalEstimate: 200 })], '2026-10', settings)).rows.find((row) => row.name === 'Ben')
+  assert.deepEqual([over.planned, over.available, over.status], [260, -84, 'Overloaded'])
 })
