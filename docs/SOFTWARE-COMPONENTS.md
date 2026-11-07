@@ -35,7 +35,7 @@ This document lists every software component of the system: the in-house source 
 | SprintCheckPage | `src/pages/SprintCheckPage.tsx` | Sprint check (formerly Bulk actions): move my User Stories from past Sprints to the current PI + Sprint, and the state checks of my Features and User Stories. | ATM, CON |
 | DashboardPage | `src/pages/DashboardPage.tsx` | Dashboard: demand vs capacity for a period and filters — utilization, overload, rebalancing, trends, Epic mix, insights and releases. | OVR, CAP |
 | DocsPage | `src/pages/DocsPage.tsx` | Documentation page: reads the bundled project documents in-app, remembers the chosen one, keeps document and anchor links in the page. | DOC |
-| MyActivitiesPage | `src/pages/MyActivitiesPage.tsx` | My Activities (Testing, Admin only): the person's month — this month's activities with planned and actual hours, Features still to add, a new activity under a stream and Feature, progress and the deadline. | ACT, ATM, MON |
+| MyActivitiesPage | `src/pages/MyActivitiesPage.tsx` | My Activities (My Work): the person's month — this month's activities with planned and actual hours, Features still to add, a new activity under a stream and Feature (a new Feature through FeatureEditor), progress and the deadline. | ACT, ATM, MON |
 | PlanningOverviewPage | `src/pages/PlanningOverviewPage.tsx` | Planning Overview (Testing, Admin only): filters, four tiles, workload and capacity chart, exception queue, delivery health per Epic. | OVW |
 | CapacityActualPage | `src/pages/CapacityActualPage.tsx` | Capacity vs Actual (Testing, Admin only): filters, four tiles, 12-month chart, by person, hours by Epic. | CVA |
 | MyWorkPage | `src/pages/MyWorkPage.tsx` | Assigned to Me: my pending Azure DevOps items, resolve/close them, and create a Feature under an Epic with its stories and task. | ATM, CON |
@@ -67,7 +67,7 @@ This document lists every software component of the system: the in-house source 
 | DpBoardColumn | `src/components/DpBoardColumn.tsx` | DP table and Windchill releases cell showing the matching QMS-0025 Feature/User Story, or Create Feature when nothing matches. | QV |
 | DpMonthCounts | `src/components/DpMonthCounts.tsx` | Table of a month's DP Supported Releases with milestones passed (DT, SFV, PRD, RPE) and dates. | QV, OVR |
 | ErrorBoundary | `src/components/ErrorBoundary.tsx` | Catches render errors in a view and shows what failed with a way back instead of a blank app. | UI |
-| FeatureEditor | `src/components/FeatureEditor.tsx` | Modal to add a Feature under an Epic or complete a Feature's children, shared by Backlogs and Assigned to Me; the Parent Epic starts blank. | ATM, CON, BKL |
+| FeatureEditor | `src/components/FeatureEditor.tsx` | The one New Feature form (BKL-26): add a Feature under an Epic or complete a Feature's children, used by Backlogs, Assigned to Me, Release Details and My Activities; the Parent Epic starts blank. | ATM, CON, BKL, ACT |
 | JobsIndicator | `src/components/JobsIndicator.tsx` | Top-bar list of the background jobs: running count, results, Clear finished; asks before leaving the page while one runs. | NAV |
 | MonthlyPackPanel | `src/components/MonthlyPackPanel.tsx` | Pulse Check → Monthly pack: the two slides as boxes with generated lines and the month's text, Save to Git, copy, Download .pptx. | PCK |
 | HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |

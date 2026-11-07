@@ -383,19 +383,14 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   await content.getByRole('radio', { name: 'User Story' }).check()
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
-  // A new Feature: title and Feature DoD under the chosen Epic, with the month task ticked.
+  // BKL-26: a new Feature opens the same New Feature form as every other page (no short form of its own); with the
+  // synthetic sample nothing can be written, so the button says why.
   await content.getByRole('radio', { name: 'Feature' }).check()
-  for (const name of ['Feature title', 'Feature DoD']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is asked for a Feature`)
-  assert.ok(await content.getByRole('checkbox', { name: /Time Writing task/ }).isChecked())
-  await content.getByRole('textbox', { name: /^Feature title/ }).fill('Sample Feature')
-  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isDisabled(), 'no DoD, no Feature')
-  await content.getByRole('textbox', { name: /^Feature DoD/ }).fill('Released')
-  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isEnabled())
-  // ACT-13: a User Story can be added with the new Feature; it needs a title.
-  await content.getByRole('checkbox', { name: 'Add a User Story under it' }).check()
-  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isDisabled(), 'User Story ticked without a title')
-  await content.getByRole('textbox', { name: /^User Story title/ }).fill('Write the plan')
-  assert.ok(await content.getByRole('button', { name: 'Create Feature' }).isEnabled())
+  assert.equal(await content.getByRole('textbox', { name: /^Feature title/ }).count(), 0, 'no separate Feature form in My Activities')
+  const openFeature = content.getByRole('button', { name: 'Open New Feature' })
+  assert.match(await text(content.locator('.act-side')), /same form and rules as New Feature/)
+  assert.ok(await openFeature.isDisabled(), 'sample data: nothing is written')
+  assert.match(await openFeature.getAttribute('title') ?? '', /Synthetic sample data/)
   await content.getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).first().waitFor()
   assert.deepEqual(errors, [])
   await context.close()

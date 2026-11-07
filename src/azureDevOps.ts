@@ -618,7 +618,7 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, config.project, undefined, undefined, { anyPlace: true })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project, undefined, undefined, { adhoc }))
+    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project, undefined, undefined, { adhoc, areaPath: feature.areaPath }))
     return { feature, items }
   } catch (failure) {
     throw new HierarchyCreationError(failure instanceof Error ? failure.message : 'Unable to complete the release hierarchy.', items)
@@ -648,6 +648,8 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
   }
 }
 
+// Area Path (BKL-26): the Time Writing story and Task take the setup's Area Path, else the Feature's (never the Time
+// Writing story's); User Stories take the Feature's.
 // A Feature's children from the per-Epic setup: the selected optional User Stories, the Time Writing story (default
 // "<Feature> - Time Writing"; its Iteration Path, when set, wins over the Sprint chosen in the dialog)
 // and the month Task with the setup's defaults. Titles may carry placeholders ({feature}, {program}, {service},
@@ -688,10 +690,10 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
     const reviewTitle = reviewStoryTitle(feature.title)
     if (setup.reviewStory !== false && reviewTitle.length > 255) throw new Error('The Review of Deliverables title exceeds 255 characters. Shorten the Feature title.')
     if (setup.reviewStory !== false && !stories.some((story) => story.title === reviewTitle)) items.push(await ensureChild(config, pat, feature, 'User Story', reviewTitle, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { anyPlace: true }))
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath ?? '' })
+    const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath.trim() || feature.areaPath })
     items.push(timeWriting)
     const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath, adhoc })
+    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath.trim() || feature.areaPath, adhoc })
     // The default Original Estimate goes on a newly created Task only; an existing Task keeps its hours.
     if (setup.task.originalEstimate != null && !tasks.some((entry) => entry.id === task.id)) task = await updateAzureTimeWritingEffort(config, pat, task.id, setup.task.originalEstimate, undefined, false, transport)
     items.push(task)

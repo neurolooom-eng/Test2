@@ -726,6 +726,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-15 Your own User Story on New Feature** — Req BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature"); browser check with the Time Writing connection: enter a title and description, Save — the story is created under the new Feature in the Sprint chosen, assigned like the Feature, and named in the result; left empty, nothing extra is created; not shown on Complete Feature children.
 
+**TC-BKL-16 One Feature creation with the same rules everywhere** — Req BKL-26, BKL-14 — L1 `azure-devops.test.mjs` ("BKL-26: Area Path — the Time Writing story and Task take the setup's Area Path, else the Feature's (never the story's); User Stories the Feature's"); E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": My Activities has no Feature form of its own); browser check: create a Feature under the same Epic from Backlogs, Assigned to Me, Release Details and My Activities — each uses the Epic's setup, the Epic's Area Path, the preselected current PI → Sprint, and the same Time Writing story and Task titles and paths.
+
 **TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
 
 **TC-CON-45 Git view data with another query is not applied** — Req CON-77 — L1 `git-snapshots.test.mjs` ("a snapshot fetched with another query than the connection has here is not applied"); browser check:
@@ -1376,15 +1378,17 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-06 KPI cards on top** — Req ACT-11, ACT-05 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": Tasks, Planned hours, Actual hours, Capacity, Monthly update and Unsaved changes above the cards); browser check: with your work email set, Tasks, Planned hours and Actual hours equal Monthly Time Writing in Individual (Me) for the same month, Capacity equals My dashboard; change an hour and Unsaved changes counts it.
 
-**TC-ACT-07 Create a Feature** — Req ACT-12, ACT-06, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice asks for Feature title and Feature DoD, the month-task box is ticked, Create Feature stays disabled without a DoD); browser check with the Time Writing connection: choose Feature, an Active Epic, enter a title, a DoD and hours, Create Feature — the Feature appears under the Epic, assigned to you, in the current PI, with "Feature DoD: …" in its Description, your month task with the hours under it and the Feature Active; untick the task box and only the Feature is created (state New); with sample data or during View as nothing is saved.
+**TC-ACT-07 Create a Feature** — *(Retired — see TC-ACT-12)* Req ACT-12, ACT-06, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice asks for Feature title and Feature DoD, the month-task box is ticked, Create Feature stays disabled without a DoD); browser check with the Time Writing connection: choose Feature, an Active Epic, enter a title, a DoD and hours, Create Feature — the Feature appears under the Epic, assigned to you, in the current PI, with "Feature DoD: …" in its Description, your month task with the hours under it and the Feature Active; untick the task box and only the Feature is created (state New); with sample data or during View as nothing is saved.
 
-**TC-ACT-08 A User Story with the new Feature** — Req ACT-13, ACT-12 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": ticking Add a User Story under it asks for its title and keeps Create Feature disabled until one is entered); browser check with the Time Writing connection: create a Feature with a User Story title, description and comment — the story appears under the new Feature, assigned to you, in the current Sprint, with the comment in its Discussion; a failing story is reported and the Feature stays.
+**TC-ACT-08 A User Story with the new Feature** — *(Retired — see TC-ACT-12)* Req ACT-13, ACT-12 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": ticking Add a User Story under it asks for its title and keeps Create Feature disabled until one is entered); browser check with the Time Writing connection: create a Feature with a User Story title, description and comment — the story appears under the new Feature, assigned to you, in the current Sprint, with the comment in its Discussion; a failing story is reported and the Feature stays.
 
 **TC-ACT-09 Layout, KPI order and the Feature drop-down** — Req ACT-02, ACT-04, ACT-05, ACT-11 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": columns Epic, Activity, Planned, Actual; Save in the heading row of Your activities; KPI cards Capacity, Planned hours, Actual hours, Tasks, Unsaved changes only after an hour is changed; the ring and the last day as tiles in the same row, all tiles one height; suggestions below Your activities; the Feature drop-down lists only your Features, typing narrows it, picking one fills in its Epic); browser check: the % badges equal Planned ÷ Capacity and Actual ÷ Capacity, and Actual's hint shows Actual ÷ Planned.
 
 **TC-ACT-10 Activities of another person** — Req ACT-14 — E2E `shell.e2e.mjs` ("TC-ACT-10: My Activities can show another person, chosen at the top right"); browser check with the Time Writing connection: as a person without the right to create work for others, choose a colleague — their month shows and saving says it needs that right; with the right, add a task for them — it is assigned to them, not to you; choose Me to go back.
 
 **TC-ACT-11 My Activities replaces Monthly Time Writing and the Bulk month tasks** — Req ACT-15, ACT-01 — E2E `shell.e2e.mjs` ("TC-ACT-01: My Activities is under My Work for everyone; the Testing heading is for the Admin role only": the menu lists My Activities, Assigned to Me, Sprint check under My Work and no Monthly Time Writing or Bulk actions, also for a Team Member); browser check: My dashboard's My hours link and Assigned to Me's month-tasks links open My Activities; an old pinned Monthly Time Writing or Bulk actions page in a personal menu no longer shows.
+
+**TC-ACT-12 A new Feature from My Activities uses the New Feature form** — Req ACT-16, BKL-26 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice has no form of its own, only Open New Feature, disabled with the sample-data reason); browser check with the Time Writing connection: Add a new activity → Feature → Open New Feature opens the New Feature form with the person shown as assignee and the header month in "Time Writing (<Month>)"; under an Epic with a Feature setup its title fields, DoD and User Stories appear as on Backlogs; Save creates the Feature in the Epic's Area Path and the chosen PI, the stories in the Sprint and the Time Writing story and Task with the setup's paths (else the project root and the Feature's area).
 
 **TC-ACT-05 Suggestions by state, Add all, New → Active** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the New Feature is then Active in Azure DevOps (the same when adding a task under a New Feature with Add a new activity); a Feature already Active is left as it is.
 
@@ -1540,7 +1544,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
 | BKL-13 | TC-BKL-04 |
-| BKL-14 | TC-BKL-05 |
+| BKL-14 | TC-BKL-05, TC-BKL-16 |
 | BKL-15 | TC-BKL-06 |
 | BKL-16 | TC-BKL-07 |
 | BKL-17 | TC-BKL-08 |
@@ -1552,6 +1556,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-23 | TC-BKL-13 |
 | BKL-24 | TC-BKL-14 |
 | BKL-25 | TC-BKL-15 |
+| BKL-26 | TC-BKL-16 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1724,6 +1729,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-13 | TC-ACT-08 |
 | ACT-14 | TC-ACT-10 |
 | ACT-15 | TC-ACT-11 |
+| ACT-16 | TC-ACT-12 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1755,7 +1761,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
-| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
+| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
@@ -1776,7 +1782,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…11 |
+| UC-28 | TC-ACT-01…12, TC-BKL-16 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 

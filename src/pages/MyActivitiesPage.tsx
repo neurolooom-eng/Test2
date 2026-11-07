@@ -1,13 +1,15 @@
 import { useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { addComment, createAzureFeature, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort, updateAzureWorkItem, withFeatureDoD, type AzureConfig } from '../azureDevOps'
+import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort, updateAzureWorkItem, type AzureConfig } from '../azureDevOps'
 import { azureInsights, timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
+import { FeatureEditor } from '../components/FeatureEditor'
 import { PersonPicker } from '../components/PersonPicker'
 import { SearchSelect } from '../components/SearchSelect'
 import { EmptyState, Metric, Metrics, Page } from '../components/ui'
 import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
+import type { FeatureSetups } from '../featureSetup'
 import { formatDate, formatHours, monthName, todayIso } from '../format'
 import { absenceStoryType, assignablePeople, isMine, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
@@ -36,7 +38,7 @@ const hoursText = (value?: number) => value == null ? '' : String(value)
 const validHours = (text: string) => text.trim() === '' || (Number.isFinite(Number(text)) && Number(text) >= 0 && Number(text) <= 1000)
 const adhocTask = (task: AzureWorkItem) => task.tags.split(';').some((tag) => tag.trim().toLowerCase() === 'ad-hoc')
 
-export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; month: string; assign?: { me: string; canChoose: boolean }; onOpen: (page: 'mywork' | 'bulk') => void }) {
+export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup, onOpen }: { azure: AzureWorkspace; store: PageProps['store']; my: MyWork; month: string; assign?: { me: string; canChoose: boolean }; featureSetup?: FeatureSetups | null; onOpen: (page: 'mywork' | 'bulk') => void }) {
   const now = useNow(60000)
   const [ticked, setTicked] = useState<Record<string, boolean>>({})
   const [hours, setHours] = useState<Record<string, Hours>>({})
@@ -45,8 +47,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
   const [newHours, setNewHours] = useState<Hours>({})
   // Add a new activity adds a Time Writing task, or a User Story (title, description, an optional first comment).
   const [addKind, setAddKind] = useState<'task' | 'story' | 'feature'>('task')
-  // A new Feature (ACT-12): under the chosen Epic, assigned to the person, with its mandatory DoD.
-  const [draft, setDraft] = useState({ title: '', dod: '', description: '', withTask: true, withStory: false, storyTitle: '', storyDescription: '', storyComment: '' })
+  // A new Feature (ACT-12, BKL-26): the same New Feature form as everywhere, for the month and person shown.
+  const [featureOpen, setFeatureOpen] = useState(false)
   const [story, setStory] = useState({ title: '', description: '', comment: '' })
   // Suggestions by the Feature's state (ACT-09): Active, New or both.
   const [suggestState, setSuggestState] = useState<'both' | 'active' | 'new'>('both')
@@ -209,60 +211,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
     if (!started) setMessage({ tone: 'info', text: 'Your activities are already being saved (see the top bar).' })
   }
 
-  function saveFeature() {
-    if (blocked) { setMessage({ tone: 'info', text: blocked }); return }
-    const epic = chosenEpic, title = draft.title.trim()
-    if (!epic) { setMessage({ tone: 'error', text: 'Choose the Epic the Feature belongs to.' }); return }
-    if (!title || title.length > 255) { setMessage({ tone: 'error', text: 'Enter a Feature title of 1–255 characters.' }); return }
-    let description: string
-    try { description = withFeatureDoD(draft.dod, draft.description) } catch (failure) { setMessage({ tone: 'error', text: failure instanceof Error ? failure.message : 'Enter the Feature DoD.' }); return }
-    const entry: Hours = draft.withTask ? { planned: newHours.planned, actual: newHours.actual } : {}
-    const problem = checkHours([entry])
-    if (problem) { setMessage({ tone: 'error', text: problem }); return }
-    const storyEntry = draft.withStory ? { title: draft.storyTitle.trim(), description: draft.storyDescription.trim(), comment: draft.storyComment.trim() } : null
-    if (storyEntry && (!storyEntry.title || storyEntry.title.length > 255)) { setMessage({ tone: 'error', text: 'Enter a User Story title of 1–255 characters.' }); return }
-    const config = azure.config!, pat = azure.pat, withTask = draft.withTask
-    const started = runInBackground('activities:save', `New Feature “${title}”`, async (progress) => {
-      try {
-        // The Feature goes into the team's current PI (else Azure's default), assigned to the person.
-        progress('Reading the current PI…')
-        const current = currentIterationPairs(await readAzureIterations(config, pat))[0]
-        const pi = current?.pi.path
-        progress('Creating the Feature…')
-        const feature = await createAzureFeature(config, pat, { parentId: epic.id, title, description, acceptanceCriteria: '', iterationPath: pi, assignedTo: assignee })
-        const notes: string[] = []
-        // ACT-13: a User Story under the new Feature, assigned to the person, in the current Sprint (else the PI).
-        let storyNote = ''
-        if (storyEntry) {
-          try {
-            progress('Creating the User Story…')
-            const created = await createUserStory(config, pat, { parentId: feature.id, title: storyEntry.title, description: storyEntry.description, acceptanceCriteria: '', iterationPath: current?.sprint.path || pi || config.project, assignedTo: assignee })
-            storyNote = ` User Story #${created.id} added under it.`
-            if (storyEntry.comment) { try { await addComment(config, pat, created.id, storyEntry.comment) } catch (failure) { notes.push(`The comment could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) } }
-          } catch (failure) { notes.push(`The User Story could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) }
-        }
-        if (withTask) {
-          try {
-            progress('Adding the month task…')
-            const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked)
-            const effort = effortOf(entry)
-            if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
-            await activateIfNew(config, pat, feature, notes)
-          } catch (failure) { notes.push(`The ${label} task could not be added: ${failure instanceof Error ? failure.message : 'failed'}`) }
-        }
-        setDraft({ title: '', dod: '', description: '', withTask: true, withStory: false, storyTitle: '', storyDescription: '', storyComment: '' }); setNewHours({})
-        await azure.refresh()
-        const text = `Feature #${feature.id} “${feature.title}” created under ${epic.title}${withTask && !notes.length ? `, with your ${label} task; it is now Active` : ''}.${storyNote}${notes.length ? ` ${notes.join(' ')}` : ''}`
-        setMessage({ tone: notes.length ? 'error' : 'success', text })
-        return { text, failed: notes.length > 0 }
-      } catch (failure) {
-        const text = failure instanceof Error ? failure.message : 'The Feature could not be created.'
-        setMessage({ tone: 'error', text })
-        return { text, failed: true }
-      }
-    })
-    if (!started) setMessage({ tone: 'info', text: 'Your activities are already being saved (see the top bar).' })
-  }
+
 
   function saveNew() {
     if (blocked) { setMessage({ tone: 'info', text: blocked }); return }
@@ -393,28 +342,15 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
             <label className={addKind === 'story' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'story'} onChange={() => setAddKind('story')} />User Story</label>
             <label className={addKind === 'feature' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'feature'} onChange={() => setAddKind('feature')} />Feature</label>
           </div>
-          <p className="act-sub">{addKind === 'feature' ? <>Creates a Feature under an Active Epic, assigned to you, in the team's current PI — with its Feature DoD — and, if you keep it ticked, your {label} Time Writing task with its hours (the Feature is then Active).</> : addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
+          <p className="act-sub">{addKind === 'feature' ? <>Creates a Feature with the same form and rules as New Feature on every page: the Epic's Feature setup, the Epic's Area Path, the current PI (changeable), its User Stories in the Sprint, and your {label} Time Writing story and Task.</> : addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
           <div className="act-form">
-            <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">{addKind === 'feature' ? 'Choose an Active Epic' : 'All Epics'}</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>
+            {addKind !== 'feature' && <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">All Epics</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>}
             {addKind !== 'feature' && <div className="act-field"><span id="act-feature-label">Feature</span><SearchSelect label="Feature" value={featureId} placeholder={features.length ? 'Choose or type to search your Features (ID, title, Epic)' : 'No Active or New Features of yours here'} empty="No Feature of yours matches"
               options={features.map((feature) => ({ value: String(feature.id), label: `#${feature.id} ${feature.title}`, hint: epicOf(feature)?.title }))}
               onChange={(id) => { setFeatureId(id); const own = epicOf(features.find((feature) => feature.id === Number(id))!); if (own) setStream(String(own.id)) }} />{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</div>}
             {addKind === 'feature' ? <>
-              <label>Feature title<input value={draft.title} maxLength={255} placeholder="What the Feature delivers" onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} /></label>
-              <label>Feature DoD <small className="muted">(required)</small><textarea value={draft.dod} rows={2} placeholder="When is this Feature done?" onChange={(event) => setDraft((current) => ({ ...current, dod: event.target.value }))} /></label>
-              <label>Description <small className="muted">(optional)</small><textarea value={draft.description} rows={3} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></label>
-              <label className="act-check"><input type="checkbox" checked={draft.withTask} onChange={(event) => setDraft((current) => ({ ...current, withTask: event.target.checked }))} />Add my {label} Time Writing task</label>
-              <label className="act-check"><input type="checkbox" checked={draft.withStory} onChange={(event) => setDraft((current) => ({ ...current, withStory: event.target.checked }))} />Add a User Story under it</label>
-              {draft.withStory && <>
-                <label>User Story title<input value={draft.storyTitle} maxLength={255} placeholder="What the story is about" onChange={(event) => setDraft((current) => ({ ...current, storyTitle: event.target.value }))} /></label>
-                <label>User Story description<textarea value={draft.storyDescription} rows={3} placeholder="What needs to be done, and why" onChange={(event) => setDraft((current) => ({ ...current, storyDescription: event.target.value }))} /></label>
-                <label>Comment <small className="muted">(optional, added to its Discussion)</small><textarea value={draft.storyComment} rows={2} onChange={(event) => setDraft((current) => ({ ...current, storyComment: event.target.value }))} /></label>
-              </>}
-              {draft.withTask && <div className="act-pair">
-                <label>Planned hours<input inputMode="decimal" placeholder="0" disabled={planLocked} value={newHours.planned ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, planned: event.target.value }))} /></label>
-                <label>Actual hours<input inputMode="decimal" placeholder="0" disabled={actualLocked} value={newHours.actual ?? ''} onChange={(event) => setNewHours((current) => ({ ...current, actual: event.target.value }))} /></label>
-              </div>}
-              <button type="button" className="act-primary" disabled={!chosenEpic || !draft.title.trim() || !draft.dod.trim() || (draft.withStory && !draft.storyTitle.trim()) || saving} onClick={saveFeature}>Create Feature</button>
+              <p className="act-hint">The New Feature form opens with {self ? 'you' : my.me.name} as the assignee and {label} as the Time Writing month. It applies the Epic's Feature setup (title fields, DoD, User Stories, Time Writing story and Task), else the built-in rules.</p>
+              <button type="button" className="act-primary" disabled={Boolean(blocked) || !azure.config} title={blocked || undefined} onClick={() => setFeatureOpen(true)}>Open New Feature</button>
             </> : addKind === 'story' ? <>
               <label>Title<input value={story.title} maxLength={255} placeholder="What the story is about" onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
               <label>Description<textarea value={story.description} rows={4} placeholder="What needs to be done, and why" onChange={(event) => setStory((current) => ({ ...current, description: event.target.value }))} /></label>
@@ -435,5 +371,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, onOpen }: { 
         </section>
       </div>
     </div></>}
+    {featureOpen && azure.config && (chosenEpic ?? epics[0]) && <FeatureEditor mode={{ parent: (chosenEpic ?? epics[0])! }} month={label} items={azure.items} config={azure.config} savedPat={azure.pat} me={assignee} canChoose={self && Boolean(assign?.canChoose)} featureSetup={featureSetup} onSavePat={azure.rememberPat} onCreated={azure.featureCreated} onClose={() => setFeatureOpen(false)}
+      onDone={(done) => { setFeatureOpen(false); setMessage({ tone: 'success', text: `Feature #${done.feature.id} “${done.feature.title}”: ${done.text}` }); void azure.refresh() }}
+      onPartial={(text) => { setFeatureOpen(false); setMessage({ tone: 'error', text }); void azure.refresh() }} />}
   </Page>
 }

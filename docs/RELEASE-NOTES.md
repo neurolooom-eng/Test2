@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v2.1.0 — 2026-11-07
+
+**Changed**
+- **One way to create a Feature**: every page — Backlogs, Assigned to Me, Release Details and My Activities — uses the same New Feature form and rules. The Epic's Feature setup applies everywhere (else the built-in rules); the Feature and its User Stories take the Epic's Area Path; the Feature goes to the PI and its stories to the Sprint chosen (current one preselected, changeable); the Time Writing story and Task take the setup's Area and Iteration Paths, else the Feature's area and the project root (BKL-26, BKL-14; KB-39).
+- **My Activities → Add a new activity → Feature** opens that New Feature form for the person and month shown, instead of its own short form; the Time Writing Task is for the month shown (ACT-16; ACT-12, ACT-13 retired).
+
 ## v2.0.1 — 2026-11-07
 
 **Changed** (dependencies)
