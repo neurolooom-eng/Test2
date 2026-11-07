@@ -59,6 +59,13 @@ test('TC-NAV-33: a new browser gets the Get started pop-up; dismissing it keeps 
   const dialog = page.getByRole('dialog').filter({ hasText: 'Get started' })
   await dialog.waitFor()
   assert.match(await text(dialog), /REQUIRED STEPS DONE/)
+  // NAV-38: the values are entered in the pop-up itself.
+  assert.equal(await dialog.getByLabel('GitHub token').count(), 1, 'the Git token can be entered here')
+  assert.equal(await dialog.getByLabel('Azure DevOps PAT').getAttribute('type'), 'password', 'the PAT can be entered here, hidden')
+  await dialog.getByLabel('Your work email').fill('ana.costa@example.com')
+  await dialog.getByRole('button', { name: 'Save email' }).click()
+  await dialog.getByLabel('Your work email').waitFor({ state: 'detached' })
+  assert.equal(await page.evaluate(() => Object.values(localStorage).some((value) => value.includes('ana.costa@example.com'))), true, 'saved in this browser')
   await dialog.getByRole('button', { name: /Don.t show again automatically/ }).click()
   await page.reload()
   await page.locator('.sidebar nav').waitFor()
