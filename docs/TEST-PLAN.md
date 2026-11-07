@@ -636,6 +636,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-20 Sprint check** — Req ATM-07, ATM-08, ATM-09, ATM-20 — E2E `shell.e2e.mjs` ("TC-ATM-20: Sprint check offers the move to the current PI + Sprint and the state checks, without month tasks"); browser check with the Time Writing connection: Find current Sprint, move a User Story from an ended Sprint, close a Feature from the state checks — as on Bulk actions before.
 
+**TC-ATM-21 A Feature becomes Active only through an Active User Story** — Req ATM-28 — L1 `my-work.test.mjs` ("ATM-28: a Feature becomes Active only when one of its User Stories is Active"); browser check with the Time Writing connection: create a Feature — it stays New, also after its month Task is added on My Activities; on Assigned to Me the New Feature shows "Set a User Story to Active first"; set one of its User Stories to Active — the Feature becomes Active and the result says so; in Edit, choosing Active for a Feature without an Active User Story is refused with the reason; a New Feature whose User Story was set Active in Azure DevOps is listed under Sprint check → State checks with Set Feature to Active.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -687,12 +689,12 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-02 Create Feature hierarchy** — Req BKL-04…09, BKL-11 — **UAT**
 - Steps:
-  1. Choose Add Feature under E1 and enter title `DP Core` (invalid).
+  1. Choose Add Feature under E1 (no Feature setup) and clear the title.
   2. Enter `DP | Core | v5.2` and choose PU.
   3. Load the schedule and pick the current Sprint.
   4. Create.
 - Expected:
-  - Step 1 shows the BKL-04 message.
+  - Step 1: Save stays disabled without a title; any free text (e.g. `DP Core`) is accepted, its milestone stories titled "SFV : Review of Deliverables (DP Core)".
   - The PU Feature DoD and SFV, DT and IQOQ stories are offered. Full Release offers PRD as well (see TC-BKL-04 for the DoD).
   - Without a creator email, the BKL-09 message shows.
   - With a schedule that is no longer current, the BKL-08 message shows and nothing is written.
@@ -1390,7 +1392,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-12 A new Feature from My Activities uses the New Feature form** — Req ACT-16, BKL-26 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice has no form of its own, only Open New Feature, disabled with the sample-data reason); browser check with the Time Writing connection: Add a new activity → Feature → Open New Feature opens the New Feature form with the person shown as assignee and the header month in "Time Writing (<Month>)"; under an Epic with a Feature setup its title fields, DoD and User Stories appear as on Backlogs; Save creates the Feature in the Epic's Area Path and the chosen PI, the stories in the Sprint and the Time Writing story and Task with the setup's paths (else the project root and the Feature's area).
 
-**TC-ACT-05 Suggestions by state, Add all, New → Active** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the New Feature is then Active in Azure DevOps (the same when adding a task under a New Feature with Add a new activity); a Feature already Active is left as it is.
+**TC-ACT-05 Suggestions by state, Add all** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the Features keep their state (ATM-28: a New Feature becomes Active only through an Active User Story).
 
 ### 6.26 Planning Overview
 
@@ -1540,6 +1542,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-25 | TC-ATM-17 |
 | ATM-26 | TC-ATM-18 |
 | ATM-27 | TC-ATM-19 |
+| ATM-28 | TC-ATM-21 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
@@ -1723,7 +1726,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-07 | TC-ACT-01 |
 | ACT-08 | TC-ACT-04 |
 | ACT-09 | TC-ACT-05 |
-| ACT-10 | TC-ACT-05, TC-ACT-07 |
+| ACT-10 | TC-ACT-05, TC-ACT-07, TC-ATM-21 |
 | ACT-11 | TC-ACT-06, TC-ACT-09 |
 | ACT-12 | TC-ACT-07, TC-ACT-08 |
 | ACT-13 | TC-ACT-08 |
@@ -1760,7 +1763,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…11, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
+| UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
@@ -1782,7 +1785,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…12, TC-BKL-16 |
+| UC-28 | TC-ACT-01…12, TC-BKL-16, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 

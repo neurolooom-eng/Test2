@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort, updateAzureWorkItem, type AzureConfig } from '../azureDevOps'
+import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort } from '../azureDevOps'
 import { azureInsights, timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { FeatureEditor } from '../components/FeatureEditor'
@@ -133,13 +133,6 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
     }
     return ''
   }
-  // ACT-10: a month Task added under a Feature still in state New makes the Feature Active (work has started).
-  const activated = new Set<number>()
-  async function activateIfNew(config: AzureConfig, pat: string, feature: AzureWorkItem, failed: string[]) {
-    if (feature.state.trim().toLowerCase() !== 'new' || activated.has(feature.id)) return
-    activated.add(feature.id)
-    try { await updateAzureWorkItem(config, pat, feature.id, { state: 'Active' }) } catch (failure) { failed.push(`#${feature.id} could not be set to Active: ${failure instanceof Error ? failure.message : 'failed'}`) }
-  }
   const effortOf = (entry: Hours) => ({ plan: entry.planned?.trim() ? Number(entry.planned) : undefined, actual: entry.actual?.trim() ? Number(entry.actual) : undefined })
 
   function saveAll() {
@@ -160,7 +153,6 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
             : await ensureMonthTask(config, pat, candidate.feature.id, assignee, label, undefined, planLocked)
           const effort = effortOf(edits[row.key] ?? {})
           if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
-          if (result.status === 'created') await activateIfNew(config, pat, candidate.feature, failed)
           created += 1
         } catch (failure) { failed.push(`${row.title}: ${failure instanceof Error ? failure.message : 'failed'}`) }
       }
@@ -228,11 +220,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
         const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked)
         const effort = effortOf(entry)
         if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
-        const activation: string[] = []
-        if (result.status === 'created') await activateIfNew(config, pat, feature, activation)
         setNewHours({}); setFeatureId('')
         await azure.refresh()
-        const text = (result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}${feature.state.trim().toLowerCase() === 'new' && !activation.length ? '; the Feature is now Active' : ''}.`) + (activation.length ? ` ${activation.join(' ')}` : '')
+        const text = result.status === 'exists' ? `${feature.title} already had its ${label} task; its hours were updated.` : `${feature.title} added for ${label}.`
         setMessage({ tone: 'success', text })
         return { text }
       } catch (failure) {

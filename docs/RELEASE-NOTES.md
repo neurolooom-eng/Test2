@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v2.2.0 — 2026-11-07
+
+**Changed**
+- **Feature state follows its User Stories**: a Feature becomes Active only when one of its User Stories is Active. Creating a Feature or adding a month Task no longer sets it Active (ACT-10 retired). Setting a User Story to Active (Assigned to Me, Edit) makes its New Feature Active; Assigned to Me and Edit refuse Active for a Feature without an Active User Story; Sprint check → State checks flag a New Feature with an Active User Story (ATM-28).
+- **Feature title is free text** on the New Feature form; the Epic's Feature setup overrides it with its title fields when set. Without a setup, the milestone stories take the service and release of a "Program | Service | Release" title, else the whole title (BKL-04).
+
 ## v2.1.0 — 2026-11-07
 
 **Changed**
