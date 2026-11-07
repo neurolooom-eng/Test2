@@ -565,9 +565,9 @@ function DefinitionsTab({ hoursPerDay, absenceEpicId, bands }: { hoursPerDay: nu
   return <Panel title="Definitions, assumptions & source">
     <dl className="dash-findings">
       <dt>Source</dt><dd>The Time Writing connection (QMS-0025): month Time Writing Tasks, matched to a month when their title starts or ends with the month and year.</dd>
-      <dt>Planned hours</dt><dd>Original Estimate on the month's Tasks.</dd>
-      <dt>Recorded (actual) hours</dt><dd>Completed Work on the month's Tasks. A blank value is missing, a 0 is recorded zero.</dd>
-      <dt>Capacity</dt><dd>Working days × {hoursPerDay}h, less absence (Tasks under Epic #{absenceEpicId}), holidays and common activities such as PI Planning or an audit (Epics / Features mapped in Settings → Capacity, applied to everyone or to everyone in a region), counted once per person and month.</dd>
+      <dt>Planned hours</dt><dd>Utilized hours planned: Original Estimate on the month's work, training and other NPRA Tasks, plus the common activities that apply to the person.</dd>
+      <dt>Recorded (actual) hours</dt><dd>Utilized hours recorded: Completed Work on the month's work, training and other NPRA Tasks, plus common activities. A blank value is missing, a 0 is recorded zero.</dd>
+      <dt>Capacity</dt><dd>Contractual hours − Absence hours (CAP-38): working days employed × {hoursPerDay}h, less absence — PTO, Sick Leave, Unplanned Leave, public holidays (including holidays mapped in Settings → Capacity for everyone or a region) and other absence under Epic #{absenceEpicId} — never below 0 per person. Trainings, other NPRA and common activities such as PI Planning are not deducted: they count as utilized hours.</dd>
       <dt>Utilization and its colours</dt><dd>Planned or recorded hours ÷ capacity. One model for the whole Dashboard, from Settings → Capacity: <span className="util util-over">↑ red</span> at or above {bands.overloadedAt}% (overloaded), <span className="util util-balanced">green</span> balanced, <span className="util util-spare">↓ blue</span> below {bands.availableBelow}% (spare). Colours show capacity position, not performance. Hour differences (+ / −) carry no colour.</dd>
       <dt>Month status</dt><dd>Elapsed (before the current month), partial (the current month) and future. Partial and future months do not establish spare capacity or results.</dd>
       <dt>Region and role</dt><dd>From Settings → Resources; people without a mapping show as No region / No role and are left out of rebalancing.</dd>

@@ -203,7 +203,7 @@ test('TC-CAP-09: Resources shows who counts in the month\'s capacity; Remove tak
   const count = async () => Number(/: (\d+) (?:people|person),/.exec(await text(summary))?.[1])
   const before = await count()
   assert.ok(before > 0, 'the month counts people')
-  assert.match(await text(summary), /h available = .*h funded − .*h absence − .*h common activities − .*h NPRA/)
+  assert.match(await text(summary), /h available = .*h contractual − .*h absence/, 'CAP-38: only absence comes off the contractual hours')
   page.once('dialog', (dialog) => void dialog.accept())
   await page.getByRole('button', { name: 'Remove Chen Wei' }).click()
   await page.getByRole('button', { name: 'Remove Chen Wei' }).waitFor({ state: 'detached' })
@@ -214,6 +214,26 @@ test('TC-CAP-09: Resources shows who counts in the month\'s capacity; Remove tak
   await removed.getByRole('button', { name: 'Restore' }).click()
   await page.getByRole('button', { name: 'Remove Chen Wei' }).waitFor()
   assert.equal(await count(), before, 'restored')
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-CAP-13: Pulse Check shows Utilization = utilized ÷ (contractual − absence) with Trainings and Other NPRA apart', async () => {
+  const { page, context, errors } = await openPage(app)
+  await loadSample(page)
+  await navigate(page, 'Pulse Check')
+  await page.getByRole('tablist', { name: 'Pulse Check sections' }).getByRole('tab', { name: /^Last month/ }).click()
+  const table = page.locator('.panel', { has: page.locator('h2, h3', { hasText: /^Who has capacity/ }) }).first().locator('table')
+  await table.waitFor()
+  assert.deepEqual((await table.locator('thead th').allInnerTexts()).map((label) => label.trim().toLowerCase()), ['person', 'status', 'contractual', 'absence', 'available', 'work', 'trainings', 'other npra', 'common activities', 'planned', 'utilized', 'utilization', 'main stream'])
+  // Every row: Available = Contractual − Absence (at least 0) and Utilized = Work + Trainings + Other NPRA + Common activities.
+  const number = (value) => Number(value.replace(/[^\d.]/g, '') || 0)
+  for (const row of await table.locator('tbody tr').all()) {
+    const cells = (await row.locator('td').allInnerTexts()).map((cell) => cell.trim())
+    const [contractual, absence, available, work, trainings, other, activities, , utilized] = cells.slice(2, 11).map(number)
+    assert.ok(Math.abs(available - Math.max(0, contractual - absence)) < 0.02, `available = contractual − absence (${cells[0]})`)
+    assert.ok(Math.abs(utilized - (work + trainings + other + activities)) < 0.05, `utilized = work + trainings + other NPRA + common activities (${cells[0]})`)
+  }
   assert.deepEqual(errors, [])
   await context.close()
 })

@@ -42,6 +42,7 @@ export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778,
 export const npraTag = /^(npra|trainings?)\b/i
 export const isNpra = (item: Pick<AzureWorkItem, 'tags'>) => (item.tags ?? '').split(';').some((tag) => npraTag.test(tag.trim()))
 // An NPRA Task: tagged itself, or under a tagged Story / Feature / Epic (the absence Epic and mapped shared time win).
+export const isTrainingTagged = (task: AzureWorkItem, chain: AzureWorkItem[]) => [task, ...chain].some((item) => (item.tags ?? '').split(';').some((tag) => /^trainings?\b/i.test(tag.trim())))
 export const isNpraTask = (task: AzureWorkItem, chain: AzureWorkItem[]) => [task, ...chain].some(isNpra)
 export const regions = ['India', 'Netherlands', 'US'] as const
 export type Region = typeof regions[number]
@@ -108,6 +109,10 @@ export interface StreamLoad { key: string; epic?: AzureWorkItem; title: string; 
 export interface PersonLoad {
   name: string; employedDays: number; funded: number; absence: number; absenceByKind: Record<AbsenceKind, number>; reserved: number; available: number
   npra: number; npraPlanned: number; npraTasks: number; npraAllowance: number; npraOver: number; npraDeducted: number
+  // CAP-38: NPRA split into Trainings and Other NPRA; common activities planned / recorded; utilized = every hour that
+  // counts as used (work + trainings + other NPRA + common activities). npra = training + npraOther; npraDeducted is 0.
+  training: number; trainingPlanned: number; npraOther: number; npraOtherPlanned: number; reservedPlanned: number; reservedActual: number
+  utilized: number; utilizedPlanned: number
   work: number; planned: number; utilization: number | null; plannedUtilization: number | null; status: LoadStatus; tasks: number; streams: StreamLoad[]
   // CAP-35 (Old Calculation): every hour of the person — work, absence, holidays, training, NPRA and the shared time
   // that applies to them — planned (Original Estimate) and actual (Completed Work).
@@ -263,13 +268,13 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const days = employedDays(month, employment)
     if (!days) { const entry = outside.get(name) ?? { name, tasks: 0, hours: 0, joinedOn: employment.joinedOn, leftOn: employment.leftOn }; entry.tasks += 1; entry.hours += hours(task.completedWork); outside.set(name, entry); continue }
     const personFunded = days * settings.hoursPerDay
-    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, allPlanned: 0, allActual: 0, sharedByScope: {}, streamMap: new Map() }
+    const person = people.get(name) ?? { name, employedDays: days, funded: personFunded, absence: 0, absenceByKind: emptyKinds(), available: personFunded, work: 0, planned: 0, utilization: null, plannedUtilization: null, status: 'No bookings' as LoadStatus, tasks: 0, streams: [], npra: 0, npraPlanned: 0, npraTasks: 0, npraAllowance, npraOver: 0, npraDeducted: 0, reserved: 0, allPlanned: 0, allActual: 0, sharedByScope: {}, training: 0, trainingPlanned: 0, npraOther: 0, npraOtherPlanned: 0, reservedPlanned: 0, reservedActual: 0, utilized: 0, utilizedPlanned: 0, streamMap: new Map() }
     people.set(name, person)
     const work = hours(task.completedWork), planned = hours(task.originalEstimate)
     person.allPlanned += planned; person.allActual += work
     if (ownShare) {
       const own = work || planned
-      if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own } else person.reserved += own
+      if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own } else { person.reserved += own; person.reservedPlanned += planned; person.reservedActual += work }
       continue
     }
     // Team Holidays and Training (CAP-16): leave is absence; training is NPRA.
@@ -279,7 +284,12 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       person.absence += work; person.absenceByKind[kind] += work
       continue
     }
-    if (training || isNpraTask(task, chain)) { person.npra += work; person.npraPlanned += planned; person.npraTasks += 1; continue }
+    if (training || isNpraTask(task, chain)) {
+      person.npra += work; person.npraPlanned += planned; person.npraTasks += 1
+      // CAP-38: a training (under the absence Epic, or tagged Training on the Task or above it) vs any other NPRA.
+      if (training || isTrainingTagged(task, chain)) { person.training += work; person.trainingPlanned += planned } else { person.npraOther += work; person.npraOtherPlanned += planned }
+      continue
+    }
     person.work += work; person.planned += planned; person.tasks += 1
     const key = epic?.key ?? 'unmapped', title = epic?.title ?? 'No Epic path'
     const personStream = person.streamMap.get(key) ?? { key, epic, title, work: 0, planned: 0, tasks: 0 }
@@ -291,7 +301,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     const inside = [...people.values()].filter((person) => inScope(entry.scope, profiles[person.name]?.region))
     for (const person of inside) {
       if (entry.kind === 'holiday') { person.absence += entry.hours; person.absenceByKind['Public holiday'] += entry.hours }
-      else person.reserved += entry.hours
+      else { person.reserved += entry.hours; person.reservedPlanned += entry.hours; person.reservedActual += entry.actual }
       person.allPlanned += entry.hours; person.allActual += entry.actual
       const byScope = person.sharedByScope[entry.scope] ?? { planned: 0, actual: 0 }
       byScope.planned += entry.hours; byScope.actual += entry.actual; person.sharedByScope[entry.scope] = byScope
@@ -303,20 +313,27 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const holidays = regions.map((region) => ({ region, hours: sharedTime.filter((entry) => entry.kind === 'holiday' && entry.scope === region).reduce((sum, entry) => sum + entry.hours, 0), people: [...people.values()].filter(person => profiles[person.name]?.region === region).length })).filter((entry) => entry.hours > 0)
   const totalWork = [...streams.values()].reduce((sum, stream) => sum + stream.work, 0)
   const personList: PersonLoad[] = [...people.values()].map(person => {
-    // Only booked NPRA hours come off the funded hours; the allowance is the maximum they are checked against (0: none).
-    const npraOver = person.npraAllowance > 0 ? Math.max(0, person.npra - person.npraAllowance) : 0, npraDeducted = person.npra
-    const available = Math.max(0, person.funded - person.absence - person.reserved - npraDeducted)
-    const utilization = person.tasks ? percent(person.work, available) : null
+    // CAP-38: Utilization = utilized hours ÷ (Contractual hours − Absence hours). Contractual = working days employed ×
+    // hours per day (funded); Absence = PTO + Sick Leave + Unplanned Leave + Public holidays + Other absence. Trainings,
+    // other NPRA and common activities are not deducted: they count as utilized hours. The NPRA allowance is a check only.
+    const npraOver = person.npraAllowance > 0 ? Math.max(0, person.npra - person.npraAllowance) : 0, npraDeducted = 0
+    const available = Math.max(0, person.funded - person.absence)
+    const utilized = person.work + person.training + person.npraOther + person.reservedActual
+    const utilizedPlanned = person.planned + person.trainingPlanned + person.npraOtherPlanned + person.reservedPlanned
+    const booked = person.tasks + person.npraTasks > 0 || person.reservedPlanned > 0 || person.reservedActual > 0
+    const utilization = booked ? percent(utilized, available) : null
     const { streamMap, ...rest } = person
-    return { ...rest, npraOver, npraDeducted, available, utilization, plannedUtilization: person.tasks ? percent(person.planned, available) : null, status: loadStatus(utilization, settings), streams: [...streamMap.values()].sort((a, b) => b.work - a.work) }
+    return { ...rest, npraOver, npraDeducted, available, utilized, utilizedPlanned, utilization, plannedUtilization: booked ? percent(utilizedPlanned, available) : null, status: loadStatus(utilization, settings), streams: [...streamMap.values()].sort((a, b) => b.work - a.work) }
   }).sort((a, b) => (b.utilization ?? -1) - (a.utilization ?? -1) || a.name.localeCompare(b.name))
   const streamList: StreamSummary[] = [...streams.values()].map(({ names, featureKeys, ...stream }) => ({ ...stream, people: names.size, features: featureKeys.size, share: percent(stream.work, totalWork) })).sort((a, b) => b.work - a.work)
   const totals = { funded: personList.reduce((sum, person) => sum + person.funded, 0), absence: personList.reduce((sum, person) => sum + person.absence, 0), reserved: personList.reduce((sum, person) => sum + person.reserved, 0), npra: personList.reduce((sum, person) => sum + person.npra, 0), npraDeducted: personList.reduce((sum, person) => sum + person.npraDeducted, 0), npraOver: personList.reduce((sum, person) => sum + person.npraOver, 0), work: totalWork, planned: personList.reduce((sum, person) => sum + person.planned, 0) }
-  const available = Math.max(0, totals.funded - totals.absence - totals.reserved - totals.npraDeducted)
+  // CAP-38: the team figure adds up the people (each person's available hours already at least 0).
+  const sum = (key: 'available' | 'utilized' | 'utilizedPlanned' | 'training' | 'npraOther' | 'reservedActual' | 'reservedPlanned') => personList.reduce((total, person) => total + person[key], 0)
+  const available = sum('available'), utilized = sum('utilized'), utilizedPlanned = sum('utilizedPlanned')
   const absenceByKind = personList.reduce((kinds, person) => { for (const kind of absenceKinds) kinds[kind] += person.absenceByKind[kind]; return kinds }, emptyKinds())
   return {
     month, settings, workingDays: workingDays(month), fundedPerPerson: funded, outsideEmployment: [...outside.values()], removed: [...removedPeople.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
-    totals: { ...totals, available, absenceByKind, utilization: personList.some(person => person.tasks) ? percent(totals.work, available) : null },
+    totals: { ...totals, available, utilized, utilizedPlanned, training: sum('training'), npraOther: sum('npraOther'), reservedActual: sum('reservedActual'), reservedPlanned: sum('reservedPlanned'), absenceByKind, utilization: personList.some(person => person.utilization != null) ? percent(utilized, available) : null, plannedUtilization: personList.some(person => person.plannedUtilization != null) ? percent(utilizedPlanned, available) : null },
     counts: { npraOver: personList.filter(person => person.npraOver > 0).length, overloaded: personList.filter(person => person.status === 'Overloaded').length, balanced: personList.filter(person => person.status === 'Balanced').length, hasCapacity: personList.filter(person => person.status === 'Has capacity').length, noBookings: personList.filter(person => person.status === 'No bookings').length },
   }
 }
@@ -330,13 +347,13 @@ export function monthlyHours(source: AzureWorkItem[], endMonth: string, span = 1
     const date = new Date(`${endMonth}-01T00:00:00Z`); date.setUTCMonth(date.getUTCMonth() - (span - 1 - index))
     const month = date.toISOString().slice(0, 7)
     const model = capacityModel(source, month, settings)
-    const booked = model.people.some((person) => person.tasks)
+    const booked = model.people.some((person) => person.utilization != null)
     return {
-      month, funded: model.people.length ? model.totals.funded : null, available: model.people.length ? model.totals.available : null, actual: booked ? model.totals.work : null, planned: booked ? model.totals.planned : null,
-      utilization: booked ? model.totals.utilization : null, plannedUtilization: booked ? percent(model.totals.planned, model.totals.available) : null,
+      month, funded: model.people.length ? model.totals.funded : null, available: model.people.length ? model.totals.available : null, actual: booked ? model.totals.utilized : null, planned: booked ? model.totals.utilizedPlanned : null,
+      utilization: booked ? model.totals.utilization : null, plannedUtilization: booked ? model.totals.plannedUtilization : null,
       absence: model.totals.absence, people: model.people.length, workingDays: model.workingDays,
       streams: model.streams.map((stream) => ({ key: stream.key, title: stream.title, work: stream.work, planned: stream.planned })),
-      byPerson: model.people.map((person) => ({ name: person.name, utilization: person.utilization, work: person.work, available: person.available, status: person.status })),
+      byPerson: model.people.map((person) => ({ name: person.name, utilization: person.utilization, work: person.utilized, available: person.available, status: person.status })),
     }
   })
 }
@@ -388,7 +405,7 @@ export function azureResources(source: AzureWorkItem[], month: string, settings:
     for (const person of capacityModel(source, key, settings).people) {
       if (person.name === 'Unassigned') continue
       const entry = people.get(person.name) ?? { name: person.name, firstMonth: key, lastMonth: key, months: 0, tasks: 0, work: 0, absence: 0, status: 'No bookings' as LoadStatus, utilization: null, streamHours: new Map<string, number>() }
-      entry.lastMonth = key; entry.months += 1; entry.tasks += person.tasks; entry.work += person.work; entry.absence += person.absence
+      entry.lastMonth = key; entry.months += 1; entry.tasks += person.tasks + person.npraTasks; entry.work += person.utilized; entry.absence += person.absence
       for (const stream of person.streams) entry.streamHours.set(stream.title, (entry.streamHours.get(stream.title) ?? 0) + stream.work)
       if (key === month) { entry.status = person.status; entry.utilization = person.utilization }
       people.set(person.name, entry)
