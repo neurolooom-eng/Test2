@@ -443,6 +443,11 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
   assert.equal(await content.getByRole('combobox', { name: 'Sprint' }).count(), 1, 'BKL-27: the Sprint is chosen (current preselected)')
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
+  // ACT-17: a work Task (not Time Writing) has the User Story fields plus the User Story it goes under.
+  await content.getByRole('radio', { name: 'Task', exact: true }).check()
+  assert.equal(await content.getByRole('combobox', { name: 'User Story' }).count(), 1, 'the User Story the Task goes under is asked')
+  for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a Task`)
+  assert.ok(await content.getByRole('button', { name: 'Add Task' }).isDisabled(), 'no title, no Task')
   // BKL-26: a new Feature opens the same New Feature form as every other page (no short form of its own); with the
   // synthetic sample nothing can be written, so the button says why.
   await content.getByRole('radio', { name: 'Feature' }).check()

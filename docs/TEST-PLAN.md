@@ -1406,6 +1406,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-12 A new Feature from My Activities uses the New Feature form** — Req ACT-16, BKL-26 — E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Feature choice has no form of its own, only Open New Feature, disabled with the sample-data reason); browser check with the Time Writing connection: Add a new activity → Feature → Open New Feature opens the New Feature form with the person shown as assignee and the header month in "Time Writing (<Month>)"; under an Epic with a Feature setup its title fields, DoD and User Stories appear as on Backlogs; Save creates the Feature in the Epic's Area Path and the chosen PI, the stories in the Sprint and the Time Writing story and Task with the setup's paths (else the project root and the Feature's area).
 
+**TC-ACT-13 A work Task from My Activities** — Req ACT-17, BKL-27 — L1 `my-work.test.mjs` ("ACT-17: addTask — a work Task under a User Story by the User Story rules; never a Time Writing Task") ; E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": the Task choice asks for the User Story, Title, Description and Comment, and Add Task stays disabled without a title); browser check with the Time Writing connection: Add a new activity → Task, pick a Feature and one of its User Stories, enter a title, description, Sprint and comment → Add Task creates the Task under that story, assigned to the person, in the story's Area Path and the chosen Sprint, with the comment in its Discussion.
+
 **TC-ACT-05 Suggestions by state, Add all** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the Features keep their state (ATM-28: a New Feature becomes Active only through an Active User Story).
 
 ### 6.26 Planning Overview
@@ -1754,6 +1756,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-14 | TC-ACT-10 |
 | ACT-15 | TC-ACT-11 |
 | ACT-16 | TC-ACT-12 |
+| ACT-17 | TC-ACT-13 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |

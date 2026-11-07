@@ -7,6 +7,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 **Added**
 - **Settings → Resources → Remove**: a person can be removed (and restored under Removed people). Removed people are left out of every capacity figure — capacity, utilization and team totals, their hours too — on every page; Pulse Check names them (CAP-33).
 - **Who counts in capacity**: Settings → Resources shows "Capacity in <Month>: n people, X h available = funded − absence − common activities − NPRA", the people in its Info and an Available column; the Team overview Utilization tile and Workload by person show the number of people and their capacity (CAP-34).
+- **My Activities → Add a new activity → Task**: adds a work Task (not Time Writing) under one of the Feature's User Stories with the same fields and rules as a User Story — Title, Description, Sprint (current preselected), Comment, the story's Area Path, assigned to the person shown (ACT-17).
 - **Get started opens when the fetch fails**: a missing, wrong or expired token or a broken connection opens Get started with the reason, the token step and Fetch now — also after "Don't show again" (NAV-41).
 
 ## v3.2.0 — 2026-11-07
