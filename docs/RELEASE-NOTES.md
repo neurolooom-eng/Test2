@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v3.2.0 — 2026-11-07
+
+**Changed**
+- **Get started**: the work email is now the third step, after the Time Writing connection and your token (PAT). **Detect from my token** reads your email from a work item assigned to, created or changed by you in Azure DevOps (read-only, with your own token); you check it and press Save email. Typing it still works (NAV-39).
+- **Get started is short**: each step shows its title, status, field and buttons only; why and how are in its **Info**. Step 2 is **Azure DevOps token (PAT) [QMS-0025]**; step 6 is renamed **TFS APAC settings [DP/CP/IOCC/Content]**. Each token step links to where the token is created (GitHub, Azure DevOps, TFS APAC); an Admin can set those links in the pop-up under Token links (admin), shared in Git with the planning data (NAV-40).
+
 ## v3.1.1 — 2026-11-07
 
 **Changed**

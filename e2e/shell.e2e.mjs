@@ -62,6 +62,16 @@ test('TC-NAV-33: a new browser gets the Get started pop-up; dismissing it keeps 
   // NAV-38: the values are entered in the pop-up itself.
   assert.equal(await dialog.getByLabel('GitHub token').count(), 1, 'the Git token can be entered here')
   assert.equal(await dialog.getByLabel('Azure DevOps PAT').getAttribute('type'), 'password', 'the PAT can be entered here, hidden')
+  // NAV-39: Git, then the connection and token, then the email (with Detect from my token), then Fetch.
+  assert.match(await text(dialog), /Connect Git storage.*Azure DevOps token \(PAT\) \[QMS-0025\].*Your work email.*Fetch data.*Region and role.*TFS APAC settings \[DP\/CP\/IOCC\/Content\]/)
+  // NAV-40: short steps; why and how are in each step's Info; each token step links to where the token is created.
+  assert.doesNotMatch(await text(dialog), /Personal access tokens → New token/, 'the how-to is behind Info, not on the page')
+  assert.equal(await dialog.getByRole('link', { name: /Create a GitHub token/ }).getAttribute('href'), 'https://github.com/settings/personal-access-tokens/new')
+  assert.match(await dialog.getByRole('link', { name: /Create an Azure DevOps PAT/ }).getAttribute('href') ?? '', /^https:\/\/dev\.azure\.com\/.+\/_usersSettings\/tokens$/)
+  assert.ok(await dialog.getByLabel('Your work email').isDisabled(), 'the email waits for the token')
+  await dialog.getByLabel('Azure DevOps PAT').fill('synthetic-token-for-the-test')
+  await dialog.getByRole('button', { name: 'Save PAT' }).click()
+  await dialog.getByRole('button', { name: 'Detect from my token' }).waitFor()
   assert.equal(await dialog.getByLabel('Your work email').getAttribute('autocomplete'), 'email', 'the browser may suggest the saved email')
   await dialog.getByLabel('Your work email').fill('ana.costa@example.com')
   await dialog.getByRole('button', { name: 'Save email' }).click()
@@ -134,7 +144,7 @@ test('TC-GIT-06: Connect Git storage starts with the team repository prefilled; 
   const { page, context, errors } = await openPage(app, { guide: true })
   const guide = page.getByRole('dialog').filter({ hasText: 'Get started' })
   await guide.waitFor()
-  assert.match(await text(guide), /ponkritz\/DemandPlanningStorage/, 'the Git step names the prefilled repository')
+  assert.match(await guide.getByLabel('GitHub token').getAttribute('placeholder') ?? '', /ponkritz\/DemandPlanningStorage/, 'the Git step names the prefilled repository')
   await guide.getByRole('button', { name: /Don.t show again automatically/ }).click()
   await navigate(page, 'Storage')
   await page.getByRole('button', { name: 'Connect Git storage…' }).click()
