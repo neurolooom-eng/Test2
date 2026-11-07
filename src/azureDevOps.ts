@@ -533,7 +533,10 @@ export async function addUserStory(config: AzureConfig, pat: string, input: Stor
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.
 export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean }
 // adhoc: the month's planning has locked, so a newly created Task is tagged 'ad-hoc' (an existing one is left as it is).
-export async function ensureMonthTask(config: AzureConfig, pat: string, featureId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false): Promise<MonthTaskResult> {
+// BKL-28: the one Time Writing Task rule of every page — "<Month> | <Feature>" under "<Feature> - Time Writing" (the
+// person's own story first), assigned to the person, in the Feature's Area Path and the project root; any month Task of
+// theirs is reused. defaultHours: the Epic setup's Original Estimate, put on a newly created Task only.
+export async function ensureMonthTask(config: AzureConfig, pat: string, featureId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false, defaultHours?: number): Promise<MonthTaskResult> {
   if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
   const email = assignee.trim().toLowerCase()
   if (!isAssignee(email)) throw new Error('Choose who the month Task is assigned to (an email), or set your Azure DevOps email (Feature creator email on the Time Writing connection).')
@@ -554,14 +557,15 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   let story: AzureWorkItem, storyCreated = false
   if (plan.status === 'use') story = plan.story
   else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
-  const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
+  let task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
+  if (defaultHours != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, defaultHours, undefined, false, transport)
   return { status: 'created', task, story, storyCreated }
 }
 
 // This month's Task for the person under one given User Story (ATM-26): a leave story ("PTO", "Sick Leave") of a
 // person's own leave Feature, or a story chosen on its row. The story's children are re-read now: a month Task of theirs
 // for the month (any title or delimiter) is reused, else "<Month> | <story title>" is created and assigned to them.
-export async function ensureStoryMonthTask(config: AzureConfig, pat: string, storyId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false): Promise<MonthTaskResult> {
+export async function ensureStoryMonthTask(config: AzureConfig, pat: string, storyId: number, assignee: string, monthLabel = currentIndiaMonth(), transport: AzureTransport = requestAzure, adhoc = false, defaultHours?: number): Promise<MonthTaskResult> {
   if (!pat.trim()) throw new Error('Enter a Work Items (Read & Write) PAT.')
   const email = assignee.trim().toLowerCase()
   if (!isAssignee(email)) throw new Error('Choose who the month Task is assigned to (an email), or set your work email (Settings → Azure DevOps → Your work email).')
@@ -574,7 +578,8 @@ export async function ensureStoryMonthTask(config: AzureConfig, pat: string, sto
   const month = timeWritingMonth(monthLabel) ?? ''
   const existing = (await directChildren(config, pat, story.id, transport)).find((item) => item.workItemType === 'Task' && item.state.toLowerCase() !== 'removed' && item.assignedToEmail === email && timeWritingMonth(item.title) === month)
   if (existing) return { status: 'exists', task: existing, story, storyCreated: false }
-  const task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
+  let task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
+  if (defaultHours != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, defaultHours, undefined, false, transport)
   return { status: 'created', task, story, storyCreated: false }
 }
 
@@ -630,11 +635,9 @@ export async function completeReleaseHierarchy(config: AzureConfig, pat: string,
     for (const review of titles.reviews.filter((review) => selected.includes(review.milestone))) items.push(await ensureChild(config, pat, feature, 'User Story', review.title, children, owner, transport, storyIterationPath || feature.iterationPath))
     // The built-in "Review of Deliverables - <Feature>" story (optional, ticked by default): in the Sprint chosen (else the Feature's iteration); an existing one is reused wherever it sits.
     if (reviewStory) items.push(await ensureChild(config, pat, feature, 'User Story', titles.review, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { anyPlace: true }))
-    // The Time Writing story is not tied to a PI, Sprint or year: it sits at the project's root iteration.
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', titles.timeWriting, children, owner, transport, config.project, undefined, undefined, { anyPlace: true })
-    items.push(timeWriting)
-    const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    items.push(await ensureChild(config, pat, timeWriting, 'Task', titles.task, tasks, owner, transport, config.project, undefined, undefined, { adhoc, areaPath: feature.areaPath }))
+    // BKL-28: the Time Writing story and the month Task by the one rule of every page.
+    const month = await ensureMonthTask(config, pat, feature.id, owner, monthLabel, transport, adhoc)
+    items.push(month.story, month.task)
     return { feature, items }
   } catch (failure) {
     throw new HierarchyCreationError(failure instanceof Error ? failure.message : 'Unable to complete the release hierarchy.', items)
@@ -664,8 +667,7 @@ export async function createAzureReleaseHierarchy(config: AzureConfig, pat: stri
   }
 }
 
-// Area Path (BKL-26): the Time Writing story and Task take the setup's Area Path, else the Feature's (never the Time
-// Writing story's); User Stories take the Feature's.
+// Area Path (BKL-26, BKL-28): User Stories, the Time Writing story and the Task take the Feature's.
 // A Feature's children from the per-Epic setup: the selected optional User Stories, the Time Writing story (default
 // "<Feature> - Time Writing"; its Iteration Path, when set, wins over the Sprint chosen in the dialog)
 // and the month Task with the setup's defaults. Titles may carry placeholders ({feature}, {program}, {service},
@@ -682,11 +684,6 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
     items.push(feature)
     const owner = assignee?.trim() || feature.assignedToEmail || ''
     if (!isAssignee(owner)) throw new Error('Choose who the User Stories and Task are assigned to (an email); the Feature has no assignee with an email.')
-    const taskOwner = setup.task.assignedTo.trim() || owner
-    if (!isAssignee(taskOwner)) throw new Error('The Time Writing Task default assignee is not an email.')
-    const storySetup = setup.timeWritingStory
-    const storyOwner = storySetup?.assignedTo.trim() || owner
-    if (!isAssignee(storyOwner)) throw new Error('The Time Writing User Story default assignee is not an email.')
     // The values typed in the form win; else a title of as many "|" parts as the setup's title fields fills them.
     const values = { ...titleValues(feature.title, monthLabel, setup.titleFields), ...(setup.titleFields?.length && setup.fieldValues?.length === setup.titleFields.length ? fieldPlaceholders(setup.titleFields, setup.fieldValues) : {}) }
     const shape = setup.titleFields?.length ? setup.titleFields.map((field) => field.label).join(' | ') : 'Program | Service | Release'
@@ -698,20 +695,16 @@ export async function completeFeatureFromSetup(config: AzureConfig, pat: string,
       return title
     }
     const stories = setup.stories.map((story) => ({ ...story, title: fill(story.title, `User Story "${story.title}"`) }))
-    const storyTitle = fill(storySetup?.title || '{feature} - Time Writing', 'The Time Writing User Story title')
-    const taskTitle = fill(setup.task.title || '{month} | {feature}', 'The Time Writing Task title')
     const children = await directChildren(config, pat, feature.id, transport)
     for (const story of stories) items.push(await ensureChild(config, pat, feature, 'User Story', story.title, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { description: story.description }))
     // The built-in "Review of Deliverables - <Feature>" story (optional, ticked by default; reviewStory false skips it): in the Sprint chosen (else the Feature's iteration); an existing one is reused wherever it sits.
     const reviewTitle = reviewStoryTitle(feature.title)
     if (setup.reviewStory !== false && reviewTitle.length > 255) throw new Error('The Review of Deliverables title exceeds 255 characters. Shorten the Feature title.')
     if (setup.reviewStory !== false && !stories.some((story) => story.title === reviewTitle)) items.push(await ensureChild(config, pat, feature, 'User Story', reviewTitle, children, owner, transport, storyIterationPath || feature.iterationPath, undefined, undefined, { anyPlace: true }))
-    const timeWriting = await ensureChild(config, pat, feature, 'User Story', storyTitle, children, storyOwner, transport, storySetup?.iterationPath.trim() || config.project, undefined, undefined, { anyPlace: true, description: storySetup?.description ?? '', areaPath: storySetup?.areaPath.trim() || feature.areaPath })
-    items.push(timeWriting)
-    const tasks = await directChildren(config, pat, timeWriting.id, transport)
-    let task = await ensureChild(config, pat, timeWriting, 'Task', taskTitle, tasks, taskOwner, transport, setup.task.iterationPath.trim() || config.project, undefined, undefined, { description: setup.task.description, areaPath: setup.task.areaPath.trim() || feature.areaPath, adhoc })
-    // The default Original Estimate goes on a newly created Task only; an existing Task keeps its hours.
-    if (setup.task.originalEstimate != null && !tasks.some((entry) => entry.id === task.id)) task = await updateAzureTimeWritingEffort(config, pat, task.id, setup.task.originalEstimate, undefined, false, transport)
+    // BKL-28: the Time Writing story and the month Task by the one rule of every page; only the setup's default hours.
+    const month = await ensureMonthTask(config, pat, feature.id, owner, monthLabel, transport, adhoc, setup.task.originalEstimate)
+    items.push(month.story)
+    const task = month.task
     items.push(task)
     return { feature, items }
   } catch (failure) {

@@ -9,7 +9,7 @@ import { SearchSelect } from '../components/SearchSelect'
 import { EmptyState, Metric, Metrics, Page } from '../components/ui'
 import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
-import type { FeatureSetups } from '../featureSetup'
+import { setupHours, type FeatureSetups } from '../featureSetup'
 import { formatDate, formatHours, monthName, todayIso } from '../format'
 import { absenceStoryType, assignablePeople, isMine, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
@@ -158,9 +158,11 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
         progress(`Adding ${index + 1} of ${chosen.length}…`)
         try {
           const candidate = row.candidate!
-          const result = candidate.story ? await ensureStoryMonthTask(config, pat, candidate.story.id, assignee, label, undefined, planLocked)
+          // BKL-28: the Epic setup's default hours on a new Task, unless planned hours are typed (or planning is locked).
+          const typed = edits[row.key]?.planned?.trim(), hours = typed || planLocked ? undefined : setupHours(featureSetup, epicOf(candidate.feature)?.id)
+          const result = candidate.story ? await ensureStoryMonthTask(config, pat, candidate.story.id, assignee, label, undefined, planLocked, hours)
             : candidate.leave && candidate.kind ? await ensureAbsenceStoryMonthTask(config, pat, candidate.feature.id, candidate.kind, candidate.storyTitle, absenceStoryType, assignee, label, undefined, planLocked)
-            : await ensureMonthTask(config, pat, candidate.feature.id, assignee, label, undefined, planLocked)
+            : await ensureMonthTask(config, pat, candidate.feature.id, assignee, label, undefined, planLocked, hours)
           const effort = effortOf(edits[row.key] ?? {})
           if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
           created += 1
@@ -225,7 +227,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
     const started = runInBackground('activities:save', `Add ${feature.title} for ${label}`, async (progress) => {
       try {
         progress('Adding the month task…')
-        const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked)
+        const result = await ensureMonthTask(config, pat, feature.id, assignee, label, undefined, planLocked, entry.planned?.trim() || planLocked ? undefined : setupHours(featureSetup, epicOf(feature)?.id))
         const effort = effortOf(entry)
         if (effort.plan != null || effort.actual != null) await updateAzureTimeWritingEffort(config, pat, result.task.id, effort.plan, effort.actual)
         setNewHours({}); setFeatureId('')

@@ -335,7 +335,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-33 Links in Bulk actions** — Req CON-65 — browser check with the synthetic sample: Bulk actions, choose a person with a pending Feature → its row in the Time Writing tasks shows "#100002" as a link to …/_workitems/edit/100002 (target _blank); clicking it opens a new tab and leaves the checkbox unchanged; State checks and Move to current PI + Sprint rows use the same link; no page errors.
 
-**TC-CON-34 Time Writing story paths in the setup** — Req CON-66 — L1 `feature-setup.test.mjs` (rows carry the story's Area and Iteration Path); browser check with GitHub mocked: the row of #37810 shows "Area: the Feature’s · Iteration: project root"; Edit → set Area Path "QMS\Quality Engineering" and Iteration Path "QMS" (with the DoD) → Save to Git → the saved story holds both and the row shows them; the setup pop-up's placeholders say "Empty: the Feature's Area Path" and "Empty: the project root … (no PI, Sprint or year)".
+**TC-CON-34 Time Writing story paths in the setup** — *(Retired — see TC-BKL-18)* Req CON-66 — L1 `feature-setup.test.mjs` (rows carry the story's Area and Iteration Path); browser check with GitHub mocked: the row of #37810 shows "Area: the Feature’s · Iteration: project root"; Edit → set Area Path "QMS\Quality Engineering" and Iteration Path "QMS" (with the DoD) → Save to Git → the saved story holds both and the row shows them; the setup pop-up's placeholders say "Empty: the Feature's Area Path" and "Empty: the project root … (no PI, Sprint or year)".
 
 **TC-CON-35 Default Feature DoD for setups without one** — Req CON-67 — L1 `feature-setup.test.mjs` ("default Feature DoD for setups without one: Full Release with a PRD story, else PU; only missing ones are filled"); browser check with GitHub mocked (#13946 without stories, #37810 with PRD and SFV, both without DoD): the banner says "2 shared setups have no Feature DoD."; #37810 shows "Missing · Default: IQOQ finished and Checklist uploaded into the Feature."; Edit #13946 pre-fills "DT finished. This is a PU release."; "Fill missing DoDs with the default" marks both rows changed and removes the banner; Save to Git saves #13946 with the PU and #37810 with the Full Release DoD; "All fields…" has its tooltip. **UAT**
 
@@ -728,9 +728,11 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-15 Your own User Story on New Feature** — Req BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature"); browser check with the Time Writing connection: enter a title and description, Save — the story is created under the new Feature in the Sprint chosen, assigned like the Feature, and named in the result; left empty, nothing extra is created; not shown on Complete Feature children.
 
-**TC-BKL-16 One Feature creation with the same rules everywhere** — Req BKL-26, BKL-14 — L1 `azure-devops.test.mjs` ("BKL-26: Area Path — the Time Writing story and Task take the setup's Area Path, else the Feature's (never the story's); User Stories the Feature's"); E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": My Activities has no Feature form of its own); browser check: create a Feature under the same Epic from Backlogs, Assigned to Me, Release Details and My Activities — each uses the Epic's setup, the Epic's Area Path, the preselected current PI → Sprint, and the same Time Writing story and Task titles and paths.
+**TC-BKL-16 One Feature creation with the same rules everywhere** — Req BKL-26, BKL-14 — L1 `azure-devops.test.mjs` ("BKL-26, BKL-28: Area Path — User Stories, the Time Writing story and the Task take the Feature's"); E2E `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": My Activities has no Feature form of its own); browser check: create a Feature under the same Epic from Backlogs, Assigned to Me, Release Details and My Activities — each uses the Epic's setup, the Epic's Area Path, the preselected current PI → Sprint, and the same Time Writing story and Task titles and paths.
 
 **TC-BKL-17 One User Story creation with the same rules everywhere** — Req BKL-27, BKL-19, BKL-25, ACT-08 — L1 `my-work.test.mjs` ("BKL-27: addUserStory — a current or future Sprint only (checked fresh), the Feature's Area Path, the optional comment"); E2E `backlog.e2e.mjs` ("TC-BKL-10: ＋ User Story on a Feature opens the New User Story form with the Feature as parent and the story fields": a Comment field; "TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature": a Comment field), `shell.e2e.mjs` ("TC-ACT-02: My Activities shows the person's KPI cards, month tasks, hours and deadline": a Sprint choice); browser check with the Time Writing connection: add a User Story with a comment from Backlogs, from My Activities and with a new Feature — each lands in the Feature's Area Path and the Sprint chosen (current preselected), assigned to the person, with the comment in its Discussion.
+
+**TC-BKL-18 One Time Writing Task rule everywhere** — Req BKL-28, BKL-14, BKL-22, CON-52, CON-53 — L1 `azure-devops.test.mjs` ("BKL-28: the Epic setup no longer shapes the Time Writing story or Task — fixed titles, the person, the Feature's area, the project root", "BKL-28: a new month Task gets the Epic setup's default hours; an existing one is reused and keeps its hours"); browser check with the Time Writing connection: under an Epic whose setup has 6 default hours, create a Feature, add a month Task with ＋ Time Writing Task (header month December) and on My Activities — each Task is "<Month> \| <Feature>" under "<Feature> - Time Writing", assigned to you, in the Feature's Area Path and the project root, with 6h unless hours were typed; a second add for the same month reuses the Task; Settings → Feature setup shows only the default hours for Time Writing.
 
 **TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
 
@@ -1443,7 +1445,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-14…16 | TC-CON-04, TC-CON-05 |
 | CON-18 | TC-INS-01 |
 | CON-20 | TC-CON-07 |
-| CON-52, CON-53 | TC-CON-23, TC-CON-26 |
+| CON-52, CON-53 | TC-CON-23, TC-CON-26, TC-BKL-18 |
 | CON-54 | TC-ATM-08 |
 | CON-55 | TC-CON-24 |
 | CON-56 | TC-QV-16 |
@@ -1549,7 +1551,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
 | BKL-13 | TC-BKL-04 |
-| BKL-14 | TC-BKL-05, TC-BKL-16 |
+| BKL-14 | TC-BKL-05, TC-BKL-16, TC-BKL-18 |
 | BKL-15 | TC-BKL-06 |
 | BKL-16 | TC-BKL-07 |
 | BKL-17 | TC-BKL-08 |
@@ -1557,12 +1559,13 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-19 | TC-BKL-10, TC-BKL-17 |
 | BKL-20 | TC-BKL-11 |
 | BKL-21 | TC-BKL-12 |
-| BKL-22 | TC-BKL-12 |
+| BKL-22 | TC-BKL-12, TC-BKL-18 |
 | BKL-23 | TC-BKL-13 |
 | BKL-24 | TC-BKL-14 |
 | BKL-25 | TC-BKL-15 |
 | BKL-26 | TC-BKL-16 |
 | BKL-27 | TC-BKL-17 |
+| BKL-28 | TC-BKL-18 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1764,10 +1767,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
-| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19 |
+| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
-| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
+| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
@@ -1788,7 +1791,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32 |
 | UC-27 | TC-HIS-01…11 |
-| UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-ATM-21 |
+| UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 
