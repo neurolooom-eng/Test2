@@ -2,6 +2,12 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v4.1.0 — 2026-11-07
+
+**Added**
+- **Team overview → Capacity and workload → Workload by person** shows the utilization split per person over the period: Contractual, Absence, Available, Work, Trainings, Other NPRA, Common activities, Plan, Utilized and both utilizations (CAP-39).
+- **Team overview → Utilization** (new tab): for one month of the period, the same per-person table as Pulse Check → Last month and the team figure Σ utilized ÷ Σ available, with the region, role and team member filters (CAP-39).
+
 ## v4.0.0 — 2026-11-07
 
 **Changed** (utilization figures change on every page)

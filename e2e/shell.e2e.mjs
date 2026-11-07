@@ -238,6 +238,25 @@ test('TC-CAP-13: Pulse Check shows Utilization = utilized ÷ (contractual − ab
   await context.close()
 })
 
+test('TC-CAP-14: Team overview shows the utilization split in Workload by person and in a one-month Utilization tab', async () => {
+  const { page, context, errors } = await openPage(app)
+  await loadSample(page)
+  await navigate(page, 'Team overview')
+  const content = page.locator('.content')
+  await content.getByRole('tab', { name: 'Capacity and workload' }).click()
+  const workload = content.locator('.panel', { has: page.locator('h2, h3', { hasText: /^Workload by person/ }) }).first().locator('table').first()
+  await workload.waitFor()
+  assert.deepEqual((await workload.locator('thead th').allInnerTexts()).map((label) => label.trim().toLowerCase()), ['person', 'region · role', 'contractual h', 'absence h', 'available h', 'work h', 'trainings h', 'other npra h', 'common activities h', 'plan h', 'utilized h', 'planned utilization', 'actual utilization', 'actual − plan h'])
+  await content.getByRole('tab', { name: 'Utilization', exact: true }).click()
+  const table = content.locator('.panel', { has: page.locator('h2, h3', { hasText: /UTILIZATION|·/ }) }).locator('table').first()
+  await table.waitFor()
+  assert.deepEqual((await table.locator('thead th').allInnerTexts()).map((label) => label.trim().toLowerCase()), ['person', 'status', 'contractual', 'absence', 'available', 'work', 'trainings', 'other npra', 'common activities', 'planned', 'utilized', 'utilization', 'main stream'])
+  assert.match(await text(content.getByRole('note').filter({ hasText: /^Team:/ })), /h utilized ÷ .*h available = /)
+  assert.equal(await content.getByRole('combobox', { name: 'Month' }).count(), 1, 'a month is chosen')
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
 test('TC-HIS-01: Settings → Historical hours explains the import and needs Git storage to upload', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, 'Historical hours')
@@ -390,7 +409,7 @@ test('TC-MYD-05: Team overview shows six headline tiles; each opens its analysis
   const tiles = content.locator('.dash-tile')
   await tiles.first().waitFor()
   assert.deepEqual((await tiles.locator('> span').allInnerTexts()).map((label) => label.trim().toLowerCase()), ['utilization', 'overload and headroom', 'plan accuracy', 'plan health', 'delivery', 'forecast'])
-  assert.deepEqual((await content.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Overview', 'Capacity and workload', 'Streams', 'Plan quality', 'Old Calculation', 'Definitions'])
+  assert.deepEqual((await content.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Overview', 'Capacity and workload', 'Streams', 'Plan quality', 'Utilization', 'Old Calculation', 'Definitions'])
   // TC-CAP-10: Old Calculation — one month, per person: every hour against working days × funded hours.
   await content.getByRole('tab', { name: 'Old Calculation' }).click()
   const old = content.getByRole('table', { name: 'Old Calculation' })

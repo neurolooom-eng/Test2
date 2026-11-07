@@ -15,6 +15,7 @@ import type { Page as PageId } from './registry'
 import type { PageProps } from './types'
 import type { PersonalViewsStore } from '../usePersonalViews'
 import { CustomizableSections } from '../components/PersonalLayout'
+import { UtilizationTable } from '../components/MonthOverview'
 
 // Dashboard: demand (planned hours), recorded hours and capacity per person and month, over a period, with one
 // utilization model everywhere — the bands from Settings → Capacity (overloaded at or above overloadedAt %, spare
@@ -24,7 +25,7 @@ import { CustomizableSections } from '../components/PersonalLayout'
 // Definitions. Hour differences are shown without colour; colour is reserved for utilization against capacity.
 // Team overview (MYD-10…MYD-12): the overview's six tiles each open the tab that explains them; delivery counts live on
 // Pulse Check only.
-const tabs = [['overview', 'Overview'], ['capacity', 'Capacity and workload'], ['streams', 'Streams'], ['quality', 'Plan quality'], ['old', 'Old Calculation'], ['definitions', 'Definitions']] as const
+const tabs = [['overview', 'Overview'], ['capacity', 'Capacity and workload'], ['streams', 'Streams'], ['quality', 'Plan quality'], ['utilization', 'Utilization'], ['old', 'Old Calculation'], ['definitions', 'Definitions']] as const
 type Tab = typeof tabs[number][0]
 interface Saved { tab: Tab; period: Period; filter: DashboardFilter }
 const storageKey = 'demand-planning-dashboard-v3'
@@ -150,6 +151,7 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
       {saved.tab === 'capacity' && <><SummaryTab rows={rows} months={months} bands={bands} parts={['rebalancing', 'monitor']} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['forecast', 'unusual']} /><MonthsTab rows={rows} months={months} bands={bands} /><PeopleTab rows={rows} months={months} bands={bands} /></>}
       {saved.tab === 'streams' && <><StreamsTab rows={rows} months={months} items={chartItems} settings={settings} streamFiltered={saved.filter.streams.length > 0} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['momentum', 'resilience']} /></>}
       {saved.tab === 'quality' && <><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['health', 'accuracy']} /><SummaryTab rows={rows} months={months} bands={bands} parts={['horizon']} /></>}
+      {saved.tab === 'utilization' && <UtilizationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} />}
       {saved.tab === 'old' && <OldCalculationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} canEdit={canSetDefault} onSaveStandard={saveStandardHours} onSaveExcluded={saveExcludedScopes} />}
       {saved.tab === 'definitions' && <DefinitionsTab hoursPerDay={settings.hoursPerDay} absenceEpicId={settings.absenceEpicId} bands={bands} />}
     </>}
@@ -333,6 +335,9 @@ function Comparison({ rows, months, bands }: { rows: PersonMonth[]; months: stri
 }
 
 type Grouping = 'person' | 'role' | 'region'
+// CAP-39: a CAP-38 part summed over a person's months.
+const sumRows = (rows: PersonMonth[], key: 'contractual' | 'work' | 'training' | 'npraOther' | 'activities') => Math.round(rows.reduce((total, row) => total + row[key], 0) * 100) / 100
+
 function PeopleTab({ rows, months, bands }: { rows: PersonMonth[]; months: string[]; bands: Bands }) {
   const [grouping, setGrouping] = useState<Grouping>('person')
   const persistent = new Set(persistentOverload(rows, months, 'actual', 3, bands))
@@ -340,9 +345,9 @@ function PeopleTab({ rows, months, bands }: { rows: PersonMonth[]; months: strin
   const label = grouping === 'person' ? 'Person' : grouping === 'role' ? 'Role' : 'Region'
   const groups = groupBy(rows, by).sort((a, b) => (b.planUtil ?? 0) - (a.planUtil ?? 0))
   return <NoHours rows={rows}>
-    <Section eyebrow="WHO" title={`Workload by ${label.toLowerCase()}${grouping === 'person' ? ` · ${groups.length} ${groups.length === 1 ? 'person' : 'people'} · ${formatHours(groups.reduce((sum, group) => sum + group.capacity, 0))}h capacity` : ''}`} info={`Over the period, highest planned utilization first: capacity (net of absence), planned and recorded hours, utilization in the Settings bands, and the differences actual − plan and capacity − plan. ⚠ = overloaded on recorded hours in 3 or more consecutive elapsed months. Roles and regions come from Settings → Resources; people without one are grouped as "No role" / "No region".`} action={<div className="chip-row" role="group" aria-label="Group by">{(['person', 'role', 'region'] as const).map((entry) => <button key={entry} type="button" className={`chip ${grouping === entry ? 'chip-on' : ''}`} aria-pressed={grouping === entry} onClick={() => setGrouping(entry)}>{entry === 'person' ? 'People' : entry === 'role' ? 'Roles' : 'Regions'}</button>)}</div>}>
-      {grouping === 'person' ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Region · role</th><th>Capacity h</th><th>Absence h</th><th>Plan h</th><th>Actual h</th><th>Planned utilization</th><th>Actual utilization</th><th>Actual − plan h</th></tr></thead><tbody>
-        {groups.map((person) => <tr key={person.name}><td><strong>{person.name}{persistent.has(person.name) && <span className="negative" title="Persistent overload on recorded hours"> ⚠</span>}</strong></td><td>{[person.rows[0]?.region, person.rows[0]?.role].filter(Boolean).join(' · ') || '—'}</td><td>{h(person.capacity)}</td><td>{h(person.absence)}</td><td>{h(person.plan)}</td><td>{h(person.actual)}</td><td><Util value={person.planUtil} bands={bands} /></td><td><Util value={person.actualUtil} bands={bands} /></td><td>{signed(Math.round((person.actual - person.plan) * 100) / 100)}</td></tr>)}
+    <Section eyebrow="WHO" title={`Workload by ${label.toLowerCase()}${grouping === 'person' ? ` · ${groups.length} ${groups.length === 1 ? 'person' : 'people'} · ${formatHours(groups.reduce((sum, group) => sum + group.capacity, 0))}h capacity` : ''}`} info={`Over the period, highest planned utilization first. Utilization = Utilized ÷ (Contractual − Absence): Contractual = working days employed × hours per day; Available = Contractual − Absence; Utilized = Work + Trainings + Other NPRA + Common activities (Plan h: Original Estimate; Utilized h: Completed Work). Also utilization in the Settings bands, and the differences actual − plan and capacity − plan. ⚠ = overloaded on recorded hours in 3 or more consecutive elapsed months. Roles and regions come from Settings → Resources; people without one are grouped as "No role" / "No region".`} action={<div className="chip-row" role="group" aria-label="Group by">{(['person', 'role', 'region'] as const).map((entry) => <button key={entry} type="button" className={`chip ${grouping === entry ? 'chip-on' : ''}`} aria-pressed={grouping === entry} onClick={() => setGrouping(entry)}>{entry === 'person' ? 'People' : entry === 'role' ? 'Roles' : 'Regions'}</button>)}</div>}>
+      {grouping === 'person' ? <div className="azure-table"><table><thead><tr><th>Person</th><th>Region · role</th><th>Contractual h</th><th>Absence h</th><th>Available h</th><th>Work h</th><th>Trainings h</th><th>Other NPRA h</th><th>Common activities h</th><th>Plan h</th><th>Utilized h</th><th>Planned utilization</th><th>Actual utilization</th><th>Actual − plan h</th></tr></thead><tbody>
+        {groups.map((person) => <tr key={person.name}><td><strong>{person.name}{persistent.has(person.name) && <span className="negative" title="Persistent overload on recorded hours"> ⚠</span>}</strong></td><td>{[person.rows[0]?.region, person.rows[0]?.role].filter(Boolean).join(' · ') || '—'}</td><td>{h(sumRows(person.rows, 'contractual'))}</td><td>{h(person.absence)}</td><td>{h(person.capacity)}</td><td>{h(sumRows(person.rows, 'work'))}</td><td>{h(sumRows(person.rows, 'training'))}</td><td>{h(sumRows(person.rows, 'npraOther'))}</td><td>{h(sumRows(person.rows, 'activities'))}</td><td>{h(person.plan)}</td><td>{h(person.actual)}</td><td><Util value={person.planUtil} bands={bands} /></td><td><Util value={person.actualUtil} bands={bands} /></td><td>{signed(Math.round((person.actual - person.plan) * 100) / 100)}</td></tr>)}
       </tbody></table></div> : <>
         <Bars groups={groups} bands={bands} />
         <GroupTable rows={rows} by={by} label={label} bands={bands} />
@@ -495,6 +500,27 @@ function InsightsTab({ rows, months, today, bands, delivery, parts }: { rows: Pe
       </tbody></table></div>{unusualRows.button}</> : <EmptyState title="No unusual months." detail="Nothing differs from a person's typical month by 50% or more — or fewer than 3 elapsed months with data." />}
     </Section>}
   </NoHours>
+}
+
+// CAP-39 Utilization: one month of the period, per person, the CAP-38 split (as Pulse Check → Last month). Region,
+// role and team member filters apply; the team figure adds up the people shown.
+function UtilizationTab({ items, months, headerMonth, settings, filter, profiles, bands }: { items: AzureWorkspace['items']; months: string[]; headerMonth: string; settings: ReturnType<typeof capacityContext>; filter: DashboardFilter; profiles: Record<string, { region?: Region; role?: ResourceRole }>; bands: Bands }) {
+  const fallback = months.includes(headerMonth) ? headerMonth : months[months.length - 1]
+  const [picked, setPicked] = useState(fallback)
+  const chosen = months.includes(picked) ? picked : fallback
+  const has = <T,>(list: T[], value: T | undefined) => !list.length || (value != null && list.includes(value))
+  const model = capacityModel(items, chosen, settings)
+  const people = model.people.filter((person) => person.name !== 'Unassigned' && has(filter.regions, profiles[person.name]?.region) && has(filter.roles, profiles[person.name]?.role) && has(filter.people, person.name))
+  const available = people.reduce((total, person) => total + person.available, 0), utilized = people.reduce((total, person) => total + person.utilized, 0), planned = people.reduce((total, person) => total + person.utilizedPlanned, 0)
+  const percentOf = (part: number) => available > 0 ? Math.round(part / available * 10000) / 100 : null
+  const profileLine = (name: string) => [profiles[name]?.role, profiles[name]?.region].filter(Boolean).join(' · ')
+  const info = `Utilization = Utilized hours ÷ (Contractual hours − Absence hours). Contractual = working days employed in ${monthName(chosen)} (${model.workingDays} in the month) × ${settings.hoursPerDay}h. Absence = PTO + Sick Leave + Unplanned Leave + Public holidays + Other absence. Utilized = Work + Trainings + Other NPRA + Common activities (Completed Work; Planned: Original Estimate). The team figure adds up the people shown.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
+  return <Section eyebrow="UTILIZATION" title={`${monthName(chosen)} · ${people.length} ${people.length === 1 ? 'person' : 'people'}`} info={info} action={<label className="dash-select">Month<select value={chosen} onChange={(event) => setPicked(event.target.value)}>{months.map((entry) => <option key={entry} value={entry}>{monthName(entry)}</option>)}</select></label>}>
+    {!people.length ? <EmptyState title={`No Time Writing data for ${monthName(chosen)}.`} detail="Choose another month or change the filters." /> : <>
+      <p className="muted" role="note">Team: <strong>{formatHours(utilized)}h utilized ÷ {formatHours(available)}h available = <Util value={percentOf(utilized)} bands={bands} /></strong> · planned {formatHours(planned)}h = <Util value={percentOf(planned)} bands={bands} /></p>
+      <div className="azure-table"><UtilizationTable people={people} profileLine={profileLine} /></div>
+    </>}
+  </Section>
 }
 
 // CAP-35 Old Calculation: one month, per person, every hour against the full capacity (working days employed × funded
