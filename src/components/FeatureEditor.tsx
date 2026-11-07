@@ -13,9 +13,12 @@ import { chooseSetup, defaultDoDFor, fieldKey, fieldLines, fieldPlaceholders, fi
 // children of an existing Feature. The Feature and every new child are assigned to the person chosen, else to me.
 // initialTitle: the Feature title to start from (Release Details: "Program | Service | Release" of the release).
 // releaseItems: the on-prem work items of that release; they fill the Epic setup's title fields (their source field).
+// month: the Time Writing month of the new Task (My Activities: the month shown); default the current month (India).
+// Every new Feature, from any page, is created here (BKL-26): the Epic's setup (else the built-in rules), the Epic's
+// Area Path, the PI chosen (the current one preselected) and the stories in its Sprint.
 export type FeatureEditorMode = { parent: AzureWorkItem; resume?: undefined } | { resume: AzureWorkItem; parent?: undefined }
 export interface FeatureEditorResult { feature: AzureWorkItem; items: AzureWorkItem[]; text: string; parent?: AzureWorkItem }
-export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoose, featureSetup, initialTitle = '', releaseItems, onSavePat, onCreated, onDone, onPartial, onClose }: { mode: FeatureEditorMode; initialTitle?: string; releaseItems?: AzureWorkItem[]; items: AzureWorkItem[]; config: AzureConfig; savedPat?: string; me: string; canChoose: boolean; featureSetup?: FeatureSetups | null; onSavePat?: (pat: string) => void; onCreated?: (items: AzureWorkItem[]) => void; onDone: (result: FeatureEditorResult) => void; onPartial: (text: string, items: AzureWorkItem[], parent?: AzureWorkItem) => void; onClose: () => void }) {
+export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoose, featureSetup, initialTitle = '', releaseItems, month, onSavePat, onCreated, onDone, onPartial, onClose }: { mode: FeatureEditorMode; initialTitle?: string; month?: string; releaseItems?: AzureWorkItem[]; items: AzureWorkItem[]; config: AzureConfig; savedPat?: string; me: string; canChoose: boolean; featureSetup?: FeatureSetups | null; onSavePat?: (pat: string) => void; onCreated?: (items: AzureWorkItem[]) => void; onDone: (result: FeatureEditorResult) => void; onPartial: (text: string, items: AzureWorkItem[], parent?: AzureWorkItem) => void; onClose: () => void }) {
   const people = useMemo(() => assignablePeople(items), [items])
   const resumeFeature = mode.resume ?? null
   const scoped = useMemo(() => items.filter((item) => item.state.trim().toLowerCase() !== 'removed' && item.organization.toLowerCase() === config.organization.toLowerCase() && item.project.toLowerCase() === config.project.toLowerCase()), [items, config.organization, config.project])
@@ -55,7 +58,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const futurePairs = futureIterationPairs(iterationChoices)
   const selectablePairs = [...pairs, ...futurePairs]
   const availableMilestones = ['PRD', 'SFV', 'DT', 'IQOQ']
-  const monthLabel = currentIndiaMonth()
+  const monthLabel = month || currentIndiaMonth()
   // Planning of the month has locked (Settings → periods): the new Time Writing Task is tagged ad-hoc.
   const lateTask = adhocAfterLock(monthLabel)
   // The Epic's own setup (Settings → Feature setup), if any: its optional User Stories replace the PU / Full Release
@@ -227,7 +230,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
           <label>User Story description<textarea value={ownStory.description} rows={2} placeholder="What needs to be done, and why" onChange={(event) => setOwnStory((current) => ({ ...current, description: event.target.value }))} /></label>
           <small className="muted">Created under the new Feature in the Sprint chosen, assigned like the Feature.</small>
         </fieldset>}
-        <p className="info-line"><Info label="Paths and assignment">Feature → {resumeFeature ? resumeFeature.iterationPath : iterationPath || 'the PI chosen'}. Optional User Stories → {sprintPath || 'the Sprint chosen'}. Time Writing story and Task → {epicSetup?.timeWritingStory.iterationPath || config.project}, never the Sprint. Every new item is assigned to {assignee || 'the person chosen'}. Current date uses India time.</Info></p>
+        <p className="info-line"><Info label="Paths and assignment">Feature → {resumeFeature ? resumeFeature.iterationPath : iterationPath || 'the PI chosen'}. Optional User Stories → {sprintPath || 'the Sprint chosen'}. Time Writing story and Task → {epicSetup?.timeWritingStory.iterationPath || config.project}, never the Sprint. Area: the Feature and its User Stories take the Epic’s Area Path; the Time Writing story and Task the setup’s, else the Feature’s. Every new item is assigned to {assignee || 'the person chosen'}. {month ? `Time Writing month: ${monthLabel}.` : 'Current date uses India time.'}</Info></p>
       </section>
       {showPat ? <label>PAT — Work Items: Read &amp; Write<input type="password" required autoComplete="off" value={pat} onChange={(event) => { setPat(event.target.value); setIterationChoices([]); setIterationPath(''); setSprintPath('') }} disabled={creating} /><small>Saved in this browser only. Enter it, then ↻ Reload the schedule.</small></label>
         : <p className="muted nf-pat">Using your saved Azure DevOps token. <button type="button" className="text-button" disabled={creating} onClick={() => setShowPat(true)}>Use another token</button></p>}

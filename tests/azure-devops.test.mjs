@@ -708,3 +708,14 @@ test('Predecessor and Successor IDs come from the Dependency links of each work 
   assert.deepEqual(dependencyFields({ relations: [link('System.LinkTypes.Hierarchy-Forward', 5)] }), {}, 'no dependency links, no fields')
   assert.deepEqual(dependencyFields({}), {})
 })
+
+test('BKL-26: Area Path — the Time Writing story and Task take the setup\'s Area Path, else the Feature\'s (never the story\'s); User Stories the Feature\'s', async () => {
+  const server = fakeHierarchyServer()
+  const timeWritingStory = { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: 'Quality Project\\Time', iterationPath: '' }
+  const task = { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' }
+  const result = await createFeatureFromSetup(config, pat, { ...feature, iterationPath: 'Current PI', storyIterationPath: 'Quality Project\\Current PI\\Sprint 4' }, { stories: [{ title: 'Review', description: '' }], timeWritingStory, task }, 'October 2026', server.transport)
+  const byTitle = (title) => result.items.find((item) => item.title === title)
+  assert.equal(byTitle('Example | Service | v1.0 - Time Writing').areaPath, 'Quality Project\\Time', 'the setup\'s story area')
+  assert.equal(result.items.find((item) => item.workItemType === 'Task').areaPath, result.feature.areaPath, 'the Task: the setup\'s area, else the Feature\'s')
+  assert.equal(byTitle('Review').areaPath, result.feature.areaPath, 'User Stories: the Feature\'s area')
+})
