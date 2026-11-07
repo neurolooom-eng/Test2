@@ -64,3 +64,15 @@ test('NAV-39: the work email is read from the token owner\'s work items (@Me): A
   assert.equal(await detectWorkEmail(config, 'pat', transport), null, 'no work item yet: nothing found')
   await assert.rejects(detectWorkEmail(config, ' ', transport), /token/)
 })
+
+import { normalizeSetupLinks, parsePlanning, planningData, serializePlanning } from '../src/gitStorage.ts'
+test('NAV-40: the token links are https only, shared in the planning data and kept through a round trip', () => {
+  assert.deepEqual(normalizeSetupLinks({ github: 'https://github.com/settings/tokens', azure: 'http://dev.azure.com/x', tfs: 'not a link', other: 'https://x' }), { github: 'https://github.com/settings/tokens' })
+  assert.equal(normalizeSetupLinks({ github: '' }), undefined)
+  const data = planningData({ baselineRules: [], releaseScopes: [], resourceProfiles: {}, setupLinks: { tfs: 'https://tfs.example.com/APAC/_usersSettings/tokens' } })
+  assert.deepEqual(parsePlanning(serializePlanning(data)).setupLinks, { tfs: 'https://tfs.example.com/APAC/_usersSettings/tokens' })
+  assert.equal('setupLinks' in planningData({ baselineRules: [], releaseScopes: [], resourceProfiles: {} }), false, 'no links: nothing written')
+  const steps = setupSteps(base)
+  assert.deepEqual(steps.map((step) => step.link ?? ''), ['github', 'azure', '', '', '', 'tfs'])
+  assert.equal(steps.at(-1).title, 'TFS APAC settings [DP/CP/IOCC/Content]')
+})
