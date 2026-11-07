@@ -68,7 +68,7 @@ export function personMonths(source: AzureWorkItem[], months: string[], today: s
       const profile = profiles[person.name]
       rows.push({
         month, status: monthStatus(month, today), person: person.name, region: profile?.region, role: profile?.role,
-        plan: round(person.planned), actual: round(person.work), capacity: round(person.available), absence: round(person.absence), reserved: round(person.reserved), tasks: person.tasks,
+        plan: round(person.utilizedPlanned), actual: round(person.utilized), capacity: round(person.available), absence: round(person.absence), reserved: round(person.reserved), tasks: person.tasks + person.npraTasks,
         planLines: lines.get(person.name)?.planLines ?? 0, blankActuals: lines.get(person.name)?.blankActuals ?? 0,
         streams: person.streams.map((stream) => ({ key: stream.key, title: stream.title, plan: round(stream.planned), actual: round(stream.work) })),
       })

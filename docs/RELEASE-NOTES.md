@@ -2,6 +2,11 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v4.0.0 — 2026-11-07
+
+**Changed** (utilization figures change on every page)
+- **Utilization = Utilized hours ÷ (Contractual hours − Absence hours)**: Contractual = working days employed × hours per day; Absence = PTO + Sick Leave + Unplanned Leave + public holidays + other absence; Utilized = Work + **Trainings** + **Other NPRA** + **Common activities**. Trainings, other NPRA and common activities are no longer deducted from the available hours — they count as utilized hours. Planned utilization uses the same formula with Original Estimate. The team figure is the sum over the people, so Team overview and Pulse Check now agree. Pulse Check shows the split per person; Settings → Resources shows "X h available = C h contractual − A h absence" (CAP-38; CAP-05 and CAP-06 retired; CAP-11, CAP-13, CAP-16, CAP-34 updated). The Old Calculation tab is unchanged.
+
 ## v3.6.0 — 2026-11-07
 
 **Added**
