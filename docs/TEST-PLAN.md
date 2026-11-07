@@ -947,6 +947,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-13 Utilization = utilized ÷ (contractual − absence)** — Req CAP-38, CAP-05, CAP-06, CAP-11, CAP-13, CAP-16, CAP-34 — L1 `capacity.test.mjs` ("CAP-38: Utilization = (work + trainings + other NPRA + common activities) ÷ (contractual − absence); NPRA split, checked against the maximum"; "holidays and common activities: mapped Epics / Features apply their month Tasks to everyone in scope"), `monthly-hours.test.mjs` ("monthly hours series spans the requested months and matches the capacity model per month") ; E2E `shell.e2e.mjs` ("TC-CAP-13: Pulse Check shows Utilization = utilized ÷ (contractual − absence) with Trainings and Other NPRA apart") — **UAT**; browser check with real data: Pulse Check → Last month → Who has capacity — for one person check Contractual = working days × 8 h, Absence = PTO + sick + unplanned + public holidays + other absence, Available = Contractual − Absence, Utilized = Work + Trainings + Other NPRA + Common activities, Utilization = Utilized ÷ Available; the team tile equals Σ Utilized ÷ Σ Available and Team overview shows the same figure.
 
+**TC-CAP-14 Utilization split in Team overview** — Req CAP-39, CAP-38 — E2E `shell.e2e.mjs` ("TC-CAP-14: Team overview shows the utilization split in Workload by person and in a one-month Utilization tab": Workload by person headers; the Utilization tab's table headers, team line and Month choice) — **UAT**; browser check with real data: Team overview → Capacity and workload → Workload by person — for one person over one month, Contractual, Absence, Available, Work, Trainings, Other NPRA, Common activities and Utilized equal Pulse Check → Last month; Team overview → Utilization for that month shows the same rows and a team figure equal to the Utilization tile when no filter is set.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1645,6 +1647,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-36 | TC-CAP-11 |
 | CAP-37 | TC-CAP-12 |
 | CAP-38 | TC-CAP-13 |
+| CAP-39 | TC-CAP-14 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1802,7 +1805,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |

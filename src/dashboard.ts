@@ -13,7 +13,7 @@ export type MonthStatus = 'elapsed' | 'partial' | 'future'
 export interface DashboardFilter { regions: Region[]; roles: ResourceRole[]; people: string[]; streams: string[] }
 export const noFilter: DashboardFilter = { regions: [], roles: [], people: [], streams: [] }
 export interface StreamHours { key: string; title: string; plan: number; actual: number }
-export interface PersonMonth { month: string; status: MonthStatus; person: string; region?: Region; role?: ResourceRole; plan: number; actual: number; capacity: number; absence: number; reserved: number; tasks: number; planLines: number; blankActuals: number; streams: StreamHours[] }
+export interface PersonMonth { month: string; status: MonthStatus; person: string; region?: Region; role?: ResourceRole; plan: number; actual: number; capacity: number; absence: number; reserved: number; tasks: number; contractual: number; work: number; training: number; npraOther: number; activities: number; planLines: number; blankActuals: number; streams: StreamHours[] }
 export interface Totals { plan: number; actual: number; capacity: number; absence: number; people: number; planUtil: number | null; actualUtil: number | null; gap: number; ratio: number | null }
 
 const ratio = (part: number, whole: number) => whole > 0 ? Math.round(part / whole * 1000) / 10 : null
@@ -69,6 +69,8 @@ export function personMonths(source: AzureWorkItem[], months: string[], today: s
       rows.push({
         month, status: monthStatus(month, today), person: person.name, region: profile?.region, role: profile?.role,
         plan: round(person.utilizedPlanned), actual: round(person.utilized), capacity: round(person.available), absence: round(person.absence), reserved: round(person.reserved), tasks: person.tasks + person.npraTasks,
+        // CAP-39: the CAP-38 split, for Workload by person.
+        contractual: round(person.funded), work: round(person.work), training: round(person.training), npraOther: round(person.npraOther), activities: round(person.reservedActual),
         planLines: lines.get(person.name)?.planLines ?? 0, blankActuals: lines.get(person.name)?.blankActuals ?? 0,
         streams: person.streams.map((stream) => ({ key: stream.key, title: stream.title, plan: round(stream.planned), actual: round(stream.work) })),
       })
@@ -85,7 +87,9 @@ export function applyFilter(rows: PersonMonth[], filter: DashboardFilter): Perso
     .flatMap((row) => {
       if (!filter.streams.length) return [row]
       const streams = row.streams.filter((entry) => filter.streams.includes(entry.key))
-      return streams.length ? [{ ...row, plan: round(streams.reduce((sum, entry) => sum + entry.plan, 0)), actual: round(streams.reduce((sum, entry) => sum + entry.actual, 0)), streams }] : []
+      // A stream keeps only its project work: no trainings, other NPRA or common activities.
+      const actual = round(streams.reduce((sum, entry) => sum + entry.actual, 0))
+      return streams.length ? [{ ...row, plan: round(streams.reduce((sum, entry) => sum + entry.plan, 0)), actual, work: actual, training: 0, npraOther: 0, activities: 0, streams }] : []
     })
 }
 
