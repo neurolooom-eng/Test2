@@ -116,13 +116,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-69 | Fetch fails silently (NAV-41) | Old data is shown as current after a token expired or the connection broke | Decisions on stale data | Expired PAT; network or VPN down | 3 | 3 | 2 | 18 | Get started opens on every failed Time Writing fetch with the reason and the token / Fetch steps open again; the top-bar job also reports it (TC-NAV-41) | 3×1×1 = 3 | TC-NAV-41 | — |
 | DF-70 | Add a work Task from My Activities (ACT-17) | The Task lands under the Time Writing story, in a past Sprint, in the wrong Area Path or with a month title | Hours or work booked in the wrong place; Backlog Health flags | Wrong story chosen; stale Sprint list | 3 | 3 | 2 | 18 | Time Writing stories are not offered and are refused; month titles refused; Sprint checked again on save; Area Path from the story; the Task is read back and checked (TC-ACT-13) | 3×1×1 = 3 | TC-ACT-13 | — |
 | DF-71 | Old Calculation tab (CAP-35) | Old Calculation figures are mistaken for the current utilization (net of absence), or hours are counted twice or missed | Wrong staffing or reporting decisions | Two utilization models side by side; shared time spread over people | 4 | 3 | 3 | 36 | Separate tab named Old Calculation with its formulas in Info; Net Capacity, Planned, Actual each one sum per person with a Total row; unit test fixes the figures incl. shared holidays and negative Available (TC-CAP-10, UAT) | 4×2×2 = 16 | TC-CAP-10 | — |
+| DF-72 | Standard Hours in the Old Calculation (CAP-36) | A wrong or lost Standard Hours value or breakup changes everyone's Net Capacity; the total and the lines disagree | Wrong utilisation for the whole team | Typing error; the capacity form overwriting the value; invalid lines | 4 | 3 | 2 | 24 | The total is computed from the lines (cannot disagree); lines 0–744 h, at most 20, invalid ones refused; the Settings → Capacity form keeps the breakup; shown on the tab with the breakup; audit log entry; edit only with shared-settings rights (TC-CAP-11) | 4×1×1 = 4 | TC-CAP-11 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 71 |
+| Failure modes analysed | 72 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |
