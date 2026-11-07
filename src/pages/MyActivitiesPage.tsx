@@ -1,6 +1,6 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
-import { addComment, createUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, readAzureIterations, updateAzureTimeWritingEffort } from '../azureDevOps'
+import { addUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, futureIterationPairs, readAzureIterations, updateAzureTimeWritingEffort, type AzureIteration } from '../azureDevOps'
 import { azureInsights, timeWritingMonth } from '../azureInsights'
 import { capacityContext } from '../capacity'
 import { FeatureEditor } from '../components/FeatureEditor'
@@ -50,6 +50,16 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
   // A new Feature (ACT-12, BKL-26): the same New Feature form as everywhere, for the month and person shown.
   const [featureOpen, setFeatureOpen] = useState(false)
   const [story, setStory] = useState({ title: '', description: '', comment: '' })
+  // BKL-27: the story's Sprint — the current one preselected, changeable to another current or future one.
+  const [iterations, setIterations] = useState<AzureIteration[] | null>(null)
+  const [sprint, setSprint] = useState('')
+  const storyPairs = iterations ? [...currentIterationPairs(iterations), ...futureIterationPairs(iterations)] : []
+  useEffect(() => {
+    if (addKind !== 'story' || iterations || !azure.config || !azure.pat.trim() || azure.isSample) return
+    let live = true
+    readAzureIterations(azure.config, azure.pat).then((list) => { if (!live) return; setIterations(list); const current = currentIterationPairs(list); if (current.length === 1) setSprint(current[0].sprint.path) }, () => { if (live) setIterations([]) })
+    return () => { live = false }
+  }, [addKind, iterations, azure.config, azure.pat, azure.isSample])
   // Suggestions by the Feature's state (ACT-09): Active, New or both.
   const [suggestState, setSuggestState] = useState<'both' | 'active' | 'new'>('both')
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
@@ -179,16 +189,14 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
     if (!chosenFeature) return
     const title = story.title.trim()
     if (!title || title.length > 255) { setMessage({ tone: 'error', text: 'Enter a User Story title of 1–255 characters.' }); return }
-    const config = azure.config!, pat = azure.pat, feature = chosenFeature, entry = { title, description: story.description.trim(), comment: story.comment.trim() }
+    if (!sprint) { setMessage({ tone: 'error', text: 'Choose the Sprint for the User Story.' }); return }
+    const config = azure.config!, pat = azure.pat, feature = chosenFeature, chosenSprint = sprint, entry = { title, description: story.description.trim(), comment: story.comment.trim() }
     const started = runInBackground('activities:save', `New User Story “${title}”`, async (progress) => {
       try {
-        // The story goes into the current Sprint of the team (else the Feature's iteration), assigned to the person.
-        progress('Reading the current Sprint…')
-        const sprint = currentIterationPairs(await readAzureIterations(config, pat))[0]?.sprint.path || feature.iterationPath || config.project
+        // BKL-27: the shared User Story rules — the Sprint chosen (checked fresh), the Feature's Area Path, the comment.
         progress('Creating the User Story…')
-        const created = await createUserStory(config, pat, { parentId: feature.id, title: entry.title, description: entry.description, acceptanceCriteria: '', iterationPath: sprint, assignedTo: assignee })
-        let note = ''
-        if (entry.comment) { try { progress('Adding the comment…'); await addComment(config, pat, created.id, entry.comment) } catch (failure) { note = ` The comment could not be added: ${failure instanceof Error ? failure.message : 'failed'}` } }
+        const { story: created, commentError } = await addUserStory(config, pat, { parentId: feature.id, title: entry.title, description: entry.description, acceptanceCriteria: '', iterationPath: chosenSprint, assignedTo: assignee, comment: entry.comment })
+        const note = commentError ? ` The comment could not be added: ${commentError}` : ''
         setStory({ title: '', description: '', comment: '' })
         await azure.refresh()
         const text = `User Story #${created.id} “${created.title}” added under ${feature.title}${entry.comment && !note ? ', with your comment' : ''}.${note}`
@@ -332,7 +340,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
             <label className={addKind === 'story' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'story'} onChange={() => setAddKind('story')} />User Story</label>
             <label className={addKind === 'feature' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'feature'} onChange={() => setAddKind('feature')} />Feature</label>
           </div>
-          <p className="act-sub">{addKind === 'feature' ? <>Creates a Feature with the same form and rules as New Feature on every page: the Epic's Feature setup, the Epic's Area Path, the current PI (changeable), its User Stories in the Sprint, and your {label} Time Writing story and Task.</> : addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature, assigned to you, in the team's current Sprint — with a description and, if you write one, a first comment in its Discussion.</>}</p>
+          <p className="act-sub">{addKind === 'feature' ? <>Creates a Feature with the same form and rules as New Feature on every page: the Epic's Feature setup, the Epic's Area Path, the current PI (changeable), its User Stories in the Sprint, and your {label} Time Writing story and Task.</> : addKind === 'task' ? <>Adds your {label} Time Writing task under a Feature — in your Time Writing user story there, which is created when you have none — so you can book hours on it.</> : <>Adds a User Story under a Feature by the same rules as New User Story everywhere: assigned to you, in the Feature's Area Path and the Sprint you choose (the current one preselected) — with a description and, if you write one, a first comment in its Discussion.</>}</p>
           <div className="act-form">
             {addKind !== 'feature' && <label>Epic<select value={stream} onChange={(event) => { setStream(event.target.value); setFeatureId('') }}><option value="">All Epics</option>{epics.map((epic) => <option key={epic.id} value={epic.id}>#{epic.id} {epic.title}</option>)}</select>{chosenEpic && <span className="act-open">{idLink(chosenEpic)} {chosenEpic.title} ↗</span>}</label>}
             {addKind !== 'feature' && <div className="act-field"><span id="act-feature-label">Feature</span><SearchSelect label="Feature" value={featureId} placeholder={features.length ? 'Choose or type to search your Features (ID, title, Epic)' : 'No Active or New Features of yours here'} empty="No Feature of yours matches"
@@ -344,8 +352,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
             </> : addKind === 'story' ? <>
               <label>Title<input value={story.title} maxLength={255} placeholder="What the story is about" onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
               <label>Description<textarea value={story.description} rows={4} placeholder="What needs to be done, and why" onChange={(event) => setStory((current) => ({ ...current, description: event.target.value }))} /></label>
+              <label>Sprint<select value={sprint} onChange={(event) => setSprint(event.target.value)} disabled={!storyPairs.length}><option value="">{iterations == null ? (blocked ? 'Not available' : 'Loading the schedule…') : storyPairs.length ? 'Choose a Sprint' : 'No current or future Sprint'}</option>{storyPairs.map((pair) => <option key={pair.sprint.path} value={pair.sprint.path}>{pair.pi.name} → {pair.sprint.name}</option>)}</select></label>
               <label>Comment <small className="muted">(optional, added to its Discussion)</small><textarea value={story.comment} rows={3} onChange={(event) => setStory((current) => ({ ...current, comment: event.target.value }))} /></label>
-              <button type="button" className="act-primary" disabled={!chosenFeature || !story.title.trim() || saving} onClick={saveStory}>Add User Story</button>
+              <button type="button" className="act-primary" disabled={!chosenFeature || !story.title.trim() || !sprint || saving} onClick={saveStory}>Add User Story</button>
             </> : <>
             <label>Reporting period<input value={label} readOnly /></label>
             <div className="act-pair">

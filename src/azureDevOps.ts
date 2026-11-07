@@ -514,6 +514,20 @@ export async function createUserStory(config: AzureConfig, pat: string, input: S
   return item
 }
 
+// BKL-27: the one way the app adds a User Story (New User Story form, My Activities, Your own User Story on New Feature):
+// the Sprint must be a current or future one of the team's schedule (checked fresh, nothing written otherwise), the
+// story is created under the Feature in the Feature's Area Path (createUserStory) and the optional comment is added to
+// its Discussion; a comment that fails is reported in commentError without undoing the story.
+export async function addUserStory(config: AzureConfig, pat: string, input: StoryInput & { comment?: string }, transport: AzureTransport = requestAzure): Promise<{ story: AzureWorkItem; commentError?: string }> {
+  const iterations = await readAzureIterations(config, pat, transport)
+  if (![...currentIterationPairs(iterations), ...futureIterationPairs(iterations)].some((pair) => pair.sprint.path === input.iterationPath.trim())) throw new Error('The selected PI/Sprint is no longer current. Reload the schedule and review it before creating. No write was attempted.')
+  const { comment, ...fields } = input
+  const story = await createUserStory(config, pat, fields, transport)
+  if (!comment?.trim()) return { story }
+  try { await addComment(config, pat, story.id, comment.trim(), transport); return { story } }
+  catch (failure) { return { story, commentError: failure instanceof Error ? failure.message : 'the comment was not added' } }
+}
+
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.

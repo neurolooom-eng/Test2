@@ -382,6 +382,7 @@ test('TC-ACT-02: My Activities shows the person\'s KPI cards, month tasks, hours
   assert.match(await text(content.locator('.act-top .metric-grid')), /Unsaved changes/)
   await content.getByRole('radio', { name: 'User Story' }).check()
   for (const name of ['Title', 'Description', 'Comment']) assert.equal(await content.getByRole('textbox', { name: new RegExp(`^${name}`) }).count(), 1, `${name} is offered for a User Story`)
+  assert.equal(await content.getByRole('combobox', { name: 'Sprint' }).count(), 1, 'BKL-27: the Sprint is chosen (current preselected)')
   assert.ok(await content.getByRole('button', { name: 'Add User Story' }).isDisabled(), 'no title, no User Story')
   // BKL-26: a new Feature opens the same New Feature form as every other page (no short form of its own); with the
   // synthetic sample nothing can be written, so the button says why.

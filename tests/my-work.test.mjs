@@ -486,3 +486,31 @@ test('ATM-28: a Feature becomes Active only when one of its User Stories is Acti
   assert.equal(await activateFeatureOf({}, 'pat', activeFeature, story, write), null, 'an Active Feature is left as it is')
   assert.equal(writes.length, 1)
 })
+
+import { addUserStory } from '../src/azureDevOps.ts'
+test('BKL-27: addUserStory — a current or future Sprint only (checked fresh), the Feature\'s Area Path, the optional comment', async () => {
+  const config = { organization: 'org', project: 'Quality', team: 'T' }
+  const world = new Map([[2, raw(2, { 'System.WorkItemType': 'Feature', 'System.Title': 'Plan', 'System.AreaPath': 'Quality\\QMS-0025' })]])
+  const { transport: base, calls } = fakeAzure(world)
+  const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10) + 'T00:00:00Z'
+  const schedule = [{ name: 'PI 1', path: 'Quality\\PI 1', attributes: { startDate: day(-30), finishDate: day(60) } }, { name: 'Sprint 3', path: 'Quality\\PI 1\\Sprint 3', attributes: { startDate: day(-5), finishDate: day(5) } }, { name: 'Sprint 1', path: 'Quality\\PI 1\\Sprint 1', attributes: { startDate: day(-30), finishDate: day(-20) } }]
+  let commentFails = false
+  const transport = async (request) => {
+    if (request.operation === 'iterations') return { value: schedule }
+    if (request.operation === 'iteration-tree') throw new Error('not used')
+    if (request.operation === 'add-comment') { calls.push(request); if (commentFails) throw new Error('refused'); return { id: 1, text: request.comment, createdBy: { displayName: 'Ana' }, createdDate: '2026-11-07T00:00:00Z' } }
+    return base(request)
+  }
+  const input = { parentId: 2, title: 'Write the plan', description: 'Why', acceptanceCriteria: '', iterationPath: 'Quality\\PI 1\\Sprint 3', assignedTo: 'ana@x.com', comment: ' First note ' }
+  const { story, commentError } = await addUserStory(config, 'pat', input, transport)
+  assert.deepEqual([story.areaPath, story.iterationPath, commentError], ['Quality\\QMS-0025', 'Quality\\PI 1\\Sprint 3', undefined])
+  assert.equal(calls.find((call) => call.operation === 'add-comment').comment, 'First note')
+  // A past Sprint is refused before anything is written.
+  const before = calls.length
+  await assert.rejects(addUserStory(config, 'pat', { ...input, iterationPath: 'Quality\\PI 1\\Sprint 1' }, transport), /no longer current/)
+  assert.equal(calls.length, before, 'nothing written')
+  // A failed comment is reported; the story stays.
+  commentFails = true
+  const partly = await addUserStory(config, 'pat', input, transport)
+  assert.deepEqual([partly.story.workItemType, partly.commentError], ['User Story', 'refused'])
+})
