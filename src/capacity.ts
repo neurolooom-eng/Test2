@@ -274,7 +274,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     person.allPlanned += planned; person.allActual += work
     if (ownShare) {
       const own = work || planned
-      if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own } else { person.reserved += own; person.reservedPlanned += planned; person.reservedActual += work }
+      // CAP-40: a holiday with no Original Estimate counts its Completed Work as planned in the Old Calculation.
+      if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own; if (!planned) person.allPlanned += work } else { person.reserved += own; person.reservedPlanned += planned; person.reservedActual += work }
       continue
     }
     // Team Holidays and Training (CAP-16): leave is absence; training is NPRA.
@@ -282,6 +283,8 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
     if (epic?.id === settings.absenceEpicId && !training) {
       const kind = absenceKind([task.title, ...chain.filter(item => item.workItemType !== 'Epic').map(item => item.title)])
       person.absence += work; person.absenceByKind[kind] += work
+      // CAP-40: absence with no Original Estimate counts its Completed Work as planned in the Old Calculation.
+      if (!planned) person.allPlanned += work
       continue
     }
     if (training || isNpraTask(task, chain)) {
