@@ -7,7 +7,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 **Added**
 - **Insight thresholds** (Settings → Capacity & periods → Insight thresholds): the limits behind the Team overview insights — month-end forecast (±10%), plan accuracy (15% error, ±20% bias), stream momentum (3-month windows, ±20%, 8 h), resilience (80% / 90%), unusual months (±50%, 8 h, 3 months), plan health colours (75 / 50), persistent overload (3 months) and concentration (top 20%) — are set by roles that manage shared settings, shared in Git and audited, with ranges and the built-in value beside each. The insight texts and Definitions show the values in use. The built-in values are the ones used so far, so nothing changes until they are edited (CAP-47).
 
-DF-79; SM-55; TC-CAP-21 (UAT day 9). PR #256.
+DF-79; SM-55; TC-CAP-21 (UAT day 9). PR #257.
 
 ## v5.2.0 — 2026-11-09
 
