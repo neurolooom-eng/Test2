@@ -47,6 +47,10 @@ export function defaultProfile(settings: CapacitySettings): CalculationProfile {
   return profiles.find((profile) => profile.id === settings.defaultProfileId) ?? profiles[0]
 }
 
+// CAP-44: the settings a page computes with when an Admin views it with another profile: that profile as the
+// default, else the shared settings unchanged. Nothing is saved.
+export const withViewedProfile = (settings: CapacitySettings, id: string): CapacitySettings => id && allProfiles(settings).some((profile) => profile.id === id) ? { ...settings, defaultProfileId: id } : settings
+
 const pick = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => allowed.includes(value as T) ? value as T : fallback
 const text = (value: unknown, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : ''
 // Custom profiles read from the shared app data: at most 20, ids unique and not a built-in's, every field checked; at
@@ -105,7 +109,7 @@ export function applyProfile(person: Pick<PersonLoad, 'funded' | 'employedDays'>
 // The formula of a profile in words, shown with every figure it produces.
 export function profileFormula(profile: CalculationProfile, settings: CapacitySettings) {
   const labels = (treatment: Treatment) => bucketKeys.filter((key) => profile.treatment[key] === treatment).map((key) => bucketLabel[key])
-  const base = profile.capacityBase === 'fixed' ? `${profile.fixedHours ?? 0}h a month (pro rata to the days employed)` : `working days employed × ${settings.hoursPerDay}h`
+  const base = profile.capacityBase === 'fixed' ? `${profile.fixedHours ?? 0}h a month (pro rata to the days employed)` : `working days employed × Working hours per day (${settings.hoursPerDay}h)`
   const capacity = [base, ...(profile.minusStandardHours ? [`Standard Hours (${standardHoursTotal(settings.standardHours)}h)`] : []), ...labels('deduct')].join(' − ')
   const sources = bucketKeys.filter((key) => profile.treatment[key] === 'count' && profile.plannedSource[key] !== 'estimate').map((key) => `${bucketLabel[key]}: ${plannedSourceLabel[profile.plannedSource[key]]}`)
   const ignored = labels('ignore'), groups = profile.excludedGroups.map(sharedTimeScopeLabel)

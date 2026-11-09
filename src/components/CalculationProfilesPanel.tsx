@@ -50,7 +50,7 @@ function ProfileEditor({ draft, settings, onChange, onCancel, onSave }: { draft:
       </tr>)}
     </tbody></table></div>
     <div className="form-row">
-      <label>Capacity base<select value={draft.capacityBase} onChange={(event) => set({ capacityBase: event.target.value as CalculationProfile['capacityBase'], fixedHours: event.target.value === 'fixed' ? draft.fixedHours ?? 160 : undefined })}><option value="workingDays">Working days employed × {settings.hoursPerDay}h</option><option value="fixed">Fixed hours a month</option></select></label>
+      <label>Capacity base<select value={draft.capacityBase} onChange={(event) => set({ capacityBase: event.target.value as CalculationProfile['capacityBase'], fixedHours: event.target.value === 'fixed' ? draft.fixedHours ?? 160 : undefined })}><option value="workingDays">Working days employed × Working hours per day ({settings.hoursPerDay}h)</option><option value="fixed">Fixed hours a month</option></select></label>
       {draft.capacityBase === 'fixed' && <label>Fixed hours a month<input type="number" min={0} max={744} step={0.5} value={draft.fixedHours ?? ''} onChange={(event) => set({ fixedHours: event.target.value === '' ? undefined : Number(event.target.value) })} /><small>Pro rata to the days employed.</small></label>}
       <label>Status from<select value={draft.statusFrom} onChange={(event) => set({ statusFrom: event.target.value as CalculationProfile['statusFrom'] })}><option value="actual">Recorded utilization</option><option value="planned">Planned utilization</option></select></label>
     </div>
@@ -60,4 +60,18 @@ function ProfileEditor({ draft, settings, onChange, onCancel, onSave }: { draft:
     {problems.map((problem) => <p key={problem} className="warning-text">{problem}</p>)}
     <div className="button-row"><button type="submit" className="primary" disabled={problems.length > 0}>Save profile</button><button type="button" className="ghost" onClick={onCancel}>Cancel</button></div>
   </form>
+}
+
+// CAP-44: an Admin views a page with another calculation profile. Only that page, only for them; nothing is saved and
+// everyone else keeps the default. Locked months keep their locked figures whatever profile is viewed.
+export function ProfilePicker({ settings, value, onChange }: { settings: CapacitySettings; value: string; onChange: (id: string) => void }) {
+  const current = defaultProfile(settings), profiles = allProfiles(settings)
+  const chosen = profiles.find((profile) => profile.id === value)
+  return <div className="profile-picker" role="group" aria-label="Calculation profile">
+    <label className="dash-select">Profile<select value={chosen ? chosen.id : ''} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{current.name} (default)</option>
+      {profiles.filter((profile) => profile.id !== current.id).map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+    </select></label>
+    {chosen && chosen.id !== current.id && <p className="warning-text" role="note">Viewing with “{chosen.name}”: only on this page and only for you. Everyone else sees “{current.name}”. Locked months keep their locked figures.</p>}
+  </div>
 }
