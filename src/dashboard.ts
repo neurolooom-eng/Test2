@@ -1,4 +1,5 @@
 import type { AzureWorkItem } from './domain'
+import { rulesOf } from './bucketRules.ts'
 import { capacityModel, defaultCapacitySettings, isNpraTask, sharedTimeOf, type CapacitySettings, type Region, type ResourceRole } from './capacity.ts'
 import { isMonthTask, timeWritingMonth } from './azureInsights.ts'
 
@@ -58,7 +59,7 @@ export function personMonths(source: AzureWorkItem[], months: string[], today: s
     const lines = new Map<string, { planLines: number; blankActuals: number }>()
     for (const task of monthTasks) {
       if (task.state.trim().toLowerCase() === 'removed' || !(task.originalEstimate && task.originalEstimate > 0)) continue
-      if (epicOf(task)?.id === settings.absenceEpicId || sharedTimeOf(task, chainOf(task), settings) || isNpraTask(task, chainOf(task))) continue
+      if (epicOf(task)?.id === settings.absenceEpicId || sharedTimeOf(task, chainOf(task), settings) || isNpraTask(task, chainOf(task), rulesOf(settings))) continue
       const entry = lines.get(task.assignedTo) ?? { planLines: 0, blankActuals: 0 }
       entry.planLines++; if (task.completedWork == null) entry.blankActuals++
       lines.set(task.assignedTo, entry)
