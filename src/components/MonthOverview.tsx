@@ -2,7 +2,7 @@ import { EmptyState, Info, Metric, Metrics, Panel, Pill, TablePanel, type Tone }
 import { DonutChart, EpicBulletChart } from './WorkloadCharts'
 import { epicColors } from '../chartUtils'
 import { absenceKinds, capacityModel, monthlyHours, type CapacitySettings, type LoadStatus } from '../capacity'
-import { formatHours, formatPercent, monthName } from '../format'
+import { formatDateTime, formatHours, formatPercent, monthName } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { Page as PageId } from '../pages/registry'
 
@@ -20,7 +20,7 @@ export function UtilizationTable({ people, profileLine = () => '' }: { people: C
 export function CapacityMetrics({ model, settings, label }: { model: CapacityModel; settings: CapacitySettings; label: string }) {
   return <>
   <Metrics>
-    <Metric label={label} value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.utilized)}h utilized of ${formatHours(model.totals.available)}h (contractual − absence)`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />
+    <Metric label={label} value={formatPercent(model.totals.utilization)} hint={`${formatHours(model.totals.utilized)}h utilized of ${formatHours(model.totals.available)}h available · ${model.locked ? `🔒 locked, ${model.locked.profileName}` : model.profile.name}`} tone={model.totals.utilization != null && model.totals.utilization >= settings.overloadedAt ? 'negative' : undefined} />
     <Metric label="Overloaded" value={model.counts.overloaded} hint={`≥ ${settings.overloadedAt}% of available hours`} tone={model.counts.overloaded ? 'negative' : undefined} />
     <Metric label="Has capacity" value={model.counts.hasCapacity} hint={`< ${settings.availableBelow}% of available hours`} tone={model.counts.hasCapacity ? 'positive' : undefined} />
     <Metric label="NPRA" value={formatHours(model.totals.npra)} hint={`Trainings ${formatHours(model.totals.training)}h · Other ${formatHours(model.totals.npraOther)}h · ` + (settings.npraHoursPerMonth > 0 ? `max ${formatHours(settings.npraHoursPerMonth)}h per person · ${model.counts.npraOver ? `${model.counts.npraOver} over it` : 'nobody over it'}` : 'no maximum set')} tone={model.counts.npraOver ? 'negative' : undefined} />
@@ -42,12 +42,13 @@ export function MonthSections({ items, month, settings, navigate, utilizationOnl
   const personOther = (streams: CapacityModel['people'][number]['streams']) => streams.filter((stream) => otherStreams.some((other) => other.key === stream.key)).reduce((sum, stream) => sum + stream.work, 0)
   return <>
   <div className="overview-stack">
+    <p className="muted" role="note">{model.locked ? `🔒 Figures of ${monthName(month)} locked on ${formatDateTime(model.locked.lockedOn)} by ${model.locked.lockedBy}, profile ${model.locked.profileName}.` : `Calculation profile: ${model.profile.name}.`}</p>
     {(model.prorated.length > 0 || model.outsideEmployment.length > 0 || model.removed.length > 0) && <p className="muted employment-note" role="note">
       {model.removed.length > 0 && <>Removed in Settings → Resources, not counted: {model.removed.map((person) => `${person.name}${person.hours ? ` (${formatHours(person.hours)}h booked)` : ''}`).join(' · ')}. </>}
       {model.prorated.length > 0 && <>Part of the month only (Settings → Resources): {model.prorated.map((person) => `${person.name} ${person.days} of ${model.workingDays} days, ${formatHours(person.funded)}h funded`).join(' · ')}. </>}
       {model.outsideEmployment.length > 0 && <>Not employed in {monthName(month)}, so not counted: {model.outsideEmployment.map((person) => `${person.name}${person.leftOn ? ` (left ${person.leftOn})` : person.joinedOn ? ` (joins ${person.joinedOn})` : ''}${person.hours ? ` — ${formatHours(person.hours)}h booked on ${person.tasks} Task${person.tasks === 1 ? '' : 's'}, check them` : ''}`).join(' · ')}.</>}
     </p>}
-    <TablePanel title="Who has capacity" info={`Utilization = Utilized hours ÷ (Contractual hours − Absence hours). Contractual = working days employed × ${settings.hoursPerDay}h (${model.workingDays} working days in ${monthName(month)}: ${formatHours(model.fundedPerPerson)}h for a full month). Absence = PTO + Sick Leave + Unplanned Leave + Public holidays + Other absence. Utilized = Work + Trainings + Other NPRA + Common activities (recorded: Completed Work; planned: Original Estimate).`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
+    <TablePanel title="Who has capacity" info={`${model.profile.formula} ${model.workingDays} working days in ${monthName(month)}: ${formatHours(model.fundedPerPerson)}h for a full month. Available = the capacity of the profile.`} count={`${model.people.length} people`} empty={model.people.length ? undefined : 'No Time Writing Tasks for this month.'}>
       <UtilizationTable people={model.people} profileLine={profileLine} />
     </TablePanel>
     <TablePanel title={`NPRA · ${monthName(month)}`} info={`Non-project related activities — internal meetings (stand-up, special projects, town hall) and trainings (white belt, AI, Cornerstone) — are Tasks (or Stories / Features) tagged “NPRA”. Trainings (tagged Training, or training under the absence Epic) and Other NPRA are shown apart; both count as utilized hours, nothing is deducted. ${settings.npraHoursPerMonth > 0 ? `The maximum is ${formatHours(settings.npraHoursPerMonth)}h per person per month; hours over it are flagged.` : 'No maximum is set; the hours are tracked only.'} Unplanned sick leave is not NPRA: book it under the absence Epic by the end of the month at the latest — it is absence, deducted from the contractual hours.`} count={`${formatHours(model.totals.npra)}h booked`} empty={model.people.some((person) => person.npra > 0 || person.npraPlanned > 0) ? undefined : 'No NPRA hours booked this month. Tag the Tasks (or their Story / Feature) with “NPRA”.'}>
@@ -78,8 +79,9 @@ export function MonthSections({ items, month, settings, navigate, utilizationOnl
   </>}
   <div className="how-calculated"><Info label="How utilization is calculated">
     <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
-    <p>Available = funded − absence hours (Completed Work on the leave Tasks under the Team Holidays and Training Epic #{settings.absenceEpicId}; PTO, Sick Leave and Unplanned Leave are read from the Feature and Task titles; its Training Tasks count as NPRA; unplanned sick leave is booked by the end of the month at the latest) − holidays and common activities mapped in Settings → Capacity (each of their month Tasks applies to everyone in its scope) − NPRA hours booked on Tasks tagged NPRA (only what is booked{settings.npraHoursPerMonth > 0 ? `; over ${formatHours(settings.npraHoursPerMonth)}h per person is flagged` : ''}).</p>
-    <p>Utilization = booked hours (Completed Work on all other {monthName(month)} Time Writing Tasks; NPRA Tasks are not project work) ÷ available × 100. Overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
+    <p>{model.profile.formula}</p>
+    {model.locked && <p>The figures of {monthName(month)} are locked: they stay as they were on {formatDateTime(model.locked.lockedOn)} whatever changes later (Team overview → Utilization).</p>}
+    <p>Status: overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>
     <p className="muted">Tasks are matched to the month when their title starts or ends with the month and year (e.g. “{monthName(month)} | …” or “… | {monthName(month)}”, any delimiter). Thresholds and the absence Epic are set under Settings → Capacity and absence.</p>
     <div className="button-row"><button className="text-button" onClick={() => navigate('activities')}>Open My Activities →</button><button className="text-button" onClick={() => navigate('admin')}>Capacity settings →</button></div>
   </Info></div>

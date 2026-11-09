@@ -8,7 +8,7 @@ import { MultiSelect } from '../components/MultiSelect'
 import { timeWritingMonth } from '../azureInsights'
 import { anomalies, healthScore, monthForecast, planAccuracy, resilience, streamMomentum, type ForecastStatus, type AccuracyVerdict, type Momentum } from '../insights'
 import { streamCounts, type StreamCounts } from '../releaseOverview'
-import { formatHours, formatPercent, monthName, todayIso } from '../format'
+import { formatDateTime, formatHours, formatPercent, monthName, todayIso } from '../format'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
 import type { Page as PageId } from './registry'
@@ -16,6 +16,7 @@ import type { PageProps } from './types'
 import type { PersonalViewsStore } from '../usePersonalViews'
 import { CustomizableSections } from '../components/PersonalLayout'
 import { UtilizationTable } from '../components/MonthOverview'
+import { activeFigureLock, defaultProfile, lockedPeople, profileFormula } from '../calculationProfiles'
 
 // Dashboard: demand (planned hours), recorded hours and capacity per person and month, over a period, with one
 // utilization model everywhere — the bands from Settings → Capacity (overloaded at or above overloadedAt %, spare
@@ -76,8 +77,27 @@ function MoreTable<T>({ items, limit = 8, render, head }: { items: T[]; limit?: 
   return <><div className="azure-table"><table><thead>{head}</thead><tbody>{shown.map(render)}</tbody></table></div>{button}</>
 }
 
-export function DashboardPage({ month, azure, store, my, views, navigate, canSetDefault = false }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork; views?: PersonalViewsStore; canSetDefault?: boolean }) {
+export function DashboardPage({ month, azure, store, my, views, navigate, canSetDefault = false, canLock = false }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork; views?: PersonalViewsStore; canSetDefault?: boolean; canLock?: boolean }) {
   const settings = capacityContext(store.state)
+  // CAP-43 Lock figures (Admins): the month's person figures as shown now are kept with the capacity settings (shared
+  // in Git); unlocking needs a reason and keeps the entry as history. Both are audited.
+  const who = my.me.name || 'Admin'
+  const lockFigures = (lockMonth: string) => store.update((draft) => {
+    const current = normalizeCapacitySettings(draft.capacitySettings)
+    const model = capacityModel(azure.items, lockMonth, { ...capacityContext(draft), figureLocks: undefined })
+    const entry = { lockedOn: new Date().toISOString(), lockedBy: who, profileName: model.profile.name, formula: model.profile.formula, people: lockedPeople(model.people) }
+    draft.capacitySettings = normalizeCapacitySettings({ ...current, figureLocks: { ...current.figureLocks, [lockMonth]: [...(current.figureLocks?.[lockMonth] ?? []), entry].slice(-5) } })
+    draft.audits.unshift({ id: crypto.randomUUID(), timestamp: entry.lockedOn, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: `figures-${lockMonth}`, detail: `Figures of ${monthName(lockMonth)} locked by ${who} with profile ${model.profile.name}: ${model.people.length} people, ${formatHours(model.totals.utilized)}h utilized ÷ ${formatHours(model.totals.available)}h = ${formatPercent(model.totals.utilization)}` })
+    return draft
+  })
+  const unlockFigures = (lockMonth: string, why: string) => store.update((draft) => {
+    const current = normalizeCapacitySettings(draft.capacitySettings), list = current.figureLocks?.[lockMonth] ?? []
+    if (!list.length || list[list.length - 1].unlockedOn) return draft
+    const now = new Date().toISOString()
+    draft.capacitySettings = normalizeCapacitySettings({ ...current, figureLocks: { ...current.figureLocks, [lockMonth]: [...list.slice(0, -1), { ...list[list.length - 1], unlockedOn: now, unlockedBy: who, unlockReason: why }] } })
+    draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: `figures-${lockMonth}`, detail: `Figures of ${monthName(lockMonth)} unlocked by ${who}: ${why}`.slice(0, 2000) })
+    return draft
+  })
   // CAP-36: the Standard Hours breakup is kept with the capacity settings (planning data, shared in Git).
   const saveStandardHours = (lines: StandardHourLine[]) => store.update((draft) => {
     const next = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), standardHours: lines })
@@ -132,7 +152,7 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
       <div className="dash-chips"><span className="multi-label">Months</span><div className="chip-row">{monthLabels.map((label, index) => { const value = index + 1, inQuarter = saved.period.quarters.includes(Math.ceil(value / 3)); return <button key={label} type="button" className={`chip ${saved.period.months.includes(value) || inQuarter ? 'chip-on' : ''}`} aria-pressed={saved.period.months.includes(value) || inQuarter} disabled={inQuarter} title={inQuarter ? 'Included by its quarter' : undefined} onClick={() => setPeriod({ months: toggle(saved.period.months, value) })}>{label}</button> })}</div></div>
       <button type="button" className="text-button" disabled={!saved.period.quarters.length && !saved.period.months.length} onClick={() => setPeriod({ quarters: [], months: [] })}>Whole year</button>
     </div>
-    <p className="muted dash-scope">{months.length === 1 ? monthName(months[0]) : months.length === 12 ? `${saved.period.year} (whole year)` : months.map(short).join(', ')} · {all.people} {all.people === 1 ? 'person' : 'people'} · {rows.length} person-months · {filterNote}{notNow.length > 0 && <> · <span className="warning-text">{notNow.length === 1 ? `${short(notNow[0])} is` : `${notNow.map(short).join(', ')} are`} not finished: {notNow.length === 1 ? 'its' : 'their'} ratios are not results</span></>} <Info label="Utilization colours">Utilization = hours ÷ net capacity (working days × {settings.hoursPerDay}h, less absence). <span className="util util-over">↑ red</span> at or above {bands.overloadedAt}% (overloaded), <span className="util util-balanced">green</span> balanced, <span className="util util-spare">↓ blue</span> below {bands.availableBelow}% (spare). The thresholds come from Settings → Capacity and apply to every number on this page. Hour differences carry no colour: + and − only say the direction. Partial and future months do not establish spare capacity or results.</Info></p>
+    <p className="muted dash-scope">{months.length === 1 ? monthName(months[0]) : months.length === 12 ? `${saved.period.year} (whole year)` : months.map(short).join(', ')} · {all.people} {all.people === 1 ? 'person' : 'people'} · {rows.length} person-months · {filterNote}{months.some((entry) => activeFigureLock(settings, entry)) && <> · <span role="note">🔒 Locked figures: {months.filter((entry) => activeFigureLock(settings, entry)).map((entry) => { const lock = activeFigureLock(settings, entry)!; return `${short(entry)} (${lock.profileName}, ${formatDateTime(lock.lockedOn)} by ${lock.lockedBy})` }).join(', ')}</span></>}{notNow.length > 0 && <> · <span className="warning-text">{notNow.length === 1 ? `${short(notNow[0])} is` : `${notNow.map(short).join(', ')} are`} not finished: {notNow.length === 1 ? 'its' : 'their'} ratios are not results</span></>} <Info label="Utilization colours">{profileFormula(defaultProfile(settings), settings)} Locked months keep the figures they were locked with. <span className="util util-over">↑ red</span> at or above {bands.overloadedAt}% (overloaded), <span className="util util-balanced">green</span> balanced, <span className="util util-spare">↓ blue</span> below {bands.availableBelow}% (spare). The thresholds come from Settings → Capacity and apply to every number on this page. Hour differences carry no colour: + and − only say the direction. Partial and future months do not establish spare capacity or results.</Info></p>
     {!rows.length ? <EmptyState title="No Time Writing data for this selection." detail="Change the period or filters, refresh from Azure, or load the synthetic sample." /> : <>
       <Metrics>
         <Metric label="Planned utilization" value={<Util value={all.planUtil} bands={bands} />} hint={`${formatHours(all.plan)}h plan / ${formatHours(all.capacity)}h capacity`} />
@@ -151,9 +171,9 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
       {saved.tab === 'capacity' && <><SummaryTab rows={rows} months={months} bands={bands} parts={['rebalancing', 'monitor']} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['forecast', 'unusual']} /><MonthsTab rows={rows} months={months} bands={bands} /><PeopleTab rows={rows} months={months} bands={bands} /></>}
       {saved.tab === 'streams' && <><StreamsTab rows={rows} months={months} items={chartItems} settings={settings} streamFiltered={saved.filter.streams.length > 0} /><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['momentum', 'resilience']} /></>}
       {saved.tab === 'quality' && <><InsightsTab rows={rows} months={months} today={today} bands={bands} delivery={[]} parts={['health', 'accuracy']} /><SummaryTab rows={rows} months={months} bands={bands} parts={['horizon']} /></>}
-      {saved.tab === 'utilization' && <UtilizationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} />}
+      {saved.tab === 'utilization' && <UtilizationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} canLock={canLock} onLock={lockFigures} onUnlock={unlockFigures} />}
       {saved.tab === 'old' && <OldCalculationTab items={azure.items} months={months} headerMonth={month} settings={settings} filter={saved.filter} profiles={settings.profiles ?? {}} bands={bands} canEdit={canSetDefault} onSaveStandard={saveStandardHours} onSaveExcluded={saveExcludedScopes} />}
-      {saved.tab === 'definitions' && <DefinitionsTab hoursPerDay={settings.hoursPerDay} absenceEpicId={settings.absenceEpicId} bands={bands} />}
+      {saved.tab === 'definitions' && <DefinitionsTab hoursPerDay={settings.hoursPerDay} absenceEpicId={settings.absenceEpicId} bands={bands} formula={profileFormula(defaultProfile(settings), settings)} />}
     </>}
   </Page>
 }
@@ -504,9 +524,10 @@ function InsightsTab({ rows, months, today, bands, delivery, parts }: { rows: Pe
 
 // CAP-39 Utilization: one month of the period, per person, the CAP-38 split (as Pulse Check → Last month). Region,
 // role and team member filters apply; the team figure adds up the people shown.
-function UtilizationTab({ items, months, headerMonth, settings, filter, profiles, bands }: { items: AzureWorkspace['items']; months: string[]; headerMonth: string; settings: ReturnType<typeof capacityContext>; filter: DashboardFilter; profiles: Record<string, { region?: Region; role?: ResourceRole }>; bands: Bands }) {
+function UtilizationTab({ items, months, headerMonth, settings, filter, profiles, bands, canLock, onLock, onUnlock }: { items: AzureWorkspace['items']; months: string[]; headerMonth: string; settings: ReturnType<typeof capacityContext>; filter: DashboardFilter; profiles: Record<string, { region?: Region; role?: ResourceRole }>; bands: Bands; canLock: boolean; onLock: (month: string) => void; onUnlock: (month: string, reason: string) => void }) {
   const fallback = months.includes(headerMonth) ? headerMonth : months[months.length - 1]
   const [picked, setPicked] = useState(fallback)
+  const [unlockReason, setUnlockReason] = useState<string | null>(null)
   const chosen = months.includes(picked) ? picked : fallback
   const has = <T,>(list: T[], value: T | undefined) => !list.length || (value != null && list.includes(value))
   const model = capacityModel(items, chosen, settings)
@@ -514,8 +535,20 @@ function UtilizationTab({ items, months, headerMonth, settings, filter, profiles
   const available = people.reduce((total, person) => total + person.available, 0), utilized = people.reduce((total, person) => total + person.utilized, 0), planned = people.reduce((total, person) => total + person.utilizedPlanned, 0)
   const percentOf = (part: number) => available > 0 ? Math.round(part / available * 10000) / 100 : null
   const profileLine = (name: string) => [profiles[name]?.role, profiles[name]?.region].filter(Boolean).join(' · ')
-  const info = `Utilization = Utilized hours ÷ (Contractual hours − Absence hours). Contractual = working days employed in ${monthName(chosen)} (${model.workingDays} in the month) × ${settings.hoursPerDay}h. Absence = PTO + Sick Leave + Unplanned Leave + Public holidays + Other absence. Utilized = Work + Trainings + Other NPRA + Common activities (Completed Work; Planned: Original Estimate). The team figure adds up the people shown.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
+  const info = `${model.profile.formula} ${monthName(chosen)} has ${model.workingDays} working days. Available = the capacity of the profile. The team figure adds up the people shown. Admins can lock the figures of a month (they then stay as locked whatever changes later) and unlock them with a reason.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
+  const lock = model.locked, history = settings.figureLocks?.[chosen]?.filter((entry) => entry.unlockedOn) ?? []
   return <Section eyebrow="UTILIZATION" title={`${monthName(chosen)} · ${people.length} ${people.length === 1 ? 'person' : 'people'}`} info={info} action={<label className="dash-select">Month<select value={chosen} onChange={(event) => setPicked(event.target.value)}>{months.map((entry) => <option key={entry} value={entry}>{monthName(entry)}</option>)}</select></label>}>
+    <div className="standard-hours" role="group" aria-label="Figures of the month">
+      {lock ? <strong>🔒 Figures locked on {formatDateTime(lock.lockedOn)} by {lock.lockedBy}, profile {lock.profileName}</strong> : <span>Profile: <strong>{model.profile.name}</strong> · live figures</span>}
+      {canLock && !lock && people.length > 0 && <button type="button" className="ghost" onClick={() => { if (window.confirm(`Lock the figures of ${monthName(chosen)}? They will stay as they are now for everyone, whatever changes later, until an Admin unlocks them.`)) onLock(chosen) }}>Lock figures</button>}
+      {canLock && lock && unlockReason == null && <button type="button" className="ghost" onClick={() => setUnlockReason('')}>Unlock…</button>}
+      {!canLock && <span className="muted"> (Admins lock and unlock figures)</span>}
+      {history.length > 0 && <small className="muted">Unlocked before: {history.map((entry) => `${formatDateTime(entry.unlockedOn!)} by ${entry.unlockedBy} — ${entry.unlockReason}`).join(' · ')}</small>}
+    </div>
+    {canLock && lock && unlockReason != null && <form className="standard-hours" aria-label="Unlock figures" onSubmit={(event) => { event.preventDefault(); if (unlockReason.trim()) { onUnlock(chosen, unlockReason.trim()); setUnlockReason(null) } }}>
+      <label>Reason for unlocking {monthName(chosen)}<input value={unlockReason} maxLength={500} required onChange={(event) => setUnlockReason(event.target.value)} /></label>
+      <div className="button-row"><button type="submit" className="primary" disabled={!unlockReason.trim()}>Unlock figures</button><button type="button" className="ghost" onClick={() => setUnlockReason(null)}>Cancel</button></div>
+    </form>}
     {!people.length ? <EmptyState title={`No Time Writing data for ${monthName(chosen)}.`} detail="Choose another month or change the filters." /> : <>
       <p className="muted" role="note">Team: <strong>{formatHours(utilized)}h utilized ÷ {formatHours(available)}h available = <Util value={percentOf(utilized)} bands={bands} /></strong> · planned {formatHours(planned)}h = <Util value={percentOf(planned)} bands={bands} /></p>
       <div className="azure-table"><UtilizationTable people={people} profileLine={profileLine} /></div>
@@ -536,6 +569,7 @@ function OldCalculationTab({ items, months, headerMonth, settings, filter, profi
   const groupHours = Object.fromEntries(sharedTimeScopes.map((scope) => [scope, model.sharedTime.filter((entry) => entry.scope === scope).reduce((total, entry) => total + entry.hours, 0)])) as Record<SharedTimeScope, number>
   const info = `Net capacity = working days in ${monthName(chosen)} the person is employed (${model.workingDays} in the month) × ${settings.hoursPerDay}h funded per day − ${formatHours(standardHours)}h Standard Hours (never below 0). Planned hours = every planned hour (Original Estimate): work, absence, holidays, training, NPRA and the shared time that applies to the person. Planned utilization = planned ÷ net capacity. Available = net capacity − planned (negative: planned above capacity). Status from the planned utilization: Overloaded at or above ${bands.overloadedAt}%, Has capacity below ${bands.availableBelow}%, else Balanced. Actual hours = every hour recorded (Completed Work), absence, holidays and NPRA included. Actual utilization = actual ÷ net capacity. Ticked groups (All, All-<Region>: holidays and common activities shared by everyone or a region) are counted in Planned and Actual Hours; unticked groups are left out of both. Removed people are not counted.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
   return <Section eyebrow="OLD CALCULATION" title={`${monthName(chosen)} · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} info={info} action={<label className="dash-select">Month<select value={chosen} onChange={(event) => setPicked(event.target.value)}>{months.map((entry) => <option key={entry} value={entry}>{monthName(entry)}</option>)}</select></label>}>
+    {model.locked && <p className="muted" role="note">🔒 The hours of {monthName(chosen)} are the figures locked on {formatDateTime(model.locked.lockedOn)} by {model.locked.lockedBy}; Standard Hours and the groups below apply as set now.</p>}
     <StandardHours lines={settings.standardHours ?? defaultStandardHours} canEdit={canEdit} onSave={onSaveStandard} />
     <SharedGroups excluded={settings.oldCalcExcludedScopes ?? []} hours={groupHours} canEdit={canEdit} onSave={onSaveExcluded} />
     {!rows.length ? <EmptyState title={`No Time Writing data for ${monthName(chosen)}.`} detail="Choose another month or change the filters." /> : <div className="azure-table"><table aria-label="Old Calculation">
@@ -587,9 +621,10 @@ function StandardHours({ lines, canEdit, onSave }: { lines: StandardHourLine[]; 
   </form>
 }
 
-function DefinitionsTab({ hoursPerDay, absenceEpicId, bands }: { hoursPerDay: number; absenceEpicId: number; bands: Bands }) {
+function DefinitionsTab({ hoursPerDay, absenceEpicId, bands, formula }: { hoursPerDay: number; absenceEpicId: number; bands: Bands; formula: string }) {
   return <Panel title="Definitions, assumptions & source">
     <dl className="dash-findings">
+      <dt>Calculation profile</dt><dd>{formula} Set in Settings → Capacity → Calculation profiles (CAP-41, CAP-42); the definitions below describe the built-in “Current (v4)”. A month whose figures are locked (Utilization tab) keeps the figures it was locked with (CAP-43).</dd>
       <dt>Source</dt><dd>The Time Writing connection (QMS-0025): month Time Writing Tasks, matched to a month when their title starts or ends with the month and year.</dd>
       <dt>Planned hours</dt><dd>Utilized hours planned: Original Estimate on the month's work, training and other NPRA Tasks, plus the common activities that apply to the person.</dd>
       <dt>Recorded (actual) hours</dt><dd>Utilized hours recorded: Completed Work on the month's work, training and other NPRA Tasks, plus common activities. A blank value is missing, a 0 is recorded zero.</dd>
