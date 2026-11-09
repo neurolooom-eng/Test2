@@ -14,10 +14,16 @@ export function InsightThresholdsPanel({ settings, canEdit, onSave }: { settings
   const amberAboveGreen = values ? values.healthAmber >= values.healthGreen : false
   const start = (from: InsightThresholds) => setDraft(Object.fromEntries(thresholdFields.map(({ key }) => [key, String(from[key])])) as Record<ThresholdKey, string>)
   return <Panel eyebrow="CAPACITY" title="Insight thresholds" info="The limits the Team overview insights use: month-end forecast, plan accuracy, stream momentum, resilience, unusual months, plan health, persistent overload and concentration. The Overloaded and Has capacity bands are under Capacity and absence. Saved with the planning data in Git; every change is in the audit log.">
-    <div className="azure-table"><table aria-label="Insight thresholds"><thead><tr><th>Insight</th><th>Threshold</th><th className="num">Value</th><th className="num">Built-in</th></tr></thead><tbody>
-      {thresholdFields.map((field) => <tr key={field.key}><td>{field.group}</td><td>{field.label}<small>{field.min}–{field.max} {field.unit}</small></td>
-        <td className="num">{draft ? <input aria-label={`${field.group}: ${field.label}`} type="number" min={field.min} max={field.max} step={field.unit === 'months' ? 1 : 0.5} value={draft[field.key]} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })} /> : `${saved[field.key]} ${field.unit}`}</td>
-        <td className="num muted">{defaultInsightThresholds[field.key]} {field.unit}</td></tr>)}
+    <div className="azure-table"><table aria-label="Insight thresholds"><thead><tr><th>Insight</th><th>Threshold</th><th className="num">Value</th></tr></thead><tbody>
+      {thresholdFields.map((field, index) => {
+        // Each insight is named once, on its first threshold; the built-in value shows only where it differs (or while editing).
+        const first = index === 0 || thresholdFields[index - 1].group !== field.group
+        const span = thresholdFields.filter((entry) => entry.group === field.group).length
+        const builtIn = defaultInsightThresholds[field.key], changed = saved[field.key] !== builtIn
+        return <tr key={field.key}>{first && <td rowSpan={span}><strong>{field.group}</strong></td>}<td>{field.label}<small>{field.min}–{field.max} {field.unit}</small></td>
+          <td className="num">{draft ? <input aria-label={`${field.group}: ${field.label}`} type="number" min={field.min} max={field.max} step={field.unit === 'months' ? 1 : 0.5} value={draft[field.key]} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })} /> : `${saved[field.key]} ${field.unit}`}
+            {(draft || changed) && <small className="muted">built-in {builtIn} {field.unit}</small>}</td></tr>
+      })}
     </tbody></table></div>
     {!draft && (canEdit ? <div className="button-row"><button type="button" className="ghost" onClick={() => { setMessage(''); start(saved) }}>Edit insight thresholds</button></div> : <p className="muted">Changed by roles that manage shared settings.</p>)}
     {draft && <>
