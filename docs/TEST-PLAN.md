@@ -951,6 +951,10 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-15 Unplanned absence counts as planned in the Old Calculation** — Req CAP-40, CAP-35 — L1 `capacity.test.mjs` ("CAP-35/36: Old Calculation — every hour (absence, holidays, NPRA included) against working days × funded hours − Standard Hours; status from planned": PTO 16 h and sick 8 h without an estimate add 24 h to Planned Hours; "CAP-37: Old Calculation — an unticked shared-time group (All, All-<Region>) leaves Planned and Actual Hours") ; browser check with real data: Team overview → Old Calculation — a person with leave booked but not planned shows the leave in Planned Hours; Pulse Check figures do not change.
 
+**TC-CAP-16 Calculation profiles and the default profile** — Req CAP-41, CAP-42 — L1 `calculation-profiles.test.mjs` ("CAP-41/42: the default profile is \"Current (v4)\" (CAP-38) until another one is chosen"; "CAP-41: the built-in \"Old Calculation\" profile gives the Old Calculation figures; status from the plan"; "CAP-41: a custom profile — fixed base, Standard Hours, a deducted, counted and ignored bucket, plan source, status from the plan"; "CAP-41: a shared-time group left out of a profile leaves every bucket"; "CAP-41: profiles read from Git are checked; unknown defaults fall back to \"Current (v4)\""), the CAP-38 figures in `capacity.test.mjs` unchanged under the default profile; E2E `shell.e2e.mjs` ("TC-CAP-16: Settings → Calculation profiles — built-ins, a copied profile edited and made the default for every page": built-ins listed with their formula, not editable; a copy with no counted bucket cannot be saved; saved, made the default, shown on the Utilization tab; deleted) — **UAT**; browser check with real data: make a copy of Current (v4) the default without changes — every figure on Pulse Check and Team overview stays the same; make Old Calculation the default — the Utilization tab's Available, Planned and Utilized equal the Old Calculation tab's Net Capacity, Planned and Actual Hours; Edit capacity settings and save — the profiles, Standard Hours and period lock days are kept (KB-41).
+
+**TC-CAP-17 Lock figures** — Req CAP-43 — L1 `calculation-profiles.test.mjs` ("CAP-43: locked figures stay as locked when the data, the settings or the profile change; unlocking shows the live figures"; "CAP-43: locked figures read from Git are checked"); E2E `shell.e2e.mjs` ("TC-CAP-17: Team overview → Utilization — an Admin locks a month's figures and unlocks them with a reason": Lock figures, the lock note on the tab and the scope line, Unlock needs a reason, history shown) — **UAT**; browser check with real data: as an Admin lock last month, Save to Git; book an extra hour on a Task of that month and refresh — Pulse Check → Last month and Team overview → Utilization keep the locked figures and show the lock note; as a non-Admin there is no Lock or Unlock button; unlock with a reason — the live figures return and the audit log has both entries.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1651,6 +1655,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-38 | TC-CAP-13 |
 | CAP-39 | TC-CAP-14 |
 | CAP-40 | TC-CAP-15 |
+| CAP-41 | TC-CAP-16 |
+| CAP-42 | TC-CAP-16 |
+| CAP-43 | TC-CAP-17 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1808,7 +1815,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |

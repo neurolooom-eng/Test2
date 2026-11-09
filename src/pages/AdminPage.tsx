@@ -19,6 +19,8 @@ import { AzureConnections } from '../components/AzureConnections'
 import { AccessPanel } from '../components/AccessPanel'
 import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
 import { SharedTimePanel } from '../components/SharedTimePanel'
+import { CalculationProfilesPanel } from '../components/CalculationProfilesPanel'
+import type { CalculationProfile } from '../calculationProfiles'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { Access } from '../useAccess'
 import type { PageProps } from './types'
@@ -124,14 +126,24 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     form.reset()
   }
 
+  // CAP-41/42: the custom calculation profiles and the default profile, shared in Git and audited.
+  function saveProfiles(profiles: CalculationProfile[], defaultId: string, detail: string) {
+    store.update((draft) => {
+      draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), calculationProfiles: profiles, defaultProfileId: defaultId })
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'calculation-profiles', detail: detail.slice(0, 2000) })
+      return draft
+    })
+  }
+
   function saveCapacity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const next = normalizeCapacitySettings({ absenceEpicId: data.get('absenceEpicId'), hoursPerDay: data.get('hoursPerDay'), overloadedAt: data.get('overloadedAt'), availableBelow: data.get('availableBelow'), npraHoursPerMonth: data.get('npraHoursPerMonth') })
     const now = new Date().toISOString()
     store.update((draft) => {
-      // The holiday and activity mappings, the default Joined on and the Standard Hours (CAP-36) and the Old Calculation groups (CAP-37) are kept: this form edits the numbers only.
-      draft.capacitySettings = normalizeCapacitySettings({ ...next, sharedTime: normalizeCapacitySettings(draft.capacitySettings).sharedTime, defaultJoinedOn: normalizeCapacitySettings(draft.capacitySettings).defaultJoinedOn, standardHours: normalizeCapacitySettings(draft.capacitySettings).standardHours, oldCalcExcludedScopes: normalizeCapacitySettings(draft.capacitySettings).oldCalcExcludedScopes })
+      // This form edits the numbers only: everything else (holidays and activities, default Joined on, period locks,
+      // Standard Hours, Old Calculation groups, calculation profiles, locked figures) is kept (KB-41).
+      draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), absenceEpicId: next.absenceEpicId, hoursPerDay: next.hoursPerDay, overloadedAt: next.overloadedAt, availableBelow: next.availableBelow, npraHoursPerMonth: next.npraHoursPerMonth })
       draft.audits.unshift({ id: crypto.randomUUID(), timestamp: now, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'capacity', detail: `Absence Epic #${next.absenceEpicId}, ${next.hoursPerDay}h/day, overloaded ≥ ${next.overloadedAt}%, capacity < ${next.availableBelow}%, NPRA ${next.npraHoursPerMonth}h/month` })
       return draft
     })
@@ -199,6 +211,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
         </form></Modal>}
         {capacityMessage && <Notice tone="success">{capacityMessage}</Notice>}
       </Panel> },
+      { key: 'profiles', label: 'Calculation profiles', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><CalculationProfilesPanel settings={capacity} canEdit={shared} onSave={saveProfiles} /></> },
       { key: 'time', label: 'Holidays and common activities', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div>
       <SharedTimePanel settings={capacity} items={azure.items} month={month} onSave={saveSharedTime} /></> },
       { key: 'period', label: 'Period control', node: <Panel eyebrow="PERIOD CONTROL" title={`Locks of ${monthName(month)}`} info={<ul><li>Every month has its own last days to update: the plan of the month and its actuals. The day itself is still open; the month locks from the next day (your local time).</li><li>Without a date of its own, a month uses the default days below — e.g. the November plan can be updated until 5 November (locked from 6 November), November actuals until 4 December (locked from 5 December).</li><li>Lock now locks a month before its date; to reopen a locked month, set a later last day. Saved with the planning data in Git, so everyone sees the same locks.</li></ul>}>

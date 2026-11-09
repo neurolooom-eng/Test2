@@ -2,6 +2,18 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v5.0.0 — 2026-11-09
+
+**Added**
+- **Calculation profiles** (Settings → Capacity & periods → Calculation profiles): for each bucket — Work, Absence, Trainings, Other NPRA, Common activities — count as utilized, deduct from capacity or ignore; the planned hours (Original Estimate, Original Estimate else Completed Work, or Completed Work); the capacity base (working days × hours per day, or fixed hours a month pro rata), with or without Standard Hours; the shared-time groups counted; status from the recorded or planned utilization. Built-in *Current (v4)* (today's formula, the default) and *Old Calculation*; custom profiles are copied, edited, deleted and made the default by roles that manage shared settings, shared in Git and audited (CAP-41).
+- The **default profile** produces every utilization figure (Pulse Check, Team overview, My dashboard, Resources, Monthly pack); its formula is shown with the figures (CAP-42). With *Current (v4)* as the default nothing changes.
+- **Lock figures** on Team overview → Utilization (Admins): the month's person figures are kept with the profile used, who locked them and when; every page shows the locked figures with a note until an Admin unlocks the month with a reason (kept as history, audited) (CAP-43).
+
+**Fixed**
+- Saving *Edit capacity settings* no longer drops the period control's lock days and month locks (KB-41).
+
+Major version: the capacity settings shared in Git gain the profiles and locked figures. An older version ignores them and drops them if it saves the capacity settings, so everyone who changes shared settings should update first. DF-75, DF-76; SM-52; TC-CAP-16, TC-CAP-17 (UAT day 9). PR #252.
+
 ## v4.2.1 — 2026-11-09
 
 **Changed**
