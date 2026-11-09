@@ -6,7 +6,7 @@ import { loadStatus, sharedTimeScopeLabel, sharedTimeScopes, standardHoursTotal,
 
 export type BucketKey = 'work' | 'absence' | 'training' | 'npraOther' | 'common'
 export const bucketKeys: BucketKey[] = ['work', 'absence', 'training', 'npraOther', 'common']
-export const bucketLabel: Record<BucketKey, string> = { work: 'Work', absence: 'Absence', training: 'Trainings', npraOther: 'Other NPRA', common: 'Common activities' }
+export const bucketLabel: Record<BucketKey, string> = { work: 'Project work', absence: 'Absence', training: 'Training', npraOther: 'Other NPRA', common: 'Common activities' }
 export type Treatment = 'count' | 'deduct' | 'ignore'
 export const treatments: Treatment[] = ['count', 'deduct', 'ignore']
 export const treatmentLabel: Record<Treatment, string> = { count: 'Count as utilized', deduct: 'Deduct from capacity', ignore: 'Ignore' }
@@ -109,11 +109,11 @@ export function applyProfile(person: Pick<PersonLoad, 'funded' | 'employedDays'>
 // The formula of a profile in words, shown with every figure it produces.
 export function profileFormula(profile: CalculationProfile, settings: CapacitySettings) {
   const labels = (treatment: Treatment) => bucketKeys.filter((key) => profile.treatment[key] === treatment).map((key) => bucketLabel[key])
-  const base = profile.capacityBase === 'fixed' ? `${profile.fixedHours ?? 0}h a month (pro rata to the days employed)` : `working days employed × Working hours per day (${settings.hoursPerDay}h)`
-  const capacity = [base, ...(profile.minusStandardHours ? [`Standard Hours (${standardHoursTotal(settings.standardHours)}h)`] : []), ...labels('deduct')].join(' − ')
+  const base = profile.capacityBase === 'fixed' ? `Contractual hours (${profile.fixedHours ?? 0}h a month, pro rata to the days employed)` : `Contractual hours (working days employed × Working hours per day, ${settings.hoursPerDay}h)`
+  const available = [base, ...(profile.minusStandardHours ? [`Standard Hours (${standardHoursTotal(settings.standardHours)}h)`] : []), ...labels('deduct').map((label) => `${label} hours`)].join(' − ')
   const sources = bucketKeys.filter((key) => profile.treatment[key] === 'count' && profile.plannedSource[key] !== 'estimate').map((key) => `${bucketLabel[key]}: ${plannedSourceLabel[profile.plannedSource[key]]}`)
   const ignored = labels('ignore'), groups = profile.excludedGroups.map(sharedTimeScopeLabel)
-  return `Profile “${profile.name}”: Utilization = (${labels('count').join(' + ')}) ÷ capacity. Capacity = ${capacity} (never below 0 per person). Utilized: Completed Work; planned: Original Estimate${sources.length ? ` (${sources.join('; ')})` : ''}.${ignored.length ? ` Ignored: ${ignored.join(', ')}.` : ''}${groups.length ? ` Groups left out: ${groups.join(', ')}.` : ''} Status from the ${profile.statusFrom === 'planned' ? 'planned' : 'recorded'} utilization.`
+  return `Profile “${profile.name}”: Actual utilization = Total actual ÷ Available hours; Planned utilization = Total planned ÷ Available hours. Total actual = ${labels('count').join(' + ')} (Completed Work); Total planned = the same from Original Estimate${sources.length ? ` (${sources.join('; ')})` : ''}. Available hours = ${available} (never below 0 per person).${ignored.length ? ` Ignored: ${ignored.join(', ')}.` : ''}${groups.length ? ` Groups left out: ${groups.join(', ')}.` : ''} Status from the ${profile.statusFrom === 'planned' ? 'planned' : 'actual'} utilization.`
 }
 
 // CAP-43 Lock figures: the person figures of a month as presented, kept in the shared app data so that later changes

@@ -31,7 +31,7 @@ test('CAP-41/42: the default profile is "Current (v4)" (CAP-38) until another on
   assert.deepEqual(allProfiles(settings).map((profile) => [profile.id, profile.name, profile.builtIn]), [['current-v4', 'Current (v4)', true], ['old-calculation', 'Old Calculation', true]])
   assert.equal(model.profile.name, 'Current (v4)')
   assert.deepEqual(figures(person(model, 'Ana')), [152, 160, 120, 105.26, 78.95, 'Overloaded'])
-  assert.match(model.profile.formula, /Utilization = \(Work \+ Trainings \+ Other NPRA \+ Common activities\) ÷ capacity\. Capacity = working days employed × Working hours per day \(8h\) − Absence/)
+  assert.match(model.profile.formula, /Actual utilization = Total actual ÷ Available hours; Planned utilization = Total planned ÷ Available hours\. Total actual = Project work \+ Training \+ Other NPRA \+ Common activities \(Completed Work\).*Available hours = Contractual hours \(working days employed × Working hours per day, 8h\) − Absence hours/)
 })
 
 test('CAP-41: the built-in "Old Calculation" profile gives the Old Calculation figures; status from the plan', () => {
@@ -56,7 +56,7 @@ test('CAP-41: a custom profile — fixed base, Standard Hours, a deducted, count
   assert.deepEqual(figures(person(model, 'Ben')), [98, 50, 50, 51.02, 51.02, 'Has capacity'])
   assert.deepEqual([model.totals.available, model.totals.utilized], [226, 222])
   assert.equal(model.profile.name, 'Finance view')
-  assert.equal(profileFormula(defaultProfile(custom), custom), 'Profile “Finance view”: Utilization = (Work + Other NPRA) ÷ capacity. Capacity = 160h a month (pro rata to the days employed) − Standard Hours (32h) − Trainings (never below 0 per person). Utilized: Completed Work; planned: Original Estimate (Work: Completed Work). Ignored: Absence, Common activities. Status from the planned utilization.')
+  assert.equal(profileFormula(defaultProfile(custom), custom), 'Profile “Finance view”: Actual utilization = Total actual ÷ Available hours; Planned utilization = Total planned ÷ Available hours. Total actual = Project work + Other NPRA (Completed Work); Total planned = the same from Original Estimate (Project work: Completed Work). Available hours = Contractual hours (160h a month, pro rata to the days employed) − Standard Hours (32h) − Training hours (never below 0 per person). Ignored: Absence, Common activities. Status from the planned utilization.')
   // The fixed hours are pro rata to the days employed: Ben joins on 16 October (11 of 22 working days): 80 − 32 − 30.
   const joined = capacityModel(withNpra, '2026-10', { ...custom, profiles: { Ben: { joinedOn: '2026-10-16' } } })
   assert.equal(person(joined, 'Ben').available, 18)
