@@ -1,5 +1,6 @@
 import type { AzureWorkItem } from './domain'
 import { rulesOf } from './bucketRules.ts'
+import { defaultInsightThresholds, type InsightThresholds } from './insightThresholds.ts'
 import { capacityModel, defaultCapacitySettings, isNpraTask, sharedTimeOf, type CapacitySettings, type Region, type ResourceRole } from './capacity.ts'
 import { isMonthTask, timeWritingMonth } from './azureInsights.ts'
 
@@ -107,7 +108,8 @@ export function groupBy<K extends string>(rows: PersonMonth[], key: (row: Person
 
 // One utilization model for the whole Dashboard, from Settings → Capacity: overloaded at or above `overloadedAt` %
 // of capacity, spare below `availableBelow` %, balanced in between.
-export interface Bands { overloadedAt: number; availableBelow: number }
+// CAP-47: the insight thresholds travel with the utilization bands (built-in values when absent).
+export interface Bands { overloadedAt: number; availableBelow: number; thresholds?: InsightThresholds }
 export const defaultBands: Bands = { overloadedAt: 100, availableBelow: 80 }
 export type Band = 'over' | 'balanced' | 'spare'
 export function bandOf(utilization: number | null | undefined, bands: Bands = defaultBands): Band | null {
@@ -139,9 +141,9 @@ export function persistentOverload(rows: PersonMonth[], months: string[], measur
 }
 
 // Concentration: the top 20% of people (rounded up) by hours, their share of the hours and of the capacity.
-export function concentration(rows: PersonMonth[], measure: 'actual' | 'plan') {
+export function concentration(rows: PersonMonth[], measure: 'actual' | 'plan', bands: Bands = defaultBands) {
   const people = groupBy(rows, (row) => row.person).sort((a, b) => b[measure] - a[measure])
-  const all = totals(rows), top = people.slice(0, Math.ceil(people.length * 0.2))
+  const all = totals(rows), top = people.slice(0, Math.ceil(people.length * (bands.thresholds ?? defaultInsightThresholds).concentrationTop / 100))
   const hours = top.reduce((sum, person) => sum + person[measure], 0), capacity = top.reduce((sum, person) => sum + person.capacity, 0)
   const hoursShare = ratio(hours, all[measure]), capacityShare = ratio(capacity, all.capacity)
   return { top: top.map((person) => ({ name: person.name, hours: person[measure] })), of: people.length, hoursShare, capacityShare, alert: hoursShare != null && capacityShare != null && hoursShare - capacityShare >= 10 }

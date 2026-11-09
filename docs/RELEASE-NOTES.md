@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v5.3.0 — 2026-11-09
+
+**Added**
+- **Insight thresholds** (Settings → Capacity & periods → Insight thresholds): the limits behind the Team overview insights — month-end forecast (±10%), plan accuracy (15% error, ±20% bias), stream momentum (3-month windows, ±20%, 8 h), resilience (80% / 90%), unusual months (±50%, 8 h, 3 months), plan health colours (75 / 50), persistent overload (3 months) and concentration (top 20%) — are set by roles that manage shared settings, shared in Git and audited, with ranges and the built-in value beside each. The insight texts and Definitions show the values in use. The built-in values are the ones used so far, so nothing changes until they are edited (CAP-47).
+
+DF-79; SM-55; TC-CAP-21 (UAT day 9). PR #257.
+
 ## v5.2.0 — 2026-11-09
 
 **Added**
