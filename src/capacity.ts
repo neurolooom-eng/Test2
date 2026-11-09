@@ -2,6 +2,7 @@ import type { AzureWorkItem } from './domain'
 import { isMonthTask, timeWritingMonth, workingDays } from './azureInsights.ts'
 import { isMine, type Me } from './myWork.ts'
 import { absenceKindBy, defaultBucketRules, isNpraTaskBy, isTrainingTaggedBy, isTrainingWorkBy, normalizeBucketRules, rulesOf, type BucketRules } from './bucketRules.ts'
+import { normalizeInsightThresholds, type InsightThresholds } from './insightThresholds.ts'
 import { activeFigureLock, addHours, applyProfile, defaultProfile, emptyCalcInputs, normalizeCalculationProfiles, normalizeFigureLocks, profileFormula, type BucketHours, type BucketKey, type CalcInputs, type CalculationProfile, type FigureLock } from './calculationProfiles.ts'
 
 // Capacity model for the selected month. Source rows are the Tasks whose title starts or ends with the month and year
@@ -43,7 +44,9 @@ export interface CapacitySettings { planLockDay?: number; actualsLockDay?: numbe
   // CAP-41/42: custom calculation profiles and the default profile's id; CAP-43: the locked figures per month.
   calculationProfiles?: CalculationProfile[]; defaultProfileId?: string; figureLocks?: Record<string, FigureLock[]>
   // CAP-46: the words and tags that decide absence kinds, training and other NPRA (built-in ones when unset).
-  bucketRules?: BucketRules }
+  bucketRules?: BucketRules
+  // CAP-47: the insight thresholds of Team overview (built-in values when unset).
+  insightThresholds?: InsightThresholds }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, defaultJoinedOn: '2026-05-01' }
 // An NPRA Task: tagged itself, or under a tagged Story / Feature / Epic (the absence Epic and mapped shared time win).
 // CAP-46: the tags come from the bucket rules (built-in: NPRA, Training).
@@ -142,12 +145,13 @@ export function normalizeCapacitySettings(value: unknown): CapacitySettings {
   const excluded = (value as { oldCalcExcludedScopes?: unknown } | null)?.oldCalcExcludedScopes
   const oldCalcExcludedScopes = Array.isArray(excluded) ? sharedTimeScopes.filter((scope) => excluded.includes(scope)) : []
   // CAP-41…43: custom profiles, the default profile (a known id only) and the locked figures, each kept only once set.
-  const raw = (value ?? {}) as { calculationProfiles?: unknown; defaultProfileId?: unknown; figureLocks?: unknown; bucketRules?: unknown }
+  const raw = (value ?? {}) as { calculationProfiles?: unknown; defaultProfileId?: unknown; figureLocks?: unknown; bucketRules?: unknown; insightThresholds?: unknown }
+  const insightThresholds = normalizeInsightThresholds(raw.insightThresholds)
   const bucketRules = normalizeBucketRules(raw.bucketRules)
   const calculationProfiles = normalizeCalculationProfiles(raw.calculationProfiles)
   const defaultProfileId = typeof raw.defaultProfileId === 'string' && ['current-v4', 'old-calculation', ...calculationProfiles.map((profile) => profile.id)].includes(raw.defaultProfileId) && raw.defaultProfileId !== 'current-v4' ? raw.defaultProfileId : undefined
   const figureLocks = normalizeFigureLocks(raw.figureLocks)
-  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}), ...(oldCalcExcludedScopes.length ? { oldCalcExcludedScopes } : {}), ...(calculationProfiles.length ? { calculationProfiles } : {}), ...(defaultProfileId ? { defaultProfileId } : {}), ...(Object.keys(figureLocks).length ? { figureLocks } : {}), ...(bucketRules ? { bucketRules } : {}) }
+  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}), ...(oldCalcExcludedScopes.length ? { oldCalcExcludedScopes } : {}), ...(calculationProfiles.length ? { calculationProfiles } : {}), ...(defaultProfileId ? { defaultProfileId } : {}), ...(Object.keys(figureLocks).length ? { figureLocks } : {}), ...(bucketRules ? { bucketRules } : {}), ...(insightThresholds ? { insightThresholds } : {}) }
   return withLocks.availableBelow < withLocks.overloadedAt ? withLocks : { ...withLocks, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
 }
 const lockDay = (value: unknown) => { const day = Number(value); return Number.isInteger(day) && day >= 1 && day <= 28 ? day : undefined }

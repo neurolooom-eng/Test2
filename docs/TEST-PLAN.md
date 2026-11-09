@@ -961,6 +961,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-20 Bucket rules** — Req CAP-46 — L1 `bucket-rules.test.mjs` ("CAP-46: the built-in rules are the words used before"; "CAP-46: custom rules move Tasks between Absence kinds, Training, Other NPRA and Project work"; "CAP-46: bucket rules read from Git are checked; the built-in ones are not stored"), the CAP-16/32/38 figures in `capacity.test.mjs` unchanged with the built-in rules; E2E `shell.e2e.mjs` ("TC-CAP-20: Settings → Bucket rules — built-in words shown, a draft checked against the month, saved and reset") — **UAT**; browser check with real data: add a word your team uses for a leave type (e.g. "maternity" to PTO) — the check table shows the hours moving from Other absence before saving; after saving, Pulse Check → Last month shows the hours under PTO; Use built-in words restores the figures; a role without *Manage shared settings* sees no Edit button.
 
+**TC-CAP-21 Insight thresholds** — Req CAP-47 — L1 `insight-thresholds.test.mjs` ("CAP-47: each insight threshold moves its insight; the built-in values give the results as before"; "CAP-47: insight thresholds read from Git are checked; the built-in values are not stored"), `insights.test.mjs` unchanged with the built-in values; E2E `shell.e2e.mjs` ("TC-CAP-21: Settings → Insight thresholds — edited, checked, shown in Team overview Definitions, reset": amber at or above green blocks saving; the forecast limit changed shows in Definitions; built-in values restored) — **UAT**; browser check with real data: raise the resilience limit — Team overview → Streams shows fewer streams resting on one person; a role without *Manage shared settings* sees no Edit button.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1667,6 +1669,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-44 | TC-CAP-18 |
 | CAP-45 | TC-CAP-19 |
 | CAP-46 | TC-CAP-20 |
+| CAP-47 | TC-CAP-21 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1824,7 +1827,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |
