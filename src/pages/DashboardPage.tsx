@@ -16,7 +16,8 @@ import type { PageProps } from './types'
 import type { PersonalViewsStore } from '../usePersonalViews'
 import { CustomizableSections } from '../components/PersonalLayout'
 import { UtilizationTable } from '../components/MonthOverview'
-import { activeFigureLock, defaultProfile, lockedPeople, profileFormula } from '../calculationProfiles'
+import { activeFigureLock, defaultProfile, lockedPeople, profileFormula, withViewedProfile } from '../calculationProfiles'
+import { ProfilePicker } from '../components/CalculationProfilesPanel'
 
 // Dashboard: demand (planned hours), recorded hours and capacity per person and month, over a period, with one
 // utilization model everywhere — the bands from Settings → Capacity (overloaded at or above overloadedAt %, spare
@@ -78,13 +79,16 @@ function MoreTable<T>({ items, limit = 8, render, head }: { items: T[]; limit?: 
 }
 
 export function DashboardPage({ month, azure, store, my, views, navigate, canSetDefault = false, canLock = false }: { month: string; azure: AzureWorkspace; navigate: (page: PageId) => void; store: PageProps['store']; setMonth?: (month: string) => void; my: MyWork; views?: PersonalViewsStore; canSetDefault?: boolean; canLock?: boolean }) {
-  const settings = capacityContext(store.state)
+  const shared = capacityContext(store.state)
+  // CAP-44: an Admin can view this page with another calculation profile (this page, this person only; not saved).
+  const [viewProfile, setViewProfile] = useState('')
+  const settings = canLock ? withViewedProfile(shared, viewProfile) : shared
   // CAP-43 Lock figures (Admins): the month's person figures as shown now are kept with the capacity settings (shared
   // in Git); unlocking needs a reason and keeps the entry as history. Both are audited.
   const who = my.me.name || 'Admin'
   const lockFigures = (lockMonth: string) => store.update((draft) => {
     const current = normalizeCapacitySettings(draft.capacitySettings)
-    const model = capacityModel(azure.items, lockMonth, { ...capacityContext(draft), figureLocks: undefined })
+    const model = capacityModel(azure.items, lockMonth, { ...withViewedProfile(capacityContext(draft), viewProfile), figureLocks: undefined })
     const entry = { lockedOn: new Date().toISOString(), lockedBy: who, profileName: model.profile.name, formula: model.profile.formula, people: lockedPeople(model.people) }
     draft.capacitySettings = normalizeCapacitySettings({ ...current, figureLocks: { ...current.figureLocks, [lockMonth]: [...(current.figureLocks?.[lockMonth] ?? []), entry].slice(-5) } })
     draft.audits.unshift({ id: crypto.randomUUID(), timestamp: entry.lockedOn, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: `figures-${lockMonth}`, detail: `Figures of ${monthName(lockMonth)} locked by ${who} with profile ${model.profile.name}: ${model.people.length} people, ${formatHours(model.totals.utilized)}h utilized ÷ ${formatHours(model.totals.available)}h = ${formatPercent(model.totals.utilization)}` })
@@ -145,6 +149,7 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
       <MultiSelect label="Team member" options={people.map((name) => [name, name === meName ? `${name} (me)` : name])} value={saved.filter.people} onChange={(value) => setFilter({ people: value })} />
       <MultiSelect label="Stream" options={streamOptions.map((stream) => [stream.key, stream.title])} value={saved.filter.streams} onChange={(value) => setFilter({ streams: value })} />
       <button type="button" className="ghost" disabled={!filtered} onClick={() => update({ filter: noFilter })}>Reset filters</button>
+      {canLock && <ProfilePicker settings={shared} value={viewProfile} onChange={setViewProfile} />}
     </div>
     <div className="dash-period" role="group" aria-label="Time period">
       <label className="dash-select">Year<select value={saved.period.year} onChange={(event) => setPeriod({ year: Number(event.target.value) })}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
@@ -567,7 +572,7 @@ function OldCalculationTab({ items, months, headerMonth, settings, filter, profi
   const kept = { ...model, people: model.people.filter((person) => has(filter.regions, profiles[person.name]?.region) && has(filter.roles, profiles[person.name]?.role) && has(filter.people, person.name)) }
   const { rows, totals: sum, standardHours } = oldCalculation(kept)
   const groupHours = Object.fromEntries(sharedTimeScopes.map((scope) => [scope, model.sharedTime.filter((entry) => entry.scope === scope).reduce((total, entry) => total + entry.hours, 0)])) as Record<SharedTimeScope, number>
-  const info = `Net capacity = working days in ${monthName(chosen)} the person is employed (${model.workingDays} in the month) × ${settings.hoursPerDay}h funded per day − ${formatHours(standardHours)}h Standard Hours (never below 0). Planned hours = every planned hour (Original Estimate): work, absence, holidays, training, NPRA and the shared time that applies to the person. Planned utilization = planned ÷ net capacity. Available = net capacity − planned (negative: planned above capacity). Status from the planned utilization: Overloaded at or above ${bands.overloadedAt}%, Has capacity below ${bands.availableBelow}%, else Balanced. Actual hours = every hour recorded (Completed Work), absence, holidays and NPRA included. Actual utilization = actual ÷ net capacity. Ticked groups (All, All-<Region>: holidays and common activities shared by everyone or a region) are counted in Planned and Actual Hours; unticked groups are left out of both. Removed people are not counted.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
+  const info = `Net capacity = working days in ${monthName(chosen)} the person is employed (${model.workingDays} in the month) × ${settings.hoursPerDay}h working hours per day − ${formatHours(standardHours)}h Standard Hours (never below 0). Planned hours = every planned hour (Original Estimate): work, absence, holidays, training, NPRA and the shared time that applies to the person. Planned utilization = planned ÷ net capacity. Available = net capacity − planned (negative: planned above capacity). Status from the planned utilization: Overloaded at or above ${bands.overloadedAt}%, Has capacity below ${bands.availableBelow}%, else Balanced. Actual hours = every hour recorded (Completed Work), absence, holidays and NPRA included. Actual utilization = actual ÷ net capacity. Ticked groups (All, All-<Region>: holidays and common activities shared by everyone or a region) are counted in Planned and Actual Hours; unticked groups are left out of both. Removed people are not counted.${filter.streams.length ? ' The stream filter does not apply here.' : ''}`
   return <Section eyebrow="OLD CALCULATION" title={`${monthName(chosen)} · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} info={info} action={<label className="dash-select">Month<select value={chosen} onChange={(event) => setPicked(event.target.value)}>{months.map((entry) => <option key={entry} value={entry}>{monthName(entry)}</option>)}</select></label>}>
     {model.locked && <p className="muted" role="note">🔒 The hours of {monthName(chosen)} are the figures locked on {formatDateTime(model.locked.lockedOn)} by {model.locked.lockedBy}; Standard Hours and the groups below apply as set now.</p>}
     <StandardHours lines={settings.standardHours ?? defaultStandardHours} canEdit={canEdit} onSave={onSaveStandard} />

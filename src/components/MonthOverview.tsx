@@ -78,7 +78,7 @@ export function MonthSections({ items, month, settings, navigate, utilizationOnl
   </TablePanel>
   </>}
   <div className="how-calculated"><Info label="How utilization is calculated">
-    <p>Funded hours per person: {model.workingDays} working days × {settings.hoursPerDay}h = {formatHours(model.fundedPerPerson)}h.</p>
+    <p>Contractual hours per person: {model.workingDays} working days × {settings.hoursPerDay}h working hours per day = {formatHours(model.fundedPerPerson)}h.</p>
     <p>{model.profile.formula}</p>
     {model.locked && <p>The figures of {monthName(month)} are locked: they stay as they were on {formatDateTime(model.locked.lockedOn)} whatever changes later (Team overview → Utilization).</p>}
     <p>Status: overloaded at ≥ {settings.overloadedAt}%; has capacity below {settings.availableBelow}%.</p>

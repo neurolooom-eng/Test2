@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { capacityModel, defaultCapacitySettings, normalizeCapacitySettings, oldCalculation } from '../src/capacity.ts'
-import { allProfiles, defaultProfile, lockedPeople, profileFormula } from '../src/calculationProfiles.ts'
+import { allProfiles, defaultProfile, lockedPeople, profileFormula, withViewedProfile } from '../src/calculationProfiles.ts'
 
 const item = (id, extra = {}) => ({ key: `org/project/${id}`, id, title: 'Release - Time Writing', workItemType: 'User Story', state: 'Active', assignedTo: '', areaPath: '', iterationPath: '', tags: '', url: '', organization: 'org', project: 'project', syncedAt: '', ...extra })
 // Ana: work 160 h (plan 120), PTO 16 + sick 8 without an estimate; Ben: work 50 h (plan 60). October 2026: 22 days × 8 h.
@@ -31,7 +31,7 @@ test('CAP-41/42: the default profile is "Current (v4)" (CAP-38) until another on
   assert.deepEqual(allProfiles(settings).map((profile) => [profile.id, profile.name, profile.builtIn]), [['current-v4', 'Current (v4)', true], ['old-calculation', 'Old Calculation', true]])
   assert.equal(model.profile.name, 'Current (v4)')
   assert.deepEqual(figures(person(model, 'Ana')), [152, 160, 120, 105.26, 78.95, 'Overloaded'])
-  assert.match(model.profile.formula, /Utilization = \(Work \+ Trainings \+ Other NPRA \+ Common activities\) ÷ capacity\. Capacity = working days employed × 8h − Absence/)
+  assert.match(model.profile.formula, /Utilization = \(Work \+ Trainings \+ Other NPRA \+ Common activities\) ÷ capacity\. Capacity = working days employed × Working hours per day \(8h\) − Absence/)
 })
 
 test('CAP-41: the built-in "Old Calculation" profile gives the Old Calculation figures; status from the plan', () => {
@@ -115,4 +115,19 @@ test('CAP-43: locked figures read from Git are checked', () => {
   assert.deepEqual([ana.name, ana.funded, ana.utilization, ana.status, ana.absenceByKind.PTO, 'Mars' in ana.absenceByKind], ['Ana', 0, null, 'No bookings', 8, false])
   assert.deepEqual(ana.sharedByScope, { US: { planned: 2, actual: 0 } })
   assert.deepEqual(ana.streams, [{ key: 'k', title: 't', work: 5, planned: 0, tasks: 0 }])
+})
+
+test('CAP-44: viewing a page with another profile changes only the settings that page computes with', () => {
+  const shared = normalizeCapacitySettings({ ...settings, calculationProfiles: [finance] })
+  const viewed = withViewedProfile(shared, 'old-calculation')
+  assert.equal(defaultProfile(viewed).name, 'Old Calculation')
+  assert.equal(defaultProfile(shared).name, 'Current (v4)', 'the shared settings are not changed')
+  assert.deepEqual(figures(person(capacityModel(backlog, '2026-10', viewed), 'Ana')), [144, 184, 144, 127.78, 100, 'Overloaded'])
+  assert.equal(withViewedProfile(shared, ''), shared, 'no choice: the default')
+  assert.equal(withViewedProfile(shared, 'missing'), shared, 'an unknown profile: the default')
+  assert.equal(defaultProfile(withViewedProfile(shared, 'finance')).name, 'Finance view')
+  // A locked month keeps its locked figures whatever profile is viewed.
+  const before = capacityModel(backlog, '2026-10', settings)
+  const locked = normalizeCapacitySettings({ ...shared, figureLocks: { '2026-10': [{ lockedOn: '2026-11-09T10:00:00Z', lockedBy: 'A', profileName: 'Current (v4)', formula: 'f', people: lockedPeople(before.people) }] } })
+  assert.deepEqual(capacityModel(backlog, '2026-10', withViewedProfile(locked, 'old-calculation')).people.map(figures), before.people.map(figures))
 })
