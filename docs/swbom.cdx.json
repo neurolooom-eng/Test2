@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "4.2.0"
+      "version": "4.2.1"
     },
     "tools": [
       {
@@ -3828,8 +3828,8 @@
     {
       "type": "library",
       "name": "concurrently",
-      "version": "10.0.6",
-      "purl": "pkg:npm/concurrently@10.0.6",
+      "version": "10.0.7",
+      "purl": "pkg:npm/concurrently@10.0.7",
       "scope": "excluded",
       "licenses": [
         {
@@ -3841,7 +3841,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "aa02025d7169dbfde701e6d12e6c5c20d2845ccd662cade28ffcb7d4fd36553b3f28891d748782d399fbdc3c4e5ec5cc07d2c54aa354d7f9dade50e53a171b23"
+          "content": "ccc09e2e16b05488f748b6e9834fc1582749975c1c052a5c1ca6cdae168cd353f7c4094459c1f7d0b79adaaf85e2e199ed8334b1c0cad1d8295b29f5b82263eb"
         }
       ],
       "properties": [
