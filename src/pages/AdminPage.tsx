@@ -20,6 +20,8 @@ import { AccessPanel } from '../components/AccessPanel'
 import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
 import { SharedTimePanel } from '../components/SharedTimePanel'
 import { CalculationProfilesPanel } from '../components/CalculationProfilesPanel'
+import { BucketRulesPanel } from '../components/BucketRulesPanel'
+import type { BucketRules } from '../bucketRules'
 import type { CalculationProfile } from '../calculationProfiles'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { Access } from '../useAccess'
@@ -135,6 +137,15 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     })
   }
 
+  // CAP-46: the bucket rules (words and tags), shared in Git and audited; undefined = the built-in ones.
+  function saveBucketRules(rules: BucketRules | undefined, detail: string) {
+    store.update((draft) => {
+      draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), bucketRules: rules })
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'bucket-rules', detail: detail.slice(0, 2000) })
+      return draft
+    })
+  }
+
   function saveCapacity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
@@ -212,6 +223,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
         {capacityMessage && <Notice tone="success">{capacityMessage}</Notice>}
       </Panel> },
       { key: 'profiles', label: 'Calculation profiles', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><CalculationProfilesPanel settings={capacity} canEdit={shared} onSave={saveProfiles} /></> },
+      { key: 'rules', label: 'Bucket rules', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><BucketRulesPanel settings={capacity} items={azure.items} month={month} canEdit={shared} onSave={saveBucketRules} /></> },
       { key: 'time', label: 'Holidays and common activities', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div>
       <SharedTimePanel settings={capacity} items={azure.items} month={month} onSave={saveSharedTime} /></> },
       { key: 'period', label: 'Period control', node: <Panel eyebrow="PERIOD CONTROL" title={`Locks of ${monthName(month)}`} info={<ul><li>Every month has its own last days to update: the plan of the month and its actuals. The day itself is still open; the month locks from the next day (your local time).</li><li>Without a date of its own, a month uses the default days below — e.g. the November plan can be updated until 5 November (locked from 6 November), November actuals until 4 December (locked from 5 December).</li><li>Lock now locks a month before its date; to reopen a locked month, set a later last day. Saved with the planning data in Git, so everyone sees the same locks.</li></ul>}>

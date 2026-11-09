@@ -79,6 +79,7 @@ This document lists every software component of the system: the in-house source 
 | Markdown | `src/components/Markdown.tsx` | Renders parsed Markdown blocks as React elements; internal links via callback, external https in new tab. | DOC |
 | MonthOverview | `src/components/MonthOverview.tsx` | "This month" overview sections: capacity model and metrics for a month. | OVR, CAP |
 | CalculationProfilesPanel | `src/components/CalculationProfilesPanel.tsx` | Settings → Capacity & periods → Calculation profiles: list with formulas, copy, edit, delete and make default (CAP-41, CAP-42). | CAP, SET |
+| BucketRulesPanel | `src/components/BucketRulesPanel.tsx` | Settings → Capacity & periods → Bucket rules: the words and tags, edit with a check against the month, built-in words (CAP-46). | CAP, SET |
 | MultiSelect | `src/components/MultiSelect.tsx` | Multi-value checkbox filter button ("All", one value or "n selected"). | OVR, UI |
 | PersonPicker | `src/components/PersonPicker.tsx` | Typeable person list with "me" first and keyboard selection. | ATM, UI |
 | SearchSelect | `src/components/SearchSelect.tsx` | Drop-down list you can type into to search it (label and hint), with keyboard selection; the Feature list of My Activities. | ACT, UI |
@@ -118,6 +119,7 @@ This document lists every software component of the system: the in-house source 
 | baseline | `src/baseline.ts` | Per-stream estimation rules, dated release scopes and release baseline vs actual rows. | BAS |
 | capacity | `src/capacity.ts` | Capacity model: month tasks, absence, shared time, regions/roles, per-person and per-stream load and status. | CAP, SET |
 | calculationProfiles | `src/calculationProfiles.ts` | Calculation profiles (CAP-41, CAP-42): bucket treatment, plan source, capacity base, built-in Current (v4) and Old Calculation, the default profile, the formula in words; locked figures (CAP-43) and their normaliser. | CAP |
+| bucketRules | `src/bucketRules.ts` | Bucket rules (CAP-46): the words and tags for absence kinds, training and other NPRA, built-in defaults, normaliser and matching. | CAP |
 | chartUtils | `src/chartUtils.ts` | Chart helpers: month labels, ticks, bar/column/arc geometry, Epic colours, Pareto series, label wrapping. | OVR |
 | csv | `src/csv.ts` | CSV cell escaping with spreadsheet-formula injection guard. | CON |
 | dashboard | `src/dashboard.ts` | Person-month records (plan, actual, capacity) with filters, periods, totals, overload, concentration and rebalancing. | OVR, CAP |
@@ -256,6 +258,7 @@ This document lists every software component of the system: the in-house source 
 | browser-state.test | `tests/browser-state.test.mjs` | IndexedDB persistence, legacy migration, failure safety and ordered saves. | STO, NFR |
 | capacity.test | `tests/capacity.test.mjs` | Capacity model: absence, streams, thresholds, shared time and holidays. | CAP |
 | calculation-profiles.test | `tests/calculation-profiles.test.mjs` | Calculation profiles (built-ins, custom profiles, default, normaliser) and Lock figures (CAP-41…43). | CAP |
+| bucket-rules.test | `tests/bucket-rules.test.mjs` | Bucket rules: built-in words, custom rules moving Tasks between buckets, the normaliser (CAP-46). | CAP |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |
