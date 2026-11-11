@@ -963,6 +963,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-21 Insight thresholds** — Req CAP-47 — L1 `insight-thresholds.test.mjs` ("CAP-47: each insight threshold moves its insight; the built-in values give the results as before"; "CAP-47: insight thresholds read from Git are checked; the built-in values are not stored"), `insights.test.mjs` unchanged with the built-in values; E2E `shell.e2e.mjs` ("TC-CAP-21: Settings → Insight thresholds — edited, checked, shown in Team overview Definitions, reset": amber at or above green blocks saving; the forecast limit changed shows in Definitions; built-in values restored) — **UAT**; browser check with real data: raise the resilience limit — Team overview → Streams shows fewer streams resting on one person; a role without *Manage shared settings* sees no Edit button.
 
+**TC-CAP-22 People & access, Remove and capacity roles** — Req CAP-48, CAP-49, CAP-50, CAP-33 — L1 `people-access.test.mjs` ("CAP-49: a person's work email is kept with their profile (checked, lower case)"; "CAP-50: Lead, Manager and People Manager are not counted for capacity by default; the roles are configurable"; "CAP-50: capacity roles read from Git are checked; the built-in choice is not stored; access roles come from access.json"); E2E `shell.e2e.mjs` ("TC-CAP-22: People & access — one page; a person is added with every mapping; Remove asks left or not in the team; capacity roles": sections People / Capacity roles / Role rights, the email and app-role columns, Mapping incomplete, every field required, Left the team on sets Left on, Lead / Manager / People Manager unticked by default) and ("TC-CAP-09: …": Not part of the team removes and Restore brings back) — **UAT**; browser check with real data and Git: give a new colleague app access with Add a person — access.json has their email and role, Resources their region, role and reports to; mark a leaver Left the team at month end — the next month no longer counts them, the earlier months are unchanged; tick Lead in Capacity roles — the lead's hours and capacity appear in Pulse Check.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1670,6 +1672,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-45 | TC-CAP-19 |
 | CAP-46 | TC-CAP-20 |
 | CAP-47 | TC-CAP-21 |
+| CAP-48 | TC-CAP-22 |
+| CAP-49 | TC-CAP-22 |
+| CAP-50 | TC-CAP-22 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1827,7 +1832,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |

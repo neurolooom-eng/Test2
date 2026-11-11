@@ -2,6 +2,15 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v6.0.0 — 2026-11-11
+
+**Changed**
+- **Settings → People & access** replaces Resources and Access. **People**: one row per person with their Azure DevOps name, **work email**, **app access role**, region, team role, reports to and dates; **Add a person** needs all of them; anyone missing a mapping is flagged, and app access given to an email with no person is listed with *Add as person*. **Role rights**: what each app access role sees and may do. (CAP-49)
+- **Remove** asks whether the person **left the team** (on a date; earlier months unchanged) or is **not part of the team** (left out of every month, restorable), and offers to remove their app access too (CAP-48).
+- **Capacity roles**: which team roles and app access roles count for capacity. **Lead, Manager and People Manager are no longer counted by default** — they get no capacity and their hours leave the utilization figures; Pulse Check and People & access name them. Everyone else employed in the month and not removed counts (CAP-50).
+
+Major version: who counts for capacity changes on install (team figures of past months change too unless they are locked — lock presented months before updating) and the Settings pages change. DF-80, DF-81; SM-56; TC-CAP-22 (UAT day 9). PR #260.
+
 ## v5.3.2 — 2026-11-11
 
 **Changed**
