@@ -821,7 +821,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | TC-BKL-16 | One Feature creation with the same rules everywhere | BKL-14, BKL-26 | L1, L3 | — |
 | TC-BKL-17 | One User Story creation with the same rules everywhere | ACT-08, BKL-19, BKL-25, BKL-27 | L1, L3 | — |
 | TC-BKL-18 | One Time Writing Task rule everywhere | BKL-14, BKL-22, BKL-28, CON-52, CON-53 | L1, L3 | — |
-| TC-BKL-19 | New Feature in four steps | BKL-24, BKL-25, BKL-29 | L3 | — |
+| TC-BKL-19 | New Feature in four sections, shown in order | BKL-24, BKL-25, BKL-29 | L3 | — |
 | TC-BKL-14 | Release number without "v" in Feature titles | BKL-24 | L1, L3 | — |
 | TC-CON-45 | Git view data with another query is not applied | CON-77 | L1, L3 | — |
 | TC-CON-46 | Tree and direct-links queries | CON-78 | L1, L3 | — |
