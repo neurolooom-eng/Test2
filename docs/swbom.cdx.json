@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "6.0.0"
+      "version": "6.0.1"
     },
     "tools": [
       {
@@ -4458,8 +4458,8 @@
     {
       "type": "library",
       "name": "electron",
-      "version": "44.11.0",
-      "purl": "pkg:npm/electron@44.11.0",
+      "version": "44.11.1",
+      "purl": "pkg:npm/electron@44.11.1",
       "scope": "required",
       "licenses": [
         {
@@ -4471,7 +4471,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "090c5ee69ac5ca506ba1198a41c589b4cea4894137b093f63ab4a23d9349c5c6512c8d8e2a591b7117e8a2aac4ccf57c74c8d316abe4b301c87f08848551a512"
+          "content": "a50769dfe35a9f2c55431071747aa767f2a3f60281b3ca1e486b2609bd91d726855ae4fdd6f6e26d1d7da38a597699260580cc97cf74f84cedeea4fff7366300"
         }
       ],
       "properties": [
@@ -10572,8 +10572,8 @@
     {
       "type": "library",
       "name": "vite",
-      "version": "8.3.7",
-      "purl": "pkg:npm/vite@8.3.7",
+      "version": "8.3.8",
+      "purl": "pkg:npm/vite@8.3.8",
       "scope": "excluded",
       "licenses": [
         {
@@ -10585,7 +10585,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "a3187474cc6b6b206bdf749c26fbc12761c14368dcd5306b5ca4763722ff309f563ee5f5f663760d75949b2c0a772c39445550068f219ad6f614c0b42c7ae79e"
+          "content": "2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8"
         }
       ],
       "properties": [
