@@ -5,7 +5,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 ## v6.2.0 — 2026-11-12
 
 **Changed**
-- **New Feature on one page, section by section** instead of Next / Back pages: only section 1 (Feature) shows at first; Definition of Done appears once it is filled, and User Stories and Estimates for the month once the DoD is there. The section still to fill is highlighted with what is missing; filled sections are ticked. Save is at the bottom; Enter in a field no longer creates the Feature (BKL-29).
+- **New Feature on one page, section by section** instead of Next / Back pages: only section 1 (Feature) shows at first, and each section appears when the one before it is done: Definition of Done once section 1 is filled, User Stories once the DoD was checked (clicked into and left), Estimates for the month once the User Stories were chosen and left. The section to fill now is highlighted with what is missing or how to go on; done sections are ticked. Save is at the bottom; Enter in a field no longer creates the Feature (BKL-29).
 
 DF-82; TC-BKL-19. PR #263.
 
