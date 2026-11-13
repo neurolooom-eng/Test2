@@ -1345,6 +1345,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-PCK-03 The pack: lines, supported counts, YoY, capacity and slide text** — Req PCK-03, PCK-05 — L1 `monthly-pack.test.mjs` ("the pack: releases per line, supported counts, YoY from last year, capacity lines and slide text (PCK-03, PCK-05)": DP this year vs. last year, an Epic-mapped PPU line, the overall change, the capacity, YoY and supported lines, the overload risk line, the copy text of both slides); `monthly-pack.test.mjs` ("the .pptx writer: a zip with the presentation parts, one slide per input, text escaped (PCK-06)").
 
 **TC-PCK-07 Typing stays responsive** — Req PCK-09 — L1 `monthly-pack.test.mjs` ("typing in the pack does not recount the data …"); browser check with the full team data: type a paragraph in Summary and in a KPI value.
+
+**TC-PCK-08 Bullets with + in the Monthly pack** — Req PCK-10 — L1 `monthly-pack.test.mjs` ("PCK-10: typed bullets placed below a generated bullet round-trip through Git and keep their place on the slide"); E2E `monthly-pack.e2e.mjs` ("TC-PCK-08: every Monthly pack box adds bullets with + (below a bullet) and + Add bullet (at the end); Enter adds one below, ✕ removes; Save to Git turns on"; "TC-PCK-04 …": read-only with the sample, no + and no text boxes); browser check with Git connected (writable token) and the team data: + on a generated release line of Actions/Deliverables Realized, type a bullet, Save to Git, reload — it is back below that line, and the .pptx and Copy slide as text show it there.
 - Expected: the characters appear as they are typed; no month of releases is read again while typing; the generated lines and KPIs follow the typed text.
 
 **TC-PCK-06 The pack in the team's PowerPoint template** — Req PCK-01, PCK-08 — L1 `pptx-template.test.mjs` (all tests, with a synthetic template — the real one is never in this repository); browser check with the team template:
@@ -1358,7 +1360,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 - Steps: Pulse Check → Monthly pack; type 95% in Utilization (YTD) and a value in an Epic KPI; Save to Git; Download .pptx; then "Use calculated".
 - Expected: the slide and the .pptx show the typed values; the calculated value stays visible as "Overridden · calculated …"; a typed month utilisation also changes Summary, the capacity line and Risks; "Use calculated" brings the calculation back.
 
-**TC-PCK-04 Monthly pack end to end** — Req PCK-01, PCK-05, PCK-06 — **UAT** — E2E `monthly-pack.e2e.mjs` ("TC-PCK-04": synthetic sample, Pulse Check → the Monthly pack tab names the month before the header month; both slides with their boxes, the capacity line, the Summary sentence and the utilisation KPI row; the text boxes read-only with the sample; Download .pptx gives pulse-check-<month>.pptx, a zip with the presentation parts and the box headings; Settings → Monthly pack lists the default lines and KPI rows); browser check with Git connected (writable token): type Focus areas and a KPI value, Save to Git (monthly-pack/<month>.json, View commit), reload — the text is back; in Settings → Monthly pack add an Epic to PPU and change a KPI to "Items closed in the month", Save to Git, the pack shows the Feature titles and the count; Copy a box and Copy slide as text paste as bullets; open the .pptx in PowerPoint (two 16:9 slides).
+**TC-PCK-04 Monthly pack end to end** — Req PCK-01, PCK-05, PCK-06 — **UAT** — E2E `monthly-pack.e2e.mjs` ("TC-PCK-04": synthetic sample, Pulse Check → the Monthly pack tab names the month before the header month; both slides with their boxes, the capacity line, the Summary sentence and the utilisation KPI row; the bullets read-only with the sample (no + and no fields); Download .pptx gives pulse-check-<month>.pptx, a zip with the presentation parts and the box headings; Settings → Monthly pack lists the default lines and KPI rows); browser check with Git connected (writable token): type Focus areas and a KPI value, Save to Git (monthly-pack/<month>.json, View commit), reload — the text is back; in Settings → Monthly pack add an Epic to PPU and change a KPI to "Items closed in the month", Save to Git, the pack shows the Feature titles and the count; Copy a box and Copy slide as text paste as bullets; open the .pptx in PowerPoint (two 16:9 slides).
 
 ### 6.23 Insights workspace
 
@@ -1749,6 +1751,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | PCK-07 | TC-PCK-05 |
 | PCK-08 | TC-PCK-06 |
 | PCK-09 | TC-PCK-07 |
+| PCK-10 | TC-PCK-08 |
 | NFR-01 | TC-INS-04 |
 | WSP-01 | TC-WSP-05, TC-WSP-06 |
 | WSP-02 | TC-WSP-01, TC-WSP-06 |

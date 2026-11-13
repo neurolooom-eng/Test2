@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v6.3.0 — 2026-11-13
+
+**Changed**
+- **Monthly pack bullets with +**: the text boxes of the 2x2 and the Performance Pulse are replaced by bullets. Every bullet has a **+** that adds a new bullet right below it, and **+ Add bullet** adds one at the end of the box — Actions/Deliverables Realized now takes typed bullets too. Type in place, Enter adds the next one, ✕ removes one. The slides (.pptx, Copy) show each bullet where it was added. Save to Git saves the month's bullets and their place (`anchors` in monthly-pack/<month>.json); files saved before keep their typed lines at the end of each box (PCK-10).
+
+DF-83; SM-57; KB-43; TC-PCK-08. PR #265.
+
 ## v6.2.1 — 2026-11-13
 
 **Changed**
