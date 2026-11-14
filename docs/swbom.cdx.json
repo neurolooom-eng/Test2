@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "6.3.0"
+      "version": "6.3.1"
     },
     "tools": [
       {
@@ -18,8 +18,8 @@
     {
       "type": "library",
       "name": "@azure/msal-browser",
-      "version": "5.29.0",
-      "purl": "pkg:npm/%40azure/msal-browser@5.29.0",
+      "version": "5.29.1",
+      "purl": "pkg:npm/%40azure/msal-browser@5.29.1",
       "scope": "required",
       "licenses": [
         {
@@ -31,7 +31,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2a8fcebf0ea1f86bb7de6a7c7f4154c9d76bfca0d6cdb1b372047c1ca65a4f8c204d89632cf2893f5adc0eed111e3ee991de024768421cae755c5ce0beafd0e5"
+          "content": "f9332853fe21dca614bd02991fea75ffdfe20da7a90e554943b50c50007aabca6b3ec31fb0ea2a03d9b66a5a4fa8b510e3c069eec5ea376c1d840f6b3a0f6ad4"
         }
       ],
       "properties": [
@@ -48,8 +48,8 @@
     {
       "type": "library",
       "name": "@azure/msal-common",
-      "version": "16.16.1",
-      "purl": "pkg:npm/%40azure/msal-common@16.16.1",
+      "version": "16.16.2",
+      "purl": "pkg:npm/%40azure/msal-common@16.16.2",
       "scope": "required",
       "licenses": [
         {
@@ -61,7 +61,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "75229d2fd87f89eadc6f81ae9ac28587ec15bcb7b5a21b833e2be29258274151e763615835495b409dc4d50777eef9287fd09fada2bd050a425b58683a0d339d"
+          "content": "215a0f800ba9d219e9cf00bc7acc4fc6bae70c355ed27de698af9453725198a5b248ac4142b97e6b7d2d4cfde892627d59cedd87e220a0d6945e40b16f60c14a"
         }
       ],
       "properties": [
@@ -4638,8 +4638,8 @@
     {
       "type": "library",
       "name": "electron",
-      "version": "44.11.1",
-      "purl": "pkg:npm/electron@44.11.1",
+      "version": "44.11.3",
+      "purl": "pkg:npm/electron@44.11.3",
       "scope": "required",
       "licenses": [
         {
@@ -4651,7 +4651,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "a50769dfe35a9f2c55431071747aa767f2a3f60281b3ca1e486b2609bd91d726855ae4fdd6f6e26d1d7da38a597699260580cc97cf74f84cedeea4fff7366300"
+          "content": "c95cc904033b85f2bf8240f72c7bc50f881f1cb8f57fa70bdf2620cd7f291d0c96cb3f14f454df4e3f56385770ccb8f9b5afbfa082830f806c0532d88856b64e"
         }
       ],
       "properties": [
@@ -6032,6 +6032,36 @@
         {
           "alg": "SHA-512",
           "content": "45b279fe398570d342703579a3d7939c12c9fc7b33595d0fef76dcf857f89d2feb263f98692e881b288e2f45680585fe9755ab97793ade1fcaac7fa7849d17bd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "swbom:scope",
+          "value": "build / test"
+        },
+        {
+          "name": "swbom:direct",
+          "value": "false"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "graceful-fs",
+      "version": "4.2.12",
+      "purl": "pkg:npm/graceful-fs@4.2.12",
+      "scope": "excluded",
+      "licenses": [
+        {
+          "license": {
+            "id": "BlueOak-1.0.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8aec86176138a1a7d07cfb11ac6db0b58d882eea4c86fb5dae1cebc41fb455c8ec3e948fb6da5f61d8e71851ac4e2e4c6891632358ce2873d0e944db4e3f5303"
         }
       ],
       "properties": [
