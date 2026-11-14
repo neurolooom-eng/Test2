@@ -3,7 +3,7 @@ import { isMonthTask, timeWritingMonth, workingDays } from './azureInsights.ts'
 import { isMine, type Me } from './myWork.ts'
 import { absenceKindBy, defaultBucketRules, isNpraTaskBy, isTrainingTaggedBy, isTrainingWorkBy, normalizeBucketRules, rulesOf, type BucketRules } from './bucketRules.ts'
 import { normalizeInsightThresholds, type InsightThresholds } from './insightThresholds.ts'
-import { activeFigureLock, addHours, applyProfile, defaultProfile, emptyCalcInputs, normalizeCalculationProfiles, normalizeFigureLocks, profileFormula, type BucketHours, type BucketKey, type CalcInputs, type CalculationProfile, type FigureLock } from './calculationProfiles.ts'
+import { activeFigureLock, addHours, applyProfile, defaultProfile, emptyCalcInputs, normalizeCalculationProfiles, normalizeFigureLocks, normalizeProfileTerms, profileFormula, type ProfileTerms, type BucketHours, type BucketKey, type CalcInputs, type CalculationProfile, type FigureLock } from './calculationProfiles.ts'
 
 // Capacity model for the selected month. Source rows are the Tasks whose title starts or ends with the month and year
 // ("October 2026 | …", any delimiter), under any story; absence is everything under the
@@ -43,6 +43,8 @@ export interface MonthLock { planOn?: string; actualsOn?: string; planLocked?: b
 export interface CapacitySettings { planLockDay?: number; actualsLockDay?: number; monthLocks?: Record<string, MonthLock>; absenceEpicId: number; hoursPerDay: number; overloadedAt: number; availableBelow: number; npraHoursPerMonth: number; defaultJoinedOn?: string; sharedTime?: SharedTimeRule[]; standardHours?: StandardHourLine[]; oldCalcExcludedScopes?: SharedTimeScope[]; profiles?: Record<string, ResourceProfile>
   // CAP-41/42: custom calculation profiles and the default profile's id; CAP-43: the locked figures per month.
   calculationProfiles?: CalculationProfile[]; defaultProfileId?: string; figureLocks?: Record<string, FigureLock[]>
+  // CAP-52: the names of the figures per calculation profile (cards, columns, formula); undefined = the built-in names.
+  profileTerms?: ProfileTerms
   // CAP-46: the words and tags that decide absence kinds, training and other NPRA (built-in ones when unset).
   bucketRules?: BucketRules
   // CAP-47: the insight thresholds of Team overview (built-in values when unset).
@@ -154,14 +156,15 @@ export function normalizeCapacitySettings(value: unknown): CapacitySettings {
   const excluded = (value as { oldCalcExcludedScopes?: unknown } | null)?.oldCalcExcludedScopes
   const oldCalcExcludedScopes = Array.isArray(excluded) ? sharedTimeScopes.filter((scope) => excluded.includes(scope)) : []
   // CAP-41…43: custom profiles, the default profile (a known id only) and the locked figures, each kept only once set.
-  const raw = (value ?? {}) as { calculationProfiles?: unknown; defaultProfileId?: unknown; figureLocks?: unknown; bucketRules?: unknown; insightThresholds?: unknown; capacityRoles?: unknown }
+  const raw = (value ?? {}) as { calculationProfiles?: unknown; defaultProfileId?: unknown; figureLocks?: unknown; bucketRules?: unknown; insightThresholds?: unknown; capacityRoles?: unknown; profileTerms?: unknown }
+  const profileTerms = normalizeProfileTerms(raw.profileTerms)
   const capacityRoles = normalizeCapacityRoles(raw.capacityRoles)
   const insightThresholds = normalizeInsightThresholds(raw.insightThresholds)
   const bucketRules = normalizeBucketRules(raw.bucketRules)
   const calculationProfiles = normalizeCalculationProfiles(raw.calculationProfiles)
   const defaultProfileId = typeof raw.defaultProfileId === 'string' && ['current-v4', 'old-calculation', ...calculationProfiles.map((profile) => profile.id)].includes(raw.defaultProfileId) && raw.defaultProfileId !== 'current-v4' ? raw.defaultProfileId : undefined
   const figureLocks = normalizeFigureLocks(raw.figureLocks)
-  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}), ...(oldCalcExcludedScopes.length ? { oldCalcExcludedScopes } : {}), ...(calculationProfiles.length ? { calculationProfiles } : {}), ...(defaultProfileId ? { defaultProfileId } : {}), ...(Object.keys(figureLocks).length ? { figureLocks } : {}), ...(bucketRules ? { bucketRules } : {}), ...(insightThresholds ? { insightThresholds } : {}), ...(capacityRoles ? { capacityRoles } : {}) }
+  const withLocks = { ...settings, ...locks, ...(Array.isArray(standard) ? { standardHours: normalizeStandardHours(standard) } : {}), ...(oldCalcExcludedScopes.length ? { oldCalcExcludedScopes } : {}), ...(calculationProfiles.length ? { calculationProfiles } : {}), ...(defaultProfileId ? { defaultProfileId } : {}), ...(Object.keys(figureLocks).length ? { figureLocks } : {}), ...(bucketRules ? { bucketRules } : {}), ...(insightThresholds ? { insightThresholds } : {}), ...(capacityRoles ? { capacityRoles } : {}), ...(profileTerms ? { profileTerms } : {}) }
   return withLocks.availableBelow < withLocks.overloadedAt ? withLocks : { ...withLocks, availableBelow: defaultCapacitySettings.availableBelow, overloadedAt: defaultCapacitySettings.overloadedAt }
 }
 const lockDay = (value: unknown) => { const day = Number(value); return Number.isInteger(day) && day >= 1 && day <= 28 ? day : undefined }
@@ -336,6 +339,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       // CAP-40: a holiday with no Original Estimate counts its Completed Work as planned in the Old Calculation.
       if (ownShare.kind === 'holiday') { person.absence += own; person.absenceByKind['Public holiday'] += own; if (!planned) person.allPlanned += work } else { person.reserved += own; person.reservedPlanned += planned; person.reservedActual += work }
       addHours(calcOf(name).own[ownShare.kind === 'holiday' ? 'absence' : 'common'], ownTask(work, planned, own, 0))
+      if (ownShare.kind === 'holiday') addHours(calcOf(name).absenceByKind['Public holiday'] ??= { estimate: 0, completed: 0, estimateElseCompleted: 0, deducted: 0, tasks: 0 }, ownTask(work, planned, own, 0))
       continue
     }
     // Team Holidays and Training (CAP-16): leave is absence; training is NPRA.
@@ -346,6 +350,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
       // CAP-40: absence with no Original Estimate counts its Completed Work as planned in the Old Calculation.
       if (!planned) person.allPlanned += work
       addHours(calcOf(name).own.absence, ownTask(work, planned))
+      addHours(calcOf(name).absenceByKind[kind] ??= { estimate: 0, completed: 0, estimateElseCompleted: 0, deducted: 0, tasks: 0 }, ownTask(work, planned))
       continue
     }
     if (training || isNpraTask(task, chain, rules)) {
@@ -403,7 +408,7 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const available = sum('available'), utilized = sum('utilized'), utilizedPlanned = sum('utilizedPlanned')
   const absenceByKind = personList.reduce((kinds, person) => { for (const kind of absenceKinds) kinds[kind] += person.absenceByKind[kind]; return kinds }, emptyKinds())
   return {
-    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, profile: lock ? { name: lock.profileName, formula: lock.formula } : { name: profile.name, formula: profileFormula(profile, settings) }, locked: lock ? { lockedOn: lock.lockedOn, lockedBy: lock.lockedBy, profileName: lock.profileName } : undefined, outsideEmployment: [...outside.values()], removed: [...removedPeople.values()], notCounted: [...notCounted.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
+    month, settings, workingDays: workingDays(month), fundedPerPerson: funded, profile: lock ? { name: lock.profileName, formula: lock.formula, definition: profile } : { name: profile.name, formula: profileFormula(profile, settings), definition: profile }, locked: lock ? { lockedOn: lock.lockedOn, lockedBy: lock.lockedBy, profileName: lock.profileName } : undefined, outsideEmployment: [...outside.values()], removed: [...removedPeople.values()], notCounted: [...notCounted.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
     totals: { ...totals, available, utilized, utilizedPlanned, training: sum('training'), npraOther: sum('npraOther'), reservedActual: sum('reservedActual'), reservedPlanned: sum('reservedPlanned'), absenceByKind, utilization: personList.some(person => person.utilization != null) ? percent(utilized, available) : null, plannedUtilization: personList.some(person => person.plannedUtilization != null) ? percent(utilizedPlanned, available) : null },
     counts: { npraOver: personList.filter(person => person.npraOver > 0).length, overloaded: personList.filter(person => person.status === 'Overloaded').length, balanced: personList.filter(person => person.status === 'Balanced').length, hasCapacity: personList.filter(person => person.status === 'Has capacity').length, noBookings: personList.filter(person => person.status === 'No bookings').length },
   }
