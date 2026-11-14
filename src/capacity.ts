@@ -50,7 +50,9 @@ export interface CapacitySettings { planLockDay?: number; actualsLockDay?: numbe
   // CAP-50: the team roles and app access roles left out of capacity (built-in: Lead, Manager; People Manager).
   capacityRoles?: CapacityRoles
   // CAP-50: each person's app access roles by email (from access.json at run time; never stored here).
-  accessRoles?: Record<string, string[]> }
+  accessRoles?: Record<string, string[]>
+  // CAP-51: each person's work email as Azure DevOps gives it (Assigned To), set by the app at run time; never stored.
+  azureEmails?: Record<string, string> }
 export interface CapacityRoles { excludedResourceRoles: ResourceRole[]; excludedAccessRoles: string[] }
 export const defaultCapacitySettings: CapacitySettings = { absenceEpicId: 37778, hoursPerDay: 8, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 20, defaultJoinedOn: '2026-05-01' }
 // An NPRA Task: tagged itself, or under a tagged Story / Feature / Epic (the absence Epic and mapped shared time win).
@@ -216,9 +218,12 @@ export const inScope = (scope: SharedTimeScope, region: Region | undefined) => s
 // CAP-50: the app access roles by email, set by the app whenever access.json is loaded or saved, so every page counts
 // capacity with the same roles.
 let currentAccessRoles: Record<string, string[]> = {}
+let currentAzureEmails: Record<string, string> = {}
+// CAP-51: the work email of each Azure DevOps name, from the fetched work (Assigned To), set by the app on every render.
+export function setAzureEmails(items: { assignedTo?: string; assignedToEmail?: string }[]) { currentAzureEmails = Object.fromEntries(items.flatMap((item) => item.assignedTo && item.assignedToEmail ? [[item.assignedTo, item.assignedToEmail.toLowerCase()]] : [])) }
 export function setAccessRoles(members: Record<string, string[]> | undefined) { currentAccessRoles = Object.fromEntries(Object.entries(members ?? {}).map(([email, list]) => [email.toLowerCase(), [...list]])) }
 export function capacityContext(state: { capacitySettings?: unknown; resourceProfiles?: unknown }): CapacitySettings {
-  return { ...normalizeCapacitySettings(state.capacitySettings), profiles: normalizeProfiles(state.resourceProfiles), accessRoles: currentAccessRoles }
+  return { ...normalizeCapacitySettings(state.capacitySettings), profiles: normalizeProfiles(state.resourceProfiles), accessRoles: currentAccessRoles, azureEmails: currentAzureEmails }
 }
 
 // CAP-50: which roles count for capacity. Built-in: Lead and Manager (team roles) and People Manager (app access role, or
@@ -238,7 +243,9 @@ export function roleExclusion(name: string, settings: CapacitySettings): string 
   const roles = settings.capacityRoles ?? defaultCapacityRoles, profile = settings.profiles?.[name]
   if (profile?.role && roles.excludedResourceRoles.includes(profile.role)) return `team role ${profile.role}`
   if (profile?.peopleManager && roles.excludedAccessRoles.includes('People Manager')) return 'People manager'
-  const access = profile?.email ? settings.accessRoles?.[profile.email] ?? [] : []
+  // The email Azure DevOps gives for the name first; one saved in the profile before v7.0.0 otherwise.
+  const email = settings.azureEmails?.[name] ?? profile?.email
+  const access = email ? settings.accessRoles?.[email] ?? [] : []
   const role = access.find((entry) => roles.excludedAccessRoles.includes(entry))
   return role ? `app role ${role}` : undefined
 }
