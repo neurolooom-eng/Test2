@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import type { MonthlyPackStore } from '../useMonthlyPack'
@@ -41,8 +41,10 @@ export function MonthlyPackPanel({ month, azure, store, git, pack, windchill }: 
 
   // PCK-10: every bullet of a box has a + that adds a typed bullet right below it; typed bullets are edited in place and
   // removed with ✕; "+ Add bullet" adds one at the end. The new bullet's field takes the focus.
-  const [focus, setFocus] = useState<string | null>(null)
-  useEffect(() => { if (!focus) return; document.querySelector<HTMLInputElement>(`[data-bullet="${focus}"]`)?.focus(); setFocus(null) }, [focus])
+  // The bullet to focus after the next render (a ref, so focusing needs no extra render).
+  const focusNext = useRef<string | null>(null)
+  const setFocus = (target: string) => { focusNext.current = target }
+  useEffect(() => { if (!focusNext.current) return; document.querySelector<HTMLInputElement>(`[data-bullet="${focusNext.current}"]`)?.focus(); focusNext.current = null })
   const setBullets = (key: NoteKey, change: (bullets: TypedBullet[]) => TypedBullet[]) => setDraft((current) => withBullets(current, key, change(typedBullets(current, key))))
   const addBullet = (key: NoteKey, at: number, after: number) => { setBullets(key, (bullets) => [...bullets.slice(0, at), { text: '', after }, ...bullets.slice(at)]); setFocus(`${key}:${at}`) }
   const setText = (key: NoteKey, value: string) => setDraft((current) => ({ ...current, text: { ...current.text, [key]: value } }))
