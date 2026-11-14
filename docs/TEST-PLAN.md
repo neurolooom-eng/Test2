@@ -969,6 +969,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-23 People and emails from Azure DevOps** — Req CAP-51, CAP-30, CAP-29 — L1 `people-access.test.mjs` ("CAP-51: a person's work email comes from Azure DevOps (Assigned To); one saved in the profile is used only where Azure has none"); E2E `shell.e2e.mjs` ("TC-CAP-23: People & access lists the Azure DevOps team members with the names and emails Azure gives": the team read on opening, emails lower case, groups left out, "n team members read from <team>", "Team member · no Time Writing yet"); browser check with the Time Writing connection: a PAT without Project and Team (Read) shows the hint and still lists the Assigned To people; ↻ Read the team again reads it again; a person with settings only from the historical hours is under "Not in Azure DevOps".
 
+**TC-CAP-24 Calculation profile terms and cards** — Req CAP-52, CAP-45, CAP-41 — L1 `calculation-profiles.test.mjs` ("CAP-52: a profile chooses its Absence kinds and NPRA parts; the cards show its names and formulas"); E2E `shell.e2e.mjs` ("TC-CAP-13: …": the four cards Utilization, Funded Hours, Absence, NPRA Hours with their bracketed formulas; Overloaded and Has capacity counted in the Who has capacity count; the Funded Hours / Absence column names); browser check with Git: copy Current (v4), untick Sick Leave, Unplanned Leave and Other absence and Training, make it the default — the Absence card reads [Holiday + PTO] and its hours drop, NPRA Hours read [Tagged NPRA hours], Available hours rise by the unticked leave; give the profile the name "Contract hours" for Funded Hours under Names — the card, the columns and the formula use it; Save to Git.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1683,6 +1685,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-49 | TC-CAP-22 |
 | CAP-50 | TC-CAP-22 |
 | CAP-51 | TC-CAP-22, TC-CAP-23 |
+| CAP-52 | TC-CAP-24 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1841,7 +1844,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |

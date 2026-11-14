@@ -26,7 +26,7 @@ import { BucketRulesPanel } from '../components/BucketRulesPanel'
 import { InsightThresholdsPanel } from '../components/InsightThresholdsPanel'
 import type { InsightThresholds } from '../insightThresholds'
 import type { BucketRules } from '../bucketRules'
-import type { CalculationProfile } from '../calculationProfiles'
+import type { CalculationProfile, ProfileTerms } from '../calculationProfiles'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { Access } from '../useAccess'
 import type { PageProps } from './types'
@@ -174,6 +174,15 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     })
   }
 
+  // CAP-52: the names of the figures per calculation profile, shared in Git and audited.
+  function saveProfileTerms(terms: ProfileTerms, detail: string) {
+    store.update((draft) => {
+      draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), profileTerms: terms })
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: 'profile-terms', detail: detail.slice(0, 2000) })
+      return draft
+    })
+  }
+
   // CAP-46: the bucket rules (words and tags), shared in Git and audited; undefined = the built-in ones.
   function saveBucketRules(rules: BucketRules | undefined, detail: string) {
     store.update((draft) => {
@@ -257,17 +266,17 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, mont
     {!shared && tab === 'resources' && <Notice tone="info">Capacity, periods, resources, master data and the shared connection setup are managed by roles with “Manage shared settings”.</Notice>}
     {tab === 'capacity' && <SectionTabs page="capacity" sections={[
       { key: 'capacity', label: 'Capacity and absence', node: <Panel eyebrow="CAPACITY" title="Capacity and absence" info="Used by the Dashboard to compute available hours and utilization. Saved with the planning data in Git (with the holidays and common activities), so everyone who loads from Git gets the same settings.">
-        <SettingsSummary rows={[['Team Holidays and Training Epic', `#${capacity.absenceEpicId}`], ['Working hours per day', `${capacity.hoursPerDay}h`], ['Overloaded at', `${capacity.overloadedAt}%`], ['Has capacity below', `${capacity.availableBelow}%`], ['NPRA maximum', `${capacity.npraHoursPerMonth}h per person per month`]]} />
+        <SettingsSummary rows={[['Team Holidays and Training Epic', `#${capacity.absenceEpicId}`], ['Funded hours per day', `${capacity.hoursPerDay}h`], ['Overloaded at', `${capacity.overloadedAt}%`], ['Has capacity below', `${capacity.availableBelow}%`], ['NPRA maximum', `${capacity.npraHoursPerMonth}h per person per month`]]} />
         <div className="button-row"><button type="button" className="ghost" onClick={() => setCapacityOpen(true)}>Edit capacity settings…</button></div>
         {capacityOpen && <Modal title="Capacity and absence" eyebrow="SETTINGS · CAPACITY" form onClose={() => setCapacityOpen(false)}><form onSubmit={(event) => { saveCapacity(event); setCapacityOpen(false) }}>
-          <div className="form-row"><label>Team Holidays and Training Epic ID<input name="absenceEpicId" type="number" min="1" step="1" required defaultValue={capacity.absenceEpicId} /><small>Leave under this Epic counts as absence (Feature and Task titles decide PTO, Sick Leave or Unplanned Leave); a Task, Story or Feature titled with "Training" counts as NPRA instead.</small></label><label>Working hours per day<input name="hoursPerDay" type="number" min="0.25" step="0.25" required defaultValue={capacity.hoursPerDay} /></label></div>
+          <div className="form-row"><label>Team Holidays and Training Epic ID<input name="absenceEpicId" type="number" min="1" step="1" required defaultValue={capacity.absenceEpicId} /><small>Leave under this Epic counts as absence (Feature and Task titles decide PTO, Sick Leave or Unplanned Leave); a Task, Story or Feature titled with "Training" counts as NPRA instead.</small></label><label>Funded hours per day<input name="hoursPerDay" type="number" min="0.25" step="0.25" required defaultValue={capacity.hoursPerDay} /></label></div>
           <div className="form-row"><label>Overloaded at or above (%)<input name="overloadedAt" type="number" min="1" step="1" required defaultValue={capacity.overloadedAt} /></label><label>Has capacity below (%)<input name="availableBelow" type="number" min="0" step="1" required defaultValue={capacity.availableBelow} /></label></div>
           <div className="form-row"><label>NPRA maximum per person per month (h)<input name="npraHoursPerMonth" type="number" min="0" step="0.5" required defaultValue={capacity.npraHoursPerMonth} /><small>Non-project related activities (internal meetings, trainings): Tasks tagged “NPRA”. Only the NPRA hours booked come off the available hours; they are tracked against this maximum and hours over it are flagged. 0 tracks without a maximum.</small></label></div>
           <div className="modal-actions"><button type="button" className="ghost" onClick={() => setCapacityOpen(false)}>Cancel</button><button className="primary">Save capacity settings</button></div>
         </form></Modal>}
         {capacityMessage && <Notice tone="success">{capacityMessage}</Notice>}
       </Panel> },
-      { key: 'profiles', label: 'Calculation profiles', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><CalculationProfilesPanel settings={capacity} canEdit={shared} onSave={saveProfiles} /></> },
+      { key: 'profiles', label: 'Calculation profiles', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><CalculationProfilesPanel settings={capacity} canEdit={shared} onSave={saveProfiles} onSaveTerms={saveProfileTerms} /></> },
       { key: 'rules', label: 'Bucket rules', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><BucketRulesPanel settings={capacity} items={azure.items} month={month} canEdit={shared} onSave={saveBucketRules} /></> },
       { key: 'insights', label: 'Insight thresholds', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><InsightThresholdsPanel settings={capacity} canEdit={shared} onSave={saveInsightThresholds} /></> },
       { key: 'time', label: 'Holidays and common activities', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div>
