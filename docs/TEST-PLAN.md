@@ -1359,6 +1359,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-PCK-08 Bullets with + in the Monthly pack** — Req PCK-10 — L1 `monthly-pack.test.mjs` ("PCK-10: typed bullets placed below a generated bullet round-trip through Git and keep their place on the slide"); E2E `monthly-pack.e2e.mjs` ("TC-PCK-08: every Monthly pack box adds bullets with + (below a bullet) and + Add bullet (at the end); Enter adds one below, ✕ removes; Save to Git turns on": a long bullet wraps and its field grows, KB-44; "TC-PCK-04 …": read-only with the sample, no + and no text boxes); browser check with Git connected (writable token) and the team data: + on a generated release line of Actions/Deliverables Realized, type a bullet, Save to Git, reload — it is back below that line, and the .pptx and Copy slide as text show it there.
 
 **TC-PCK-09 Capabilities (Projects & Services) bullet** — Req PCK-11 — L1 `monthly-pack.test.mjs` ("PCK-11: Capabilities (Projects & Services) — unique Features under the chosen Epics with hours recorded in the month"); E2E `monthly-pack.e2e.mjs` ("TC-PCK-04 …": Settings → Monthly pack shows the Capabilities bullet with its label); browser check with the team data and Git: choose the Projects and Services Epics, Save to Git — Pulse Check → Monthly pack shows "Capabilities (Projects & Services) [n]: …" with the Features booked that month, each once; a Feature with only Original Estimate or hours in another month is not listed; the .pptx carries the bullet.
+
+**TC-PCK-10 Capabilities count in Key takeaways** — Req PCK-12, PCK-11 — L1 `monthly-pack.test.mjs` ("PCK-12: Key takeaways — the Capabilities count joins the Supported line"); browser check with the team data: with the Capabilities Epics set, Pulse Check → Monthly pack → Key takeaways shows "Supported: … ; Capabilities (Projects & Services) = n" with n the number of Features in the Capabilities bullet; the .pptx carries it.
 - Expected: the characters appear as they are typed; no month of releases is read again while typing; the generated lines and KPIs follow the typed text.
 
 **TC-PCK-06 The pack in the team's PowerPoint template** — Req PCK-01, PCK-08 — L1 `pptx-template.test.mjs` (all tests, with a synthetic template — the real one is never in this repository); browser check with the team template:
@@ -1770,6 +1772,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | PCK-09 | TC-PCK-07 |
 | PCK-10 | TC-PCK-08 |
 | PCK-11 | TC-PCK-09 |
+| PCK-12 | TC-PCK-10 |
 | NFR-01 | TC-INS-04 |
 | WSP-01 | TC-WSP-05, TC-WSP-06 |
 | WSP-02 | TC-WSP-01, TC-WSP-06 |
@@ -1871,7 +1874,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02 |
 | UC-23 | TC-QEM-01…08 |
-| UC-24 | TC-PCK-01…07 |
+| UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |
 | UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33 |
 | UC-27 | TC-HIS-01…11 |

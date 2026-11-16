@@ -149,3 +149,11 @@ test('PCK-11: Capabilities (Projects & Services) — unique Features under the c
   const pack = buildMonthlyPack({ month: '2026-10', setup, notes: emptyNotes('2026-10'), items, streamsOf: () => [], utilization: { month: null, ytd: null, qeMonth: null } })
   assert.deepEqual(packSlides(pack)[0].boxes[0].generated, ['Capabilities (Projects & Services) [2]: Alpha rollout, Beta support'], 'in Actions/Deliverables Realized, after the release lines')
 })
+
+test('PCK-12: Key takeaways — the Capabilities count joins the Supported line', () => {
+  const pack = { month: '2026-10', lines: [{ label: 'Content', supported: 3 }, { label: 'IOCC', supported: 0 }], capabilities: { label: 'Capabilities (Projects & Services)', features: ['Alpha rollout', 'Beta support'] } }
+  assert.equal(supportedLine(pack), 'Content = 3; Capabilities (Projects & Services) = 2')
+  assert.equal(supportedLine({ ...pack, lines: [] }), 'Capabilities (Projects & Services) = 2', 'shown without release lines')
+  assert.equal(supportedLine({ ...pack, capabilities: { ...pack.capabilities, features: [] } }), 'Content = 3', 'no Feature with hours: no count')
+  assert.equal(supportedLine({ ...pack, capabilities: undefined }), 'Content = 3', 'no Epics set: no count')
+})
