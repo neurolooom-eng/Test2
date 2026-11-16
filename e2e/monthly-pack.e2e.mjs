@@ -43,6 +43,8 @@ test('TC-PCK-04: Pulse Check → Monthly pack shows both slides for the month be
   await page.locator('.sidebar nav button', { hasText: /^.Monthly pack$/ }).first().click()
   const setup = await text(page.locator('.admin-section', { hasText: 'Monthly pack setup' }))
   for (const line of ['Serviceability', 'Digital Platform', 'Clinical Platform', 'IOCC', 'PPU', 'Content', 'Tool validation', 'Utilization (YTD)', 'Overall CAPA Health']) assert.ok(setup.includes(line) || await page.locator(`input[value="${line}"]`).count() === 1, line)
+  assert.match(setup, /Capabilities bullet.*unique Features under these Epics that have hours recorded in the month/s, 'PCK-11: the Capabilities bullet and its Epics')
+  assert.equal(await page.getByLabel('Capabilities bullet label').inputValue(), 'Capabilities (Projects & Services)')
   assert.deepEqual(errors, [])
   await context.close()
 })
