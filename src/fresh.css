@@ -623,3 +623,15 @@ details.act-leave{border:1px solid var(--line);border-radius:10px;padding:8px 12
 .resource-table td:first-child{min-width:190px}.resource-table td.person-email{white-space:nowrap}
 @media(max-width:760px){.people-source{flex-wrap:wrap}}
 .pack-capabilities{display:grid;gap:8px;max-width:760px}.pack-capabilities label{display:grid;gap:4px;max-width:420px}
+/* CAP-54: the utilization formula builder — Top ÷ Bottom. */
+.formula-builder{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.formula-sentence{margin:0;font-weight:600;font-size:14px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.formula-parts{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:start}
+.formula-parts>[role=group]{display:grid;gap:6px;min-width:0}.formula-parts small{display:block}
+.formula-divide{font-size:28px;color:var(--muted);align-self:center}
+.formula-term{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.formula-term select{font-size:12px}
+.formula-row{display:block;margin-bottom:2px}
+@media(max-width:760px){.formula-parts{grid-template-columns:1fr}.formula-divide{display:none}}
+.formula-term{flex-wrap:nowrap;justify-content:space-between}.formula-term input[type=checkbox]{flex:none;width:auto}
+.formula-term select{width:auto!important;max-width:220px;min-height:0;padding:2px 6px;font-size:12px;flex:none}
+label.formula-term{justify-content:flex-start}
