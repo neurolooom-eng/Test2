@@ -1041,6 +1041,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-GIT-06 Default data repository prefilled** — Req GIT-13 — L1 `git-storage.test.mjs` ("the default data repository is a valid config: ponkritz/DemandPlanningStorage, main, planning-data.json"); E2E `shell.e2e.mjs` ("TC-GIT-06": Settings → Storage → Connect Git storage… shows Owner ponkritz, Repository DemandPlanningStorage, Branch main and Data file planning-data.json prefilled with the token empty; the Get started guide's Git step names the repository); browser check: with a connection saved to another repository, Change connection… shows that repository.
 
 **TC-GIT-05 Capacity settings and mappings in Git** — Req GIT-03, GIT-04, GIT-08, CAP-10 — L1 `git-storage.test.mjs` ("capacity settings, holidays and common activities travel in the Git planning file": round-trip without change, mappings sorted by ID, an older file without them loads as before and makes Save to Git appear, invalid mappings dropped); browser check: add a mapping on Settings → Capacity → the sync bar there says "Unsaved changes"; Save to Git; on a second browser Load latest shows the same mapping. **UAT**
+
+**TC-GIT-07 Table defaults and match threshold shared in Git** — Req GIT-14, UI-12 — L1 `git-storage.test.mjs` ("GIT-14: Table defaults and the release-source settings are shared in the planning file; an older file leaves them alone"); E2E `shell.e2e.mjs` ("TC-GIT-08 …": the planning file carries Table defaults); browser check with two browsers: change Settings → Table defaults to Compact and the fuzzy match threshold to 70 %, Save to Git; the other browser (Reload, or wait for GIT-15) shows Compact and 70 %.
+
+**TC-GIT-08 Changes saved by others reach an open app** — Req GIT-15 — L1 `git-watch.test.mjs` ("GIT-15: a check names the shared files whose version in Git is not the one loaded here"; "GIT-15: the banner names the shared files as people know them"); E2E `shell.e2e.mjs` ("TC-GIT-08: while the app is open, newer planning data in Git loads by itself and other newer shared files show a Reload banner"); browser check with two browsers: keep the app open in B; in A change a calculation profile and Save to Git — within 5 minutes (or when B's window is brought back) B shows the new profile and "Updated from Git at …"; in A save the Monthly pack setup — B shows the "Newer data in Git: Monthly pack setup" banner, and Reload shows it; with an unsaved change in B, newer planning data shows in the banner instead of loading.
 - L3 expected:
   - `my org` is rejected (owner).
   - `a..b` is rejected (branch).
@@ -1707,6 +1711,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | GIT-03, GIT-04, GIT-08 | TC-GIT-02, TC-GIT-05 |
 | GIT-02…04, GIT-06, GIT-08, GIT-12 | TC-GIT-02 |
 | GIT-13 | TC-GIT-06 |
+| GIT-14 | TC-GIT-07 |
+| GIT-15 | TC-GIT-08 |
 | GIT-05, GIT-07, GIT-11 | TC-GIT-03 |
 | GIT-09, GIT-10 | TC-GIT-04 |
 | SNP-01…03 | TC-SNP-01 |
@@ -1862,7 +1868,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
-| UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-ACC-03…05 |
+| UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-GIT-07, TC-GIT-08, TC-ACC-03…05 |
 | UC-13 | TC-SNP-01…03 |
 | UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07, TC-CAP-09 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |

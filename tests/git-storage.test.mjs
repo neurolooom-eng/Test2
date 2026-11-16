@@ -108,3 +108,17 @@ test('capacity settings, holidays and common activities travel in the Git planni
 test('the default data repository is a valid config: ponkritz/DemandPlanningStorage, main, planning-data.json (GIT-13)', () => {
   assert.deepEqual(validateGitConfig(defaultGitRepository), { owner: 'ponkritz', repo: 'DemandPlanningStorage', branch: 'main', path: 'planning-data.json' })
 })
+
+test('GIT-14: Table defaults and the release-source settings are shared in the planning file; an older file leaves them alone', () => {
+  const state = { baselineRules: [], releaseScopes: [], resourceProfiles: {}, tableDefaults: { defaultDensity: 'compact', exportFormats: ['csv'], bogus: 1 }, releaseSourceSettings: { matchThreshold: 70, approvalDateField: 'Custom.Approved', streamSegment: 2 } }
+  const text = serializePlanning(planningData(state))
+  const back = parsePlanning(text)
+  assert.equal(back.tableDefaults.defaultDensity, 'compact')
+  assert.deepEqual(back.tableDefaults.exportFormats, ['csv'])
+  assert.equal('bogus' in back.tableDefaults, false, 'unknown values dropped')
+  assert.deepEqual(back.releaseSourceSettings, { approvalDateField: 'Custom.Approved', matchThreshold: 70 }, 'only the settings in use')
+  assert.equal(serializePlanning(planningData(back)), text, 'loading then saving does not change the file')
+  const old = parsePlanning(serializePlanning(planningData({ baselineRules: [], releaseScopes: [], resourceProfiles: {} })))
+  assert.equal('tableDefaults' in old, false); assert.equal('releaseSourceSettings' in old, false)
+  assert.equal('releaseSourceSettings' in parsePlanning(serializePlanning(planningData({ ...state, releaseSourceSettings: { matchThreshold: 500 } }))), false, 'an invalid threshold is not shared')
+})

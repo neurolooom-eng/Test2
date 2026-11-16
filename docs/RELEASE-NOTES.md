@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.7.0 — 2026-11-16
+
+**Fixed**
+- **Changes saved to Git now reach everyone while the app is open**: the app checks Git every 5 minutes and when you come back to its window. Newer planning data (capacity, calculation profiles, resources, table defaults …) loads by itself unless you have unsaved changes; any other newer shared file (Monthly pack, QE Mapping, Access, Feature setup, connection setup …) is named in a "Newer data in Git" banner with Reload. Before, others saw your changes only after a reload or restart (GIT-15, KB-45).
+- **Table defaults and the fuzzy match threshold are shared**: they are now saved in the planning file in Git; before, they stayed in the browser where they were changed (GIT-14, UI-12, KB-45).
+
+DF-91, DF-92; SM-64; TC-GIT-07, TC-GIT-08. PR #276.
+
 ## v7.6.0 — 2026-11-16
 
 **Added**
