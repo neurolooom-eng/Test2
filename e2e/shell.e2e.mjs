@@ -869,3 +869,44 @@ test('TC-ATM-20: Sprint check offers the move to the current PI + Sprint and the
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+test('TC-GIT-08: while the app is open, newer planning data in Git loads by itself and other newer shared files show a Reload banner', async () => {
+  // A fake data repository: the planning file and nothing else; the token can read, not write.
+  const planning = (hoursPerDay) => JSON.stringify({ schema: 1, baselineRules: [], releaseScopes: [], resourceProfiles: {}, capacitySettings: { absenceEpicId: 1, hoursPerDay, overloadedAt: 100, availableBelow: 80, npraHoursPerMonth: 0 }, tableDefaults: { defaultDensity: 'compact' } })
+  const files = { 'planning-data.json': { text: planning(8), sha: 'p1' } }
+  const { page, context, errors } = await openPage(app, { init: () => {
+    localStorage.setItem('demand-planning-git-storage-v1', JSON.stringify({ owner: 'example', repo: 'storage', branch: 'main', path: 'planning-data.json' }))
+    localStorage.setItem('demand-planning-git-token-v1', 'test-token')
+  } })
+  const listings = []
+  await context.route('https://api.github.com/**', (route) => {
+    const url = new URL(route.request().url())
+    if (url.pathname === '/repos/example/storage') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ permissions: { push: false } }) })
+    const match = /^\/repos\/example\/storage\/contents\/?(.*)$/.exec(url.pathname)
+    if (!match || route.request().method() !== 'GET') return route.fulfill({ status: 404, contentType: 'application/json', body: '{"message":"Not Found"}' })
+    const path = decodeURIComponent(match[1])
+    if (path === '') { listings.push(path); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(Object.entries(files).map(([name, file]) => ({ type: 'file', name, path: name, sha: file.sha }))) }) }
+    const file = files[path]
+    if (!file) return route.fulfill({ status: 404, contentType: 'application/json', body: '{"message":"Not Found"}' })
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ type: 'file', encoding: 'base64', content: Buffer.from(file.text).toString('base64'), sha: file.sha }) })
+  })
+  await page.clock.install()
+  await page.reload()
+  await page.locator('.sidebar nav').waitFor()
+  await page.locator('.sidebar nav button', { hasText: /^.Storage$/ }).first().click()
+  await page.getByText('Loaded from example/storage · planning-data.json').waitFor()
+  assert.equal(listings.length, 0, 'no check right at start')
+  // Someone else saves new planning data, and creates the Monthly pack setup (read at start: not there then).
+  files['planning-data.json'] = { text: planning(7.5), sha: 'p2' }
+  files['monthly-pack-setup.json'] = { text: '{"schema":1}', sha: 'm1' }
+  await page.clock.fastForward('05:01')
+  await page.getByText(/Updated from Git at .*: newer planning data saved by someone else was loaded\./).waitFor()
+  assert.ok(listings.length >= 1, 'the folder was listed (no file contents)')
+  const banner = page.locator('.git-update-banner')
+  await banner.waitFor()
+  assert.match(await text(banner), /Newer data in Git, saved by someone else since you opened the app: Monthly pack setup\. Reload to see it\./)
+  assert.doesNotMatch(await text(banner), /Planning data/, 'the planning data was loaded, so it is not in the banner')
+  assert.equal(await banner.getByRole('button', { name: 'Reload' }).count(), 1)
+  assert.deepEqual(errors, [])
+  await context.close()
+})

@@ -174,6 +174,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 | SM-61 | Capabilities bullet (PCK-11): no new operation — monthly-pack-setup.json gains `capabilities` (label up to 80 characters, Epic ids as positive whole numbers, duplicates dropped), validated on read and saved only on Save to Git with a token that can write; Feature titles render as text. | PCK-11 | TC-PCK-09 |
 | SM-62 | Utilization formula builder (CAP-54): no new operation or format — the editor sets the existing profile fields (treatment per bucket, Standard Hours) through ticks; the stored profile is validated on read as before and saved only on Save to Git with a token that can write; the formula sentence renders as text. | CAP-54 | TC-CAP-26 |
 | SM-63 | Capabilities count in Key takeaways (PCK-12): no new operation, data or format — a number derived from the PCK-11 Feature list, rendered as text. | PCK-12 | TC-PCK-10 |
+| SM-64 | Shared Table defaults and release-source settings (GIT-14) and the refresh while open (GIT-15): no new host, token or write — the refresh only lists folders of the data repository (GET contents, no file contents) with the token already stored in the browser, every 5 minutes at most plus once a minute on return; the new planning fields are validated on read (unknown values dropped); the banner shows file names as text. | GIT-14, GIT-15 | TC-GIT-07, TC-GIT-08 |
 
 ## 5. Re-assessment
 
