@@ -173,6 +173,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 | SM-60 | Editable built-in profiles (CAP-53): no new operation or trust boundary — the edited version is one more entry in the capacity settings (private Git data repository), validated like any profile (one per built-in id), changed only by roles with *Manage shared settings* and audited. | CAP-53 | TC-CAP-25 |
 | SM-61 | Capabilities bullet (PCK-11): no new operation — monthly-pack-setup.json gains `capabilities` (label up to 80 characters, Epic ids as positive whole numbers, duplicates dropped), validated on read and saved only on Save to Git with a token that can write; Feature titles render as text. | PCK-11 | TC-PCK-09 |
 | SM-62 | Utilization formula builder (CAP-54): no new operation or format — the editor sets the existing profile fields (treatment per bucket, Standard Hours) through ticks; the stored profile is validated on read as before and saved only on Save to Git with a token that can write; the formula sentence renders as text. | CAP-54 | TC-CAP-26 |
+| SM-63 | Capabilities count in Key takeaways (PCK-12): no new operation, data or format — a number derived from the PCK-11 Feature list, rendered as text. | PCK-12 | TC-PCK-10 |
 
 ## 5. Re-assessment
 

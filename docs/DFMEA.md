@@ -134,13 +134,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-87 | Count Content releases by Title (QV-52) | Two documents of one Content release with different Titles count as two releases, or one Title reused for different releases counts once; the month's Content count in Pulse Check and the Monthly pack is off | Wrong release count in the monthly call | The release is the document Title, not a path segment | 2 | 3 | 3 | 18 | One release per unique Title (spaces tidied); the Content page lists every Title with its documents so a wrong split is visible; Pulse Check and the Monthly pack name each Title (TC-QV-33) | 2×3×2 = 12 | TC-QV-33 | — |
 | DF-88 | Capabilities bullet (PCK-11) | A Feature is missed (its hours booked on a Task outside the month task pattern, or under an Epic not chosen) or listed with no real work (hours booked by mistake) | Under- or over-stated capabilities in the monthly call | Features found through the Task → Feature → Epic chain of month Time Writing Tasks with Completed Work | 2 | 3 | 3 | 18 | Only month Time Writing Tasks of the month with Completed Work > 0; the chosen Epics are listed in Settings and shared in Git; the bullet names every Feature so a wrong one is seen and can be followed by a typed correction (TC-PCK-09) | 2×2×2 = 8 | TC-PCK-09 | — |
 | DF-89 | Utilization formula builder (CAP-54) | A figure ticked in the wrong place (top instead of bottom) or the sentence not matching the calculation | Utilization over- or under-stated for every person using the profile | Formula built by ticks only (no typing); the sentence is generated from the same profile the calculation uses | 3 | 2 | 2 | 12 | A figure cannot be in both the top and the bottom; at least one figure in the top; the sentence is shown in the editor and the profiles table; changes are audited and Reset to built-in is available (TC-CAP-26) | 3×1×2 = 6 | TC-CAP-26 | — |
+| DF-90 | Capabilities count in Key takeaways (PCK-12) | The count differs from the Features listed in the Capabilities bullet | A wrong figure in the monthly call | Count computed separately from the list | 2 | 2 | 2 | 8 | The count is the length of the same Feature list the Capabilities bullet shows (TC-PCK-10) | 2×1×2 = 4 | TC-PCK-10 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 89 |
+| Failure modes analysed | 90 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

@@ -246,7 +246,8 @@ export function yoyLine(pack: MonthlyPack) {
   const parts = withData.filter((line) => line.change != null).map((line) => `${signed(line.change)} in ${line.label}`)
   return `YoY support change of ${signed(pack.overall.change)} overall${parts.length ? ` – with ${parts.join(', ')}` : ''} (${short(pack.month)} YTD vs. last year)`
 }
-export const supportedLine = (pack: MonthlyPack) => pack.lines.filter((line) => line.supported > 0).map((line) => `${line.label} = ${line.supported}`).join('; ')
+// PCK-12: the Capabilities count joins the Supported line of Key takeaways when a Feature had hours in the month.
+export const supportedLine = (pack: MonthlyPack) => [...pack.lines.filter((line) => line.supported > 0).map((line) => `${line.label} = ${line.supported}`), ...(pack.capabilities?.features.length ? [`${pack.capabilities.label} = ${pack.capabilities.features.length}`] : [])].join('; ')
 
 export function packSlides(pack: MonthlyPack): Slide[] {
   const { notes } = pack
