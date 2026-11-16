@@ -91,7 +91,7 @@ export function DashboardPage({ month, azure, store, my, views, navigate, canSet
   const lockFigures = (lockMonth: string) => store.update((draft) => {
     const current = normalizeCapacitySettings(draft.capacitySettings)
     const model = capacityModel(azure.items, lockMonth, { ...withViewedProfile(capacityContext(draft), viewProfile), figureLocks: undefined })
-    const entry = { lockedOn: new Date().toISOString(), lockedBy: who, profileName: model.profile.name, formula: model.profile.formula, people: lockedPeople(model.people) }
+    const entry = { lockedOn: new Date().toISOString(), lockedBy: who, profileName: model.profile.name, formula: model.profile.formula, ...(model.fundedOnTop ? { fundedOnTop: true } : {}), people: lockedPeople(model.people) }
     draft.capacitySettings = normalizeCapacitySettings({ ...current, figureLocks: { ...current.figureLocks, [lockMonth]: [...(current.figureLocks?.[lockMonth] ?? []), entry].slice(-5) } })
     draft.audits.unshift({ id: crypto.randomUUID(), timestamp: entry.lockedOn, actor: 'u-owner', action: 'Update', entity: 'CapacitySettings', entityId: `figures-${lockMonth}`, detail: `Figures of ${monthName(lockMonth)} locked by ${who} with profile ${model.profile.name}: ${model.people.length} people, ${formatHours(model.totals.utilized)}h total actual ÷ ${formatHours(model.totals.available)}h = ${formatPercent(model.totals.utilization)}` })
     return draft

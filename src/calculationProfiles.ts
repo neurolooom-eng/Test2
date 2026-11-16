@@ -57,6 +57,9 @@ export interface CalculationProfile {
   // CAP-52: the leave kinds in the profile's Absence (the others are ignored, not deducted) and what its NPRA Hours
   // include; undefined = all of them (the figures before v7.1.0).
   absenceKinds?: AbsenceKind[]; npraIncludes?: NpraPart[]
+  // CAP-55: Funded Hours on top — Utilization = Funded Hours (less Standard Hours when set) ÷ (the booked hours less
+  // the deducted figures) × 100, i.e. ÷ the counted figures; undefined = the counted figures ÷ capacity (v4 and before).
+  fundedOnTop?: boolean
 }
 export type NpraPart = 'npra' | 'training'
 export const npraParts: NpraPart[] = ['npra', 'training']
@@ -75,10 +78,12 @@ export const emptyBucket = (): BucketHours => ({ estimate: 0, completed: 0, esti
 export const emptyCalcInputs = (): CalcInputs => ({ own: { work: emptyBucket(), absence: emptyBucket(), training: emptyBucket(), npraOther: emptyBucket(), common: emptyBucket() }, shared: {}, absenceByKind: {} })
 export function addHours(target: BucketHours, add: Partial<BucketHours>) { for (const key of Object.keys(add) as (keyof BucketHours)[]) target[key] += add[key] ?? 0 }
 
-export const currentProfileId = 'current-v4', oldProfileId = 'old-calculation'
+// CAP-55: Current (v5) is the default (first) profile since v7.8.0; Current (v4) stays selectable.
+export const currentProfileId = 'current-v4', oldProfileId = 'old-calculation', v5ProfileId = 'current-v5'
 const all = <T,>(value: T): Record<BucketKey, T> => ({ work: value, absence: value, training: value, npraOther: value, common: value })
 export function builtInProfiles(settings: Pick<CapacitySettings, 'oldCalcExcludedScopes'>): CalculationProfile[] {
   return [
+    { id: v5ProfileId, name: 'Current (v5)', builtIn: true, treatment: { ...all<Treatment>('count'), absence: 'deduct' }, plannedSource: all<PlannedSource>('estimate'), capacityBase: 'workingDays', minusStandardHours: false, excludedGroups: [], statusFrom: 'actual', fundedOnTop: true },
     { id: currentProfileId, name: 'Current (v4)', builtIn: true, treatment: { ...all<Treatment>('count'), absence: 'deduct' }, plannedSource: all<PlannedSource>('estimate'), capacityBase: 'workingDays', minusStandardHours: false, excludedGroups: [], statusFrom: 'actual' },
     // The Old Calculation tab's groups (CAP-37) apply to this profile too.
     { id: oldProfileId, name: 'Old Calculation', builtIn: true, treatment: all<Treatment>('count'), plannedSource: { ...all<PlannedSource>('estimate'), absence: 'estimateElseCompleted' }, capacityBase: 'workingDays', minusStandardHours: true, excludedGroups: [...(settings.oldCalcExcludedScopes ?? [])], statusFrom: 'planned' },
@@ -86,7 +91,7 @@ export function builtInProfiles(settings: Pick<CapacitySettings, 'oldCalcExclude
 }
 // CAP-53: a stored profile with a built-in id is the edited version of that built-in profile; it keeps the built-in's
 // place and id (so the default and the Old Calculation tab still find it) and is marked edited.
-const builtInIds = new Set([currentProfileId, oldProfileId])
+const builtInIds = new Set([v5ProfileId, currentProfileId, oldProfileId])
 export const allProfiles = (settings: CapacitySettings): CalculationProfile[] => {
   const stored = settings.calculationProfiles ?? []
   return [...builtInProfiles(settings).map((profile) => { const edited = stored.find((entry) => entry.id === profile.id); return edited ? { ...edited, builtIn: true, edited: true } : profile }), ...stored.filter((entry) => !builtInIds.has(entry.id))]
@@ -128,7 +133,7 @@ export function normalizeCalculationProfiles(value: unknown): CalculationProfile
     if (capacityBase === 'fixed' && !(Number.isFinite(fixed) && fixed > 0 && fixed <= 744)) return []
     const groups = Array.isArray(entry.excludedGroups) ? entry.excludedGroups : []
     seen.add(id)
-    return [{ id, name: text(entry.name, 80) || 'Profile', treatment, plannedSource, capacityBase, ...(capacityBase === 'fixed' ? { fixedHours: fixed } : {}), minusStandardHours: entry.minusStandardHours === true, excludedGroups: sharedTimeScopes.filter((scope) => groups.includes(scope)), statusFrom: pick(entry.statusFrom, ['actual', 'planned'] as const, 'actual') , ...kindsAndParts(entry) }]
+    return [{ id, name: text(entry.name, 80) || 'Profile', treatment, plannedSource, capacityBase, ...(capacityBase === 'fixed' ? { fixedHours: fixed } : {}), minusStandardHours: entry.minusStandardHours === true, excludedGroups: sharedTimeScopes.filter((scope) => groups.includes(scope)), statusFrom: pick(entry.statusFrom, ['actual', 'planned'] as const, 'actual') , ...kindsAndParts(entry), ...(entry.fundedOnTop === true ? { fundedOnTop: true } : {}) }]
   })
 }
 
@@ -159,12 +164,28 @@ export function applyProfile(person: Pick<PersonLoad, 'funded' | 'employedDays'>
       if (hours.tasks > 0 || hours.estimate > 0 || hours.completed > 0) booked = true
     }
   }
-  const available = Math.max(0, base - (profile.minusStandardHours ? standardHoursTotal(settings.standardHours) : 0) - deducted)
-  const utilization = booked ? percent(utilized, available) : null, plannedUtilization = booked ? percent(utilizedPlanned, available) : null
-  const status: LoadStatus = loadStatus(profile.statusFrom === 'planned' ? plannedUtilization : utilization, settings)
+  const utilizationBase = Math.max(0, base - (profile.minusStandardHours ? standardHoursTotal(settings.standardHours) : 0))
+  const available = Math.max(0, utilizationBase - deducted)
+  // The load (booked ÷ capacity) decides the status in every profile, so Overloaded keeps meaning more booked than
+  // capacity; CAP-55: with Funded Hours on top, utilization is Funded Hours ÷ the booked hours less the deducted ones.
+  const load = booked ? percent(utilized, available) : null, plannedLoad = booked ? percent(utilizedPlanned, available) : null
+  const utilization = !booked ? null : profile.fundedOnTop ? percent(utilizationBase, utilized) : load
+  const plannedUtilization = !booked ? null : profile.fundedOnTop ? percent(utilizationBase, utilizedPlanned) : plannedLoad
+  const status: LoadStatus = loadStatus(profile.statusFrom === 'planned' ? plannedLoad : load, settings)
   // The profile's Absence and NPRA Hours figures (CAP-52).
   const figures = { ...(person.absenceByKind ? { absence: round(kinds.reduce((sum, kind) => sum + (person.absenceByKind![kind] ?? 0), 0)) } : {}), ...(person.training != null && person.npraOther != null ? { npra: round((npraPartsOf(profile).includes('training') ? person.training : 0) + (npraPartsOf(profile).includes('npra') ? person.npraOther : 0)) } : {}) }
-  return { ...figures, available, utilized, utilizedPlanned, utilization, plannedUtilization, status, npraDeducted: (profile.treatment.training === 'deduct' ? parts.training.deducted : 0) + (profile.treatment.npraOther === 'deduct' ? parts.npraOther.deducted : 0) }
+  return { ...figures, available, utilizationBase, utilized, utilizedPlanned, utilization, plannedUtilization, status, npraDeducted: (profile.treatment.training === 'deduct' ? parts.training.deducted : 0) + (profile.treatment.npraOther === 'deduct' ? parts.npraOther.deducted : 0) }
+}
+
+// CAP-55: a group's utilization from its people — booked ÷ capacity, or with Funded Hours on top the people's Funded
+// Hours ÷ their booked hours. A person without utilizationBase (figures locked before v7.8.0) counts their Funded Hours.
+type GroupPerson = { utilized: number; utilizedPlanned: number; available: number; utilizationBase?: number; funded?: number }
+export function groupUtilization(people: GroupPerson[], fundedOnTop: boolean | undefined, ratio: (part: number, whole: number) => number | null = percent) {
+  const sum = (pick: (person: GroupPerson) => number) => people.reduce((total, person) => total + pick(person), 0)
+  const utilized = sum((person) => person.utilized), planned = sum((person) => person.utilizedPlanned)
+  if (fundedOnTop) { const base = sum((person) => person.utilizationBase ?? person.funded ?? 0); return { actual: ratio(base, utilized), planned: ratio(base, planned) } }
+  const available = sum((person) => person.available)
+  return { actual: ratio(utilized, available), planned: ratio(planned, available) }
 }
 
 // CAP-54: the utilization formula as Top ÷ Bottom, in the profile's names: Top = the counted figures (Total actual),
@@ -178,6 +199,14 @@ export function formulaParts(profile: CalculationProfile, settings: CapacitySett
 }
 export function formulaSentence(profile: CalculationProfile, settings: CapacitySettings) {
   const { utilization, top, base, bottom } = formulaParts(profile, settings)
+  // CAP-55: Funded Hours on top; the booked hours (counted and deducted figures) less the deducted ones below.
+  if (profile.fundedOnTop) {
+    const terms = termsOf(settings, profile.id), name = (key: BucketKey) => key === 'work' ? terms.work : key === 'absence' ? terms.absence : bucketLabel[key]
+    const deducted = bucketKeys.filter((key) => profile.treatment[key] === 'deduct').map(name)
+    const funded = [base, ...(profile.minusStandardHours ? ['Standard Hours'] : [])].join(' − ')
+    const booked = bucketKeys.filter((key) => profile.treatment[key] !== 'ignore').map(name)
+    return `${utilization} = (${funded}) ÷ (${[booked.join(' + ') || 'nothing', ...deducted].join(' − ')}) × 100`
+  }
   return `${utilization} = (${top.join(' + ') || 'nothing'}) ÷ (${[base, ...bottom].join(' − ')}) × 100`
 }
 
@@ -192,13 +221,19 @@ export function profileFormula(profile: CalculationProfile, settings: CapacitySe
   const ignored = labels('ignore'), groups = profile.excludedGroups.map(sharedTimeScopeLabel)
   const kinds = absenceKindsOf(profile), parts = npraPartsOf(profile)
   const definitions = `${kinds.length < absenceKinds.length ? ` ${terms.absence} = ${kindOrder.filter((kind) => kinds.includes(kind)).join(' + ') || 'nothing'} (other leave ignored).` : ''}${parts.length < npraParts.length ? ` ${terms.npra} = ${parts.map((part) => part === 'npra' ? 'NPRA-tagged hours' : 'Training').join(' + ') || 'nothing'}.` : ''}`
+  // CAP-55: Funded Hours on top; the status still comes from the load (booked ÷ available) so Overloaded keeps its meaning.
+  if (profile.fundedOnTop) {
+    const funded = [base, ...(profile.minusStandardHours ? [`Standard Hours (${standardHoursTotal(settings.standardHours)}h)`] : [])].join(' − ')
+    const booked = bucketKeys.filter((key) => profile.treatment[key] !== 'ignore').map(name).join(' + ') || 'nothing', less = labels('deduct')
+    return `Profile “${profile.name}”: Actual utilization = ${funded} ÷ (Recorded hours${less.length ? ` − ${less.join(' − ')}` : ''}); Planned utilization = ${funded} ÷ (Planned hours${less.length ? ` − ${less.join(' − ')}` : ''}). Recorded hours = ${booked} (Completed Work); Planned hours = the same from Original Estimate${sources.length ? ` (${sources.join('; ')})` : ''}.${ignored.length ? ` Ignored: ${ignored.join(', ')}.` : ''}${groups.length ? ` Groups left out: ${groups.join(', ')}.` : ''} Blank when nothing is booked. Status (Overloaded, Balanced, Has capacity) from the ${profile.statusFrom === 'planned' ? 'planned' : 'recorded'} hours ÷ ${terms.available} (${[base, ...less].join(' − ')}).${definitions}`
+  }
   return `Profile “${profile.name}”: Actual utilization = Total actual ÷ ${terms.available}; Planned utilization = Total planned ÷ ${terms.available}. Total actual = ${labels('count').join(' + ')} (Completed Work); Total planned = the same from Original Estimate${sources.length ? ` (${sources.join('; ')})` : ''}. ${terms.available} = ${available} (never below 0 per person).${ignored.length ? ` Ignored: ${ignored.join(', ')}.` : ''}${groups.length ? ` Groups left out: ${groups.join(', ')}.` : ''} Status from the ${profile.statusFrom === 'planned' ? 'planned' : 'actual'} utilization.${definitions}`
 }
 
 // CAP-43 Lock figures: the person figures of a month as presented, kept in the shared app data so that later changes
 // (to the profile, the settings or the Azure DevOps data) leave them as they were. Unlocking keeps the entry as history.
 export type LockedPerson = Omit<PersonLoad, 'streams'> & { streams: Omit<StreamLoad, 'epic'>[] }
-export interface FigureLock { lockedOn: string; lockedBy: string; profileName: string; formula: string; people: LockedPerson[]; unlockedOn?: string; unlockedBy?: string; unlockReason?: string }
+export interface FigureLock { lockedOn: string; lockedBy: string; profileName: string; formula: string; fundedOnTop?: boolean; people: LockedPerson[]; unlockedOn?: string; unlockedBy?: string; unlockReason?: string }
 export const activeFigureLock = (settings: Pick<CapacitySettings, 'figureLocks'>, month: string) => { const last = settings.figureLocks?.[month]?.at(-1); return last && !last.unlockedOn ? last : undefined }
 export function lockedPeople(people: PersonLoad[]): LockedPerson[] {
   return people.map(({ streams, ...person }) => ({ ...person, absenceByKind: { ...person.absenceByKind }, sharedByScope: JSON.parse(JSON.stringify(person.sharedByScope)), streams: streams.map(({ epic: _epic, ...stream }) => stream) }))
@@ -219,6 +254,7 @@ function normalizeLockedPerson(raw: unknown): LockedPerson | null {
   const streams = (Array.isArray(entry.streams) ? entry.streams : []).slice(0, 100).flatMap((stream: unknown) => { const s = (stream && typeof stream === 'object' ? stream : {}) as Record<string, unknown>; const key = text(s.key, 200); return key ? [{ key, title: text(s.title, 300), work: num(s.work), planned: num(s.planned), tasks: num(s.tasks) }] : [] })
   return {
     name, ...Object.fromEntries(numberKeys.map((key) => [key, num(entry[key])])) as Record<typeof numberKeys[number], number>,
+    ...(entry.utilizationBase != null && Number.isFinite(Number(entry.utilizationBase)) ? { utilizationBase: num(entry.utilizationBase) } : {}),
     utilization: nullableNum(entry.utilization), plannedUtilization: nullableNum(entry.plannedUtilization), status: pick(entry.status, statuses, 'No bookings'),
     absenceByKind: Object.fromEntries(kinds.map((kind) => [kind, num(kindsIn[kind])])) as Record<AbsenceKind, number>,
     sharedByScope: Object.fromEntries(sharedTimeScopes.flatMap((scope) => scopesIn[scope] && typeof scopesIn[scope] === 'object' ? [[scope, { planned: num(scopesIn[scope]!.planned), actual: num(scopesIn[scope]!.actual) }]] : [])),
@@ -236,7 +272,7 @@ export function normalizeFigureLocks(value: unknown): Record<string, FigureLock[
       const lockedOn = text(entry.lockedOn, 40)
       if (!lockedOn || !Array.isArray(entry.people)) return []
       const unlockedOn = text(entry.unlockedOn, 40)
-      return [{ lockedOn, lockedBy: text(entry.lockedBy, 200), profileName: text(entry.profileName, 80), formula: text(entry.formula, 2000), people: entry.people.slice(0, 500).map(normalizeLockedPerson).filter((person): person is LockedPerson => person != null), ...(unlockedOn ? { unlockedOn, unlockedBy: text(entry.unlockedBy, 200), unlockReason: text(entry.unlockReason, 500) } : {}) }]
+      return [{ lockedOn, lockedBy: text(entry.lockedBy, 200), profileName: text(entry.profileName, 80), formula: text(entry.formula, 2000), ...(entry.fundedOnTop === true ? { fundedOnTop: true } : {}), people: entry.people.slice(0, 500).map(normalizeLockedPerson).filter((person): person is LockedPerson => person != null), ...(unlockedOn ? { unlockedOn, unlockedBy: text(entry.unlockedBy, 200), unlockReason: text(entry.unlockReason, 500) } : {}) }]
     })
     if (locks.length) result[month] = locks
   }
