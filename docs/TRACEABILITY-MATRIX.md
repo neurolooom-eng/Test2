@@ -603,7 +603,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | PCK-07 | SR-25 | UR-21 | T | M | TC-PCK-05 | — | `monthly-pack.test.mjs` | KB-12 |
 | PCK-08 | SR-25 | UR-21 | T | M | TC-PCK-06 | — | `pptx-template.test.mjs` | KB-13 |
 | PCK-09 | SR-25 | UR-21 | T | S | TC-PCK-07 | — | `monthly-pack.test.mjs` | KB-14 |
-| PCK-10 | SR-25 | UR-21 | T | S | TC-PCK-08 | — | `monthly-pack.test.mjs` | KB-43 |
+| PCK-10 | SR-25 | UR-21 | T | S | TC-PCK-08 | — | `monthly-pack.test.mjs` | KB-43, KB-44 |
 | WSP-01 *(retired)* | SR-26 | UR-22 | T | M | TC-WSP-05, TC-WSP-06 | — | `format.test.mjs` | KB-09 |
 | WSP-02 *(retired)* | SR-26 | UR-22 | T | M | TC-WSP-01, TC-WSP-06 | — | `workspace.test.mjs` | KB-09 |
 | WSP-03 *(retired)* | SR-26 | UR-22 | T | M | TC-WSP-02, TC-WSP-06 | — | `workspace.test.mjs` | — |

@@ -609,8 +609,8 @@ details.act-leave{border:1px solid var(--line);border-radius:10px;padding:8px 12
 .pack-bullets li>span{flex:1;min-width:0;overflow-wrap:anywhere}
 .pack-gen{background:var(--surface)}
 .pack-typed{margin-left:12px}.pack-typed::before{content:'◦'!important;color:#773b93!important}
-.pack-typed input{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
-.pack-typed input:focus{border-color:#773b93;outline:none;box-shadow:0 0 0 2px color-mix(in srgb,#773b93 20%,transparent)}
+.pack-typed textarea{flex:1;min-width:0;font:inherit;font-size:12.5px;line-height:1.4;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;field-sizing:content;min-height:0}.pack-typed{align-items:flex-start!important}.pack-typed .pack-plus,.pack-typed .pack-remove{margin-top:3px}
+.pack-typed textarea:focus{border-color:#773b93;outline:none;box-shadow:0 0 0 2px color-mix(in srgb,#773b93 20%,transparent)}
 .pack-plus,.pack-remove{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:14px;line-height:1;cursor:pointer;opacity:.55;transition:opacity .15s,color .15s,border-color .15s}
 .pack-remove{font-size:11px}
 .pack-bullets li:hover .pack-plus,.pack-bullets li:hover .pack-remove,.pack-bullets li:focus-within .pack-plus,.pack-bullets li:focus-within .pack-remove{opacity:1}
