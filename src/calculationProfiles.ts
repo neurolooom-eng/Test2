@@ -167,6 +167,20 @@ export function applyProfile(person: Pick<PersonLoad, 'funded' | 'employedDays'>
   return { ...figures, available, utilized, utilizedPlanned, utilization, plannedUtilization, status, npraDeducted: (profile.treatment.training === 'deduct' ? parts.training.deducted : 0) + (profile.treatment.npraOther === 'deduct' ? parts.npraOther.deducted : 0) }
 }
 
+// CAP-54: the utilization formula as Top ÷ Bottom, in the profile's names: Top = the counted figures (Total actual),
+// Bottom = Funded Hours − the deducted figures (and Standard Hours when the profile takes them off).
+export function formulaParts(profile: CalculationProfile, settings: CapacitySettings) {
+  const terms = termsOf(settings, profile.id)
+  const name = (key: BucketKey) => key === 'work' ? terms.work : key === 'absence' ? terms.absence : bucketLabel[key]
+  const top = bucketKeys.filter((key) => profile.treatment[key] === 'count').map(name)
+  const bottom = [...bucketKeys.filter((key) => profile.treatment[key] === 'deduct').map(name), ...(profile.minusStandardHours ? ['Standard Hours'] : [])]
+  return { utilization: terms.utilization, top, base: terms.funded, bottom }
+}
+export function formulaSentence(profile: CalculationProfile, settings: CapacitySettings) {
+  const { utilization, top, base, bottom } = formulaParts(profile, settings)
+  return `${utilization} = (${top.join(' + ') || 'nothing'}) ÷ (${[base, ...bottom].join(' − ')}) × 100`
+}
+
 // The formula of a profile in words, shown with every figure it produces.
 export function profileFormula(profile: CalculationProfile, settings: CapacitySettings) {
   const terms = termsOf(settings, profile.id)

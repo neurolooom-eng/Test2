@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.5.0 — 2026-11-16
+
+**Changed**
+- **Utilization formula builder** in the calculation-profile editor: the formula is shown as Top ÷ Bottom in the profile's own names and changed by ticking terms — Top (counts as utilized, with the planned-hours source) and Bottom (taken off Funded Hours, and Standard Hours); a figure is never in both. The profiles table shows the sentence (CAP-54).
+
+DF-89; SM-62; TC-CAP-26. PR #274.
+
 ## v7.4.0 — 2026-11-16
 
 **Added**

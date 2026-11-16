@@ -168,3 +168,14 @@ test('CAP-53: a built-in profile can be edited; it keeps its id and place, is ma
   assert.equal(person(capacityModel(backlog, '2026-10', reset), 'Ana').available, 152, 'reset: the built-in figures again')
   assert.equal(normalizeCapacitySettings({ ...settings, calculationProfiles: [{ ...builtIn }, { ...builtIn, name: 'Twice' }] }).calculationProfiles.length, 1, 'one stored version per built-in')
 })
+
+test('CAP-54: the utilization formula as Top ÷ Bottom follows the profile and its names', async () => {
+  const { formulaSentence, formulaParts } = await import('../src/calculationProfiles.ts')
+  const [current, old] = allProfiles(settings)
+  assert.equal(formulaSentence(current, settings), 'Utilization = (Project work + Training + Other NPRA + Common activities) ÷ (Funded Hours − Absence) × 100')
+  assert.equal(formulaSentence(old, settings), 'Utilization = (Project work + Absence + Training + Other NPRA + Common activities) ÷ (Funded Hours − Standard Hours) × 100')
+  assert.equal(formulaSentence(finance, settings), 'Utilization = (Project work + Other NPRA) ÷ (Funded Hours − Training − Standard Hours) × 100', 'ignored figures are in neither part')
+  const named = normalizeCapacitySettings({ ...settings, profileTerms: { 'current-v4': { funded: 'Contract hours', utilization: 'Load' } } })
+  assert.deepEqual(formulaParts(current, named).base, 'Contract hours')
+  assert.match(formulaSentence(current, named), /^Load = .* ÷ \(Contract hours − Absence\) × 100$/, 'in the profile\'s own names')
+})
