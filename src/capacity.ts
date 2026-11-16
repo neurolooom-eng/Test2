@@ -132,8 +132,6 @@ export interface PersonLoad {
   // counts as used (work + trainings + other NPRA + common activities). npra = training + npraOther; npraDeducted is 0.
   training: number; trainingPlanned: number; npraOther: number; npraOtherPlanned: number; reservedPlanned: number; reservedActual: number
   utilized: number; utilizedPlanned: number
-  // CAP-55: the Funded Hours a Funded-on-top profile divides (base less Standard Hours when set); unset in older locks.
-  utilizationBase?: number
   work: number; planned: number; utilization: number | null; plannedUtilization: number | null; status: LoadStatus; tasks: number; streams: StreamLoad[]
   // CAP-35 (Old Calculation): every hour of the person — work, absence, holidays, training, NPRA and the shared time
   // that applies to them — planned (Original Estimate) and actual (Completed Work).
@@ -408,14 +406,14 @@ export function capacityModel(source: AzureWorkItem[], month: string, settings: 
   const sum = (key: SumKey) => personList.reduce((total, person) => total + person[key], 0)
   const totals = { funded: sum('funded'), absence: sum('absence'), reserved: sum('reserved'), npra: sum('npra'), npraDeducted: sum('npraDeducted'), npraOver: sum('npraOver'), work: lock ? sum('work') : totalWork, planned: sum('planned') }
   const available = sum('available'), utilized = sum('utilized'), utilizedPlanned = sum('utilizedPlanned')
-  const fundedOnTop = lock ? lock.fundedOnTop === true : profile.fundedOnTop === true
-  const team = groupUtilization(personList, fundedOnTop)
+  const capacityOnTop = lock ? lock.capacityOnTop === true : profile.capacityOnTop === true
+  const team = groupUtilization(personList, capacityOnTop)
   const absenceByKind = personList.reduce((kinds, person) => { for (const kind of absenceKinds) kinds[kind] += person.absenceByKind[kind]; return kinds }, emptyKinds())
   return {
     month, settings, workingDays: workingDays(month), fundedPerPerson: funded, profile: lock ? { name: lock.profileName, formula: lock.formula, definition: profile } : { name: profile.name, formula: profileFormula(profile, settings), definition: profile }, locked: lock ? { lockedOn: lock.lockedOn, lockedBy: lock.lockedBy, profileName: lock.profileName } : undefined, outsideEmployment: [...outside.values()], removed: [...removedPeople.values()], notCounted: [...notCounted.values()], prorated: personList.filter((person) => person.employedDays < workingDays(month)).map((person) => ({ name: person.name, days: person.employedDays, funded: person.funded })), monthlyTasks, people: personList, streams: streamList, holidays, sharedTime,
     totals: { ...totals, available, utilized, utilizedPlanned, training: sum('training'), npraOther: sum('npraOther'), reservedActual: sum('reservedActual'), reservedPlanned: sum('reservedPlanned'), absenceByKind, utilization: personList.some(person => person.utilization != null) ? team.actual : null, plannedUtilization: personList.some(person => person.plannedUtilization != null) ? team.planned : null, load: personList.some(person => person.utilization != null) ? percent(utilized, available) : null },
-    // CAP-55: whether Utilization has Funded Hours on top (the locked profile's for a locked month).
-    fundedOnTop,
+    // CAP-55: whether Utilization has My Capacity on top (the locked profile's for a locked month).
+    capacityOnTop,
     counts: { npraOver: personList.filter(person => person.npraOver > 0).length, overloaded: personList.filter(person => person.status === 'Overloaded').length, balanced: personList.filter(person => person.status === 'Balanced').length, hasCapacity: personList.filter(person => person.status === 'Has capacity').length, noBookings: personList.filter(person => person.status === 'No bookings').length },
   }
 }
