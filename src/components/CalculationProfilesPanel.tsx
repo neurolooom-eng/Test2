@@ -3,7 +3,7 @@ import { Notice, Panel } from './ui'
 import { absenceKindsOf, allProfiles, bucketKeys, bucketLabel, defaultProfile, defaultTerms, npraPartLabel, npraParts, npraPartsOf, plannedSourceLabel, plannedSources, profileFormula, termHints, termKeys, termMeaning, termsOf, treatmentLabel, treatments, type CalculationProfile, type ProfileTerms, type TermKey } from '../calculationProfiles'
 import { absenceKinds, sharedTimeScopeLabel, sharedTimeScopes, type CapacitySettings } from '../capacity'
 
-// CAP-41/42: Settings → Capacity → Calculation profiles. The built-in profiles can be copied, not changed; custom
+// CAP-41/42: Settings → Capacity → Calculation profiles. Every profile can be copied and edited (built-ins too, CAP-53, with Reset to built-in); custom
 // profiles are edited here by roles that manage shared settings. One profile is the default for every page.
 export function CalculationProfilesPanel({ settings, canEdit, onSave, onSaveTerms }: { settings: CapacitySettings; canEdit: boolean; onSave: (profiles: CalculationProfile[], defaultId: string, detail: string) => void; onSaveTerms: (terms: ProfileTerms, detail: string) => void }) {
   const profiles = allProfiles(settings), custom = settings.calculationProfiles ?? [], current = defaultProfile(settings)
@@ -11,17 +11,18 @@ export function CalculationProfilesPanel({ settings, canEdit, onSave, onSaveTerm
   const [message, setMessage] = useState('')
   const [naming, setNaming] = useState<{ id: string; name: string; terms: Record<TermKey, string> } | null>(null)
   const save = (next: CalculationProfile[], defaultId: string, detail: string) => { onSave(next, defaultId, detail); setMessage(`${detail}. Save to Git so everyone gets it.`) }
-  const copy = (profile: CalculationProfile) => setDraft({ ...profile, id: `p-${Date.now().toString(36)}`, name: `${profile.name} (copy)`.slice(0, 80), builtIn: undefined, treatment: { ...profile.treatment }, plannedSource: { ...profile.plannedSource }, excludedGroups: [...profile.excludedGroups] })
-  return <Panel eyebrow="CAPACITY" title="Calculation profiles" info="A profile decides how utilization is calculated: for each bucket of hours whether it counts as utilized, comes off the capacity or is ignored; which hours the plan uses; and how the capacity is built. The default profile is used for every utilization figure in the app. Built-in profiles can be copied, not changed. Months whose figures are locked (Team overview → Utilization) keep the figures they were locked with. Saved with the planning data in Git; every change is in the audit log.">
+  const copy = (profile: CalculationProfile) => setDraft({ ...profile, id: `p-${Date.now().toString(36)}`, name: `${profile.name} (copy)`.slice(0, 80), builtIn: undefined, edited: undefined, treatment: { ...profile.treatment }, plannedSource: { ...profile.plannedSource }, excludedGroups: [...profile.excludedGroups] })
+  return <Panel eyebrow="CAPACITY" title="Calculation profiles" info="A profile decides how utilization is calculated: for each bucket of hours whether it counts as utilized, comes off the capacity or is ignored; which hours the plan uses; and how the capacity is built. The default profile is used for every utilization figure in the app. Every profile can be edited; a changed built-in profile keeps its place and can be reset to the built-in one. Months whose figures are locked (Team overview → Utilization) keep the figures they were locked with. Saved with the planning data in Git; every change is in the audit log.">
     <div className="azure-table"><table aria-label="Calculation profiles"><thead><tr><th>Profile</th><th>Formula</th><th /></tr></thead><tbody>
       {profiles.map((profile) => <tr key={profile.id}>
-        <td><strong>{profile.name}</strong>{profile.builtIn && <small>Built-in</small>}{profile.id === current.id && <small className="positive">Default</small>}</td>
+        <td><strong>{profile.name}</strong>{profile.builtIn && <small>{profile.edited ? 'Built-in, changed' : 'Built-in'}</small>}{profile.id === current.id && <small className="positive">Default</small>}</td>
         <td><small>{profileFormula(profile, settings)}</small><small className="profile-cards">Cards: {(['funded', 'absence', 'npra'] as const).map((key) => `${termsOf(settings, profile.id)[key]} ${termHints(profile, settings)[key]}`).join(' · ')}</small></td>
         <td className="button-row">{canEdit && <>
           {profile.id !== current.id && <button type="button" className="text-button" onClick={() => save(custom, profile.id, `Default calculation profile = ${profile.name}`)}>Make default</button>}
           <button type="button" className="text-button" onClick={() => copy(profile)}>Copy</button>
           <button type="button" className="text-button" onClick={() => setNaming({ id: profile.id, name: profile.name, terms: termsOf(settings, profile.id) })}>Names</button>
-          {!profile.builtIn && <button type="button" className="text-button" onClick={() => setDraft({ ...profile, treatment: { ...profile.treatment }, plannedSource: { ...profile.plannedSource }, excludedGroups: [...profile.excludedGroups] })}>Edit</button>}
+          <button type="button" className="text-button" onClick={() => setDraft({ ...profile, treatment: { ...profile.treatment }, plannedSource: { ...profile.plannedSource }, excludedGroups: [...profile.excludedGroups] })}>Edit</button>
+          {profile.edited && <button type="button" className="text-button" onClick={() => { if (window.confirm(`Reset “${profile.name}” to the built-in profile? Its changes are removed; locked months keep their figures.`)) save(custom.filter((entry) => entry.id !== profile.id), current.id, `Calculation profile ${profile.name} reset to the built-in one`) }}>Reset to built-in</button>}
           {!profile.builtIn && profile.id !== current.id && <button type="button" className="text-button" onClick={() => { if (window.confirm(`Delete the profile “${profile.name}”?`)) save(custom.filter((entry) => entry.id !== profile.id), current.id, `Calculation profile ${profile.name} deleted`) }}>Delete</button>}
         </>}</td>
       </tr>)}
