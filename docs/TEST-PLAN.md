@@ -890,6 +890,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-33 Content releases named by Title** — Req QV-52 — L1 `release-source.test.mjs` ("QV-52: Content releases are named by the Title — one per unique Title, no name and number from the paths"); browser check with the Content connection fetched: the Content page lists one release per Title (Title column, no Release column; no Name / Release columns in the query output); Pulse Check → Releases shows "Content [n] : <Title>, <Title>"; the Monthly pack Content line lists the same Titles.
 
+**TC-QV-34 DP Month & Year and Milestones columns** — Req QV-53 — L1 `dp-milestones.test.mjs` ("QV-53: the DP table shows each release's Month & Year (its DDT Date) and every milestone's month and status"); browser check with the DP data: Release Details → DP shows Month & Year and Milestones after the query's columns; tick All months — releases without a DDT Date show "No DDT Date"; a release counted as Supported has a ✓ on a milestone in the header month; search "No DDT Date" finds them; Export carries both columns.
+
 
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
@@ -1672,6 +1674,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-50 | TC-QV-31 |
 | QV-51 | TC-QV-32 |
 | QV-52 | TC-QV-33 |
+| QV-53 | TC-QV-34 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1894,7 +1897,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33 |
+| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33, TC-QV-34 |
 | UC-27 | TC-HIS-01…11 |
 | UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |
