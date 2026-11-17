@@ -944,7 +944,7 @@ test('TC-CAP-27: a calculation profile with a typed formula (fx) — starts from
   await editor.getByRole('button', { name: 'Divide by' }).click()
   await editor.getByRole('button', { name: '[Funded Hours]' }).click()
   await editor.getByRole('button', { name: 'Times' }).click()
-  await fx.press('End'); await fx.type('100')
+  await fx.type('100') // typed right after the click: the cursor must already be after the insert
   assert.equal((await fx.inputValue()).replace(/\s+/g, ' '), '=[Project work] / [Funded Hours] * 100', 'the buttons insert at the cursor')
   assert.equal(await text(editor.getByRole('status', { name: 'Formula' })), 'Utilization =[Project work] / [Funded Hours] * 100')
   await editor.getByRole('button', { name: 'Save profile' }).click()

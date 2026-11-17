@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { checkFormula, formulaFigures, formulaFunctions, maxFormulaLength } from '../formula'
 
 // CAP-55: the fx bar — the formula typed as in Excel, with buttons that insert a figure, an operator or a function at
@@ -6,13 +6,19 @@ import { checkFormula, formulaFigures, formulaFunctions, maxFormulaLength } from
 const operators: [string, string, string][] = [['+', ' + ', 'Plus'], ['−', ' - ', 'Minus'], ['×', ' * ', 'Times'], ['÷', ' / ', 'Divide by'], ['(', '(', 'Open bracket'], [')', ')', 'Close bracket']]
 export function FormulaBar({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const input = useRef<HTMLInputElement>(null)
+  // The cursor after an insert, placed as soon as the new value is on screen (before the next keystroke).
+  const caret = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    const field = input.current, at = caret.current
+    if (field && at != null) { caret.current = null; field.focus(); field.setSelectionRange(at, at) }
+  }, [value])
   const check = checkFormula(value)
   const insert = (text: string) => {
     const field = input.current
     const start = field?.selectionStart ?? value.length, end = field?.selectionEnd ?? value.length
     const next = `${value.slice(0, start)}${text}${value.slice(end)}`.slice(0, maxFormulaLength)
+    caret.current = Math.min(start + text.length, next.length)
     onChange(next)
-    requestAnimationFrame(() => { if (field) { field.focus(); const at = Math.min(start + text.length, next.length); field.setSelectionRange(at, at) } })
   }
   return <div className="fx">
     <div className={`fx-bar${check.ok ? '' : ' fx-bar-error'}`}>
