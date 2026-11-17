@@ -650,3 +650,8 @@ label.formula-term{justify-content:flex-start}
 .fx-chip:hover{border-color:var(--accent)}
 .fx-op{border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:34px}
 .formula-sources{display:flex;flex-wrap:wrap;gap:8px 16px}
+/* QV-55: release naming patterns. */
+.naming-rows{display:grid;gap:8px}
+.naming-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto;gap:8px;align-items:end}
+.naming-row .naming-pattern{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (max-width:640px){.naming-row{grid-template-columns:1fr}}

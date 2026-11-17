@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.15.0 — 2026-11-17
+
+**Added**
+- **Release naming patterns**, editable in Settings → Azure DevOps → Stream mapping (`*` any text, `{…}` the release name; Try a Title; shared in Git): Content groups its documents under the Title up to and including _RELEASE; IOCC names releases after "Conformance Verification" and "Test Tools", grouped by those labels; other Titles keep the stream rule (QV-55).
+
+**Fixed**
+- **DP Supported Releases** counts only the releases listed for the month (each once), so it is never more than the list (QV-56).
+
+DF-99, DF-100; SM-69; TC-QV-36, TC-QV-37. PR #285.
+
 ## v7.14.0 — 2026-11-17
 
 **Added**
