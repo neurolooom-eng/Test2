@@ -1474,6 +1474,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-CVA-03 The page for admins** — Req CVA-01, CVA-03, CVA-06 — E2E `shell.e2e.mjs` ("TC-CVA-03: an Admin opens Capacity vs Actual with its tiles, chart and people"); browser check: 12 months on the chart, bars over capacity in red, hover and the table view give the same figures; on a phone the tiles stack; a Team Member does not see the page.
 
+**TC-KPT-01 KPI tracker from the Git copy** — Req KPT-01, KPT-04 — E2E `shell.e2e.mjs` ("TC-KPT-01: the KPI tracker page shows the copy saved in Git, sheet by sheet, and says that reading live needs the desktop app"); L1 `kpi-tracker.test.mjs` ("KPT-04: a sheet shows as a table — the first row with text is the header; blank and repeated headings get names"); browser check: in the browser, with Git storage connected and kpi-tracker.json saved, Data Insights → KPI tracker shows the table, the Sheet choice and "Showing the copy saved in Git …".
+
+**TC-KPT-02 Read the KPI tracker live in the desktop app** — Req KPT-02, IF-05 — L1 `kpi-tracker.test.mjs` ("KPT-02: the SharePoint link is checked — https, a site, an .xlsx file, no credentials; a \"/:x:/r/\" link works too"; "KPT-02: the desktop read is one GET; sign-in pages, refusals, a missing file and non-Excel answers are reported"); desktop check (needs SharePoint): paste the tracker's link (Copy path), Read from SharePoint → a sign-in message; Sign in to SharePoint → complete the company sign-in in the window → it closes and the table shows "Read live from SharePoint at …"; check in SharePoint that the file's version history has no new version; Sign out, read again → asked to sign in.
+
+**TC-KPT-03 The read is saved to Git for everyone** — Req KPT-03, KPT-05 — L1 `kpi-tracker.test.mjs` ("KPT-03: the workbook is kept as text sheets within the limits; the Git copy is checked when read"); `git-watch.test.mjs` (labels); desktop check with Git: as an admin read the tracker — "Saved to Git"; kpi-tracker.json has one new commit; another browser with the app open shows "Newer data in Git: KPI tracker", Reload shows the new copy; as a Team member (or a read-only token) a read shows "not saved to Git"; with SharePoint unreachable (VPN off) the page still shows the Git copy.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1846,6 +1852,12 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CVA-04 | TC-CVA-01 |
 | CVA-05 | TC-CVA-01 |
 | CVA-06 | TC-CVA-03 |
+| KPT-01 | TC-KPT-01 |
+| KPT-02 | TC-KPT-02 |
+| KPT-03 | TC-KPT-03 |
+| KPT-04 | TC-KPT-01 |
+| KPT-05 | TC-KPT-03 |
+| IF-05 | TC-KPT-02 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
@@ -1887,6 +1899,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
+| UC-31 | TC-KPT-01…03 |
 
 ## 8. Result record
 

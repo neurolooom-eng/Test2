@@ -139,6 +139,7 @@ Stakeholders:
 | UC-28 | Record my month in one place — add this month's tasks for my recurring work, enter planned and actual hours, add a new activity and see what is left before the deadline — on a page first tried out by admins | Team member, admin |
 | UC-29 | See the team's month on one page — workload against capacity, delivery against Target dates and what needs attention — filtered by region, Epic and owner, on a page first tried out by admins | Lead, manager |
 | UC-30 | Compare what the team had — capacity after leave and holidays — with the hours it booked, for the month and the year before, per person and per Epic, on a page first tried out by admins | Lead, manager |
+| UC-31 | See the team's KPI tracker — an Excel workbook in SharePoint — in the app, read live in the desktop app and from the copy in Git when SharePoint cannot be reached | Lead, manager |
 | UC-24 | Prepare the two monthly Pulse Check slides (2x2 and Performance Pulse) for the month before the header month from the app's data, with the month's text kept in Git, and download them as .pptx | Lead, manager |
 
 ## 3. User requirements
@@ -172,6 +173,8 @@ User requirements are what the stakeholders of §2 need from the tool, written a
 | SR-29 | The system shall offer a person's month on one My Activities page — this month's tasks with planned and actual hours, the Features still without one, a new activity under a stream and Feature, progress and the deadline — using the month-task rules, and shall keep pages being tried out in a Testing menu group for the Admin role only. | UR-25 | ACT (§5.27) |
 | SR-30 | The system shall show a Planning Overview of the team's month — filters, headline figures against the month before, 12 months of workload against capacity, an exception queue and delivery health per Epic — from the fetched data, the capacity settings and the baselines, read only, under the Testing heading. | UR-26 | OVW (§5.28) |
 | SR-31 | The system shall compare capacity with actual hours — tiles against the month before, 12 months, each person with a status band and the hours per Epic — from the capacity model, read only, under the Testing heading. | UR-27 | CVA (§5.29) |
+| UR-28 | I need the team's KPI tracker, kept in Excel in SharePoint, in the app without changing it there, and still to see it when SharePoint cannot be reached. | Lead, manager | UC-31 | SR-32 |
+| SR-32 | The system shall show the team's KPI tracker workbook from SharePoint read only: read live by the desktop app with the company sign-in (GET only), kept in Git as a copy by roles with Manage shared settings, and shown from that copy otherwise. | UR-28 | KPT (§5.30) |
 | UR-24 | I need the hours of the months before we recorded them in Azure DevOps — also of people no longer in the team, who cannot be assigned work there — in the same reports as today's hours, without counting a month twice, so that the trends start from the real history. | Lead, manager | UC-27 | SR-28 |
 | UR-25 | I need to record my whole month on one clean page — copy my recurring work, enter hours, add something new, and see what is left before the deadline — and new pages tried out by admins before everyone gets them. | Team member, admin | UC-28 | SR-29 |
 | UR-26 | I need the team's month at a glance — are we overloaded, are we delivering on time, what needs my attention — narrowed to a region, an Epic or a person, and a quick way to the monthly pack. | Lead, manager | UC-29 | SR-30 |
@@ -927,6 +930,16 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | CVA-05 | **Where the hours went** shall show the month's actual hours per Epic, largest first (up to ten). | T | S | UC-30 |
 | CVA-06 | The page shall read on a phone: the tiles stack and the tables scroll inside their cards. | I | C | UC-30 |
 
+### 5.30 KPI tracker (KPT) — UC-31
+
+| ID | Requirement | Ver. | Pri. | Trace |
+|---|---|---|---|---|
+| KPT-01 | Under **Data Insights** (area Team insights), a **KPI tracker** page shall show the team's KPI tracker workbook read only: one sheet at a time (a Sheet choice when there are several), as a table that follows the table default (UI-12), with an export; above it where the data comes from — "Read live from SharePoint at …" or "Showing the copy saved in Git: read from SharePoint at … by …" — and the file's last change in SharePoint when known. | T | S | UC-31 |
+| KPT-02 | In the **desktop app**, the page shall take the SharePoint link of the .xlsx file (Copy path or a "/:x:/r/" link; https, a site under /sites/ or /teams/, no user name or password) and read it **read only**: one GET to SharePoint's REST API (…/_api/web/GetFileByServerRelativeUrl('…')/$value) in the app's own SharePoint session, at most 20 MB, the answer accepted only when it is an Excel file. **Sign in to SharePoint** opens the site in a sandboxed sign-in window (https only, no pop-ups) where the company sign-in is completed; it closes once the file can be read. No tenant or client ID and no password are kept by the app; **Sign out** clears the session. A sign-in page, a refusal (401 / 403), a missing file (404) or an unreachable host is reported with what to do. Nothing is ever written to SharePoint. In the browser the page says that reading live needs the desktop app. | T | S | UC-31 |
+| KPT-03 | A read by a role with **Manage shared settings** and a Git token that can write shall replace the copy in the Git data repository (**kpi-tracker.json**, one commit per read, never a credential): the link, the file name, when and by whom it was read, the file's last change, and every sheet with data as text cells — trailing empty rows and columns dropped, at most 20 sheets, 2,000 rows, 100 columns and 1,000 characters a cell (more is cut off and said so). Other people's reads are shown but not saved. | T | S | UC-31 |
+| KPT-04 | The page shall show the **copy in Git** whenever no live read was made in this visit — in the browser, without SharePoint access, or when SharePoint cannot be reached — checked when read (schema 1, link checked, cells as text within the limits); a sheet's first row with text is its header (blank headings become "Column N", repeated ones get " (2)"). Without Git storage it says to connect it. | T | S | UC-31 |
+| KPT-05 | A newer copy saved by someone else while the page is open shall be named "KPI tracker" in the **Newer data in Git** banner (GIT-15). | T | C | UC-31 |
+
 ## 6. Non-functional requirements
 
 | ID | Requirement | Ver. | Pri. |
@@ -947,6 +960,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | IF-02 | Azure DevOps writes shall be limited to: creating Features, User Stories and Tasks (title, area, description, acceptance criteria, iteration, assigned to, target date, parent); Original Estimate, Completed Work and Tags on Tasks; and State and Iteration Path on any item. | I, T | M |
 | IF-03 | GitHub: the app shall use the repository contents API with a fine-grained token that has Contents: Read and write. | I | M |
 | IF-04 | Microsoft Graph: the app shall use the `/v1.0/` endpoint for the SharePoint site's default document library. | I | M |
+| IF-05 | SharePoint REST (desktop app only, KPT-02): one GET of a file's content (`/_api/web/GetFileByServerRelativeUrl('…')/$value`) in the app's SharePoint session, read only. | I | S |
 
 ## 8. Open issues
 
