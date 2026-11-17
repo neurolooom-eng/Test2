@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.8.0 — 2026-11-17
+
+**Added**
+- **KPI tracker** page (Data Insights): the team's KPI tracker Excel from SharePoint, read only, sheet by sheet. The desktop app reads it live with the company sign-in (a sign-in window; no tenant or client ID; GET only, nothing written to SharePoint); an admin's read is saved to Git as kpi-tracker.json, which everyone sees — in the browser and when SharePoint cannot be reached (KPT-01…05, IF-05, UR-28, SR-32).
+
+DF-93, DF-94; SM-65; TC-KPT-01…03. PR #278.
+
 ## v7.7.0 — 2026-11-16
 
 **Fixed**
