@@ -1,4 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { ContentBulkCreate } from './ContentBulkCreate'
+import { fullMatch } from '../dpBulk'
 import type { AzureWorkItem } from '../domain'
 import { releaseFeatureTitle, releaseRegister, type ReleaseEntry } from '../releaseSource'
 import type { FeatureSetups } from '../featureSetup'
@@ -51,7 +53,13 @@ function ReleaseTable({ name, title = 'Releases', detail, register, azure, assig
   const candidates = useMemo(() => boardItems ? dpBoardCandidates(boardItems) : [], [boardItems])
   const matches = useMemo(() => new Map<string, BoardMatch>(azure ? register.map((release) => [release.key, releaseBoardMatch(release, name, featureTitle(release), candidates, threshold)]) : []), [azure, register, name, candidates, threshold, featureTitle])
   // UI-07…12: the release table follows the shared design default; the documents of a release open under it.
+  // CNB-01: Content releases are ticked for Create Features (all assigned to one person, chosen in the pop-up).
+  const bulk = titled && Boolean(azure)
+  const [picked, setPicked] = useState<string[]>([])
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const featureMatch = (release: ReleaseEntry) => matches.get(release.key)?.feature
   const columns: DataColumn<ReleaseEntry>[] = [
+    ...(bulk ? [{ id: 'pick', label: 'Select', fixed: true, sortable: false, export: false as const, value: (release: ReleaseEntry) => picked.includes(release.key) ? 'yes' : '', render: (release: ReleaseEntry) => { const full = fullMatch(featureMatch(release)); return <input type="checkbox" aria-label={`Select ${release.name}`} disabled={full} title={full ? `Feature #${featureMatch(release)!.item.id} on QMS-0025 matches this release 100%: nothing to create` : undefined} checked={!full && picked.includes(release.key)} onChange={() => setPicked((current) => current.includes(release.key) ? current.filter((key) => key !== release.key) : [...current, release.key])} /> } }] : []),
     ...(grouped ? [{ id: 'type', label: 'Type of Release', value: (release: ReleaseEntry) => release.group || '' }] : []),
     { id: 'name', label: titled ? 'Title' : 'Name', value: (release) => release.name, render: (release) => <button type="button" className="text-button" aria-expanded={open === release.key} onClick={() => setOpen(open === release.key ? '' : release.key)}>{open === release.key ? '▾' : '▸'} {release.name}</button> },
     // QV-52 Content: the Title is the release, so there is no release number column.
@@ -75,7 +83,8 @@ function ReleaseTable({ name, title = 'Releases', detail, register, azure, assig
     {groupKeys.length > 1 && <><button type="button" className="ghost" disabled={groupKeys.every((key) => collapsed.includes(key))} onClick={() => setCollapsed(groupKeys)}>Collapse all</button><button type="button" className="ghost" disabled={!collapsed.length} onClick={() => setCollapsed([])}>Expand all</button></>}
   </> : null
   return <TablePanel title={title} detail={detail} info={info} action={action}>
-      {register.length ? <DataTable id={`releases:${name}:${title}`} className="release-register" columns={columns} rows={register} rowKey={(release) => release.key} exportName={`${name} ${title}`} toolbar={grouping} expand={documents} group={groups ? (_, row, span) => groupLines(groups, row, span) : undefined} /> : empty ?? <EmptyState title="No releases." />}
+      {bulkOpen && azure && <ContentBulkCreate releases={register.filter((release) => picked.includes(release.key))} featureTitle={featureTitle} featureMatch={featureMatch} azure={azure} onClose={() => { setBulkOpen(false); setPicked([]) }} />}
+      {register.length ? <DataTable id={`releases:${name}:${title}`} className="release-register" columns={columns} rows={register} rowKey={(release) => release.key} exportName={`${name} ${title}`} toolbar={bulk ? <><span className="muted">{picked.length} selected</span><button type="button" className="ghost" disabled={!register.length} onClick={() => setPicked(register.filter((release) => !fullMatch(featureMatch(release))).map((release) => release.key))}>Select all</button><button type="button" className="ghost" disabled={!picked.length} onClick={() => setPicked([])}>Clear</button><button type="button" className="primary" disabled={!picked.length || !assign?.canChoose} title={assign?.canChoose ? 'Create a Feature for each selected release, all assigned to one person' : 'Needs the right to create work items for other people (Settings → Access)'} onClick={() => setBulkOpen(true)}>Create Features ({picked.length})</button></> : grouping} expand={documents} group={groups ? (_, row, span) => groupLines(groups, row, span) : undefined} /> : empty ?? <EmptyState title="No releases." />}
     </TablePanel>
 }
 
