@@ -48,6 +48,7 @@ This document lists every software component of the system: the in-house source 
 | KpiTrackerPage | `src/pages/KpiTrackerPage.tsx` | KPI tracker page: the Git copy or a live read in the desktop app, sheet choice, table, save to Git for admins. | KPT |
 | DpBulkCreate | `src/components/DpBulkCreate.tsx` | DP Create Features dialog: the plan per selected release, PI / Sprint, creation as a background job. | DPF |
 | FormulaBar | `src/components/FormulaBar.tsx` | The fx bar of a calculation profile: typed formula, insert buttons, check as typed. | CAP |
+| ContentBulkCreate | `src/components/ContentBulkCreate.tsx` | Content Create Features pop-up: one person for all, the plan, PI / Sprint, creation as a background job. | CNB |
 | SnapshotsPage | `src/pages/SnapshotsPage.tsx` | Snapshots: SharePoint snapshot history, browser storage and backup recovery, legacy snapshot records. | SNP, STO |
 
 ### 1.2 UI components
@@ -156,6 +157,7 @@ This document lists every software component of the system: the in-house source 
 | kpiTracker | `src/kpiTracker.ts` | KPI tracker model: link check, workbook to text sheets within limits, Git file parse/serialise, sheet table. | KPT |
 | dpBulk | `src/dpBulk.ts` | DP releases: release type from x.y.z.a, QE from the QE Mapping, possible QEs, bulk Create Features plan. | DPF |
 | formula | `src/formula.ts` | Typed utilization formula: tokenizer and parser (figures, operators, MAX/MIN/ROUND/IF), check as typed, starting formula from the ticks. | CAP |
+| contentBulk | `src/contentBulk.ts` | Content bulk Features: Epic, DoD, classification and estimate; plan per release; people on the board and the chosen email. | CNB |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY (flat and tree / links queries), field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream (CP from QA/QE signatures, cpReporting), with counts and totals. | OVR, QV |
 | releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC and Tool Validations (one entry per tool) stream rules. | QV |
@@ -302,6 +304,7 @@ This document lists every software component of the system: the in-house source 
 | kpi-tracker.test | `tests/kpi-tracker.test.mjs` | SharePoint link and read (one GET, sign-in detection), the Git copy and its limits, sheet tables. | KPT, IF |
 | dp-bulk.test | `tests/dp-bulk.test.mjs` | DP release type and sets, QE match, possible QEs, bulk plan. | DPF |
 | formula.test | `tests/formula.test.mjs` | Typed formula: evaluation, functions, blank on / 0, error messages. | CAP |
+| content-bulk.test | `tests/content-bulk.test.mjs` | Content bulk plan, people and the chosen email. | CNB |
 | table-defaults.test | `tests/table-defaults.test.mjs` | The table design default: shared setting check, column layout and moves, and dates in Excel / CSV exports read back (TC-UI-04, TC-UI-05). | UI |
 | query-view.test | `tests/query-view.test.mjs` | Query layout, field resolution, sorting, summary, CSV and column order. | QV |
 | release-overview.test | `tests/release-overview.test.mjs` | Releases per stream approved in the month for Overview and Pulse Check. | OVR |

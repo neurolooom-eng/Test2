@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.14.0 — 2026-11-17
+
+**Added**
+- **Content Create Features**: tick Content releases and create their Features in one go under Epic 22919 — Release Classification NA, DoD "All Documents are approved", one "Review of Deliverables - <title>" story in the current Sprint, the Time Writing story and a 4 h month Task — all assigned to one person chosen in a pop-up (CNB-01, CNB-02, UR-30, SR-34).
+- **No duplicates in bulk creation**: in DP and Content Create Features, a release whose QMS-0025 Feature matches it 100 % cannot be selected; a similar Feature below 100 % is named in the pop-up and the release is still created (DPF-05).
+
+DF-98; SM-68; TC-CNB-01, TC-CNB-02. PR #284.
+
 ## v7.13.0 — 2026-11-17
 
 **Added**
