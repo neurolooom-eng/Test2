@@ -49,6 +49,7 @@ This document lists every software component of the system: the in-house source 
 | DpBulkCreate | `src/components/DpBulkCreate.tsx` | DP Create Features dialog: the plan per selected release, PI / Sprint, creation as a background job. | DPF |
 | FormulaBar | `src/components/FormulaBar.tsx` | The fx bar of a calculation profile: typed formula, insert buttons, check as typed. | CAP |
 | ContentBulkCreate | `src/components/ContentBulkCreate.tsx` | Content Create Features pop-up: one person for all, the plan, PI / Sprint, creation as a background job. | CNB |
+| NamingPatternsPanel | `src/components/NamingPatternsPanel.tsx` | Settings → Stream mapping → Release naming patterns: edit, try a Title, apply, reset. | QV |
 | SnapshotsPage | `src/pages/SnapshotsPage.tsx` | Snapshots: SharePoint snapshot history, browser storage and backup recovery, legacy snapshot records. | SNP, STO |
 
 ### 1.2 UI components
@@ -158,6 +159,7 @@ This document lists every software component of the system: the in-house source 
 | dpBulk | `src/dpBulk.ts` | DP releases: release type from x.y.z.a, QE from the QE Mapping, possible QEs, bulk Create Features plan. | DPF |
 | formula | `src/formula.ts` | Typed utilization formula: tokenizer and parser (figures, operators, MAX/MIN/ROUND/IF), check as typed, starting formula from the ticks. | CAP |
 | contentBulk | `src/contentBulk.ts` | Content bulk Features: Epic, DoD, classification and estimate; plan per release; people on the board and the chosen email. | CNB |
+| namingPatterns | `src/namingPatterns.ts` | Release naming patterns: compile a wildcard pattern safely, match a Title, built-in Content and IOCC patterns, read from the shared settings. | QV |
 | queryView | `src/queryView.ts` | Query-view layout from WIQL SELECT/ORDER BY (flat and tree / links queries), field resolution, cell formatting, sorting, summary, CSV, column order. | QV |
 | releaseOverview | `src/releaseOverview.ts` | Releases with documents approved in the month per stream (CP from QA/QE signatures, cpReporting), with counts and totals. | OVR, QV |
 | releasePath | `src/releasePath.ts` | Reads release name and number from Area/Iteration Paths; DP, IOCC and Tool Validations (one entry per tool) stream rules. | QV |
@@ -305,6 +307,7 @@ This document lists every software component of the system: the in-house source 
 | dp-bulk.test | `tests/dp-bulk.test.mjs` | DP release type and sets, QE match, possible QEs, bulk plan. | DPF |
 | formula.test | `tests/formula.test.mjs` | Typed formula: evaluation, functions, blank on / 0, error messages. | CAP |
 | content-bulk.test | `tests/content-bulk.test.mjs` | Content bulk plan, people and the chosen email. | CNB |
+| naming-patterns.test | `tests/naming-patterns.test.mjs` | Naming patterns: matching, checks, shared settings, Content and IOCC grouping. | QV |
 | table-defaults.test | `tests/table-defaults.test.mjs` | The table design default: shared setting check, column layout and moves, and dates in Excel / CSV exports read back (TC-UI-04, TC-UI-05). | UI |
 | query-view.test | `tests/query-view.test.mjs` | Query layout, field resolution, sorting, summary, CSV and column order. | QV |
 | release-overview.test | `tests/release-overview.test.mjs` | Releases per stream approved in the month for Overview and Pulse Check. | OVR |
@@ -330,7 +333,7 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
 | helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate, load sample). | CI |
-| shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, refresh while open (TC-GIT-08), KPI tracker hidden from the menu (TC-KPT-01), typed formula (TC-CAP-27), manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02). | NAV, UI, SMP, UPD |
+| shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, refresh while open (TC-GIT-08), KPI tracker hidden from the menu (TC-KPT-01), typed formula (TC-CAP-27), release naming patterns (TC-QV-37), manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02). | NAV, UI, SMP, UPD |
 | documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; "＋ ECP" import named after the stream with the ECP CSV, Project No / Project Name columns, an ECP setup at the 3rd folder with the type-2 CSV (TC-CON-53, 54, 55); the table default on the Windchill raw data — move, hide, density, Excel export with dates, Settings → Table defaults (TC-UI-04, 05); My Work tree, Backlog Health and Baselines on the default (TC-UI-06); neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); Windchill releases' QMS-0025 match column (TC-QV-23); auto-fit tables and Wrap text (TC-CON-42); the DP Supported Releases list in Pulse Check folded until Show list (TC-QV-17). | DOC, CON, STO, NFR, QV |
 | backlog.e2e | `e2e/backlog.e2e.mjs` | New User Story form from a Feature row of the Backlogs (TC-BKL-10); the Edit form from Feature, User Story and Task rows (TC-BKL-11). | CI, BKL |
 | monthly-pack.e2e | `e2e/monthly-pack.e2e.mjs` | Monthly pack tab with the synthetic sample, the .pptx download and the setup tab (TC-PCK-04). | CI |

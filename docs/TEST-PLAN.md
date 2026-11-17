@@ -894,6 +894,10 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-35 DP releases planned in the month** — Req QV-54 — L1 `dp-milestones.test.mjs` ("QV-54: a release without a DDT Date is listed in the months of its Planned / ToBePlanned milestones, but not counted"); browser check with the DP data: pick a month in which a release without a DDT Date has an SFV / PRD / RPE date with status Planned or ToBePlanned — it is listed with "… · planned, not counted" in Month & Year; the Completed and Supported Releases counts above the table do not change; the Month filter note names how many releases have neither.
 
+**TC-QV-36 DP Supported never more than the month's list** — Req QV-56 — L1 `dp-milestones.test.mjs` ("DP counts for a month: Completed = releases with DDT Done in the month; Supported = unique listed releases with any milestone Done in the month (QV-56)"); `streams.test.mjs` ("Pulse Check streams: the five Azure streams in order, not-set-up ones listed, each read with its rule"); browser check with the DP data: for a month, Supported Releases ≤ the rows listed for the month; a release with SFV Done this month but its DDT in a later month is not Supported this month.
+
+**TC-QV-37 Release naming patterns** — Req QV-55, QV-52 — L1 `naming-patterns.test.mjs` ("QV-55: wildcard patterns — * any text, {…} the release name; Content up to _RELEASE, IOCC after Conformance Verification / Test Tools"; "QV-55: patterns are shared settings — checked on read, per stream, built in when not saved; same list for the same settings"; "QV-55: Content documents are grouped under their release; IOCC by Conformance Verification and Test Tools names, others as before"); E2E `shell.e2e.mjs` ("TC-QV-37: Stream mapping → Release naming patterns — built-in Content and IOCC patterns, a Title tried, a pattern edited, applied and reset"); browser check with the Content and IOCC data: Release Details → Content shows one row per _RELEASE name with its documents under it; IOCC shows Conformance Verification and Test Tools groups; change a pattern, Apply, Save to Git — another browser shows the same names.
+
 
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
@@ -1692,6 +1696,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-52 | TC-QV-33 |
 | QV-53 | TC-QV-34 |
 | QV-54 | TC-QV-35 |
+| QV-55 | TC-QV-37 |
+| QV-56 | TC-QV-36 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1922,7 +1928,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33, TC-QV-34, TC-QV-35 |
+| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33, TC-QV-34, TC-QV-35, TC-QV-36, TC-QV-37 |
 | UC-27 | TC-HIS-01…11 |
 | UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |
