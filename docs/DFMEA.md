@@ -141,13 +141,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-94 | Keep and show the Git copy (KPT-03, KPT-04) | The copy is stale, cut off, or replaced by a non-admin's read | Decisions on old or partial KPI figures | No read for a long time; a very large workbook; anyone saving | 3 | 3 | 2 | 18 | Read time, reader and the file's last change shown; "truncated" said when cut; only Manage shared settings with a write token save; every save is a commit; the Newer data banner (TC-KPT-01, TC-KPT-03) | 3×2×1 = 6 | TC-KPT-01, TC-KPT-03 | — |
 | DF-95 | Create DP Features in bulk (DPF-04) | Duplicate Features, the wrong type’s DoD / stories, or work assigned to the wrong person | Duplicate or wrong backlog items for many releases; QEs get work not theirs | A release that already has a Feature; a version read wrongly; a QE Mapping match on a similar product | 4 | 3 | 3 | 36 | Releases with a QMS-0025 Feature (board match) are skipped; the plan lists type, stories, QE and email before Create; unclear version, missing columns, QE or email skip the release with the reason; exact product match before whole-word match; one at a time, the result names each Feature (TC-DPF-04) | 4×1×2 = 8 | TC-DPF-01…04 | — |
 | DF-96 | QE and possible QEs on the DP table (DPF-02, DPF-03) | A wrong or missing QE / backup shown | Work routed to the wrong person | QE Mapping row naming several products; renamed products | 3 | 3 | 3 | 27 | Columns chosen explicitly in the setup; the column title says where the QE came from; possible QEs only from earlier releases of the same PsName (TC-DPF-02, TC-DPF-03) | 3×2×2 = 12 | TC-DPF-02, TC-DPF-03 | — |
+| DF-97 | Typed utilization formula (CAP-55) | A formula that reads but computes the wrong thing, or a figure that means something other than the user thinks | Wrong utilization and status for everyone using the profile | Free typing; figure names close to the ticks; group totals summed | 4 | 3 | 2 | 24 | Starts from the ticked formula; checked as typed (unknown figures, brackets, functions); not saved while invalid; each figure explained on its button; the profile table and every card show the formula; the v4 formula typed gives exactly the v4 figures (test); changes audited and saved to Git; locked months unchanged (TC-CAP-27) | 4×1×2 = 8 | TC-CAP-27 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 96 |
+| Failure modes analysed | 97 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

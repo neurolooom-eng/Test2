@@ -981,6 +981,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-26 Utilization formula builder** — Req CAP-54, CAP-41 — L1 `calculation-profiles.test.mjs` ("CAP-54: the utilization formula as Top ÷ Bottom follows the profile and its names"); E2E `shell.e2e.mjs` ("TC-CAP-16: …" — ticks figures in the top and the bottom, checks the sentence and that a figure is never in both); browser check: in Settings → Calculation profiles edit a profile, untick Training in the top, tick it in the bottom — the sentence reads "… ÷ (Funded Hours − Absence − Training) × 100", Save, the Pulse Check cards follow.
 
+**TC-CAP-27 Typed utilization formula (fx)** — Req CAP-55 — L1 `formula.test.mjs` ("CAP-55: a typed formula reads like Excel — figures in brackets, + - * / ( ), MAX, MIN, ROUND, IF; blank on / 0"; "CAP-55: a formula that does not read says why"); `calculation-profiles.test.mjs` ("CAP-55: a profile with a typed formula — the v4 formula typed gives the v4 figures; another formula drives person and team"); E2E `shell.e2e.mjs` ("TC-CAP-27: a calculation profile with a typed formula (fx) — starts from the ticks, is checked as typed, is saved and drives the figures"); browser check with the team data: make a copy of Current (v4) with fx on and its starting formula — every person's and the team's figures equal Current (v4); change it to =[Project work] / [Funded Hours] * 100, make it the default — Pulse Check cards, Team overview Utilization and the Monthly pack follow; Save to Git and reload in another browser.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1723,6 +1725,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-52 | TC-CAP-24 |
 | CAP-53 | TC-CAP-25 |
 | CAP-54 | TC-CAP-26 |
+| CAP-55 | TC-CAP-27 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |
@@ -1895,7 +1898,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
-| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
+| UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-GIT-07, TC-GIT-08, TC-ACC-03…05 |
