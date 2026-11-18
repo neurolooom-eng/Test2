@@ -148,13 +148,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-101 | Desktop zoom (UI-14) | The page is zoomed so far that text is unreadable, or Auto fights a zoom set by hand | Content cut off or too small to read | A very small window; resize events | 2 | 2 | 2 | 8 | Auto never below 67% or above 100%; any hand-set zoom turns Auto off; the zoom shown in the sidebar, 100% one click away (TC-UI-07) | 2×1×2 = 4 | TC-UI-07 | — |
 | DF-102 | Close Features on Time Writing (ACT-18) | Work of another person is closed, or a Feature is closed while work below it is still open | Other people's work disappears from their lists; hours can no longer be booked | Ticking the wrong Feature; shared Features and Time Writing stories | 4 | 3 | 3 | 36 | Only the person's own items are closed; an item with someone else's open work below it stays open; a Feature of someone else is never closed; one confirmation lists every item; a failed write keeps everything above it open; audited (TC-ACT-14) | 4×1×2 = 8 | TC-ACT-14 | — |
 | DF-103 | Folding the menu and Add a new activity (UI-16, ACT-19) | A page or the Add form cannot be found | The user believes the function is gone | The fold kept per computer | 2 | 2 | 2 | 8 | « / » and the ▸ heading stay visible; names show on hover (TC-UI-09, TC-ACT-15) | 2×1×2 = 4 | TC-UI-09, TC-ACT-15 | — |
+| DF-104 | Chart data labels and axis names (UI-17) | Labels overlap or a value is read against the wrong axis | A wrong figure is quoted from a chart | Many months or Epics; small bars | 2 | 2 | 2 | 8 | Labels off by default, switched per chart; axis names on every chart; the Table view and tooltips give the exact values (TC-UI-10) | 2×1×2 = 4 | TC-UI-10 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 103 |
+| Failure modes analysed | 104 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

@@ -689,3 +689,11 @@ label.formula-term{justify-content:flex-start}
 .act-close-mode+.act-save-top{margin-left:0}
 .act-fold{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
 .act-grid.act-add-folded{grid-template-columns:minmax(0,1fr)}
+/* UI-17: axis names and data labels on every chart; the Data labels box sits in each chart's legend row. */
+.viz-axis-title{fill:var(--muted);font-size:11.5px;font-weight:600;letter-spacing:.2px}
+.viz-data-label{fill:var(--text);font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;pointer-events:none}
+.viz-data-label-muted{fill:var(--muted);font-weight:500}
+.viz-slice-label{fill:#fff;font-size:11px;font-weight:700;pointer-events:none;paint-order:stroke;stroke:#0006;stroke-width:2px}
+.viz-labels-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;margin-left:auto}
+.viz-toolbar .viz-labels-toggle+button{margin-left:8px}
+.ovw-head .viz-labels-toggle,.dash-chart .legend .viz-labels-toggle{margin-left:12px}
