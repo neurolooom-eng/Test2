@@ -727,6 +727,19 @@ test('TC-ACT-02: Time Writing shows the person\'s KPI cards, month tasks, hours 
   assert.equal(await content.locator('.act-card-head').getByRole('button', { name: /^Save \d+ activit|^Nothing to save/ }).count(), 1, 'Save is next to the heading')
   // Suggested missing items sit below Your activities, in the first column.
   assert.equal(await content.locator('.act-main #act-copy').count(), 1)
+  // ACT-18: Close Features — a check box next to Save; ticked, the Feature rows get tick boxes and Save becomes Close.
+  await content.getByRole('checkbox', { name: 'Close Features' }).check()
+  assert.ok(await content.getByRole('button', { name: 'Tick Features to close' }).isDisabled(), 'nothing ticked, nothing to close')
+  await content.locator('.act-table').first().getByRole('checkbox', { name: /^Close / }).first().check()
+  await content.getByRole('button', { name: 'Close 1 Feature' }).click()
+  assert.match(await text(content.locator('.act-message')), /Synthetic sample data/, 'nothing is written with sample data')
+  await content.getByRole('checkbox', { name: 'Close Features' }).uncheck()
+  assert.equal(await content.locator('.act-table').first().getByRole('checkbox', { name: /^Close / }).count(), 0, 'the tick boxes go with Close mode')
+  // ACT-19: Add a new activity is folded to its heading until opened; folded, the activities take the full width.
+  const fold = content.getByRole('button', { name: 'Add a new activity' })
+  assert.equal(await fold.getAttribute('aria-expanded'), 'false')
+  assert.equal(await content.locator('.act-grid.act-add-folded').count(), 1)
+  await fold.click()
   // The Feature list is a drop-down you type into: only my Features, narrowed as I type.
   const feature = content.getByRole('combobox', { name: 'Feature' })
   const listed = async () => page.getByRole('listbox', { name: 'Feature' }).getByRole('option').count()
@@ -1015,6 +1028,21 @@ test('TC-UI-07: the desktop app zooms — Auto fits the window, − / + / 100% a
   assert.equal(await page.getByRole('group', { name: 'Zoom' }).getByRole('checkbox', { name: 'Auto' }).isChecked(), false, 'kept after a reload')
   await page.getByRole('group', { name: 'Zoom' }).getByRole('checkbox', { name: 'Auto' }).check()
   await page.waitForFunction(() => window.__zoom.factor === 0.8)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-UI-09: the side menu folds to icons and back, names on hover, kept after a reload', async () => {
+  const { page, context, errors } = await openPage(app, { width: 1440, height: 900 })
+  const sidebar = page.locator('.sidebar')
+  const wide = await sidebar.evaluate((node) => node.getBoundingClientRect().width)
+  await page.getByRole('button', { name: 'Collapse the menu' }).click()
+  const narrow = await sidebar.evaluate((node) => node.getBoundingClientRect().width)
+  assert.ok(narrow < 100 && narrow < wide, `folded to icons: ${wide} → ${narrow}`)
+  assert.ok(await page.locator('.sidebar nav button[title="Time Writing"]').count() > 0, 'the name shows on hover')
+  await page.reload()
+  await page.getByRole('button', { name: 'Expand the menu' }).click()
+  assert.ok(await sidebar.evaluate((node) => node.getBoundingClientRect().width) > 150, 'shown with names again')
   assert.deepEqual(errors, [])
   await context.close()
 })

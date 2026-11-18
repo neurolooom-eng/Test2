@@ -2,6 +2,15 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.18.0 — 2026-11-18
+
+**Added**
+- **Close Features on Time Writing**: a check box next to Save; tick Features and close your own open Tasks, User Stories and the Feature (when nothing of others is open below it) in Azure DevOps after one confirmation; closed month Tasks are read-only (ACT-18).
+- **Add a new activity folds** to its heading, folded until opened; the activities list then takes the full width (ACT-19).
+- **The side menu folds to icons** with « / » in its header; names on hover; kept per computer (UI-16).
+
+DF-102, DF-103; SM-71; KB-46; TC-ACT-14, TC-ACT-15, TC-UI-09. PR #289.
+
 ## v7.17.0 — 2026-11-18
 
 **Changed**
