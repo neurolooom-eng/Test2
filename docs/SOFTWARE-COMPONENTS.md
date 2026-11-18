@@ -101,7 +101,10 @@ This document lists every software component of the system: the in-house source 
 | ViewActions | `src/components/ViewActions.tsx` | The compact actions of a Release Details page: the main action as a small icon button with its name as tooltip, the others in a ⋯ menu (QV-48). | QV |
 | DataTable | `src/components/DataTable.tsx` | The one table component (UI-07…13): resize, move by dragging a heading or ↑ ↓ in the Columns list, choose columns, Wrap text, Compact / Comfortable, Reset layout, sort, expandable, grouped and tree rows, a totals row that follows the columns, and one Export offering Excel or CSV. | UI, QV, CON |
 | tableDesign | `src/components/tableDesign.ts` | The React context that hands the shared table design default to every DataTable (UI-12). | UI |
-| TableDefaultsPanel | `src/components/TableDefaultsPanel.tsx` | Settings → Table defaults: the shared, audited design default of every table (UI-12). | UI, SET |
+| TableDefaultsPanel | `src/components/TableDefaultsPanel.tsx` | Settings → Table defaults: the shared, audited design default of every table (UI-12) and of chart data labels (UI-17). | UI, SET |
+| chartLabels (component) | `src/components/chartLabels.tsx` | The Data labels box and the X / Y axis names of a chart (UI-17). | UI |
+| chartLabels | `src/chartLabels.ts` | Chart data labels: each chart's own choice kept per computer, else the shared default (UI-17). | UI |
+| useDataLabels | `src/useDataLabels.ts` | The hook a chart uses for its Data labels switch (UI-17). | UI |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SectionTabs | `src/components/SectionTabs.tsx` | The section row of a Settings page: one section at a time, the last one remembered per page (SET-14). | SET, NAV |
 | SetupGuide | `src/components/SetupGuide.tsx` | "Get started" pop-up listing setup steps with live status, fields to enter the Git token, PAT and work email right there (NAV-38), the email detected from the token (NAV-39) and buttons to the right place. | NAV |
@@ -313,6 +316,7 @@ This document lists every software component of the system: the in-house source 
 | desktop-zoom.test | `tests/desktop-zoom.test.mjs` | Desktop zoom: Auto fit, steps, limits, kept setting. | UI |
 | close-feature.test | `tests/close-feature.test.mjs` | Close Features: only my items, children first, others' open work keeps parents open, failure handling. | ACT |
 | table-defaults.test | `tests/table-defaults.test.mjs` | The table design default: shared setting check, column layout and moves, and dates in Excel / CSV exports read back (TC-UI-04, TC-UI-05). | UI |
+| chart-labels.test | `tests/chart-labels.test.mjs` | Chart data labels: shared default, per-chart choice, stored values checked (TC-UI-10). | UI |
 | query-view.test | `tests/query-view.test.mjs` | Query layout, field resolution, sorting, summary, CSV and column order. | QV |
 | release-overview.test | `tests/release-overview.test.mjs` | Releases per stream approved in the month for Overview and Pulse Check. | OVR |
 | release-source.test | `tests/release-source.test.mjs` | Release-source WIQL paging, tree / links queries, path parsing, register and approval dates. | QV, CON |

@@ -1300,6 +1300,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-UI-09 Side menu folds to icons** — Req UI-16 — E2E `shell.e2e.mjs` ("TC-UI-09: the side menu folds to icons and back, names on hover, kept after a reload"); browser check at 1440 px: « folds the menu to icons, hovering shows the page name, » shows the names again, a reload keeps the choice; below 1000 px the toggle is hidden.
 
+**TC-UI-10 Chart axis names and data labels** — Req UI-17 — L1 `chart-labels.test.mjs` ("UI-17: data labels — off by default, the shared default from Table defaults, each chart's own choice wins (TC-UI-10)"); E2E `shell.e2e.mjs` ("TC-UI-10: charts name their axes and show values when Data labels is ticked, kept per chart"); browser check: every chart shows its X and Y axis names; tick Data labels on a chart — its values appear; Settings → Table defaults → Charts → Data labels on — every chart without its own choice shows values.
+
 - L3 steps:
   1. Click the toggle three times.
   2. Load `?theme=dark` and then reload without the parameter.
@@ -1799,6 +1801,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UI-14 | TC-UI-07 |
 | UI-15 | TC-UI-08 |
 | UI-16 | TC-UI-09 |
+| UI-17 | TC-UI-10 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
 | CI-06 | TC-CI-02 |
@@ -1919,7 +1922,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-UI-09 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-UI-09, TC-UI-10 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
