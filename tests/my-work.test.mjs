@@ -536,3 +536,21 @@ test('ACT-17: addTask — a work Task under a User Story by the User Story rules
   await assert.rejects(addTask(config, 'pat', { ...input, storyId: 6 }, transport), /Time Writing story/)
   await assert.rejects(addTask(config, 'pat', { ...input, iterationPath: 'Quality\\PI 0\\Sprint 1' }, transport), /no longer current/)
 })
+
+test('ATM-29: State checks expand to the User Stories of a Feature or the Tasks of a User Story; only my New User Stories can be set Active there (TC-ATM-22)', async () => {
+  const { stateCheckChildren, canActivateHere } = await import('../src/myWork.ts')
+  const list = [
+    item(20, 'Feature', 'F', { ...ana }),
+    item(22, 'User Story', 'B', { parentId: 20, ...ben, state: 'New' }),
+    item(21, 'User Story', 'A', { parentId: 20, ...ana, state: 'New' }),
+    item(23, 'User Story', 'Gone', { parentId: 20, ...ana, state: 'Removed' }),
+    item(24, 'Task', 'T', { parentId: 21, ...ana }),
+    item(25, 'Task', 'Other project', { parentId: 20, ...ana, project: 'Other' }),
+  ]
+  assert.deepEqual(stateCheckChildren(list, list[0]).map((entry) => entry.id), [21, 22], 'User Stories of the Feature, in ID order, Removed ones left out')
+  assert.deepEqual(stateCheckChildren(list, list[2]).map((entry) => entry.id), [24], 'Tasks of the User Story')
+  assert.equal(canActivateHere(list[2], me), true, 'my New User Story')
+  assert.equal(canActivateHere(list[1], me), false, 'not mine')
+  assert.equal(canActivateHere({ ...list[2], state: 'Active' }, me), false, 'already Active')
+  assert.equal(canActivateHere(list[4], me), false, 'a Task')
+})

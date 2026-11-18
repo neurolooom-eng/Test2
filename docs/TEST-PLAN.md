@@ -646,6 +646,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-21 A Feature becomes Active only through an Active User Story** — Req ATM-28 — L1 `my-work.test.mjs` ("ATM-28: a Feature becomes Active only when one of its User Stories is Active"); browser check with the Time Writing connection: create a Feature — it stays New, also after its month Task is added on Time Writing; on My Tasks [Board] the New Feature shows "Set a User Story to Active first"; set one of its User Stories to Active — the Feature becomes Active and the result says so; in Edit, choosing Active for a Feature without an Active User Story is refused with the reason; a New Feature whose User Story was set Active in Azure DevOps is listed under Sprint check → State checks with Set Feature to Active.
 
+**TC-ATM-22 Sprint check: full-width Sprint panel and the State checks tree** — Req ATM-29 — L1 `my-work.test.mjs` ("ATM-29: State checks expand to the User Stories of a Feature or the Tasks of a User Story; only my New User Stories can be set Active there (TC-ATM-22)"); E2E `shell.e2e.mjs` ("TC-ATM-20: Sprint check offers the move to the current PI + Sprint and the state checks, without month tasks": the Sprint panel spans the page; Nothing to fix for the sample); browser check with the Time Writing connection and an Active Feature of yours whose User Stories are New: State checks shows it as a tree row; Choose a User Story (or ›) lists its User Stories; Set User Story to Active on yours sets it Active after OK and the check goes away; someone else's New story has no button.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -1652,6 +1654,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-26 | TC-ATM-18 |
 | ATM-27 | TC-ATM-19 |
 | ATM-28 | TC-ATM-21 |
+| ATM-29 | TC-ATM-22 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
@@ -1927,7 +1930,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
+| UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |

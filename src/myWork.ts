@@ -311,3 +311,11 @@ export function featureOf(items: AzureWorkItem[], item: AzureWorkItem): AzureWor
   for (let up = item.parentId == null ? undefined : byId.get(item.parentId); up && !seen.has(up.id); up = up.parentId == null ? undefined : byId.get(up.parentId)) { if (up.workItemType === 'Feature') return up; seen.add(up.id) }
   return undefined
 }
+
+// ATM-29: State checks as a tree — the items shown below a check's row (a Feature's User Stories, a User Story's Tasks;
+// Removed ones left out) and whether a row below may be set Active there (only the person's own New User Stories).
+export function stateCheckChildren(items: AzureWorkItem[], item: Pick<AzureWorkItem, 'id' | 'workItemType' | 'organization' | 'project'>) {
+  const type = item.workItemType === 'Feature' ? 'User Story' : item.workItemType === 'User Story' ? 'Task' : ''
+  return items.filter((child) => child.parentId === item.id && child.workItemType === type && child.organization === item.organization && child.project === item.project && !stateIs(child, 'removed')).sort((a, b) => a.id - b.id)
+}
+export const canActivateHere = (child: Pick<AzureWorkItem, 'workItemType' | 'state' | 'assignedTo' | 'assignedToEmail'>, me: Me) => child.workItemType === 'User Story' && stateIs(child, 'new') && isMine(child, me)
