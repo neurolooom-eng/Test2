@@ -697,3 +697,9 @@ label.formula-term{justify-content:flex-start}
 .viz-labels-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;margin-left:auto}
 .viz-toolbar .viz-labels-toggle+button{margin-left:8px}
 .ovw-head .viz-labels-toggle,.dash-chart .legend .viz-labels-toggle{margin-left:12px}
+/* ATM-29: Sprint check — the Sprint panel takes the full width; State checks look like the backlog tree. */
+.sprint-full{display:grid;gap:18px;margin-bottom:18px}
+.backlog-table.state-tree{width:100%;table-layout:auto}
+.state-tree td{vertical-align:middle}
+.state-tree .state-tree-child td{background:var(--surface-2)}
+.state-check-text{font-size:12.5px}
