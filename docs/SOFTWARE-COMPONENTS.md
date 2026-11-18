@@ -16,7 +16,7 @@ This document lists every software component of the system: the in-house source 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
 | main | `src/main.tsx` | Entry point: applies the remembered theme before first paint, then renders App inside StrictMode and the ErrorBoundary. | UI |
-| App | `src/App.tsx` | App shell: sidebar, header, month picker and page routing; loads shared setup from Git at start, removes duplicate connections, fetches cloud connections, saves on-prem fetches to Git. | NAV, CON, FET, GIT |
+| App | `src/App.tsx` | App shell: sidebar (foldable to icons), header, month picker and page routing; loads shared setup from Git at start, removes duplicate connections, fetches cloud connections, saves on-prem fetches to Git. | NAV, CON, FET, GIT |
 | index | `src/index.css` | Global styles and colour tokens for light and dark themes. | UI |
 | App | `src/App.css` | Layout styles for the shell, sidebar, top bar, panels, tables, forms, modals and responsive breakpoints. | UI |
 | fresh | `src/fresh.css` | Final "fresh look" style layer (white sidebar, soft canvas, borderless cards) built on the index.css tokens. | UI |
@@ -146,7 +146,7 @@ This document lists every software component of the system: the in-house source 
 | packInputs | `src/packInputs.ts` | The Monthly pack's inputs for a month (streams' releases and supported counts, utilisation), shared by the pack tab and the Insights workspace. | PCK, WSP |
 | insights | `src/insights.ts` | Dashboard insights: month forecast, plan accuracy, stream momentum, resilience, anomalies and health score. | OVR |
 | markdown | `src/markdown.ts` | Small Markdown parser to plain data (headings with GitHub anchors, lists, tables, inline) and link targets. | DOC |
-| closeChain | `src/closeChain.ts` | After a close: the follow-up question and the staged closing of the related User Stories or Feature, each write read back. | ATM |
+| closeChain | `src/closeChain.ts` | After a close: the follow-up question and the staged closing of the related User Stories or Feature, each write read back; Close Features on Time Writing (only the person's own items, children first). | ATM, ACT |
 | myWork | `src/myWork.ts` | "Me" matching, pending work, month-task and move candidates, state checks and next states, Feature children. | ATM |
 | pulseCheck | `src/pulseCheck.ts` | Pulse Check: previous month, release comparison, work flow opened/closed and ongoing work. | OVR |
 | pulsePeriods | `src/pulsePeriods.ts` | Pulse Check over calendar quarters, half-years and years: periods, the period before, releases once per period, work opened and closed. | QV, MYD |
@@ -311,6 +311,7 @@ This document lists every software component of the system: the in-house source 
 | content-bulk.test | `tests/content-bulk.test.mjs` | Content bulk plan, people and the chosen email. | CNB |
 | naming-patterns.test | `tests/naming-patterns.test.mjs` | Naming patterns: matching, checks, shared settings, Content and IOCC grouping. | QV |
 | desktop-zoom.test | `tests/desktop-zoom.test.mjs` | Desktop zoom: Auto fit, steps, limits, kept setting. | UI |
+| close-feature.test | `tests/close-feature.test.mjs` | Close Features: only my items, children first, others' open work keeps parents open, failure handling. | ACT |
 | table-defaults.test | `tests/table-defaults.test.mjs` | The table design default: shared setting check, column layout and moves, and dates in Excel / CSV exports read back (TC-UI-04, TC-UI-05). | UI |
 | query-view.test | `tests/query-view.test.mjs` | Query layout, field resolution, sorting, summary, CSV and column order. | QV |
 | release-overview.test | `tests/release-overview.test.mjs` | Releases per stream approved in the month for Overview and Pulse Check. | OVR |

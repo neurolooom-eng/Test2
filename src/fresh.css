@@ -659,3 +659,33 @@ label.formula-term{justify-content:flex-start}
 .zoom-control{display:flex;align-items:center;gap:6px;padding:4px 12px;font-size:13px}
 .zoom-control .text-button{min-width:28px;min-height:28px;font-size:15px}
 .zoom-control .zoom-value{min-width:48px;font-size:13px}
+/* UI-16: the side menu folded to icons on wide screens (« / »); names show on hover. Narrower screens already use the
+   icon rail, so the toggle is hidden there. */
+.sidebar .brand{position:relative}
+.nav-mini-toggle{margin-left:auto;background:transparent;border:1px solid #ffffff33;color:var(--sidebar-text);border-radius:6px;font-size:13px;line-height:1;padding:3px 7px;cursor:pointer}
+.nav-mini-toggle:hover{background:var(--sidebar-hover);color:#fff}
+@media(max-width:1000px){.nav-mini-toggle{display:none}}
+@media(min-width:1001px){
+  .app-shell.nav-mini{grid-template-columns:72px 1fr}
+  .nav-mini .sidebar{padding:14px 8px;overflow-x:hidden}
+  .nav-mini .sidebar .brand{flex-direction:column;align-items:center;gap:8px;padding:0 0 14px}
+  .nav-mini .sidebar .brand>div:nth-child(2),.nav-mini .nav-fold,.nav-mini .zoom-control{display:none}
+  .nav-mini .nav-mini-toggle{margin-left:0}
+  .nav-mini .nav-collapsed{display:block}
+  .nav-mini .sidebar nav button,.nav-mini .sidebar nav button:not(.nav-active),.nav-mini .sidebar nav .nav-items button.nav-missing{font-size:0!important;display:grid;justify-items:center;padding:10px 4px;width:100%;position:relative}
+  .nav-mini .sidebar nav button.nav-group,.nav-mini .sidebar nav button.nav-subgroup{display:none}
+  .nav-mini .sidebar nav .nav-section+.nav-section{border-top:0;padding-top:0}
+  .nav-mini .sidebar nav .nav-subsection>.nav-items{margin-left:0;padding-left:0;border-left:0}
+  .nav-mini .nav-icon{font-size:18px}
+  .nav-mini .nav-badge{position:absolute;top:2px;right:4px;font-size:9px}
+  .nav-mini .sidebar-footer{font-size:0}
+  .nav-mini .sidebar-footer small{display:none}
+  .nav-mini .sidebar-tools .download-link{font-size:0;justify-content:center}.nav-mini .sidebar-tools .download-link span{font-size:16px}
+}
+/* ACT-18 / ACT-19: Close mode in the activities card head; Add a new activity folds to its heading, and while folded
+   the activities table takes the full width. */
+.act-card-head{gap:12px}
+.act-close-mode{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap}
+.act-close-mode+.act-save-top{margin-left:0}
+.act-fold{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.act-grid.act-add-folded{grid-template-columns:minmax(0,1fr)}

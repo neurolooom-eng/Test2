@@ -146,13 +146,15 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-99 | Release naming patterns (QV-55) | A pattern groups documents of different releases together, or splits one release | Wrong release counts and lists in Pulse Check and the Monthly pack | A pattern too wide (e.g. {*}) or a Title written differently | 3 | 3 | 3 | 27 | Built-in patterns from the team's naming rules; "Try a Title" before Apply; the documents shown under each release; unmatched Titles keep the stream rule; Reset to built-in; changes audited and in Git (TC-QV-37) | 3×2×2 = 12 | TC-QV-37 | — |
 | DF-100 | DP Supported limited to the month's list (QV-56) | Supported higher than the releases listed, or a release counted in a month it is not shown | Over-stated support in the monthly call | Milestones Done counted across all releases | 3 | 3 | 2 | 18 | Supported counts only releases listed in the month, each once (TC-QV-36) | 3×1×2 = 6 | TC-QV-36 | — |
 | DF-101 | Desktop zoom (UI-14) | The page is zoomed so far that text is unreadable, or Auto fights a zoom set by hand | Content cut off or too small to read | A very small window; resize events | 2 | 2 | 2 | 8 | Auto never below 67% or above 100%; any hand-set zoom turns Auto off; the zoom shown in the sidebar, 100% one click away (TC-UI-07) | 2×1×2 = 4 | TC-UI-07 | — |
+| DF-102 | Close Features on Time Writing (ACT-18) | Work of another person is closed, or a Feature is closed while work below it is still open | Other people's work disappears from their lists; hours can no longer be booked | Ticking the wrong Feature; shared Features and Time Writing stories | 4 | 3 | 3 | 36 | Only the person's own items are closed; an item with someone else's open work below it stays open; a Feature of someone else is never closed; one confirmation lists every item; a failed write keeps everything above it open; audited (TC-ACT-14) | 4×1×2 = 8 | TC-ACT-14 | — |
+| DF-103 | Folding the menu and Add a new activity (UI-16, ACT-19) | A page or the Add form cannot be found | The user believes the function is gone | The fold kept per computer | 2 | 2 | 2 | 8 | « / » and the ▸ heading stay visible; names show on hover (TC-UI-09, TC-ACT-15) | 2×1×2 = 4 | TC-UI-09, TC-ACT-15 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 101 |
+| Failure modes analysed | 103 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

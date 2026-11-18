@@ -1298,6 +1298,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-UI-08 My Work page names** — Req UI-15 — L1 `format.test.mjs` ("page registry has unique ids, known groups and header text for every page": My Work lists Time Writing, My Tasks [Board], Sprint check); E2E `shell.e2e.mjs` ("TC-ACT-01: Time Writing is under My Work for everyone; the Testing heading is for the Admin role only"); browser check: the menu shows Time Writing and My Tasks [Board] under My Work, each opens with that heading, and My dashboard's links read Time Writing → and My Tasks [Board] →.
 
+**TC-UI-09 Side menu folds to icons** — Req UI-16 — E2E `shell.e2e.mjs` ("TC-UI-09: the side menu folds to icons and back, names on hover, kept after a reload"); browser check at 1440 px: « folds the menu to icons, hovering shows the page name, » shows the names again, a reload keeps the choice; below 1000 px the toggle is hidden.
+
 - L3 steps:
   1. Click the toggle three times.
   2. Load `?theme=dark` and then reload without the parameter.
@@ -1470,6 +1472,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-ACT-12 A new Feature from Time Writing uses the New Feature form** — Req ACT-16, BKL-26 — E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": the Feature choice has no form of its own, only Open New Feature, disabled with the sample-data reason); browser check with the Time Writing connection: Add a new activity → Feature → Open New Feature opens the New Feature form with the person shown as assignee and the header month in "Time Writing (<Month>)"; under an Epic with a Feature setup its title fields, DoD and User Stories appear as on Backlogs; Save creates the Feature in the Epic's Area Path and the chosen PI, the stories in the Sprint and the Time Writing story and Task with the setup's paths (else the project root and the Feature's area).
 
 **TC-ACT-13 A work Task from Time Writing** — Req ACT-17, BKL-27 — L1 `my-work.test.mjs` ("ACT-17: addTask — a work Task under a User Story by the User Story rules; never a Time Writing Task") ; E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": the Task choice asks for the User Story, Title, Description and Comment, and Add Task stays disabled without a title); browser check with the Time Writing connection: Add a new activity → Task, pick a Feature and one of its User Stories, enter a title, description, Sprint and comment → Add Task creates the Task under that story, assigned to the person, in the story's Area Path and the chosen Sprint, with the comment in its Discussion.
+
+**TC-ACT-14 Close Features on Time Writing** — Req ACT-18 — L1 `close-feature.test.mjs` ("ACT-18: Close Feature closes only my open items, children first; the Feature too when nothing else is open (TC-ACT-14)"; "ACT-18: open work of others keeps their story and the Feature open; a Feature of someone else is never closed (TC-ACT-14)"; "ACT-18: closing runs New → Active → Closed for stories and Features; a failure keeps everything above it open (TC-ACT-14)"); E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": Close Features shows tick boxes, Close 1 Feature, nothing written with sample data); browser check with the Time Writing connection: tick Close Features, tick a Feature of yours → the confirmation lists your Tasks, User Stories and the Feature; after OK they are Closed in Azure DevOps, the month row shows Closed · read-only with its hours disabled; a Feature with someone else's open Task keeps that story and the Feature open and says why.
+
+**TC-ACT-15 Add a new activity folds** — Req ACT-19 — E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": folded by default, the list full width, opened with its heading); browser check: open it, reload — it stays open; fold it — the activities take the full width.
 
 **TC-ACT-05 Suggestions by state, Add all** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the Features keep their state (ATM-28: a New Feature becomes Active only through an Active User Story).
 
@@ -1792,6 +1798,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UI-13 | TC-UI-06 |
 | UI-14 | TC-UI-07 |
 | UI-15 | TC-UI-08 |
+| UI-16 | TC-UI-09 |
 | CI-01…04 | TC-INS-04, TC-CI-01 |
 | CI-05 | TC-UPD-01 |
 | CI-06 | TC-CI-02 |
@@ -1872,6 +1879,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-15 | TC-ACT-11 |
 | ACT-16 | TC-ACT-12 |
 | ACT-17 | TC-ACT-13 |
+| ACT-18 | TC-ACT-14 |
+| ACT-19 | TC-ACT-15 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1910,10 +1919,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-UI-09 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
-| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18 |
+| UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
