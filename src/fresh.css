@@ -262,7 +262,7 @@ td small{color:var(--text-3)}
 .dash-section .panel-heading .chip-row{margin:0}
 .dash-grid-2>*,.dash-grid-wide>*{min-width:0}.dash-grid-2 .azure-table{margin-top:8px}
 .dash-stack{display:grid;gap:18px;margin-bottom:18px}.dash-stack>*{min-width:0}
-/* Assigned to Me: Features expand to their User Stories, Bugs and Tasks. */
+/* My Tasks [Board]: Features expand to their User Stories, Bugs and Tasks. */
 .work-toggle{background:none;border:0;padding:0;margin-right:6px;width:18px;color:var(--text-2);cursor:pointer;font-size:14px;line-height:1}.work-toggle-empty{display:inline-block;text-align:center;cursor:default}
 .work-open td{border-bottom-color:transparent}.work-child td{background:var(--surface-2)}.work-child .work-indent{display:inline-block;width:26px}.work-depth-2 .work-indent{width:52px}.work-child strong.inline{font-weight:500}
 /* Create Feature: the title's three parts (Program · Service · Release / Platform · Name · Release). */
@@ -490,7 +490,7 @@ table.resizable.wrap th,table.resizable.wrap td{white-space:pre-wrap;overflow-wr
 .segmented label{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12.5px;cursor:pointer;color:var(--text-2)}
 .segmented label.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow)}.segmented input{width:auto;margin:0}
 @media(max-width:1000px){.sidebar-tools .download-link{font-size:0;justify-content:center}.sidebar-tools .download-link span{font-size:16px}}
-/* My Activities (ACT-02…ACT-07): three clean cards — your activities, add a new one, your monthly update. */
+/* Time Writing (ACT-02…ACT-07): three clean cards — your activities, add a new one, your monthly update. */
 .activities-page{max-width:1500px}
 .act-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px}.act-header h2{margin:0;font-size:28px;color:var(--navy)}.act-header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .act-person{min-width:240px}
@@ -520,7 +520,7 @@ details.act-leave{border:1px solid var(--line);border-radius:10px;padding:8px 12
 @media(max-width:800px){.act-grid{grid-template-columns:1fr}.act-header{flex-direction:column;align-items:flex-start}}
 .act-stream-inline{display:none}.act-table td.act-stream,.act-table th.act-stream{width:22%}
 @media(max-width:800px){.act-table .act-stream{display:none}.act-stream-inline{display:inline}.act-hours{width:58px}.act-card{padding:16px}}
-/* My Activities: two columns — your activities on the left; your monthly update with Add a new activity below it on the right. */
+/* Time Writing: two columns — your activities on the left; your monthly update with Add a new activity below it on the right. */
 .act-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}.act-side{display:grid;gap:18px;min-width:0;align-content:start}
 @media(max-width:1250px){.act-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}.act-summary{grid-column:auto}}
 @media(max-width:800px){.act-grid{grid-template-columns:1fr}}

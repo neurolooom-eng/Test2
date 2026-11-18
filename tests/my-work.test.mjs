@@ -213,7 +213,7 @@ test('state checks: closed stories close the Feature, closed tasks close the sto
     [{ state: 'Active', label: 'Set User Story to Active' }, { state: 'Closed', label: 'Close User Story' }, null, { state: 'Closed', label: 'Close Bug' }], 'User Stories follow the Feature logic; Bugs and Tasks close directly')
 })
 
-test('Assigned to Me search: every word must match, across ID, title, type, state, Feature, Epic, paths and tags', () => {
+test('My Tasks [Board] search: every word must match, across ID, title, type, state, Feature, Epic, paths and tags', () => {
   const rows = myPendingWork(items, me)
   const find = (query) => rows.filter((row) => matchesWork(row, query)).map(({ item }) => item.id)
   assert.deepEqual(find(''), rows.map(({ item }) => item.id), 'blank search shows everything')
@@ -471,7 +471,7 @@ test('ATM-28: a Feature becomes Active only when one of its User Stories is Acti
   const me = { email: 'ana@x.com' }
   const mine = (id, type, state, parentId) => item(id, type, `${type} ${id}`, { state, parentId, assignedTo: 'Ana', assignedToEmail: 'ana@x.com' })
   const items = [mine(1, 'Feature', 'New'), mine(11, 'User Story', 'New', 1), mine(2, 'Feature', 'New'), mine(21, 'User Story', 'Active', 2), mine(22, 'User Story', 'Removed', 2)]
-  // Offered on Assigned to Me only with an Active story; the state check flags a New Feature with one.
+  // Offered on My Tasks [Board] only with an Active story; the state check flags a New Feature with one.
   assert.equal(nextStateFor(items[0], items), null, 'no Active User Story: not offered')
   assert.deepEqual(nextStateFor(items[2], items), { state: 'Active', label: 'Set Feature to Active' })
   assert.deepEqual(stateChecks(items, me).map((check) => [check.kind, check.item.id, check.children.map((child) => child.id)]), [['activate-feature', 2, [21]]])

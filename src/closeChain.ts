@@ -11,7 +11,7 @@ export async function activateFeatureOf(config: AzureConfig, pat: string, items:
   return write(config, pat, feature.id, { state: 'Active' })
 }
 
-// After an item is closed from Assigned to Me or a state check: ask the follow-up question (closeFollowUp) and, when
+// After an item is closed from My Tasks [Board] or a state check: ask the follow-up question (closeFollowUp) and, when
 // confirmed, close the related items one by one in the staged order (New → Active → Closed), each write read back as
 // usual. Items in a state that cannot be closed are reported, not written. Nothing is written without the confirmation.
 export interface FollowUpResult { follow: CloseFollowUp; confirmed: boolean; closed: AzureWorkItem[]; skipped: string[]; failed: string[] }

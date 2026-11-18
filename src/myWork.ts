@@ -34,7 +34,7 @@ export function myPendingWork(items: AzureWorkItem[], me: Me, absenceEpicId?: nu
   return pending.sort((a, b) => rank(a.item.workItemType) - rank(b.item.workItemType) || a.item.id - b.item.id)
 }
 
-// Search on Assigned to Me: every word must appear (any case) in the ID, title, type, state, Feature, Epic, Area Path,
+// Search on My Tasks [Board]: every word must appear (any case) in the ID, title, type, state, Feature, Epic, Area Path,
 // Iteration Path or tags. A blank search matches everything.
 export function matchesWork(row: { item: AzureWorkItem; feature?: AzureWorkItem; epic?: AzureWorkItem }, query: string) {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean).map((word) => word.replace(/^#(?=\d)/, ''))
@@ -212,7 +212,7 @@ export function stateChecks(items: AzureWorkItem[], me: Me, absenceEpicId?: numb
   return checks
 }
 
-// What may be done to an item from Assigned to Me: a New Feature or User Story is set to Active; only an Active one
+// What may be done to an item from My Tasks [Board]: a New Feature or User Story is set to Active; only an Active one
 // is Closed (nothing in any other state). Tasks and Bugs are closed directly.
 // ATM-28: a Feature becomes Active only when one of its User Stories (any, Removed ones aside) is Active.
 export const hasActiveStory = (items: Pick<AzureWorkItem, 'parentId' | 'workItemType' | 'state'>[], featureId: number) => items.some((entry) => entry.parentId === featureId && entry.workItemType === 'User Story' && stateIs(entry, 'active'))
@@ -252,7 +252,7 @@ export function followUpQuestion(follow: NonNullable<CloseFollowUp>) {
   return `#${follow.story.id} was the last open User Story of Feature #${follow.feature.id} “${follow.feature.title}” (${follow.feature.state}). Also close the Feature in Azure DevOps?`
 }
 
-// The work under a Feature on Assigned to Me: its direct children (User Stories, Bugs, Tasks; any state but Removed)
+// The work under a Feature on My Tasks [Board]: its direct children (User Stories, Bugs, Tasks; any state but Removed)
 // in ascending ID order, each with its own children the same way. Items of other people are included: the point is
 // to see the whole Feature.
 export interface FeatureChild { item: AzureWorkItem; children: AzureWorkItem[] }
