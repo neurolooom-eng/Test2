@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.15.1 — 2026-11-18
+
+**Updated**
+- Daily package update: oxlint 1.93.0 → 1.94.0 (lint, development only).
+
+**Open**
+- picomatch ≤ 4.0.7 (high, ReDoS, GHSA-fc5q-39xc-vjpf), reached only through the build tools (Vite, tinyglobby): the patched 4.0.8 is not published yet, so no override can pin it; not part of the app at run time. Checked daily.
+
+PR #286.
+
 ## v7.15.0 — 2026-11-17
 
 **Added**
