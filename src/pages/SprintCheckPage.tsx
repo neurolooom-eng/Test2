@@ -18,7 +18,7 @@ const shortPath = (path: string) => path.split('\\').slice(1).join(' › ') || p
 
 // Sprint check (ATM-07…ATM-09, ATM-20; formerly Bulk actions): move my pending User Stories from past Sprints to the current
 // one, and the state checks of my Features and User Stories. Each asks for confirmation; after it the data is refreshed.
-// Month Time Writing tasks are added on My Activities.
+// Month Time Writing tasks are added on Time Writing.
 // assign: who is creating (their email) and whether they may assign new work to someone else.
 // The item's number as a link to it in Azure DevOps (new tab); plain text when no address is known.
 function ItemLink({ item }: { item: Pick<AzureWorkItem, 'id' | 'url' | 'workItemType' | 'title'> }) {
