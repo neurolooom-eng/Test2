@@ -244,15 +244,11 @@ export function normalizeCapacityRoles(value: unknown): CapacityRoles | undefine
   return same(roles.excludedResourceRoles, defaultCapacityRoles.excludedResourceRoles) && same(roles.excludedAccessRoles, defaultCapacityRoles.excludedAccessRoles) ? undefined : roles
 }
 // Why a person is not counted for capacity because of a role (undefined when counted).
+// CAP-57: only the person's team Role (People & access) decides whether they count for capacity — never their app
+// access role (Admin, People Manager, …) nor the People manager tick, which only grant rights in the app.
 export function roleExclusion(name: string, settings: CapacitySettings): string | undefined {
   const roles = settings.capacityRoles ?? defaultCapacityRoles, profile = settings.profiles?.[name]
-  if (profile?.role && roles.excludedResourceRoles.includes(profile.role)) return `team role ${profile.role}`
-  if (profile?.peopleManager && roles.excludedAccessRoles.includes('People Manager')) return 'People manager'
-  // The email Azure DevOps gives for the name first; one saved in the profile before v7.0.0 otherwise.
-  const email = settings.azureEmails?.[name] ?? profile?.email
-  const access = email ? settings.accessRoles?.[email] ?? [] : []
-  const role = access.find((entry) => roles.excludedAccessRoles.includes(entry))
-  return role ? `app role ${role}` : undefined
+  return profile?.role && roles.excludedResourceRoles.includes(profile.role) ? `team role ${profile.role}` : undefined
 }
 
 export const absenceKind = (titles: string[], rules: BucketRules = defaultBucketRules): AbsenceKind => absenceKindBy(rules, titles)
