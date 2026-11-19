@@ -1,4 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
+import { AdminOverview } from '../components/AdminOverview'
+import type { SetupStep } from '../setupGuide'
+import { useBulkEpic } from '../useStreamEpics'
 import { NamingPatternsPanel } from '../components/NamingPatternsPanel'
 import { EpicSetupPanel } from '../components/EpicSetupPanel'
 import type { EpicSetupStore } from '../useEpicSetup'
@@ -25,7 +28,7 @@ import { FeatureSetupPanel } from '../components/FeatureSetupPanel'
 import { SharedTimePanel } from '../components/SharedTimePanel'
 import { CalculationProfilesPanel } from '../components/CalculationProfilesPanel'
 import { CapacityRolesPanel } from '../components/CapacityRolesPanel'
-import { defaultPolicy, keepsManager, roles as accessRoles, type Action, type Role } from '../access'
+import { defaultPolicy, keepsManager, roles as accessRoles, toolOwnerExists, type Action, type Role } from '../access'
 import { BucketRulesPanel } from '../components/BucketRulesPanel'
 import { InsightThresholdsPanel } from '../components/InsightThresholdsPanel'
 import type { InsightThresholds } from '../insightThresholds'
@@ -43,7 +46,7 @@ const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month:
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
 // Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
-export function AdminPage({ store, month, azure, git, access, featureSetup, epicSetup, qeColumnNames = [], monthlyPack, history, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; epicSetup: EpicSetupStore; qeColumnNames?: string[]; monthlyPack: MonthlyPackStore; history: HistoryStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, access, featureSetup, epicSetup, setupSteps = [], onSearch = () => undefined, qeColumnNames = [], monthlyPack, history, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; epicSetup: EpicSetupStore; setupSteps?: SetupStep[]; onSearch?: () => void; qeColumnNames?: string[]; monthlyPack: MonthlyPackStore; history: HistoryStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
   const [everything, setEverything] = useState<{ busy: boolean; loaded?: string[]; failed?: string[] }>({ busy: false })
   // CON-94: each shared section needs its own permission.
   const can = access.can
@@ -238,7 +241,15 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
   // SET-15: My settings for everyone; an older page key opens the page it moved to.
   const asked = resolveSettings(requested).tab
   const tab = asked === 'my' || settingsPagesFor(can).some((page) => page.key === asked) ? asked : 'connections'
+  // ADM-01: the Overview's shared-setup checks.
+  const ioccBulk = useBulkEpic('IOCC').epicId
+  const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly }
+  // ADM-04: History, filtered by area and text.
+  const [auditFilter, setAuditFilter] = useState({ entity: '', text: '' })
+  const auditEntities = [...new Set(store.state.audits.map((item) => item.entity))].sort()
+  const auditShown = store.state.audits.filter((item) => (!auditFilter.entity || item.entity === auditFilter.entity) && (!auditFilter.text.trim() || `${item.entity} ${item.detail} ${item.action}`.toLowerCase().includes(auditFilter.text.trim().toLowerCase())))
   return <Page>
+    {tab === 'home' && <AdminOverview steps={setupSteps} facts={facts} git={git} audits={store.state.audits} onOpenTab={onOpenTab} onSearch={onSearch} />}
     {tab === 'my' && <SectionTabs page="my" sections={[
       { key: 'email', label: 'Your work email', scope: 'you', node: <AzureConnections section="email" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} /> },
       { key: 'servers', label: 'Servers and PATs', scope: 'you', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canManageStreams={access.canManageStreams} /> },
@@ -370,8 +381,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       { key: 'fields', label: 'Feature fields per Epic', scope: 'everyone', node: <EpicSetupPanel section="fields" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
       { key: 'lists', label: 'Value lists', scope: 'everyone', node: <EpicSetupPanel section="lists" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
     ]} />}
-    {tab === 'audit' && <Panel eyebrow="AUDIT" title="Recent changes">
-      {store.state.audits.slice(0, 8).map((item) => <div className="audit-row" key={item.id}><span>{item.action}</span><div><strong>{item.entity}</strong><small>{item.detail}</small></div><time>{formatDateTime(item.timestamp)}</time></div>)}
+    {tab === 'audit' && <Panel eyebrow="HISTORY" title="Changes" info="The changes made to the shared planning data, newest first, with who and what. Filter by area or text.">
+      <div className="query-toolbar"><select aria-label="Area" value={auditFilter.entity} onChange={(event) => setAuditFilter({ ...auditFilter, entity: event.target.value })}><option value="">All areas</option>{auditEntities.map((entity) => <option key={entity}>{entity}</option>)}</select><input className="search" aria-label="Search changes" placeholder="Search changes" value={auditFilter.text} onChange={(event) => setAuditFilter({ ...auditFilter, text: event.target.value })} /><small className="muted">{auditShown.length} of {store.state.audits.length}</small></div>
+      {auditShown.slice(0, 200).map((item) => <div className="audit-row" key={item.id}><span>{item.action}</span><div><strong>{item.entity}</strong><small>{item.detail}</small></div><time>{formatDateTime(item.timestamp)}</time></div>)}
       {!store.state.audits.length && <EmptyState title="No changes recorded yet." detail="Changes made in the app will appear here." />}
       <button className="danger-button" onClick={store.reset}>Reset synthetic MVP data</button>
     </Panel>}

@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.32.0 — 2026-11-19
+
+**Added**
+- **Admin → Overview** — setup health in one list: the open Get started steps and the shared-setup checks (unsaved shared changes, no access roles or Tool Owner, no IOCC bulk Epic, no Epic or Feature setup…), each with a link straight to the setting (ADM-01).
+- **Unsaved shared changes** — shown on the Overview with Save to Git, and as a count next to ADMIN in the menu (ADM-02).
+- **Search settings** — Ctrl K (⌘ K) or Search settings in the sidebar finds any setting by name or topic and opens it (ADM-03).
+- **History** — filter the changes by area and text (ADM-04). Undo is not there yet (OI-15).
+
+DF-117; OI-15; TC-ADM-01, TC-ADM-02. PR #306.
+
 ## v7.31.0 — 2026-11-19
 
 **Added**
