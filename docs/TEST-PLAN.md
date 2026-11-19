@@ -1421,7 +1421,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 ### 6.24 My dashboard and team insights
 
-**TC-MYD-01 My dashboard as the start page** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work and my streams; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match My Tasks [Board].
+**TC-MYD-01 My dashboard as the start page** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match My Tasks [Board].
 
 **TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Admin and People Manager; older files keep them for those two (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
 
@@ -1430,6 +1430,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-MYD-04 Customize sections and menu** — Req MYD-06, MYD-07, MYD-08 — E2E `shell.e2e.mjs` ("TC-MYD-04: a person hides and moves the sections of My dashboard and pins a page to the menu; both survive a reload"); browser check (Git storage, work email): the file `personal-views/<email>.json` appears in Git and the layout comes back on another computer; an admin's "Use as default for everyone" applies to a person who changed nothing; the Dashboard and Pulse Check periods are remembered; Customize menu lists the pages under their menu groups with Pinned and In menu boxes, and the sidebar shows Customize menu and View as… as full-width buttons like Desktop app.
 
 **TC-MYD-05 Team overview tiles and tabs** — Req MYD-10, MYD-11, MYD-12 — E2E `shell.e2e.mjs` ("TC-MYD-05: Team overview shows six headline tiles; each opens its analysis, with a trail back; Delivery opens Pulse Check"); unit tests of the calculations as before (`dashboard.test.mjs`, `insights.test.mjs`); inspection: the menu offers no Insights workspace and `src/workspace.ts` is gone.
+
+**TC-MYD-06 Releases and documents signed by me in a period** — Req MYD-13 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year": the Signed by me panel, This year sets From / To, the streams listed); L1 `my-signatures.test.mjs` ("MYD-13: signature fields are Author, Reviewer or Approver names — not their dates, functions or roles (TC-MYD-06)"; "MYD-13: documents and releases I signed per stream in a from–to period; a release counts once (TC-MYD-06)"; "MYD-13: a Windchill export counts the documents I signed by its Author / Reviewer / Approver columns (TC-MYD-06)"); browser check with the stream views fetched (with their Author / Reviewer / Approver fields) and the Windchill exports imported: My dashboard → Signed by me shows releases and documents per stream for Last 12 months; choose From / To or This quarter — the figures follow; the document list names the stream, release, field and date; a stream without such fields is named.
 
 **TC-HIS-01 Historical hours page** — Req HIS-01 — E2E `shell.e2e.mjs` ("TC-HIS-01: Settings → Historical hours explains the import and needs Git storage to upload"); browser check with Git storage and the real planning workbook: Upload Excel… reads TransformedData; the counts (rows May–Sep 2026, people, recorded hours, rows not imported with their reasons) match the workbook; Save to Git writes `history-hours.json` to the data repository (not to the app's repository); the page shows the source, cut-off and the Azure DevOps Tasks left out; Remove history removes the file.
 
@@ -1855,6 +1857,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | MYD-10 | TC-MYD-05 |
 | MYD-11 | TC-MYD-05 |
 | MYD-12 | TC-MYD-05 |
+| MYD-13 | TC-MYD-06 |
 | HIS-01 | TC-HIS-01 |
 | HIS-02 | TC-HIS-02 |
 | HIS-03 | TC-HIS-02 |
@@ -1953,7 +1956,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |
-| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33, TC-QV-34, TC-QV-35, TC-QV-36, TC-QV-37 |
+| UC-26 | TC-MYD-01…05, TC-QV-31, TC-QV-32, TC-QV-33, TC-QV-34, TC-QV-35, TC-QV-36, TC-QV-37, TC-MYD-06 |
 | UC-27 | TC-HIS-01…11 |
 | UC-28 | TC-ACT-01…12, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-ATM-21 |
 | UC-29 | TC-OVW-01…03 |

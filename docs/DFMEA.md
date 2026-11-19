@@ -150,13 +150,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-103 | Folding the menu and Add a new activity (UI-16, ACT-19) | A page or the Add form cannot be found | The user believes the function is gone | The fold kept per computer | 2 | 2 | 2 | 8 | « / » and the ▸ heading stay visible; names show on hover (TC-UI-09, TC-ACT-15) | 2×1×2 = 4 | TC-UI-09, TC-ACT-15 | — |
 | DF-104 | Chart data labels and axis names (UI-17) | Labels overlap or a value is read against the wrong axis | A wrong figure is quoted from a chart | Many months or Epics; small bars | 2 | 2 | 2 | 8 | Labels off by default, switched per chart; axis names on every chart; the Table view and tooltips give the exact values (TC-UI-10) | 2×1×2 = 4 | TC-UI-10 | — |
 | DF-105 | Set a User Story Active from State checks (ATM-29) | Someone else's User Story is set Active, or the wrong story is chosen | Work shown as started that is not | Expanded rows of a shared Feature | 3 | 2 | 2 | 12 | Only the person's own New stories have the button; a confirmation names the item; the write is read back and audited (TC-ATM-22) | 3×1×2 = 6 | TC-ATM-22 | — |
+| DF-106 | Signed by me on My dashboard (MYD-13) | A document is counted for the wrong person, or one signed by the person is missed | Wrong personal figures reported | A shared name; a field named differently; a document without a date | 3 | 3 | 3 | 27 | All words of one of the person's names, or their work email, must be in the field; only Author / Reviewer / Approver fields; streams without such fields are named; undated documents are counted and shown apart; the documents behind the figures are listed (TC-MYD-06) | 3×2×2 = 12 | TC-MYD-06 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 105 |
+| Failure modes analysed | 106 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

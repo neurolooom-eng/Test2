@@ -1,3 +1,9 @@
+import { SignedByMe } from '../components/SignedByMe'
+import { azureSignatures, isSignatureField, windchillSignatures } from '../mySignatures'
+import { streamPatterns } from '../releaseSource'
+import { defaultStreams, profileForStream, windchillOptionsForView, windchillStreamExports } from '../streams'
+import { viewSource } from '../viewSources'
+import type { WindchillWorkspace } from '../useWindchill'
 import { capacityContext, itemsForPerson, problemBreakdown } from '../capacity'
 import { monthRange, personMonths, streamTotals, totals } from '../dashboard'
 import { isMine, isPending, myNames, stateChecks } from '../myWork'
@@ -12,7 +18,7 @@ import { CustomizableSections } from '../components/PersonalLayout'
 
 // My dashboard (MYD-01…MYD-04): every user's start page — their own hours against their capacity, their open work and
 // their streams and releases, for the header month. Each count opens the page with the detail.
-export function MyDashboardPage({ month, azure, store, my, navigate, views, canSetDefault = false }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; views: PersonalViewsStore; canSetDefault?: boolean }) {
+export function MyDashboardPage({ month, azure, store, my, navigate, views, canSetDefault = false, windchill }: { month: string; azure: AzureWorkspace; store: PageProps['store']; my: MyWork; navigate: (page: PageId) => void; views: PersonalViewsStore; canSetDefault?: boolean; windchill?: Pick<WindchillWorkspace, 'views' | 'sources'> }) {
   if (!my.known) return <Page><EmptyState title="Who are you in Azure DevOps?" detail="Set your work email in Settings → Azure DevOps → Your work email, or choose your name on My Tasks [Board]. My dashboard then shows your own hours and work." /></Page>
   const settings = capacityContext(store.state)
   const today = todayIso()
@@ -31,6 +37,19 @@ export function MyDashboardPage({ month, azure, store, my, navigate, views, canS
   // Releases behind my Features: my open or closed Features whose Target Date falls in the month.
   const due = azure.items.filter((item) => item.workItemType === 'Feature' && isMine(item, my.me) && item.targetDate?.slice(0, 7) === month).sort((a, b) => (a.targetDate ?? '').localeCompare(b.targetDate ?? ''))
   const label = monthName(month)
+  // MYD-13: the documents I signed in every stream that has the data (Azure DevOps views and Windchill exports).
+  const signer = { names, ...(my.me.email ? { email: my.me.email } : {}) }
+  const releaseConnections = azure.connectionProfiles.filter((entry) => entry.role === 'release-source').length
+  const streamData = defaultStreams.map((stream) => {
+    if (stream.source === 'azure') {
+      const profile = profileForStream(stream, azure.connectionProfiles)
+      const source = profile ? viewSource(store.state, profile.id, profile.role, profile.query, releaseConnections) : undefined
+      return { stream: stream.name, has: Boolean(source?.items.some((item) => Object.keys(item.fields ?? {}).some(isSignatureField))), signed: source ? azureSignatures(source.items, stream.name, signer, stream.rule, streamPatterns(store.state.releaseSourceSettings, stream.name)) : [] }
+    }
+    const exports = windchill ? windchillStreamExports(windchill.views).filter((entry) => entry.stream === stream && entry.view) : []
+    const sources = exports.flatMap((entry) => { const source = windchill!.sources.find((item) => item.viewId === entry.view!.id); return source ? [{ source, view: entry.view! }] : [] })
+    return { stream: stream.name, has: sources.some(({ source }) => source.columns.some(isSignatureField)), signed: sources.flatMap(({ source, view }) => windchillSignatures(source.rows, source.columns, stream.name, signer, windchillOptionsForView(view))) }
+  }).filter((entry, index, all) => all.findIndex((other) => other.stream === entry.stream) === index)
   const open = (page: PageId, text: string) => <button type="button" className="text-button" onClick={() => navigate(page)}>{text} →</button>
   return <Page>
     <p className="muted">{name || my.me.email} · {label}</p>
@@ -69,6 +88,7 @@ export function MyDashboardPage({ month, azure, store, my, navigate, views, canS
       </tbody></table></div>}
     </TablePanel>
       </> },
+      { id: 'signed', label: 'Signed by me', node: <SignedByMe signed={streamData.flatMap((entry) => entry.signed)} streams={streamData.map((entry) => entry.stream)} missing={streamData.filter((entry) => !entry.has).map((entry) => entry.stream)} month={month} /> },
     ]} />
   </Page>
 }
