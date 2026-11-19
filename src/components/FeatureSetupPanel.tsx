@@ -1,3 +1,4 @@
+import { useBulkEpic } from '../useStreamEpics'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
 import { dpEpicId, releaseTypesOf, maxTitleFields, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
@@ -11,6 +12,8 @@ import { EmptyState, Modal, Notice, Panel, Info } from './ui'
 // used only when I create a Feature, before the shared one) and "Shared" (feature-setup.json, everyone). Anyone whose
 // Git token can write may edit either, and "Enable for everyone" copies my setup of an Epic into the shared one.
 export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { setup: FeatureSetup; git: GitStorage; items: AzureWorkItem[]; qeColumnNames?: string[] }) {
+  // QV-59: the release-type sets and QE Mapping columns also belong to the Epics chosen for DP and IOCC bulk creation.
+  const dpBulkEpic = useBulkEpic('DP').epicId, ioccBulkEpic = useBulkEpic('IOCC').epicId
   const epics = items.filter((item) => item.workItemType === 'Epic' && item.state.toLowerCase() !== 'removed').sort((a, b) => a.title.localeCompare(b.title))
   const [draft, setDraft] = useState<FeatureSetupFile | null>(null)
   const [epicId, setEpicId] = useState(0)
@@ -190,8 +193,8 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         </div>)}
         <button type="button" className="ghost" onClick={() => change((entry) => { entry.stories.push({ title: '', description: '' }) })}>＋ Add optional User Story</button>
         {/* DPF-01…02: the DP Epic's sets per release type and the QE Mapping columns (Release Details → DP, Create Features). */}
-        {current && chosen === dpEpicId && <div className="setup-dp">
-          <h3>DP releases <Info>Release Details → DP reads the release type from the version x.y.z.a: X.0.0.0 Major and x.y.0.0 Minor use the Release set; x.y.z.0 MLD and x.y.z.a Platform Update use the PU set. Create Features uses that set's DoD and User Stories, and assigns everything to the release's QE from the QE Mapping.</Info></h3>
+        {current && (chosen === dpEpicId || chosen === dpBulkEpic || chosen === ioccBulkEpic) && <div className="setup-dp">
+          <h3>{chosen === ioccBulkEpic && chosen !== dpBulkEpic ? 'IOCC releases' : 'DP releases'} <Info>Release Details → DP (and IOCC, QV-59) reads the release type from the version x.y.z.a: X.0.0.0 Major and x.y.0.0 Minor use the Release set; x.y.z.0 MLD and x.y.z.a Platform Update use the PU set. Create Features uses that set's DoD and User Stories, and assigns everything to the release's QE from the QE Mapping.</Info></h3>
           {(['release', 'pu'] as const).map((kind) => { const set = releaseTypesOf(current)[kind]; const edit = (update: (next: { featureDoD: string; stories: { title: string; description: string }[] }) => void) => change((entry) => { const types = structuredClone(releaseTypesOf(entry)); update(types[kind]); entry.releaseTypes = types }); return <div key={kind} className="setup-dp-type">
             <h4>{kind === 'release' ? 'Release (Major, Minor)' : 'PU (MLD, Platform Update)'}</h4>
             <label>Feature DoD<textarea rows={2} maxLength={100000} value={set.featureDoD} aria-label={`${kind === 'release' ? 'Release' : 'PU'} Feature DoD`} onChange={(event) => edit((next) => { next.featureDoD = event.target.value })} /></label>

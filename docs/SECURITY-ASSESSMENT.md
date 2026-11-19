@@ -184,6 +184,7 @@ Each mitigation is implemented by the named requirements and verified by the nam
 | SM-71 | Close Features (ACT-18): state writes only through updateAzureWorkItem on the Time Writing connection (dev.azure.com, the person's PAT), only to items assigned to the person (by work email, else name), after a confirmation listing each item; blocked with sample data, without a PAT, during View as and for another person; each closed item read back and audited. | ACT-18 | TC-ACT-14 |
 | SM-72 | Set User Story to Active from State checks (ATM-29): one state write through updateAzureWorkItem on the Time Writing connection (dev.azure.com, the person's PAT), only for the person's own New User Stories, after a confirmation; blocked with sample data and without a PAT; read back and audited. | ATM-29 | TC-ATM-22 |
 | SM-73 | Move Feature to <PI> from State checks (ATM-30): one Iteration Path write through updateAzureWorkItem on the Time Writing connection (dev.azure.com, the person's PAT), only for the person's own Active Features, to a PI path read from their own User Stories, after a confirmation; blocked with sample data and without a PAT; read back and audited. | ATM-30 | TC-ATM-23 |
+| SM-74 | IOCC Create Features (QV-59): the same writes as DP bulk creation (createFeatureFromSetup on the Time Writing connection, dev.azure.com, the person's PAT), only after the pop-up's Create; blocked with sample data and without a PAT; a personal bulk Epic is kept in the browser only (no secret), the shared one in the planning data. | QV-59 | TC-QV-40 |
 
 ## 5. Re-assessment
 
