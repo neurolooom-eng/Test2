@@ -3,7 +3,7 @@ import { BrandMark } from './components/BrandMark'
 import { TableDefaultsContext } from './components/tableDesign'
 import { ReleaseSettingsContext } from './useStreamEpics'
 import { normalizeTableDefaults } from './tableDefaults'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import './fresh.css'
 import { useAppStore } from './store'
@@ -46,6 +46,7 @@ import { BritePage } from './pages/BritePage'
 import { KpiTrackerPage } from './pages/KpiTrackerPage'
 import { CanContext } from './useCan'
 import { EpicSetupContext, useEpicSetup } from './useEpicSetup'
+import { myPatternsVersion, subscribeMyPatterns } from './myNamingPatterns'
 import { QeMappingPage } from './pages/QeMappingPage'
 import { useAccess } from './useAccess'
 import { useFeatureSetup } from './useFeatureSetup'
@@ -180,6 +181,8 @@ export default function App() {
   const [menuEditor, setMenuEditor] = useState(false)
   const featureSetup = useFeatureSetup(git, azure.creatorEmail)
   const epicSetup = useEpicSetup(git)
+  // QV-60: my own naming patterns changing redraws the figures.
+  useSyncExternalStore(subscribeMyPatterns, myPatternsVersion)
   const qeMapping = useQeMapping(git)
   // Who creates new work items (the email on the Time Writing connection) and whether they may assign them to others.
   const assign = { me: azure.creatorEmail.trim().toLowerCase(), canChoose: access.can('azure.createForOthers') }
