@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { epicFieldsFor, withEpicFields } from '../epicSetup'
+import { useEpicSetupFile } from '../useEpicSetup'
 import type { ReleaseEntry } from '../releaseSource'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { FeatureSetups } from '../featureSetup'
@@ -19,7 +21,9 @@ import { Modal, Notice } from './ui'
 export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featureTitle, featureMatch, onClose }: { releases: ReleaseEntry[]; azure: AzureWorkspace; featureSetup?: FeatureSetups | null; qeMapping?: QeMappingFile | null; featureTitle: (release: ReleaseEntry) => string; featureMatch: (release: ReleaseEntry) => BoardHit | undefined; onClose: () => void }) {
   const epicId = useBulkEpic('IOCC').epicId ?? 0
   const setup = epicId ? chooseSetup(featureSetup, epicId, true).setup : undefined
-  const plan = ioccPlan(releases, { setup, qeMapping, board: azure.items, featureTitle, featureMatch, epicId })
+  const rawPlan = ioccPlan(releases, { setup, qeMapping, board: azure.items, featureTitle, featureMatch, epicId })
+  // EPS-03: the Epic setup's fields of the bulk Epic.
+  const plan = withEpicFields(rawPlan, epicFieldsFor(useEpicSetupFile(), epicId), (line) => line.release.items)
   const ready = plan.filter((line) => !line.skip)
   const epic = azure.items.find((item) => item.id === epicId && item.workItemType === 'Epic')
   const [pairs, setPairs] = useState<{ pi: AzureIteration; sprint: AzureIteration }[] | null>(null)
@@ -46,10 +50,10 @@ export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featu
       for (const [index, line] of ready.entries()) {
         progress(`${index + 1} of ${ready.length}: ${line.title}…`)
         try {
-          const feature = { parentId: epic.id, title: line.title, description: withFeatureDoD(line.set!.featureDoD, '', line.type), acceptanceCriteria: '', areaPath: epic.areaPath, iterationPath: pair.pi.path, storyIterationPath: pair.sprint.path, assignedTo: line.email }
+          const feature = { parentId: epic.id, title: line.title, description: withFeatureDoD(line.set!.featureDoD, '', line.type, line.fieldLines), acceptanceCriteria: '', areaPath: epic.areaPath, iterationPath: pair.pi.path, storyIterationPath: pair.sprint.path, assignedTo: line.email }
           const bundle = await createFeatureFromSetup(config, token, feature, { stories: line.set!.stories, reviewStory: false, ...(setup?.timeWritingStory ? { timeWritingStory: setup.timeWritingStory } : {}), task: { ...(setup?.task ?? { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' }), assignedTo: line.email } }, month, undefined, adhoc)
           azure.featureCreated([epic, ...bundle.items])
-          done.push(`#${bundle.feature.id} ${line.title} → ${line.qe}`)
+          done.push(`#${bundle.feature.id} ${line.title} → ${line.qe}${line.warned.length ? ` (empty: ${line.warned.join(', ')})` : ''}`)
         } catch (failure) {
           if (failure instanceof HierarchyCreationError && failure.createdItems.length) azure.featureCreated([epic, ...failure.createdItems])
           failed.push(`${line.title}: ${failure instanceof Error ? failure.message : 'failed'}`)
@@ -71,7 +75,7 @@ export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featu
           <td>{line.type ? `${dpTypeLabel(line.type)} (${line.set === undefined ? '' : line.type === 'Major' || line.type === 'Minor' ? 'Release set' : 'PU set'})` : '—'}</td>
           <td>{line.set ? line.set.stories.map((story) => story.title.split(' :')[0]).join(', ') || 'none' : '—'}</td>
           <td>{line.qe || '—'}{line.email && <small className="muted"> {line.email}</small>}</td>
-          <td>{line.skip ? <span className="warning-text">Skipped: {line.skip}</span> : <>Will be created{line.note && <small className="warning-text"> — {line.note}</small>}</>}</td>
+          <td>{line.skip ? <span className="warning-text">Skipped: {line.skip}</span> : <>Will be created{line.note && <small className="warning-text"> — {line.note}</small>}{line.warned.length > 0 && <small className="warning-text"> — empty {line.warned.join(', ')}</small>}</>}</td>
         </tr>)}</tbody>
       </table></div>
       {pairs && pairs.length > 1 && <label className="inline-select">PI / Sprint<select aria-label="PI / Sprint" value={choice} onChange={(event) => setChoice(Number(event.target.value))}>{pairs.map((entry, index) => <option key={entry.sprint.path} value={index}>{entry.pi.name} / {entry.sprint.name}</option>)}</select></label>}

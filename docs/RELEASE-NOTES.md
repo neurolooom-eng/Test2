@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.29.0 — 2026-11-19
+
+**Added**
+- **Epic setup** (Admin → Epic setup, replacing Master data) — per Epic, the extra fields its new Features carry (e.g. Program for DP, Platform for CP): Text, List (from shared value lists), Number or Date; each into the Description, the Title or both; If empty Optional, Warn or Block; an optional on-prem field and a title pattern, with a preview. **Copy to Epics** gives other Epics the same fields (e.g. the ECP Epics). Saved to Git (epic-setup.json) for everyone (EPS-01, EPS-05; SET-10 retired, OI-06 closed).
+- **New Feature** asks for the Epic setup's fields (drop-downs for lists, required ones marked): the Title follows the pattern, the Description gets the field lines, an empty Block field stops creation and an empty Warn field is shown (EPS-02).
+- **Bulk creation** (DP, IOCC, Content) applies the bulk Epic's setup: an empty Block field skips the release, an empty Warn field creates it and is listed (EPS-03).
+- Two new permissions in Role rights: **Edit the Epic setup** (Tool Owner, Admin, Scrum Master) and **Edit Epic setup value lists** (Tool Owner, Admin); an access file saved by v7.27–7.28 gets them as by default (EPS-04).
+
+DF-114; SM-78; OI-06; TC-EPS-01…04. PR #303.
+
 ## v7.28.0 — 2026-11-19
 
 **Changed**

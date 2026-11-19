@@ -113,6 +113,9 @@ This document lists every software component of the system: the in-house source 
 | useStreamEpics | `src/useStreamEpics.ts` | The shared release-source settings in a React context and the hook giving a stream's Epics for the board match (QV-57). | QV |
 | useCan | `src/useCan.ts` | The viewer's permissions in a React context, for the controls deep in the page tree (bulk create, QE Mapping, Monthly pack text, shared Feature setup, export) (CON-94). | CON |
 | myViews | `src/myViews.ts` | My views: the servers with a PAT, a new view checked (no stream names, no duplicates), and the app data without My views' data for SharePoint and backups (SET-17). | SET |
+| epicSetup | `src/epicSetup.ts` | The Epic setup file (fields, value lists, title pattern), the Title and Description of a new Feature from its fields, Block / Warn, bulk creation and Copy to Epics (EPS-01…05). | EPS |
+| useEpicSetup | `src/useEpicSetup.ts` | The shared Epic setup from Git (epic-setup.json), its cached copy and draft, and the context for New Feature and bulk creation (EPS-01). | EPS |
+| EpicSetupPanel | `src/components/EpicSetupPanel.tsx` | Admin → Epic setup: Feature fields per Epic, title pattern and preview, Copy to Epics, and the value lists (EPS-01, EPS-05). | EPS |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
 | ScopeChip | `src/components/ScopeChip.tsx` | The chip saying whom a setting affects: only you, this computer, everyone, or the Tool Owner (SET-16). | SET |
 | bulkEpics | `src/bulkEpics.ts` | The bulk creation Epic per stream: built in, shared, personal (QV-59). | QV |
@@ -294,6 +297,7 @@ This document lists every software component of the system: the in-house source 
 | insight-thresholds.test | `tests/insight-thresholds.test.mjs` | Insight thresholds moving each insight, and the normaliser (CAP-47). | CAP, OVR |
 | people-access.test | `tests/people-access.test.mjs` | People & access: work email on the profile, capacity roles and who is counted (CAP-49, CAP-50). | CAP |
 | my-views.test | `tests/my-views.test.mjs` | My views and the Admin / My settings pages and redirects (TC-SET-06, TC-SET-07). | SET |
+| epic-setup.test | `tests/epic-setup.test.mjs` | Epic setup: file cleaning, Title / Description from the fields, Block and Warn, bulk creation and Copy to Epics (TC-EPS-02, TC-EPS-03). | EPS |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |

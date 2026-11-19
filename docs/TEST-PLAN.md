@@ -1537,6 +1537,14 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-CNB-02 One person for all** — Req CNB-02 — L1 `content-bulk.test.mjs` ("CNB-02: the pop-up assigns to one person — a name on the board, "Name <email>" or an email"); browser check: Create stays disabled until a person is chosen; typing a board name shows its email; every Feature, story and Task made is assigned to that person.
 
+**TC-EPS-01 Epic setup in New Feature and Admin** — Req EPS-01, EPS-02, SET-15 — E2E `backlog.e2e.mjs` ("TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, required and warning fields), the title follows its pattern, and Admin → Epic setup shows them"); browser check with Git storage: Admin → Epic setup → choose CP's Epic, add Platform (List, Platform list, Block, Title) and Program (Text, Warn, Description), title pattern {platform} \| {feature}; Value lists → add Platform with two values; Save to Git (one commit); New Feature under that Epic offers Platform as a drop-down marked required, shows "Empty: Program", the Title follows the pattern; Create with Platform empty is refused naming it; with it, the Feature's Description has "Program : …"; Admin → Feature setup of that Epic says the Epic setup applies.
+
+**TC-EPS-02 Epic setup file and New Feature rules** — Req EPS-01, EPS-02 — L1 `epic-setup.test.mjs` ("Epic setup file: lists and fields cleaned, round trip stable (EPS-01, TC-EPS-02)"; "Epic setup on a new Feature: Title by the pattern or the Title fields, Description lines, Block and Warn, list values (EPS-02, TC-EPS-02)").
+
+**TC-EPS-03 Epic setup in bulk creation and Copy to Epics** — Req EPS-03, EPS-05 — L1 `epic-setup.test.mjs` ("Epic setup in bulk creation: Block skips, Warn creates and lists, values from the on-prem item, pattern title (EPS-03, TC-EPS-03)"; "Copy to Epics: the fields and pattern to the chosen Epics, replacing theirs (EPS-05, TC-EPS-03)"); browser check: with an Epic setup on the IOCC bulk Epic, Create Features shows a release without its Block field as skipped and one without its Warn field as "Will be created — empty …"; Copy to Epics gives two ECP Epics the same fields after Save to Git.
+
+**TC-EPS-04 Epic setup permissions** — Req EPS-04, CON-94 — L1 `access.test.mjs` ("EPS-04: Edit Epic setup and its value lists — Tool Owner, Admin (and Scrum Master for the fields) by default; a file of v7.27 gets them as in the starting matrix (TC-EPS-04)"); browser check: as a Scrum Master, Admin → Epic setup lets you edit the fields but shows Value lists read-only; Deny “Edit the Epic setup” for the role and the fields become read-only.
+
 ## 7. Requirements coverage matrix
 
 | Requirement | Test cases |
@@ -1946,6 +1954,11 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DPF-05 | TC-DPF-04, TC-CNB-01 |
 | CNB-01 | TC-CNB-01 |
 | CNB-02 | TC-CNB-02 |
+| EPS-01 | TC-EPS-01, TC-EPS-02 |
+| EPS-02 | TC-EPS-01, TC-EPS-02 |
+| EPS-03 | TC-EPS-03 |
+| EPS-04 | TC-EPS-04 |
+| EPS-05 | TC-EPS-03 |
 | IF-05 | TC-KPT-02 |
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
@@ -1991,6 +2004,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-31 | TC-KPT-01…03 |
 | UC-32 | TC-DPF-01…04 |
 | UC-33 | TC-CNB-01, TC-CNB-02 |
+| UC-34 | TC-EPS-01, TC-EPS-02, TC-EPS-03, TC-EPS-04 |
 
 ## 8. Result record
 

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
 import { completeFeatureFromSetup, createFeatureFromSetup, addUserStory, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, releaseClassifications, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
-import { Modal, Info } from './ui'
+import { Modal, Info, Notice } from './ui'
 import { PersonPicker } from './PersonPicker'
 import { assignablePeople } from '../myWork'
 import { runInBackground } from '../backgroundJobs'
 import { adhocAfterLock } from '../planningLock'
+import { useEpicSetupFile } from '../useEpicSetup'
+import { asTitleFields, epicFieldsFor, featureFromFields, listOf, offList } from '../epicSetup'
 import { chooseSetup, defaultDoDFor, fieldKey, fieldLines, fieldPlaceholders, fieldTitle, fieldsFromItems, fieldsFromTitle, fillTitle, missingValues, reviewStoryTitle, setupFor, titleValues, type FeatureSetups } from '../featureSetup'
 
 // The "Add Feature under an Epic" / "Complete Feature children" modal, shared by the QMS-0025 board and Assigned to
@@ -67,14 +69,22 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const [preferShared, setPreferShared] = useState(false)
   const epicId = parent?.id ?? resumeFeature?.parentId
   const { setup: epicSetup, source: setupSource } = chooseSetup(featureSetup, epicId, preferShared)
-  const titleFields = resumeFeature ? [] : epicSetup?.titleFields ?? []
+  // EPS-02: the Epic setup's fields (Admin → Epic setup) apply to every new Feature under the Epic and take the place
+  // of the Feature setup's title fields.
+  const epicFile = useEpicSetupFile()
+  const epicEntry = resumeFeature ? undefined : epicFieldsFor(epicFile, epicId)
+  const titleFields = resumeFeature ? [] : epicEntry ? asTitleFields(epicEntry.fields) : epicSetup?.titleFields ?? []
   const bothSetups = Boolean(setupFor(featureSetup?.personal ?? null, epicId) && setupFor(featureSetup?.shared ?? null, epicId))
   // Title fields in the other setup of the Epic (mine vs shared) only: say so, with a switch, instead of hiding them.
   const otherSetup = bothSetups ? chooseSetup(featureSetup, epicId, !preferShared).setup : undefined
-  const fieldsElsewhere = !resumeFeature && !titleFields.length && Boolean(otherSetup?.titleFields?.length)
+  const fieldsElsewhere = !resumeFeature && !epicEntry && !titleFields.length && Boolean(otherSetup?.titleFields?.length)
   const fromRelease = releaseItems?.length ? fieldsFromItems(titleFields, releaseItems) : [], fromTitle = fieldsFromTitle(titleFields, initialTitle)
   const fieldValues = titleFields.map((field, index) => typedFields[fieldKey(field.label)] ?? (fromRelease[index] || fromTitle[index] || ''))
-  const title = titleFields.length && !titleTyped ? fieldTitle(fieldValues) : titleText
+  // With an Epic setup the Title follows its pattern or its Title fields; fields that go only into the Description leave the typed title.
+  const fromFields = epicEntry ? featureFromFields(epicEntry, fieldValues, titleText) : undefined
+  const fieldsMakeTitle = epicEntry ? Boolean(epicEntry.titlePattern || epicEntry.fields.some((field) => field.into !== 'description')) : titleFields.length > 0
+  const title = fieldsMakeTitle && !titleTyped ? (fromFields ? fromFields.title : fieldTitle(fieldValues)) : titleText
+  const offListFields = epicEntry ? offList(epicEntry, fieldValues, epicFile) : []
   const setTitle = (value: string) => { setTitleText(value); setTitleTyped(true) }
   let plan
   try { plan = releaseHierarchyTitles(title.trim(), releaseKind, monthLabel) } catch { plan = null }
@@ -112,11 +122,12 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
     event.preventDefault()
     if (submitting.current) return
     if (isNew && !parent) { setError('Choose the parent Epic.'); return }
+    if (fromFields?.blocked.length) { setError(`Fill ${fromFields.blocked.join(', ')}: the Epic setup of #${epicId} needs ${fromFields.blocked.length === 1 ? 'it' : 'them'} (Admin → Epic setup).`); return }
     const data = new FormData(event.currentTarget)
     const token = pat; setError(''); submitting.current = true; setCreating(true)
     const parseHours = (value: string, label: string) => { if (!value.trim()) return undefined; const hours = Number(value); if (!Number.isFinite(hours) || hours < 0 || hours > 1000000) throw new Error(`${label} must be a number from 0 to 1,000,000.`); return hours }
     let feature: FeatureInput
-    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? ''), releaseClassification, fieldLines(titleFields, fieldValues)) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, targetDate: String(data.get('targetDate') ?? ''), taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
+    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? ''), releaseClassification, (fromFields ? fromFields.lines : fieldLines(titleFields, fieldValues))) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, targetDate: String(data.get('targetDate') ?? ''), taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Invalid Task effort.'); submitting.current = false; setCreating(false); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) { setError('Choose who the work is assigned to.'); submitting.current = false; setCreating(false); return }
     onSavePat?.(token)
@@ -133,7 +144,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
       const adhoc = adhocAfterLock(monthLabel)
       let bundle
       if (epicSetup) {
-        const children = { stories: epicSetup.stories.filter((_, index) => !skipStories.includes(index)), reviewStory, titleFields: epicSetup.titleFields, ...(titleFields.length ? { fieldValues } : {}), timeWritingStory: epicSetup.timeWritingStory, task: { ...epicSetup.task, ...(feature.taskOriginalEstimate != null ? { originalEstimate: feature.taskOriginalEstimate } : {}) } }
+        const children = { stories: epicSetup.stories.filter((_, index) => !skipStories.includes(index)), reviewStory, titleFields: epicEntry ? titleFields : epicSetup.titleFields, ...(titleFields.length ? { fieldValues } : {}), timeWritingStory: epicSetup.timeWritingStory, task: { ...epicSetup.task, ...(feature.taskOriginalEstimate != null ? { originalEstimate: feature.taskOriginalEstimate } : {}) } }
         bundle = resumeFeature ? await completeFeatureFromSetup(config, token, resumeFeature.id, children, monthLabel, undefined, sprintPath, assignee, adhoc) : await createFeatureFromSetup(config, token, feature, children, monthLabel, undefined, adhoc)
         const task = bundle.items.find((item) => item.workItemType === 'Task')
         if (task && feature.taskCompletedWork != null) { const updated = await updateAzureTimeWritingEffort(config, token, task.id, undefined, feature.taskCompletedWork); bundle = { ...bundle, items: bundle.items.map((item) => item.id === task.id ? updated : item) } }
@@ -211,7 +222,18 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
             </div>}
             <input className="nf-title" aria-label="Feature title" name="title" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} disabled={creating || Boolean(resumeFeature)} placeholder={titleFields.length ? titleFields.map((field) => field.label).join(' | ') : 'Feature title (free text, e.g. Program | Service | Release)'} autoFocus />
             {fieldsElsewhere && <p className="muted">The {setupSource === 'personal' ? 'shared' : 'your own'} setup of this Epic has title fields ({otherSetup!.titleFields!.map((field) => field.label).join(', ')}); this form uses {setupSource === 'personal' ? 'your own' : 'the shared'} setup. <button type="button" className="text-button" disabled={creating} onClick={() => { setPreferShared(!preferShared); setSkipStories([]); setReviewChoice(null); setDodText(null) }}>{setupSource === 'personal' ? 'Use the shared setup' : 'Use my own setup'}</button></p>}
-            {titleFields.length > 0 && <div className="nf-fields">{titleFields.map((field, index) => <label key={field.label}>{field.label}<input value={fieldValues[index]} maxLength={255} disabled={creating} onChange={(event) => { setTypedFields((current) => ({ ...current, [fieldKey(field.label)]: event.target.value })); setTitleTyped(false) }} placeholder={field.source ? `On-prem: ${field.source}` : 'Optional'} /></label>)}</div>}
+            {titleFields.length > 0 && <div className="nf-fields">{titleFields.map((field, index) => {
+              const spec = epicEntry?.fields[index], list = spec?.type === 'list' ? listOf(epicFile, spec.list) : undefined
+              const set = (value: string) => { setTypedFields((current) => ({ ...current, [fieldKey(field.label)]: value })); setTitleTyped(false) }
+              const hint = spec ? spec.ifEmpty === 'block' ? 'Required' : spec.ifEmpty === 'warn' ? 'Warns if empty' : 'Optional' : field.source ? `On-prem: ${field.source}` : 'Optional'
+              return <label key={field.label}>{field.label}{spec?.ifEmpty === 'block' && <span className="required-mark" aria-hidden="true"> *</span>}
+                {list ? <select value={fieldValues[index]} disabled={creating} aria-required={spec?.ifEmpty === 'block'} onChange={(event) => set(event.target.value)}><option value="">{hint}…</option>{[...list.values, ...(fieldValues[index] && !list.values.includes(fieldValues[index]) ? [fieldValues[index]] : [])].map((value) => <option key={value} value={value}>{value}</option>)}</select>
+                  : <input type={spec?.type === 'date' ? 'date' : spec?.type === 'number' ? 'number' : 'text'} value={fieldValues[index]} maxLength={255} disabled={creating} aria-required={spec?.ifEmpty === 'block'} onChange={(event) => set(event.target.value)} placeholder={hint} />}
+              </label>
+            })}</div>}
+            {epicEntry && <p className="muted nf-epic-setup">Fields from the Epic setup of #{epicEntry.epicId}{fromFields?.lines.length ? `; into the Description: ${epicEntry.fields.filter((field) => field.into !== 'title').map((field) => field.label).join(', ')}` : ''}.</p>}
+            {fromFields && fromFields.warned.length > 0 && <Notice tone="warning">Empty: {fromFields.warned.join(', ')} — the Feature is created, and the Epic setup asks for {fromFields.warned.length === 1 ? 'it' : 'them'}.</Notice>}
+            {offListFields.length > 0 && <Notice tone="warning">Not in its list: {offListFields.join(', ')}.</Notice>}
           </div>
         </div>
         <div className="nf-strip">

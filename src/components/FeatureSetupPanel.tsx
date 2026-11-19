@@ -1,4 +1,6 @@
 import { useBulkEpic } from '../useStreamEpics'
+import { epicFieldsFor } from '../epicSetup'
+import { useEpicSetupFile } from '../useEpicSetup'
 import { useCan } from '../useCan'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
@@ -32,8 +34,11 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
   const file = draft ?? base ?? { schema: 1, kind: 'feature-setup', epics: [] }
   // CON-94: the shared layer needs "Edit the shared Feature setup"; my own layer only my Git token.
   const can = useCan()
+  // EPS-02: the Epic setup's fields win over the title fields here (shown read-only, with where to edit them).
+  const epicSetupFile = useEpicSetupFile()
   const editable = git.connected && !git.readOnly && !git.isSample && (mine ? Boolean(setup.email) : can('setup.feature'))
   const chosen = epicId || base?.epics[0]?.epicId || setup.shared?.epics[0]?.epicId || epics[0]?.id || 0
+  const epicFields = epicFieldsFor(epicSetupFile, chosen)
   const sharedEntry = setupFor(setup.shared, chosen), myEntry = setupFor(setup.personal, chosen)
   const switchLayer = (next: 'mine' | 'shared') => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer(next) }
   // Every shared setup at once, editable in place (titles, stories, estimate) with one Save to Git for all changed
@@ -180,6 +185,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         <label className="setup-dod">Feature DoD (Definition of Done) — required<textarea rows={2} required maxLength={100000} value={current?.featureDoD ?? ''} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => change((entry) => { entry.featureDoD = event.target.value })} /><small>A new Feature under this Epic starts with it as “Feature DoD: …” at the top of its Description; it can be changed when creating.</small></label>
         {!current?.featureDoD.trim() && <div className="button-row"><button type="button" className="text-button" onClick={() => change((entry) => { entry.featureDoD = defaultDoDFor(entry) })}>Use the default: “{defaultDoDFor(current ?? { stories: [] })}”</button></div>}
         <h3>Title fields</h3>
+        {epicFields && <Notice tone="info">Epic #{epicFields.epicId} has an Epic setup (Admin → Epic setup): its fields {epicFields.fields.map((field) => field.label).join(', ')} apply to every new Feature under it, in place of the title fields below.</Notice>}
         <p className="muted">Optional, up to {maxTitleFields}: the parts of a Feature title for this Epic (e.g. DP: Program, Service, Release; CP: Platform, Release Name, Number). New Feature asks for each, joins them with “ | ” into the title, writes “Field : value” into the Description and offers {'{Field}'} as a placeholder. The on-prem field (reference or plain name, e.g. SourceProgram) fills it from the release in Release Details. Blank or repeated names are dropped on save.</p>
         {current?.titleFields?.map((field, index) => <div key={index} className="setup-field">
           <label>Field<input value={field.label} maxLength={60} placeholder="e.g. Platform" onChange={(event) => change((entry) => { entry.titleFields![index].label = event.target.value })} /></label>

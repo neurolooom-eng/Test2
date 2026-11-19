@@ -173,3 +173,46 @@ test('TC-BKL-19: New Feature shows its sections one after another: Feature, then
   assert.deepEqual(errors.filter((entry) => !/401|Unauthorized/.test(entry)), [])
   await context.close()
 })
+
+test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, required and warning fields), the title follows its pattern, and Admin → Epic setup shows them', async () => {
+  const { page, context, errors } = await openPage(app)
+  await loadSample(page)
+  await navigate(page, 'QMS-0025')
+  await page.getByRole('button', { name: '＋ New Feature' }).first().click()
+  let form = page.locator('form.nf-form')
+  await form.waitFor()
+  const epicValue = await form.getByLabel('Parent Epic').locator('option').nth(2).getAttribute('value'), epicId = Number(epicValue.split('/').pop())
+  await form.getByRole('button', { name: 'Cancel' }).click()
+  // The shared Epic setup as last read from Git (kept in this browser): Platform from a list into the Title, Program
+  // required into the Description, Owner warns when empty.
+  await page.evaluate((id) => localStorage.setItem('demand-planning-epic-setup-v1', JSON.stringify({ schema: 1, kind: 'epic-setup', lists: [{ id: 'platform', name: 'Platform', values: ['Platform 1.0', 'Platform 2.0'] }], epics: [{ epicId: id, epicTitle: 'E2E Epic', titlePattern: '{platform} | {feature}', fields: [
+    { label: 'Platform', type: 'list', list: 'platform', ifEmpty: 'block', into: 'title' },
+    { label: 'Program', type: 'text', ifEmpty: 'block', into: 'description' },
+    { label: 'Owner', type: 'text', ifEmpty: 'warn', into: 'description' },
+  ] }] })), epicId)
+  await page.reload()
+  await page.locator('.sidebar nav').waitFor()
+  await navigate(page, 'QMS-0025')
+  await page.getByRole('button', { name: '＋ New Feature' }).first().click()
+  form = page.locator('form.nf-form')
+  await form.waitFor()
+  await form.getByLabel('Parent Epic').selectOption(epicValue)
+  const platform = form.locator('.nf-fields select')
+  assert.deepEqual((await platform.locator('option').allInnerTexts()).map((entry) => entry.trim()), ['Required…', 'Platform 1.0', 'Platform 2.0'], 'the list values')
+  assert.match(await text(form.locator('.nf-fields')), /Platform \*.*Program \*.*Owner/s, 'required fields are marked')
+  assert.match(await text(form), /Empty: Owner — the Feature is created/, 'a Warn field says so')
+  await platform.selectOption('Platform 2.0')
+  assert.equal(await form.getByLabel('Feature title').inputValue(), 'Platform 2.0', 'the title follows the pattern (an empty {feature} is dropped)')
+  await form.getByRole('button', { name: 'Cancel' }).click()
+  // Admin → Epic setup: the fields and the list, read-only without Git storage.
+  await navigate(page, 'Epic setup')
+  assert.equal(await text(page.locator('header.topbar h1')), 'Epic setup')
+  await page.getByLabel('Epic', { exact: true }).selectOption(String(epicId))
+  assert.equal(await page.getByLabel('Field 1 label').inputValue(), 'Platform')
+  assert.equal(await page.getByLabel('Field 1 label').isDisabled(), true, 'read-only without Git storage')
+  assert.match(await text(page.locator('.epic-preview')), /Title: Platform 1\.0 \| Feature title.*Description: Program : Program · Owner : Owner/s)
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Value lists' }).click()
+  assert.equal(await page.getByLabel('Values of Platform').inputValue(), 'Platform 1.0\nPlatform 2.0')
+  assert.deepEqual(errors, [])
+  await context.close()
+})

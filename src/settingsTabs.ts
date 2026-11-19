@@ -3,7 +3,7 @@ import type { Action } from './access.ts'
 // sections shown one at a time (SET-14). The last page and the last section of each page are remembered here.
 // SET-15: the group is headed Admin and holds the shared setup; My settings (what each person sets for themselves)
 // opens from the person's name in the sidebar. Older page keys ('access', 'tables', 'history') are still accepted.
-export type SettingsTab = 'my' | 'connections' | 'options' | 'storage' | 'access' | 'capacity' | 'resources' | 'masters' | 'audit' | 'features' | 'pack' | 'tables' | 'history'
+export type SettingsTab = 'my' | 'epics' | 'connections' | 'options' | 'storage' | 'access' | 'capacity' | 'resources' | 'masters' | 'audit' | 'features' | 'pack' | 'tables' | 'history'
 export const settingsTabKey = 'demand-planning-settings-tab-v1'
 export const settingsSectionKey = 'demand-planning-settings-section-v1'
 
@@ -12,13 +12,15 @@ export const settingsPages: { key: SettingsTab; label: string; needs?: Action[] 
   { key: 'connections', label: 'Streams' }, { key: 'options', label: 'Stream options' }, { key: 'features', label: 'Feature setup' },
   { key: 'resources', label: 'People & roles' }, { key: 'capacity', label: 'Capacity & time', needs: ['capacity.settings', 'capacity.rules', 'capacity.time', 'capacity.periods', 'capacity.history'] },
   { key: 'pack', label: 'Reports', needs: ['pack.setup', 'layout.defaults'] }, { key: 'storage', label: 'Data & sharing' },
-  { key: 'masters', label: 'Master data', needs: ['storage.shared'] }, { key: 'audit', label: 'History', needs: ['storage.shared'] },
+  { key: 'epics', label: 'Epic setup' }, { key: 'audit', label: 'History', needs: ['storage.shared'] },
 ]
 export const mySettingsLabel = 'My settings'
 export const settingsPagesFor = (can: (action: Action) => boolean) => settingsPages.filter((page) => !page.needs || page.needs.some(can))
 
 // SET-15: where an older page or section now lives (links, the Get started steps and remembered choices keep working).
 const moved: Record<string, { tab: SettingsTab; section?: string }> = {
+  // EPS-01: the Epic setup replaces Master data.
+  masters: { tab: 'epics', section: 'fields' },
   access: { tab: 'resources', section: 'rights' }, tables: { tab: 'pack', section: 'tables' }, history: { tab: 'capacity', section: 'history' },
   'connections:email': { tab: 'my', section: 'email' }, 'connections:servers': { tab: 'my', section: 'servers' },
   'connections:views': { tab: 'storage', section: 'views' }, 'connections:sources': { tab: 'storage', section: 'sources' }, 'connections:sample': { tab: 'storage', section: 'sample' },

@@ -725,3 +725,14 @@ label.formula-term{justify-content:flex-start}
 .scope-chip.scope-you,.scope-chip.scope-computer{background:var(--success-soft);color:var(--success-text);border-color:var(--success-line)}
 .scope-chip.scope-tool-owner{background:var(--warning-soft);color:var(--warning-text);border-color:transparent}
 .my-view-form textarea{width:100%;font-family:var(--mono, monospace)}
+/* EPS: Epic setup */
+.epic-fields input,.epic-fields select{width:100%;min-width:7em}
+.epic-fields td small{display:block}
+.epic-pattern{display:block;margin:12px 0 6px}
+.epic-pattern input{width:100%}
+.epic-preview{display:flex;flex-direction:column;gap:2px;font-size:13px;padding:8px 12px;border:1px dashed var(--accent-line);border-radius:8px;margin:6px 0 10px}
+.epic-copy{margin:8px 0}.epic-copy-list{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0}
+.epic-list-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:10px}
+.epic-list{display:flex;flex-direction:column;gap:6px}.epic-list-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.epic-list textarea{width:100%;font-size:13px}
+.required-mark{color:var(--danger-text)}
