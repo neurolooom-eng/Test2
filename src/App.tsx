@@ -45,6 +45,7 @@ import { PiReviewPage } from './pages/PiReviewPage'
 import { BritePage } from './pages/BritePage'
 import { KpiTrackerPage } from './pages/KpiTrackerPage'
 import { CanContext } from './useCan'
+import { SettingsSearch } from './components/SettingsSearch'
 import { EpicSetupContext, useEpicSetup } from './useEpicSetup'
 import { myPatternsVersion, subscribeMyPatterns } from './myNamingPatterns'
 import { QeMappingPage } from './pages/QeMappingPage'
@@ -179,6 +180,9 @@ export default function App() {
   const history = useHistory(git)
   const reportAzure = useMemo(() => history.file ? { ...azure, items: withHistory(azure.items, history.file).items } : azure, [azure, history.file])
   const [menuEditor, setMenuEditor] = useState(false)
+  // ADM-03: Search settings, from Ctrl K / ⌘ K anywhere.
+  const [searchOpen, setSearchOpen] = useState(false)
+  useEffect(() => { const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') { event.preventDefault(); setSearchOpen(true) } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [])
   const featureSetup = useFeatureSetup(git, azure.creatorEmail)
   const epicSetup = useEpicSetup(git)
   // QV-60: my own naming patterns changing redraws the figures.
@@ -309,7 +313,7 @@ export default function App() {
         const open = !collapsed.includes(group)
         const holdsActive = group === (isOther ? 'Other views' : page === 'board' ? (view.onPrem ? 'Release Details' : 'I&D Board') : meta.group)
         return <div key={group} className="nav-section">
-          <button type="button" className={`nav-group${holdsActive && !open ? ' nav-group-active' : ''}`} aria-expanded={open} onClick={() => toggleNav(group)}><span aria-hidden="true">{open ? '▾' : '▸'}</span>{group === 'Settings' ? 'ADMIN' : group.toUpperCase()}</button>
+          <button type="button" className={`nav-group${holdsActive && !open ? ' nav-group-active' : ''}`} aria-expanded={open} onClick={() => toggleNav(group)}><span aria-hidden="true">{open ? '▾' : '▸'}</span>{group === 'Settings' ? <>ADMIN{git.dirty && <span className="nav-badge" title="Shared changes not yet saved to Git" aria-label="1 unsaved shared change">1</span>}</> : group.toUpperCase()}</button>
           {/* Collapsed lists stay in the page but are hidden on wide screens only: the narrow sidebar has no headings. */}
           <div className={`nav-items${open ? '' : ' nav-collapsed'}`}>{shown.map((section) => section.label ? <div key={section.key} className="nav-subsection">
             <button type="button" className="nav-subgroup" aria-expanded={!collapsed.includes(section.key)} onClick={() => toggleNav(section.key)}><span aria-hidden="true">{collapsed.includes(section.key) ? '▸' : '▾'}</span>{section.label}</button>
@@ -317,8 +321,9 @@ export default function App() {
           </div> : <div key={section.key} className="nav-items">{section.entries}</div>)}</div>
         </div>
       })}</nav>
-      <div className="sidebar-footer"><button type="button" className={`my-settings-button${page === 'admin' && settingsTab === 'my' ? ' active' : ''}`} title={mySettingsLabel} aria-label={`${mySettingsLabel}${my.me.name ? ` (${my.me.name})` : ''}`} onClick={() => { openSettings('my'); setNavOpen(false) }}><span className="my-settings-avatar" aria-hidden="true">{(my.me.name || azure.creatorEmail || '?').trim().charAt(0).toUpperCase()}</span><span className="my-settings-name">{my.me.name || azure.creatorEmail.trim() || mySettingsLabel}<small>{mySettingsLabel}</small></span></button><ZoomControl /><div className="sidebar-tools"><button type="button" className="download-link" onClick={() => setMenuEditor(true)}><span aria-hidden="true">☰</span>Customize menu</button>{access.canViewAs && <button type="button" className="download-link" onClick={() => setViewAsOpen(true)}><span aria-hidden="true">👁</span>View as…</button>}</div><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
+      <div className="sidebar-footer"><button type="button" className={`my-settings-button${page === 'admin' && settingsTab === 'my' ? ' active' : ''}`} title={mySettingsLabel} aria-label={`${mySettingsLabel}${my.me.name ? ` (${my.me.name})` : ''}`} onClick={() => { openSettings('my'); setNavOpen(false) }}><span className="my-settings-avatar" aria-hidden="true">{(my.me.name || azure.creatorEmail || '?').trim().charAt(0).toUpperCase()}</span><span className="my-settings-name">{my.me.name || azure.creatorEmail.trim() || mySettingsLabel}<small>{mySettingsLabel}</small></span></button><ZoomControl /><div className="sidebar-tools"><button type="button" className="download-link" onClick={() => setMenuEditor(true)}><span aria-hidden="true">☰</span>Customize menu</button><button type="button" className="download-link" title="Ctrl K" onClick={() => setSearchOpen(true)}><span aria-hidden="true">⌕</span>Search settings</button>{access.canViewAs && <button type="button" className="download-link" onClick={() => setViewAsOpen(true)}><span aria-hidden="true">👁</span>View as…</button>}</div><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
     </aside>
+    {searchOpen && <SettingsSearch allowed={(entry) => entry.tab === 'my' || settingsPagesFor(access.can).some((item) => item.key === entry.tab)} onOpen={openSettings} onClose={() => setSearchOpen(false)} />}
     {menuEditor && <MenuCustomizer pages={pages.filter((item) => !item.hidden && item.id !== 'admin' && allowed(item.id)).map(({ id, label, group }) => ({ id, label, group }))} menu={personalViews.menu} onChange={personalViews.setMenu} onClose={() => setMenuEditor(false)} />}
     <main>
       <header className="topbar"><button type="button" className="menu-button" aria-label={navOpen ? 'Close menu' : 'Open menu'} aria-expanded={navOpen} aria-controls="primary-navigation" onClick={() => setNavOpen((open) => !open)}>{navOpen ? '✕' : '☰'}</button><h1 title={meta.detail}>{page === 'board' ? view.name : page === 'windchill' && windchillView ? windchillView.name : page === 'admin' ? settingsLabel(settingsTab) : meta.label}</h1><div className="topbar-slot" ref={setHeaderSlot} /><div className="topbar-actions">{openSteps > 0 && <button type="button" className="ghost setup-button" title="What to configure and how" onClick={() => setGuideOpen(true)}>Setup · {steps.filter((step) => step.required && step.state === 'done').length}/{steps.filter((step) => step.required).length}</button>}<JobsIndicator /><DataStatus azure={azure} />{(meta.usesMonth || (page === 'board' && view.readOnly)) && <label className="month-picker"><span className="sr-only">Month</span><input type="month" aria-label="Month" value={month} onChange={(event) => /^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value) && setMonth(event.target.value)} /></label>}<ThemeToggle /></div></header>
@@ -346,7 +351,7 @@ export default function App() {
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.setups} qeMapping={qeMapping.file} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
-      {page === 'admin' && <AdminPage key={`${settingsTab}:${settingsVisit}`} tab={settingsTab} onOpenTab={openSettings} {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} epicSetup={epicSetup} qeColumnNames={[...new Set((qeMapping.file?.sheets ?? []).flatMap((sheet) => sheet.columns.map((column) => column.name)))]} monthlyPack={monthlyPack} history={history} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
+      {page === 'admin' && <AdminPage key={`${settingsTab}:${settingsVisit}`} tab={settingsTab} onOpenTab={openSettings} {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} epicSetup={epicSetup} setupSteps={steps} onSearch={() => setSearchOpen(true)} qeColumnNames={[...new Set((qeMapping.file?.sheets ?? []).flatMap((sheet) => sheet.columns.map((column) => column.name)))]} monthlyPack={monthlyPack} history={history} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
     </main>
   </div></HeaderSlot.Provider></EpicSetupContext.Provider></CanContext.Provider></ReleaseSettingsContext.Provider></TableDefaultsContext.Provider>

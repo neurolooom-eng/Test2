@@ -87,6 +87,7 @@ As-built behaviour that is ambiguous, inconsistent or may not match the intent. 
 | OI-12 | Exact baseline values per stream, and the Vault field/query for document counts, are not yet supplied. | Low | Open — product owner decision | BAS-08, QV-13 |
 | OI-13 | Behaviour against a real Azure DevOps Server (on-prem) has been verified only with synthetic fixtures. | Medium | Open — product owner decision | DSK-04, DSK-05 |
 | OI-14 | Backlog (DP, Release Details): *(the board match is back as QV-29)* matching DP releases to their QMS-0025 Time Writing Feature (NAV-23 DP rule, NAV-26 fuzzy match, QV-19…QV-21 Create Feature) and linking DHFI documents and the Pedestal register (NAV-25) were removed from the DP page, which shows only its query (QV-22). To be decided again when needed. DP is now counted from its query by its milestones (QV-24, QV-25). | Info | Open — product owner decision | NAV-23, NAV-25, NAV-26, QV-22 |
+| OI-15 | History has no **Undo** yet (planned: undo one shared change, written straight to Git). The recorded changes keep what changed as text, not the values before and after, so a change cannot yet be undone from History; Git keeps every version of the shared files. | Low | Open — needs the before / after values recorded with each shared change (v7.32.0, PR #306) | ADM-04 |
 
 ## 3. Accepted residual risks
 
