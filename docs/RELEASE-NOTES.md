@@ -5,7 +5,7 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 ## v7.23.0 — 2026-11-19
 
 **Added**
-- **Epics to match Features in** (Settings → Azure DevOps → Stream mapping): per stream, the QMS-0025 Epics whose Features and User Stories its releases are matched to — the Board column, the CP report, Windchill releases and the existing-Feature check of Create Feature / bulk create; none chosen = the whole board; shared in Git (QV-57).
+- **Epics to match Features in** (Settings → Azure DevOps → Stream mapping): for DP, CP, IOCC and Content, the QMS-0025 Epics whose Features and User Stories their releases are matched to — the Board column, the DP view, the CP report and the existing-Feature check of Create Feature / bulk create; none chosen = the whole board; shared in Git (QV-57).
 
 DF-108; TC-QV-38. PR #297.
 

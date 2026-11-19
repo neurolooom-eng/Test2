@@ -8,7 +8,7 @@ const base = { organization: 'org', project: 'Quality', state: 'Active', assigne
 const item = (id, workItemType, title, extra = {}) => ({ ...base, key: `k${id}`, id, workItemType, title, ...extra })
 
 test('QV-57: per stream, the Epics a release is matched in — checked when read, shared in Git (TC-QV-38)', () => {
-  assert.deepEqual(normalizeFeatureEpics({ DP: [12, '13', 12, -1, 'x'], ' CP ': [], '': [1] }), { DP: [12, 13] }, 'IDs only, no duplicates; an empty list is the whole board')
+  assert.deepEqual(normalizeFeatureEpics({ DP: [12, '13', 12, -1, 'x'], ' CP ': [], '': [1], content: [5], 'Tool Validations': [7], ECP: [8] }), { DP: [12, 13], Content: [5] }, 'DP, CP, IOCC and Content only; IDs only, no duplicates; an empty list is the whole board')
   assert.equal(normalizeFeatureEpics([1, 2]), undefined)
   const settings = normalizeReleaseSourceSettings({ featureEpics: { DP: [12] }, matchThreshold: 80 })
   assert.deepEqual(streamEpics(settings, 'DP'), [12])

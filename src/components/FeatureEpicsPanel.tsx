@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { normalizeReleaseSourceSettings } from '../releaseSource'
-import { defaultStreams } from '../streams'
+import { epicMatchStreams, normalizeReleaseSourceSettings } from '../releaseSource'
 import type { PageProps } from '../pages/types'
 import { Panel } from './ui'
 
-// QV-57: Settings → Azure DevOps → Stream mapping → Feature matching Epics. Per stream, the QMS-0025 Epics whose
+// QV-57: Settings → Azure DevOps → Stream mapping → Feature matching Epics. Per stream (DP, CP, IOCC, Content), the QMS-0025 Epics whose
 // Features (and User Stories) its releases are matched to — the Board column, Create Feature's existing-match check
 // and the 100% rule; none chosen: the whole board. Applied to the shared settings and saved to Git with the planning data.
 export function FeatureEpicsPanel({ store, items, canManage }: { store: PageProps['store']; items: AzureWorkItem[]; canManage: boolean }) {
   const saved = normalizeReleaseSourceSettings(store.state.releaseSourceSettings).featureEpics ?? {}
-  const streams = defaultStreams.map((stream) => stream.name)
+  const streams: string[] = [...epicMatchStreams]
   const [stream, setStream] = useState(streams[0] ?? '')
   const chosen = saved[stream] ?? []
   const epics = items.filter((item) => item.workItemType === 'Epic' && (item.state.trim().toLowerCase() !== 'removed' || chosen.includes(item.id)))
@@ -26,7 +25,7 @@ export function FeatureEpicsPanel({ store, items, canManage }: { store: PageProp
     state.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update', entity: 'ReleaseSourceSettings', entityId: `epics:${stream}`, detail: next.length ? `${stream} Features matched in Epics ${next.map((id) => `#${id}`).join(', ')}` : `${stream} Features matched across the whole board` })
     return state
   })
-  return <Panel className="connection-panel feature-epics" eyebrow="FEATURE MATCHING" title="Epics to match Features in" info={<ul><li>Per stream, the QMS-0025 Epics whose Features and User Stories its releases are matched to: the Board column of the release tables, the existing-Feature check of Create Feature and bulk create (the 100% rule).</li><li>No Epic chosen: the whole board is searched, as before.</li><li>Shared with everyone in the planning data: Save to Git after a change.</li></ul>}>
+  return <Panel className="connection-panel feature-epics" eyebrow="FEATURE MATCHING" title="Epics to match Features in" info={<ul><li>Per stream, the QMS-0025 Epics whose Features and User Stories its releases are matched to: the Board column of the release tables, the existing-Feature check of Create Feature and bulk create (the 100% rule).</li><li>For DP, CP, IOCC and Content; Tool Validations and the Windchill streams always search the whole board. No Epic chosen: the whole board is searched, as before.</li><li>Shared with everyone in the planning data: Save to Git after a change.</li></ul>}>
     <div className="form-row">
       <label>Stream<select aria-label="Stream for Feature matching" value={stream} onChange={(event) => { setStream(event.target.value); setFilter('') }}>{streams.map((name) => <option key={name} value={name}>{name}{saved[name]?.length ? ` (${saved[name].length})` : ''}</option>)}</select></label>
       <span className="muted">{chosen.length ? `${chosen.length} Epic${chosen.length === 1 ? '' : 's'} chosen` : 'Whole board (no Epic chosen)'}</span>

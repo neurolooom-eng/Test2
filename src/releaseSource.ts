@@ -37,12 +37,14 @@ export function normalizeReleaseSourceSettings(value: unknown): ReleaseSourceSet
   const featureEpics = normalizeFeatureEpics((input as Record<string, unknown>).featureEpics)
   return { ...(approvalDateField ? { approvalDateField } : {}), ...(Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? { matchThreshold: threshold } : {}), ...(namingPatterns ? { namingPatterns } : {}), ...(featureEpics ? { featureEpics } : {}) }
 }
-// QV-57: read from the shared settings: up to 30 streams (name up to 60 characters), each up to 100 Epic IDs.
+// QV-57: the streams whose releases are matched only in chosen Epics; others always search the whole board.
+export const epicMatchStreams = ['DP', 'CP', 'IOCC', 'Content'] as const
+// QV-57: read from the shared settings: those streams only, each up to 100 Epic IDs.
 export function normalizeFeatureEpics(value: unknown): Record<string, number[]> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
   const result: Record<string, number[]> = {}
   for (const [stream, list] of Object.entries(value as Record<string, unknown>).slice(0, 30)) {
-    const name = stream.trim().slice(0, 60)
+    const name = epicMatchStreams.find((entry) => entry.toLowerCase() === stream.trim().toLowerCase())
     if (!name || !Array.isArray(list)) continue
     const ids = [...new Set(list.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].slice(0, 100)
     if (ids.length) result[name] = ids
