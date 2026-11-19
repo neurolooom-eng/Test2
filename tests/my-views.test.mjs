@@ -45,8 +45,8 @@ test('My views: on a server with a PAT, never named after a stream, never a stre
 })
 
 test('Admin and My settings: the pages, and older links opening where they moved (SET-15, TC-SET-06)', () => {
-  assert.deepEqual(settingsPagesFor(() => true).map((page) => page.label), ['Streams', 'Stream options', 'Feature setup', 'People & roles', 'Capacity & time', 'Reports', 'Data & sharing', 'Master data', 'History'])
-  assert.deepEqual(settingsPagesFor(() => false).map((page) => page.label), ['Streams', 'Stream options', 'Feature setup', 'People & roles', 'Data & sharing'])
+  assert.deepEqual(settingsPagesFor(() => true).map((page) => page.label), ['Streams', 'Stream options', 'Feature setup', 'People & roles', 'Capacity & time', 'Reports', 'Data & sharing', 'Epic setup', 'History'])
+  assert.deepEqual(settingsPagesFor(() => false).map((page) => page.label), ['Streams', 'Stream options', 'Feature setup', 'People & roles', 'Data & sharing', 'Epic setup'])
   assert.deepEqual(resolveSettings('connections', 'servers'), { tab: 'my', section: 'servers' })
   assert.deepEqual(resolveSettings('connections', 'email'), { tab: 'my', section: 'email' })
   assert.deepEqual(resolveSettings('connections', 'mapping'), { tab: 'connections', section: 'mapping' })
@@ -57,4 +57,6 @@ test('Admin and My settings: the pages, and older links opening where they moved
   assert.deepEqual(resolveSettings('storage', 'git'), { tab: 'storage', section: 'git' })
   assert.equal(settingsLabel('my'), 'My settings')
   assert.equal(settingsLabel('tables'), 'Reports')
+  assert.deepEqual(resolveSettings('masters'), { tab: 'epics', section: 'fields' }, 'Master data is replaced by the Epic setup (EPS-01)')
+  assert.equal(settingsLabel('masters'), 'Epic setup')
 })

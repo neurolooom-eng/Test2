@@ -247,11 +247,21 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 Settings are split in two (v7.28.0):
 
 - **My settings** — click **your name** at the bottom of the sidebar. What only you use, kept on this computer: **Your work email**, **Servers and PATs** and **My views**.
-- **Admin** (the menu group, formerly Settings) — the shared setup, one page per area, each shown to the people allowed to change it (Role rights): **Streams** (the stream mapping — Tool Owner only), **Stream options** (Epics to match Features in, Bulk creation Epics, Release counts), **Feature setup**, **People & roles** (People, Capacity roles, Role rights), **Capacity & time** (capacity, profiles, bucket rules, thresholds, holidays, period control, historical hours), **Reports** (Monthly pack, Table and chart defaults), **Data & sharing** (Git storage, Load from Git, Shared setup in Git, SharePoint, Other views, Read-only sources, Synthetic sample), **Master data** and **History**.
+- **Admin** (the menu group, formerly Settings) — the shared setup, one page per area, each shown to the people allowed to change it (Role rights): **Streams** (the stream mapping — Tool Owner only), **Stream options** (Epics to match Features in, Bulk creation Epics, Release counts), **Feature setup**, **People & roles** (People, Capacity roles, Role rights), **Capacity & time** (capacity, profiles, bucket rules, thresholds, holidays, period control, historical hours), **Reports** (Monthly pack, Table and chart defaults), **Data & sharing** (Git storage, Load from Git, Shared setup in Git, SharePoint, Other views, Read-only sources, Synthetic sample), **Epic setup** and **History**.
 
 Every section shows a **scope chip** saying whom a change affects: *Only you · This computer*, *This computer*, *Everyone · Shared in Git*, *Yours or everyone's* (a personal and a shared layer) or *Everyone · Tool Owner only*. Older names in this guide map as follows: Settings → Azure DevOps → Your work email / Servers and PATs is now **My settings**; its Stream mapping is **Admin → Streams**; its Other views, Read-only sources and Synthetic sample are under **Admin → Data & sharing**. Old links open the new place.
 
 **My views** (My settings → My views) are your own read-only views: a name, a server you already have a PAT for, a project and a WIQL query. They appear under **Other views** in your menu and are fetched like any view, but stay on this computer — never in the shared setup in Git, a backup or SharePoint — and can never replace or change a stream (a name like *DP* or *CP* is refused), so the release figures stay the same for everyone.
+
+### Epic setup
+
+**Admin → Epic setup** (v7.29.0, replacing Master data) holds, per Epic, the extra fields its new Features carry — Program for DP, Platform for CP, and so on — shared with everyone through Git (`epic-setup.json`):
+
+- **Feature fields per Epic**: a label (its placeholder, e.g. `{platform}`), a type (Text, List, Number, Date), for a List the value list it offers, **If empty** — *Optional*, *Warn* (the Feature is created and the empty field is pointed out) or *Block* (New Feature waits for it; bulk creation skips that release) — where it **goes** (Description as "Label : value", the Title, or both) and an optional on-prem field read from a release's on-prem item. An optional **title pattern** (e.g. `{platform} | {feature}`) builds the Title; without one, the Title fields are joined with " | ". A preview shows an example Title and Description.
+- **Value lists**: the drop-down values, shared by every Epic, one per line.
+- **Copy to Epics** gives other Epics the same fields and pattern (e.g. a stream whose Epics are split by leader), then Save to Git.
+
+The fields apply to every new Feature under the Epic — **New Feature** and **bulk creation** (DP, IOCC, Content) — with or without a Feature setup, in place of the Feature setup's title fields. Editing needs **Edit the Epic setup** (by default Tool Owner, Admin and Scrum Master) and, for the lists, **Edit Epic setup value lists** (Tool Owner and Admin), plus a Git token that can write; everyone else sees it read-only.
 
 ### Roles and access
 

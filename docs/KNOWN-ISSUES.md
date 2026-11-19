@@ -78,7 +78,7 @@ As-built behaviour that is ambiguous, inconsistent or may not match the intent. 
 | OI-03 | On the Monthly page an explicit lock always locks, even while an extension is active (`rules.ts` treats an active extension as open). After the deadline, "Unlock" alone does not reopen entry; an extension is also needed. | Medium | Open — product owner decision | MON-06, MON-07 |
 | OI-04 | Snapshots exclude capacity settings, baseline rules, release scopes, resource profiles, release source, release plans and read-only sources. | Low | Open — product owner decision | SNP-05 |
 | OI-05 | Invalid capacity input is replaced by defaults silently, and the success message still shows. | Low | Open — product owner decision | SET-03 |
-| OI-06 | Master data has no activate/deactivate control, no duplicate or blank-trim check, and no audit. | Low | Open — product owner decision | SET-10 |
+| OI-06 | Master data has no activate/deactivate control, no duplicate or blank-trim check, and no audit. | Low | Closed (v7.29.0, PR #303): Master data is replaced by the Epic setup, whose value lists are trimmed and de-duplicated and saved to Git with a commit (EPS-01) | SET-10 |
 | OI-07 | The task plan check flags overruns only. The older effort rule (`isVarianceFlagged`) flags \|variance\| > 25% in both directions. | Low | Open — product owner decision | BAS-11 |
 | OI-08 | Stories in undated iterations (e.g. only a PI) are not moved to the current Sprint. Confirm whether they should be. | Low | Open — product owner decision | ATM-08 |
 | OI-09 | "Reset synthetic MVP data" has no confirmation and no audit. In SharePoint mode the reset state is then saved to SharePoint. | Medium | Open — product owner decision | SET-12 |

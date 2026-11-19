@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
+import { EpicSetupPanel } from '../components/EpicSetupPanel'
+import type { EpicSetupStore } from '../useEpicSetup'
 import { ScopeChip } from '../components/ScopeChip'
 import { MyViewsPanel } from '../components/MyViewsPanel'
 import { useNow } from '../useNow'
@@ -8,7 +10,6 @@ import { fetchTeamMembers } from '../azureDevOps'
 import { HistoryPanel } from '../components/HistoryPanel'
 import type { HistoryStore } from '../useHistory'
 import { TableDefaultsPanel } from '../components/TableDefaultsPanel'
-import type { MasterValue } from '../domain'
 import type { SharePointConfig } from '../sharepoint'
 import { EmptyState, Info, Modal, Notice, Page, Panel, Pill, SettingsSummary } from '../components/ui'
 import { formatDate, formatDateTime, formatHours, monthName } from '../format'
@@ -41,7 +42,7 @@ const shortMonthName = (month: string) => new Intl.DateTimeFormat('en', { month:
 
 // The Windchill host and views setup is hidden (Windchill exports are imported under Release Details instead).
 // Everyone sets up their own connections and tokens here; the shared sections need the role right to manage them.
-export function AdminPage({ store, month, azure, git, access, featureSetup, qeColumnNames = [], monthlyPack, history, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; qeColumnNames?: string[]; monthlyPack: MonthlyPackStore; history: HistoryStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
+export function AdminPage({ store, month, azure, git, access, featureSetup, epicSetup, qeColumnNames = [], monthlyPack, history, loadEverything, onOpenBoard, tab: requested, onOpenTab }: PageProps & { tab: SettingsTab; onOpenTab: (tab: SettingsTab, section?: string) => void; azure: AzureWorkspace; git: GitStorage; access: Access; featureSetup: FeatureSetup; epicSetup: EpicSetupStore; qeColumnNames?: string[]; monthlyPack: MonthlyPackStore; history: HistoryStore; loadEverything: () => Promise<{ loaded: string[]; failed: string[] }>; onOpenBoard: () => void }) {
   const [everything, setEverything] = useState<{ busy: boolean; loaded?: string[]; failed?: string[] }>({ busy: false })
   // CON-94: each shared section needs its own permission.
   const can = access.can
@@ -162,12 +163,6 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, qeCo
       for (const key of Object.keys(patch) as (keyof MonthLock)[]) if (patch[key] === undefined) delete next[key]
       return { ...settings, monthLocks: { ...(settings.monthLocks ?? {}), [month]: next } }
     }, detail)
-  }
-
-  function addMaster(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const form = event.currentTarget; const data = new FormData(form)
-    store.update((draft) => { draft.masters.push({ id: crypto.randomUUID(), type: data.get('type') as MasterValue['type'], value: String(data.get('value')), sortOrder: draft.masters.length + 1, active: true }); return draft })
-    form.reset()
   }
 
   // CAP-41/42: the custom calculation profiles and the default profile, shared in Git and audited.
@@ -368,11 +363,11 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, qeCo
       { key: 'capacity-roles', label: 'Capacity roles', node: <><div className="shared-time-panel"><GitSyncBar git={git} /></div><CapacityRolesPanel settings={capacity} canEdit={can('people.capacityRoles')} onSave={saveCapacityRoles} /></> },
       { key: 'rights', label: 'Role rights', node: <AccessPanel access={access} git={git} people={people} membersInPeople /> },
     ].filter((section) => section.key === 'people' ? can('people.edit') : section.key === 'capacity-roles' ? can('people.capacityRoles') : true).map((section) => ({ ...section, scope: 'everyone' as const }))} />}
-    {(tab === 'masters' || tab === 'audit') && <div className="scope-line"><ScopeChip scope="everyone" /></div>}
-    {tab === 'masters' && <Panel className="admin-section" eyebrow="MASTER DATA" title="Admin-controlled dropdowns">
-        <form className="inline-form" onSubmit={addMaster}><select name="type"><option>Release Type</option><option>Activity Type</option><option>Status</option><option>Resource Band</option><option>Complexity</option></select><input name="value" required placeholder="New value" /><button className="primary">Add</button></form>
-        {store.state.masters.map((item) => <div className="master-row" key={item.id}><span>{item.type}</span><strong>{item.value}</strong><Pill tone={item.active ? 'open' : 'neutral'}>{item.active ? 'Active' : 'Inactive'}</Pill></div>)}
-    </Panel>}
+    {tab === 'audit' && <div className="scope-line"><ScopeChip scope="everyone" /></div>}
+    {tab === 'epics' && <SectionTabs page="epics" sections={[
+      { key: 'fields', label: 'Feature fields per Epic', scope: 'everyone', node: <EpicSetupPanel section="fields" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
+      { key: 'lists', label: 'Value lists', scope: 'everyone', node: <EpicSetupPanel section="lists" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
+    ]} />}
     {tab === 'audit' && <Panel eyebrow="AUDIT" title="Recent changes">
       {store.state.audits.slice(0, 8).map((item) => <div className="audit-row" key={item.id}><span>{item.action}</span><div><strong>{item.entity}</strong><small>{item.detail}</small></div><time>{formatDateTime(item.timestamp)}</time></div>)}
       {!store.state.audits.length && <EmptyState title="No changes recorded yet." detail="Changes made in the app will appear here." />}

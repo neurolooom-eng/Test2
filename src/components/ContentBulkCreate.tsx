@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { epicFieldsFor, withEpicFields } from '../epicSetup'
+import { useEpicSetupFile } from '../useEpicSetup'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { ReleaseEntry } from '../releaseSource'
 import type { BoardHit } from '../dpBoardMatch'
@@ -14,7 +16,9 @@ import { Modal, Notice } from './ui'
 export function ContentBulkCreate({ releases, featureTitle, featureMatch, azure, onClose }: { releases: ReleaseEntry[]; featureTitle: (release: ReleaseEntry) => string; featureMatch: (release: ReleaseEntry) => BoardHit | undefined; azure: AzureWorkspace; onClose: () => void }) {
   // QV-59: the Content bulk Epic — mine, else shared, else built in (22919).
   const contentEpicId = useBulkEpic('Content').epicId ?? 0
-  const plan = contentPlan(releases, featureTitle, featureMatch)
+  const rawPlan = contentPlan(releases, featureTitle, featureMatch)
+  // EPS-03: the Epic setup's fields of the bulk Epic.
+  const plan = withEpicFields(rawPlan, epicFieldsFor(useEpicSetupFile(), contentEpicId), (line) => line.release.items)
   const ready = plan.filter((line) => !line.skip)
   const people = boardPeople(azure.items)
   const [person, setPerson] = useState('')
@@ -41,10 +45,10 @@ export function ContentBulkCreate({ releases, featureTitle, featureMatch, azure,
       for (const [index, line] of ready.entries()) {
         progress(`${index + 1} of ${ready.length}: ${line.title}…`)
         try {
-          const feature = { parentId: epic.id, title: line.title, description: withFeatureDoD(contentBulk.featureDoD, '', contentBulk.classification), acceptanceCriteria: '', areaPath: epic.areaPath, iterationPath: pair.pi.path, storyIterationPath: pair.sprint.path, assignedTo: owner }
+          const feature = { parentId: epic.id, title: line.title, description: withFeatureDoD(contentBulk.featureDoD, '', contentBulk.classification, line.fieldLines), acceptanceCriteria: '', areaPath: epic.areaPath, iterationPath: pair.pi.path, storyIterationPath: pair.sprint.path, assignedTo: owner }
           const bundle = await createFeatureFromSetup(config, token, feature, { stories: [], reviewStory: true, task: { title: '{month} | {feature}', description: '', originalEstimate: contentBulk.taskEstimate, assignedTo: owner, areaPath: '', iterationPath: '' } }, month, undefined, adhoc)
           azure.featureCreated([epic, ...bundle.items])
-          done.push(`#${bundle.feature.id} ${line.title}`)
+          done.push(`#${bundle.feature.id} ${line.title}${line.warned.length ? ` (empty: ${line.warned.join(', ')})` : ''}`)
         } catch (failure) {
           if (failure instanceof HierarchyCreationError && failure.createdItems.length) azure.featureCreated([epic, ...failure.createdItems])
           failed.push(`${line.title}: ${failure instanceof Error ? failure.message : 'failed'}`)
@@ -64,7 +68,7 @@ export function ContentBulkCreate({ releases, featureTitle, featureMatch, azure,
       <p className="muted">Under Epic #{contentEpicId}{epic ? ` “${epic.title}”` : ''}, each with Release Classification {contentBulk.classification}, the DoD “{contentBulk.featureDoD}”, the User Story “Review of Deliverables - &lt;Feature title&gt;” in the current Sprint and the Time Writing story with its month Task ({contentBulk.taskEstimate} h Original Estimate), all assigned to that person.</p>
       <div className="azure-table"><table>
         <thead><tr><th scope="col">Feature title</th><th scope="col">Result</th></tr></thead>
-        <tbody>{plan.map((line) => <tr key={line.release.key} className={line.skip ? 'muted' : undefined}><td>{line.title}</td><td>{line.skip ? <span className="warning-text">Skipped: {line.skip}</span> : <>Will be created{line.note && <small className="warning-text"> — {line.note}</small>}</>}</td></tr>)}</tbody>
+        <tbody>{plan.map((line) => <tr key={line.release.key} className={line.skip ? 'muted' : undefined}><td>{line.title}</td><td>{line.skip ? <span className="warning-text">Skipped: {line.skip}</span> : <>Will be created{line.note && <small className="warning-text"> — {line.note}</small>}{line.warned.length > 0 && <small className="warning-text"> — empty {line.warned.join(', ')}</small>}</>}</td></tr>)}</tbody>
       </table></div>
       {pairs && pairs.length > 1 && <label className="inline-select">PI / Sprint<select aria-label="PI / Sprint" value={choice} onChange={(event) => setChoice(Number(event.target.value))}>{pairs.map((entry, index) => <option key={entry.sprint.path} value={index}>{entry.pi.name} / {entry.sprint.name}</option>)}</select></label>}
       {pair && pairs?.length === 1 && <p className="muted">PI / Sprint: {pair.pi.name} / {pair.sprint.name}</p>}
