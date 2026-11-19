@@ -780,6 +780,10 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-58 Role rights as a permission matrix** — Req CON-94, CON-42, CON-89 — L1 `access.test.mjs` ("CON-94: every permission is Allow, Deny or Not set per role; a denial wins; older files keep what they allowed; Check access explains (TC-CON-58)"); E2E `shell.e2e.mjs` ("TC-CON-58: Role rights is a matrix of Allow, Deny and Not set per permission, grouped and searchable; a denial hides what it denies and Check access explains why"); browser check with access.json in Git: Settings → People & access → Role rights shows each permission with Allow / Deny / Not set per role in groups; set Deny on *Export tables* for one of your roles while another allows it — after Save to Git the Export buttons are gone; Check access names the denying role; an access.json saved before v7.27.0 keeps every person's rights.
 
+**TC-CON-59 Feature setup layers** — Req CON-95 — L1 `feature-setup-inheritance.test.mjs` ("Feature setup layers: Mine → Epic (shared) → All Epics → Built in, per field (CON-95, TC-CON-59)"; "Feature setup layers: round trip, DoD rules and Enable for everyone keep the defaults (CON-95, TC-CON-59)").
+
+**TC-CON-60 Feature setup inheritance in the editor** — Req CON-95, CON-96 — E2E `shell.e2e.mjs` ("TC-CON-60: Feature setup — All Epics defaults, and an Epic setup showing each field as set here or inherited"); browser check with Git storage: Admin → Feature setup → All Epics: set a DoD and two stories, Save to Git; open an Epic's shared setup, Revert to inherited on its stories (the list shows All Epics' stories), Save; New Feature under that Epic offers All Epics' stories; in My setup of the Epic, Override here on the estimate and change it — New Feature pre-fills it; Revert to inherited restores the shared value.
+
 
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
@@ -1622,6 +1626,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-92 | TC-ACC-04, TC-ACC-05 |
 | CON-93 | TC-CON-57 |
 | CON-94 | TC-CON-58 |
+| CON-95 | TC-CON-59, TC-CON-60 |
+| CON-96 | TC-CON-60 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |

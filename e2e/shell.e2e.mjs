@@ -1212,3 +1212,28 @@ test('TC-SET-07: My views — a view of your own on a server you have a PAT for,
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+test('TC-CON-60: Feature setup — All Epics defaults, and an Epic setup showing each field as set here or inherited', async () => {
+  const shared = { schema: 1, kind: 'feature-setup', defaults: { stories: [{ title: 'All Epics story', description: '' }], originalEstimate: 3 }, epics: [
+    { epicId: 4242, epicTitle: 'Inheriting Epic', inherits: ['stories', 'estimate'], featureDoD: 'Own DoD', stories: [], timeWritingStory: { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: '', iterationPath: '' }, task: { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' } },
+  ] }
+  const { page, context, errors } = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-feature-setup-v1', text), initArg: JSON.stringify(shared) })
+  await navigate(page, 'Feature setup')
+  const all = page.locator('details.setup-all-epics')
+  assert.match(await text(all.locator('summary')), /All Epics.*\(2 set\)/)
+  await all.locator('summary').click()
+  assert.equal(await page.getByLabel('All Epics optional User Stories').inputValue(), 'All Epics story')
+  assert.equal(await page.getByLabel('All Epics default estimate').inputValue(), '3')
+  assert.equal(await page.getByLabel('All Epics Feature DoD').isDisabled(), true, 'view only without Git storage')
+  await page.getByLabel('Go to Epic #').fill('4242')
+  await page.getByLabel('Go to Epic #').press('Enter')
+  await page.getByRole('button', { name: /^(View|Edit) setup…$/ }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.waitFor()
+  const origins = (await dialog.locator('.setup-origin').allInnerTexts()).map((entry) => entry.replace(/\s+/g, ' ').trim())
+  assert.deepEqual(origins, ['Set here', 'Inherited from All Epics', 'Inherited from All Epics'], 'DoD set here; stories and estimate inherited')
+  assert.match(await text(dialog.locator('.setup-inherited')), /All Epics story/)
+  assert.equal(await dialog.getByLabel(/^Default Original Estimate/).inputValue(), '3')
+  assert.deepEqual(errors, [])
+  await context.close()
+})
