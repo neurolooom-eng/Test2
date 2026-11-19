@@ -776,6 +776,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-56 Back up and clean up the connections** — Req CON-88 — L1 `view-definitions.test.mjs` ("back up and clean up: every connection removed, PATs kept per server, the reset applied once per computer (TC-CON-56)"); E2E `shell.e2e.mjs` ("TC-CON-56: Storage → Shared setup in Git offers Back up and clean up; removing all needs Git storage that can save"); browser check (admin, Git storage that can save): Back up and remove all… downloads the backup, adds `azure-views-backups/azure-views-<time>.json` and `azure-views-reset.json` in Git, empties `azure-views.json` and `azure-data/`, and Settings → Azure DevOps lists no connections while the server PATs stay; a second computer started afterwards shows no old connections, then the ones the admin added.
 
+**TC-CON-57 Stream mapping locked to the Tool Owner** — Req CON-93, CON-42 — L1 `access.test.mjs` ("CON-93: the Tool Owner role alone changes the stream mapping; while none exists, those who manage access may; only a Tool Owner changes who holds it (TC-CON-57)"); browser check with access.json in Git: as an Admin without the Tool Owner role, Settings → Azure DevOps → Stream mapping shows the mapping read-only (no Edit, no Save stream mapping to Git, naming patterns read-only); give yourself Tool Owner in Role rights while no Tool Owner exists — saved; as that Tool Owner the mapping is editable; as an Admin, adding another Tool Owner is refused; removing the last Tool Owner is refused.
+
 
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
@@ -1433,7 +1435,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-MYD-01 My dashboard as the start page** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match My Tasks [Board].
 
-**TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Admin and People Manager; older files keep them for those two (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
+**TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Tool Owner, Admin and People Manager; older files keep them for those three (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
 
 **TC-MYD-03 Personal views model** — Req MYD-06, MYD-09 — L1 `personal-views.test.mjs` ("personal views: a file per person, only known shapes kept, defaults under my own changes (MYD-06…MYD-09, TC-MYD-03)"; "sections in my order: removed sections dropped, new ones placed after their neighbour, hidden apart (MYD-06, TC-MYD-03)").
 
@@ -1606,6 +1608,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-90 | TC-ACC-05 |
 | CON-91 | TC-ACC-04 |
 | CON-92 | TC-ACC-04, TC-ACC-05 |
+| CON-93 | TC-CON-57 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1968,7 +1971,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
-| UC-22 | TC-ACC-01, TC-ACC-02 |
+| UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-57 |
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |

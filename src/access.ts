@@ -3,7 +3,8 @@
 // planning data, so only people who can write to that repository can change it. Without the file, everyone has every
 // right (the app works as before). This decides what the app shows; Azure DevOps and GitHub still decide what each
 // person's own tokens can read and change.
-export const roles = ['Admin', 'Product Owner', 'People Manager', 'Scrum Master', 'Team Member'] as const
+// CON-93: Tool Owner — the only role that changes the stream mapping and its query logic (streams.manage).
+export const roles = ['Tool Owner', 'Admin', 'Product Owner', 'People Manager', 'Scrum Master', 'Team Member'] as const
 export type Role = typeof roles[number]
 
 export const areas = [
@@ -30,6 +31,7 @@ export const actions = [
   { key: 'windchill.import', label: 'Import Windchill exports' },
   { key: 'settings.manage', label: 'Manage shared settings (capacity, resources, master data, shared connection setup)' },
   { key: 'access.manage', label: 'Manage access (roles and members)' },
+  { key: 'streams.manage', label: 'Change the stream mapping and its query logic: servers, projects and queries of the streams, their data sets, release naming (Tool Owner)' },
 ] as const
 export type Action = typeof actions[number]['key']
 
@@ -51,7 +53,8 @@ export function defaultPolicy(adminEmail = ''): AccessPolicy {
     schema: 1,
     defaultRole: 'Team Member',
     roles: {
-      'Admin': { areas: [...allAreas], actions: [...allActions] },
+      'Tool Owner': { areas: [...allAreas], actions: [...allActions] },
+      'Admin': { areas: [...allAreas], actions: allActions.filter((action) => action !== 'streams.manage') },
       'Product Owner': { areas: ['overview', 'board', 'health', 'release', 'baselines', 'qemapping', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
       'People Manager': { areas: ['overview', 'insights', ...myWork, 'board', 'release', 'baselines', 'qemapping', 'snapshots', 'docs'], actions: ['azure.write', 'azure.createForOthers', 'baselines.edit'] },
       'Scrum Master': { areas: ['overview', ...myWork, 'board', 'health', 'release', 'docs'], actions: ['azure.write', 'azure.createForOthers'] },
@@ -79,11 +82,12 @@ export function parseAccess(text: string): AccessPolicy {
   // A file written before Team insights existed: the roles that saw the Data Insights then and lead people (Admin,
   // People Manager) keep the team's insights; every other role keeps My dashboard only.
   const before = !Object.values(rolesIn).some((role) => Array.isArray(role?.areas) && role.areas.includes('insights'))
-  const areasOf = (role: Role) => { const listed = pick(rolesIn[role]?.areas, allAreas); return before && listed.includes('overview') && (role === 'Admin' || role === 'People Manager') ? allAreas.filter((area) => listed.includes(area) || area === 'insights') : listed }
+  const areasOf = (role: Role) => { const listed = pick(rolesIn[role]?.areas, allAreas); return before && listed.includes('overview') && (role === 'Tool Owner' || role === 'Admin' || role === 'People Manager') ? allAreas.filter((area) => listed.includes(area) || area === 'insights') : listed }
   return {
     schema: 1,
     defaultRole: roles.includes(input.defaultRole as Role) ? input.defaultRole as Role : null,
-    roles: Object.fromEntries(roles.map((role) => [role, { areas: areasOf(role), actions: pick(rolesIn[role]?.actions, allActions) }])) as Record<Role, RoleRights>,
+    // CON-93: a file written before the Tool Owner role keeps its roles; Tool Owner gets every right until it is set.
+    roles: Object.fromEntries(roles.map((role) => [role, role === 'Tool Owner' && !rolesIn[role] ? { areas: [...allAreas], actions: [...allActions] } : { areas: areasOf(role), actions: pick(rolesIn[role]?.actions, allActions) }])) as Record<Role, RoleRights>,
     members,
   }
 }
@@ -110,4 +114,25 @@ export function rightsFor(policy: AccessPolicy | null, email: string): Rights {
 // A policy may not lock its editor out: the person saving it must keep a role that can manage access.
 export function keepsManager(policy: AccessPolicy, email: string) {
   return Boolean(email) && rightsFor(policy, email).actions.has('access.manage')
+}
+
+// CON-93: whether anyone holds the stream mapping (a listed member, or everyone through the default role, with
+// streams.manage). Until someone does, the people who manage access may change it, so nobody is locked out.
+export function toolOwnerExists(policy: AccessPolicy | null) {
+  if (!policy) return false
+  const holds = (role: Role) => policy.roles[role]?.actions.includes('streams.manage')
+  return Object.values(policy.members).some((assigned) => assigned.some(holds)) || Boolean(policy.defaultRole && holds(policy.defaultRole))
+}
+export function canManageStreams(policy: AccessPolicy | null, rights: Pick<Rights, 'actions'>) {
+  return !policy || rights.actions.has('streams.manage') || (!toolOwnerExists(policy) && rights.actions.has('access.manage'))
+}
+// CON-93: who holds the stream mapping (members with streams.manage, and the default role's) and whether a change to
+// the policy touches it — only someone who may change the stream mapping may change who holds it, and a policy that
+// had a holder must keep one.
+const streamHolders = (policy: AccessPolicy) => JSON.stringify({ members: Object.entries(policy.members).filter(([, assigned]) => assigned.some((role) => policy.roles[role]?.actions.includes('streams.manage'))).map(([email]) => email).sort(), roles: roles.filter((role) => policy.roles[role]?.actions.includes('streams.manage')), defaultRole: policy.defaultRole && policy.roles[policy.defaultRole]?.actions.includes('streams.manage') ? policy.defaultRole : null })
+export function toolOwnerChange(before: AccessPolicy | null, after: AccessPolicy, email: string): string {
+  if (before && streamHolders(before) === streamHolders(after)) return ''
+  if (before && !canManageStreams(before, rightsFor(before, email))) return 'Only a Tool Owner can change who holds the stream mapping (the Tool Owner role and “Change the stream mapping”).'
+  if (toolOwnerExists(before) && !toolOwnerExists(after)) return 'Keep at least one Tool Owner: the stream mapping would have no owner.'
+  return ''
 }

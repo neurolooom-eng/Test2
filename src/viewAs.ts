@@ -7,7 +7,7 @@ import type { AzureWorkItem } from './domain'
 export type ViewAs = { kind: 'person'; name: string; email?: string } | { kind: 'role'; role: Role }
 
 // Only people holding the Admin role in the access policy (a policy must exist: without one nothing is restricted).
-export const canViewAs = (rights: Rights) => rights.restricted && rights.roles.includes('Admin')
+export const canViewAs = (rights: Rights) => rights.restricted && (rights.roles.includes('Admin') || rights.roles.includes('Tool Owner'))
 
 export function viewAsRights(policy: AccessPolicy | null, viewAs: ViewAs): Rights {
   if (viewAs.kind === 'person') return rightsFor(policy, viewAs.email ?? '')
