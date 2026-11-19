@@ -648,6 +648,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-ATM-22 Sprint check: full-width Sprint panel and the State checks tree** — Req ATM-29 — L1 `my-work.test.mjs` ("ATM-29: State checks expand to the User Stories of a Feature or the Tasks of a User Story; only my New User Stories can be set Active there (TC-ATM-22)"); E2E `shell.e2e.mjs` ("TC-ATM-20: Sprint check offers the move to the current PI + Sprint and the state checks, without month tasks": the Sprint panel spans the page; Nothing to fix for the sample); browser check with the Time Writing connection and an Active Feature of yours whose User Stories are New: State checks shows it as a tree row; Choose a User Story (or ›) lists its User Stories; Set User Story to Active on yours sets it Active after OK and the check goes away; someone else's New story has no button.
 
+**TC-ATM-23 Sprint check: a Feature left in an older PI** — Req ATM-30 — L1 `my-work.test.mjs` ("ATM-30: an Active Feature left in an older PI than its Active User Stories is flagged with the PI to move to (TC-ATM-23)"); browser check with the Time Writing connection and an Active Feature of yours in an older PI whose Active User Story is in the current Sprint: State checks lists it with both PIs; Move Feature to <PI> moves it after OK and the check goes away; a Feature already in the stories' PI is not listed.
+
 **TC-ATM-03 Close an item** — Req ATM-06 — **UAT**
 - Steps:
   1. On a New User Story press Set User Story to Active, then Close User Story; on a New Feature press Set Feature to Active, then Close Feature. A Resolved story or Feature shows "Set to Active first".
@@ -989,7 +991,7 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-27 Typed utilization formula (fx)** — Req CAP-55 — L1 `formula.test.mjs` ("CAP-55: a typed formula reads like Excel — figures in brackets, + - * / ( ), MAX, MIN, ROUND, IF; blank on / 0"; "CAP-55: a formula that does not read says why"); `calculation-profiles.test.mjs` ("CAP-55: a profile with a typed formula — the v4 formula typed gives the v4 figures; another formula drives person and team"); E2E `shell.e2e.mjs` ("TC-CAP-27: a calculation profile with a typed formula (fx) — starts from the ticks, is checked as typed, is saved and drives the figures"); browser check with the team data: make a copy of Current (v4) with fx on and its starting formula — every person's and the team's figures equal Current (v4); change it to =[Project work] / [Funded Hours] * 100, make it the default — Pulse Check cards, Team overview Utilization and the Monthly pack follow; Save to Git and reload in another browser.
 
-**TC-CAP-28 My capacity under every name; the reason when not counted** — Req CAP-56 — L1 `capacity.test.mjs` ("CAP-56: my capacity is found under every name my work email carries; when I am not counted the reason is given (TC-CAP-28)"); browser check with the Time Writing connection: Time Writing as Me shows the same Capacity as when your name is chosen at the top right; for a month without a Task of yours, or with a Joined on after it, the Capacity tile shows — and the reason.
+**TC-CAP-28 My capacity under every name; the reason when not counted** — Req CAP-56 — L1 `capacity.test.mjs` ("CAP-56: my capacity is found under every name my work email carries; when I am not counted the reason is given (TC-CAP-28)"); browser check with the Time Writing connection: Time Writing as Me shows the same Capacity as when your name is chosen at the top right; for a month without a Task of yours, or with a Joined on after it, the Capacity tile shows — and the reason, and My dashboard → My hours says “Not counted in <month>: <reason>”.
 
 **TC-CAP-29 Capacity by team Role only** — Req CAP-57, CAP-50 — L1 `people-access.test.mjs` ("CAP-57: only the team Role decides capacity — Lead and Manager are not counted by default; app access roles and the People manager tick never count (TC-CAP-29)"); E2E `shell.e2e.mjs` ("TC-CAP-22: People & access — one page; names and emails from Azure DevOps (nothing typed); Remove asks left or not in the team; capacity roles": no app access roles in Capacity roles); browser check: a person with app access role Admin / People Manager (or the People manager tick) and team Role QE has capacity on Time Writing and in Pulse Check; a person with team Role Lead is listed apart with "team role Lead".
 
@@ -1485,7 +1487,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ACT-14 Close Features on Time Writing** — Req ACT-18 — L1 `close-feature.test.mjs` ("ACT-18: Close Feature closes only my open items, children first; the Feature too when nothing else is open (TC-ACT-14)"; "ACT-18: open work of others keeps their story and the Feature open; a Feature of someone else is never closed (TC-ACT-14)"; "ACT-18: closing runs New → Active → Closed for stories and Features; a failure keeps everything above it open (TC-ACT-14)"); E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": Close Features shows tick boxes, Close 1 Feature, nothing written with sample data); browser check with the Time Writing connection: tick Close Features, tick a Feature of yours → the confirmation lists your Tasks, User Stories and the Feature; after OK they are Closed in Azure DevOps, the month row shows Closed · read-only with its hours disabled; a Feature with someone else's open Task keeps that story and the Feature open and says why.
 
-**TC-ACT-15 Add a new activity folds** — Req ACT-19 — E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": folded by default, the list full width, opened with its heading); browser check: open it, reload — it stays open; fold it — the activities take the full width.
+**TC-ACT-15 Add a new activity as a pop-up** — Req ACT-20, ACT-19 — E2E `shell.e2e.mjs` ("TC-ACT-02: Time Writing shows the person's KPI cards, month tasks, hours and deadline": ＋ Add a new activity next to Activities of, the list full width, the form in a pop-up that closes); browser check: ＋ Add a new activity opens the pop-up with Time Writing task / User Story / Task / Feature; a save shows its message in the pop-up; Open New Feature closes it and opens New Feature.
 
 **TC-ACT-05 Suggestions by state, Add all** — Req ACT-09, ACT-10 — E2E `shell.e2e.mjs` ("TC-ACT-05: suggestions filter by Active / New / Both and Add all moves them into Your activities"); browser check with the Time Writing connection: with a New and an Active Feature of yours without a task, Active / New / Both narrow the suggestions; Add all puts the shown ones in Your activities and Save creates their tasks; the Features keep their state (ATM-28: a New Feature becomes Active only through an Active User Story).
 
@@ -1661,6 +1663,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ATM-27 | TC-ATM-19 |
 | ATM-28 | TC-ATM-21 |
 | ATM-29 | TC-ATM-22 |
+| ATM-30 | TC-ATM-23 |
 | BKL-01…03, BKL-12 | TC-BKL-01 |
 | BKL-04…09, BKL-11 | TC-BKL-02 |
 | BKL-10 | TC-BKL-03, TC-ATM-11 |
@@ -1896,6 +1899,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ACT-17 | TC-ACT-13 |
 | ACT-18 | TC-ACT-14 |
 | ACT-19 | TC-ACT-15 |
+| ACT-20 | TC-ACT-15 |
 | OVW-01 | TC-OVW-01, TC-OVW-02, TC-OVW-03 |
 | OVW-02 | TC-OVW-02 |
 | OVW-03 | TC-OVW-01 |
@@ -1939,7 +1943,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |
-| UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
+| UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-ATM-23, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |

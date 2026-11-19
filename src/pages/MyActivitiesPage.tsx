@@ -7,7 +7,7 @@ import { closeFeatureItems, featureClosePlan, featureCloseQuestion } from '../cl
 import { FeatureEditor } from '../components/FeatureEditor'
 import { PersonPicker } from '../components/PersonPicker'
 import { SearchSelect } from '../components/SearchSelect'
-import { EmptyState, Metric, Metrics, Page } from '../components/ui'
+import { EmptyState, Metric, Metrics, Modal, Page } from '../components/ui'
 import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
 import { setupHours, type FeatureSetups } from '../featureSetup'
@@ -35,7 +35,6 @@ type Row = {
   // The item the row's ID links to in Azure DevOps (its Feature, or a leave / training story).
   link?: AzureWorkItem
 }
-const addOpenKey = 'demand-planning-activities-add-open-v1'
 const hoursText = (value?: number) => value == null ? '' : String(value)
 const validHours = (text: string) => text.trim() === '' || (Number.isFinite(Number(text)) && Number(text) >= 0 && Number(text) <= 1000)
 // ACT-18: a closed month Task is read-only here.
@@ -71,9 +70,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
   // ACT-18: Close mode — tick Features in the list and close them with one confirmation (no space taken until ticked).
   const [closeMode, setCloseMode] = useState(false)
   const [closing, setClosing] = useState<Record<string, boolean>>({})
-  // ACT-19: Add a new activity folds to its heading (folded unless opened), kept per computer.
-  const [addOpen, setAddOpen] = useState(() => { try { return localStorage.getItem(addOpenKey) === '1' } catch { return false } })
-  const toggleAdd = (open: boolean) => { setAddOpen(open); try { localStorage.setItem(addOpenKey, open ? '1' : '0') } catch { /* this visit only */ } }
+  // ACT-20: Add a new activity is a pop-up opened from the top of the page, next to "Activities of".
+  const [addOpen, setAddOpen] = useState(false)
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null)
   const saving = useSyncExternalStore(subscribeJobs, () => isRunning('activities:save'))
   const label = monthName(month)
@@ -335,7 +333,10 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
   return <Page className="activities-page">
     <header className="act-header">
       <div><h2>Add activities</h2><p>Record your activities for {label}. Copy your recurring activities or add a new one.</p></div>
-      <label className="act-person">Activities of<PersonPicker label="Activities of" value={my.chosenName} people={my.people} onChange={my.setName} meLabel={assign?.me || azure.creatorEmail ? 'Me' : 'Choose a person…'} /></label>
+      <div className="act-header-tools">
+        {my.known && <button type="button" className="act-primary act-add-open" onClick={() => setAddOpen(true)}>＋ Add a new activity</button>}
+        <label className="act-person">Activities of<PersonPicker label="Activities of" value={my.chosenName} people={my.people} onChange={my.setName} meLabel={assign?.me || azure.creatorEmail ? 'Me' : 'Choose a person…'} /></label>
+      </div>
     </header>
     {!self && my.known && <div className="act-message act-info" role="status">Showing {my.me.name}'s activities. {assignee ? `What you save here is written for ${my.me.name} (assigned to them).` : 'Saving is not available for another person here.'} Choose “Me” to go back.</div>}
     {message && <div className={`act-message act-${message.tone}`} role="status">{message.text}<button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setMessage(null)}>×</button></div>}
@@ -362,7 +363,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
       {unsaved > 0 && <Metric label="Unsaved changes" value={unsaved} hint="Saved with Save" tone="negative" />}
     </Metrics>
     </div>
-    <div className={`act-grid${addOpen ? '' : ' act-add-folded'}`}>
+    <div className="act-grid act-add-folded">
       <div className="act-main">
       <section className="act-card" aria-labelledby="act-copy">
         <div className="act-card-head"><h3 id="act-copy">Your activities for {label}</h3>
@@ -414,11 +415,9 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
       </section>}
       </div>
 
-      <div className="act-side">
-
-        <section className="act-card" aria-labelledby="act-new">
-          <h3 id="act-new"><button type="button" className="act-fold" aria-expanded={addOpen} onClick={() => toggleAdd(!addOpen)}><span aria-hidden="true">{addOpen ? '▾' : '▸'}</span>Add a new activity</button></h3>
-          {addOpen && <>
+      {addOpen && <Modal title="Add a new activity" eyebrow={`TIME WRITING · ${label.toUpperCase()}`} form onClose={() => setAddOpen(false)}>
+        <section className="act-add-modal" aria-label="Add a new activity">
+          {message && <div className={`act-message act-${message.tone}`} role="status">{message.text}</div>}
           <div className="segmented" role="radiogroup" aria-label="What to add">
             <label className={addKind === 'task' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'task'} onChange={() => setAddKind('task')} />Time Writing task</label>
             <label className={addKind === 'story' ? 'active' : undefined}><input type="radio" name="act-add-kind" checked={addKind === 'story'} onChange={() => setAddKind('story')} />User Story</label>
@@ -433,7 +432,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
               onChange={(id) => { setFeatureId(id); const own = epicOf(features.find((feature) => feature.id === Number(id))!); if (own) setStream(String(own.id)) }} />{chosenFeature && <span className="act-open">{idLink(chosenFeature)} {chosenFeature.title} ↗</span>}</div>}
             {addKind === 'feature' ? <>
               <p className="act-hint">The New Feature form opens with {self ? 'you' : my.me.name} as the assignee and {label} as the Time Writing month. It applies the Epic's Feature setup (title fields, DoD, User Stories, Time Writing story and Task), else the built-in rules.</p>
-              <button type="button" className="act-primary" disabled={Boolean(blocked) || !azure.config} title={blocked || undefined} onClick={() => setFeatureOpen(true)}>Open New Feature</button>
+              <button type="button" className="act-primary" disabled={Boolean(blocked) || !azure.config} title={blocked || undefined} onClick={() => { setAddOpen(false); setFeatureOpen(true) }}>Open New Feature</button>
             </> : addKind === 'story' || addKind === 'work' ? <>
               {addKind === 'work' && <label>User Story<select value={storyId} onChange={(event) => setStoryId(event.target.value)} disabled={!chosenFeature}><option value="">{!chosenFeature ? 'Choose a Feature first' : taskStories.length ? 'Choose a User Story' : 'No open User Story under this Feature'}</option>{taskStories.map((item) => <option key={item.id} value={item.id}>#{item.id} {item.title}</option>)}</select></label>}
               <label>Title<input value={story.title} maxLength={255} placeholder={addKind === 'work' ? 'What needs to be done' : 'What the story is about'} onChange={(event) => setStory((current) => ({ ...current, title: event.target.value }))} /></label>
@@ -454,9 +453,8 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
             </>}
             {addKind !== 'feature' && <p className="act-sub">Feature not listed? <button type="button" className="act-link" onClick={() => setAddKind('feature')}>Create a new Feature</button></p>}
           </div>
-          </>}
         </section>
-      </div>
+      </Modal>}
     </div></>}
     {featureOpen && azure.config && (chosenEpic ?? epics[0]) && <FeatureEditor mode={{ parent: (chosenEpic ?? epics[0])! }} month={label} items={azure.items} config={azure.config} savedPat={azure.pat} me={assignee} canChoose={self && Boolean(assign?.canChoose)} featureSetup={featureSetup} onSavePat={azure.rememberPat} onCreated={azure.featureCreated} onClose={() => setFeatureOpen(false)}
       onDone={(done) => { setFeatureOpen(false); setMessage({ tone: 'success', text: `Feature #${done.feature.id} “${done.feature.title}”: ${done.text}` }); void azure.refresh() }}
