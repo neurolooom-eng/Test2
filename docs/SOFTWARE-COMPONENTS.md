@@ -53,6 +53,7 @@ This document lists every software component of the system: the in-house source 
 | ContentBulkCreate | `src/components/ContentBulkCreate.tsx` | Content Create Features pop-up: one person for all, the plan, PI / Sprint, creation as a background job. | CNB |
 | NamingPatternsPanel | `src/components/NamingPatternsPanel.tsx` | Settings → Stream mapping → Release naming patterns: edit, try a Title, apply, reset. | QV |
 | FeatureEpicsPanel | `src/components/FeatureEpicsPanel.tsx` | Settings → Stream mapping → Epics to match Features in: per stream, the QMS-0025 Epics its releases are matched in (QV-57). | QV, SET |
+| ReleaseCounts | `src/components/ReleaseCounts.tsx` | Completed / Supported release counts of CP, DP and IOCC with entered placeholders, and the Admin entry of those counts (QV-58). | QV, SET |
 | ZoomControl | `src/components/ZoomControl.tsx` | The desktop app's zoom control: − / % / +, Auto, Ctrl keys. | UI |
 | SnapshotsPage | `src/pages/SnapshotsPage.tsx` | Snapshots: SharePoint snapshot history, browser storage and backup recovery, legacy snapshot records. | SNP, STO |
 
@@ -318,6 +319,7 @@ This document lists every software component of the system: the in-house source 
 | content-bulk.test | `tests/content-bulk.test.mjs` | Content bulk plan, people and the chosen email. | CNB |
 | naming-patterns.test | `tests/naming-patterns.test.mjs` | Naming patterns: matching, checks, shared settings, Content and IOCC grouping. | QV |
 | feature-epics.test | `tests/feature-epics.test.mjs` | Epics to match Features in: shared setting checked and kept in Git, board match limited to the chosen Epics (TC-QV-38). | QV |
+| release-counts.test | `tests/release-counts.test.mjs` | Entered release counts: checks, use while a stream has no data, Pulse Check and Monthly pack (TC-QV-39). | QV |
 | desktop-zoom.test | `tests/desktop-zoom.test.mjs` | Desktop zoom: Auto fit, steps, limits, kept setting. | UI |
 | my-signatures.test | `tests/my-signatures.test.mjs` | Signed by me: signature fields, name matching, signature dates, per-stream counts in a period, Windchill exports (TC-MYD-06). | MYD |
 | close-feature.test | `tests/close-feature.test.mjs` | Close Features: only my items, children first, others' open work keeps parents open, failure handling. | ACT |
