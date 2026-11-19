@@ -587,7 +587,7 @@ test('TC-CON-56: Storage → Shared setup in Git offers Back up and clean up; re
   await context.close()
 })
 
-test('TC-MYD-01: My dashboard is the start page: my hours, my open work and my streams; Pulse Check offers quarter, half-year and year', async () => {
+test('TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year', async () => {
   const { page, context, errors } = await openPage(app, { init: () => { localStorage.setItem('demand-planning-my-name-v1', 'Ana Costa') } })
   assert.equal(await text(page.locator('header.topbar h1')), 'My dashboard', 'the start page')
   await loadSample(page)
@@ -597,6 +597,11 @@ test('TC-MYD-01: My dashboard is the start page: my hours, my open work and my s
   const shown = await text(content)
   assert.match(shown, /Ana Costa/)
   assert.match(shown, /My hours.*Planned.*Recorded.*Utilization.*My open work.*Ready to close.*My streams and releases/s)
+  // MYD-13 (TC-MYD-06): Signed by me with its period — quick picks set From / To; the streams are listed.
+  await content.getByRole('heading', { name: /^Signed by me · / }).waitFor()
+  await content.getByRole('button', { name: 'This year' }).click()
+  assert.equal(await content.getByLabel('From month').inputValue(), `${(await content.getByLabel('To month').inputValue()).slice(0, 4)}-01`)
+  assert.match(await text(content.getByRole('table', { name: 'Signed by me per stream' })), /DP.*CP.*IOCC.*Content.*All streams/s)
   await content.getByRole('button', { name: 'My Tasks [Board] →' }).first().click()
   assert.equal(await text(page.locator('header.topbar h1')), 'My Tasks [Board]', 'a count leads to its detail')
   // Pulse Check: Quarter shows the quarter against the one before.
@@ -621,7 +626,7 @@ test('TC-MYD-04: a person hides and moves the sections of My dashboard and pins 
   await content.getByRole('button', { name: 'Move My streams and releases up' }).click()
   await content.getByRole('button', { name: 'Done' }).click()
   const order = async () => content.locator('.layout-section').evaluateAll((sections) => sections.map((section) => section.getAttribute('data-section')))
-  assert.deepEqual(await order(), ['streams', 'hours'], 'hidden section gone, moved section first')
+  assert.deepEqual(await order(), ['streams', 'hours', 'signed'], 'hidden section gone, moved section first')
   await page.getByRole('button', { name: 'Customize menu' }).click()
   await page.getByRole('checkbox', { name: 'Pin Pulse Check' }).check()
   await page.getByRole('button', { name: 'Done' }).click()
@@ -629,7 +634,7 @@ test('TC-MYD-04: a person hides and moves the sections of My dashboard and pins 
   await page.reload()
   await page.locator('.sidebar nav').waitFor()
   await navigate(page, 'My dashboard')
-  assert.deepEqual(await order(), ['streams', 'hours'], 'kept after a reload')
+  assert.deepEqual(await order(), ['streams', 'hours', 'signed'], 'kept after a reload')
   assert.match(await text(page.locator('.nav-pinned')), /Pulse Check/)
   assert.deepEqual(errors, [])
   await context.close()
