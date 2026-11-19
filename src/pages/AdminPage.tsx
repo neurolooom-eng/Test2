@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
+import { AllEpicSetups } from '../components/AllEpicSetups'
+import { epicSetupRows } from '../epicSetupRows'
 import { AdminOverview } from '../components/AdminOverview'
 import type { SetupStep } from '../setupGuide'
 import { useBulkEpic } from '../useStreamEpics'
@@ -244,6 +246,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
   // ADM-01: the Overview's shared-setup checks.
   const ioccBulk = useBulkEpic('IOCC').epicId
   const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly }
+  // EPS-08: Epic & Feature setup — the section shown and the Epic opened from All Epic setups.
+  const [epicSection, setEpicSection] = useState<string | undefined>(undefined)
+  const [epicFocus, setEpicFocus] = useState(0)
   // ADM-04: History, filtered by area and text.
   const [auditFilter, setAuditFilter] = useState({ entity: '', text: '' })
   const auditEntities = [...new Set(store.state.audits.map((item) => item.entity))].sort()
@@ -282,8 +287,6 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       ...((store.state.azureSources ?? []).length ? [{ key: 'sources', label: 'Read-only sources', scope: 'computer' as const, node: <AzureConnections section="sources" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} /> }] : []),
       { key: 'sample', label: 'Synthetic sample', scope: 'computer', node: <AzureConnections section="sample" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} /> },
     ]} />}
-    {tab === 'features' && <div className="scope-line"><ScopeChip scope="both" /></div>}
-    {tab === 'features' && <FeatureSetupPanel setup={featureSetup} git={git} items={azure.items} qeColumnNames={qeColumnNames} />}
     {tab === 'pack' && <SectionTabs page="pack" sections={[
       ...(can('pack.setup') ? [{ key: 'pack', label: 'Monthly pack', scope: 'everyone' as const, node: <MonthlyPackSetupPanel pack={monthlyPack} git={git} items={azure.items} /> }] : []),
       ...(can('layout.defaults') ? [{ key: 'tables', label: 'Table and chart defaults', scope: 'everyone' as const, node: <TableDefaultsPanel store={store} git={git} canEdit={can('layout.defaults')} /> }] : []),
@@ -377,9 +380,11 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       { key: 'rights', label: 'Role rights', node: <AccessPanel access={access} git={git} people={people} membersInPeople /> },
     ].filter((section) => section.key === 'people' ? can('people.edit') : section.key === 'capacity-roles' ? can('people.capacityRoles') : true).map((section) => ({ ...section, scope: 'everyone' as const }))} />}
     {tab === 'audit' && <div className="scope-line"><ScopeChip scope="everyone" /></div>}
-    {tab === 'epics' && <SectionTabs page="epics" sections={[
-      { key: 'fields', label: 'Feature fields per Epic', scope: 'everyone', node: <EpicSetupPanel section="fields" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
+    {tab === 'epics' && <SectionTabs page="epics" chosen={epicSection} onChoose={setEpicSection} sections={[
+      { key: 'all', label: 'All Epic setups', scope: 'everyone', node: <AllEpicSetups rows={epicSetupRows(epicSetup.file, featureSetup.setups, azure.items)} onOpenFields={(id) => { setEpicFocus(id); setEpicSection('fields') }} onOpenFeature={(id) => { setEpicFocus(id); setEpicSection('feature') }} /> },
+      { key: 'fields', label: 'Feature fields per Epic', scope: 'everyone', node: <EpicSetupPanel key={`fields:${epicFocus}`} initialEpicId={epicFocus} section="fields" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
       { key: 'lists', label: 'Value lists', scope: 'everyone', node: <EpicSetupPanel section="lists" setup={epicSetup} git={git} items={azure.items} canEdit={can('setup.epic')} canEditLists={can('setup.values')} /> },
+      { key: 'feature', label: 'Feature setup', scope: 'both', node: <FeatureSetupPanel key={`feature:${epicFocus}`} initialEpicId={epicFocus} setup={featureSetup} git={git} items={azure.items} qeColumnNames={qeColumnNames} /> },
     ]} />}
     {tab === 'audit' && <Panel eyebrow="HISTORY" title="Changes" info="The changes made to the shared planning data, newest first, with who and what. Filter by area or text.">
       <div className="query-toolbar"><select aria-label="Area" value={auditFilter.entity} onChange={(event) => setAuditFilter({ ...auditFilter, entity: event.target.value })}><option value="">All areas</option>{auditEntities.map((entity) => <option key={entity}>{entity}</option>)}</select><input className="search" aria-label="Search changes" placeholder="Search changes" value={auditFilter.text} onChange={(event) => setAuditFilter({ ...auditFilter, text: event.target.value })} /><small className="muted">{auditShown.length} of {store.state.audits.length}</small></div>

@@ -205,8 +205,14 @@ test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, 
   assert.equal(await form.getByLabel('Feature title').inputValue(), 'Platform 2.0', 'the title follows the pattern (an empty {feature} is dropped)')
   await form.getByRole('button', { name: 'Cancel' }).click()
   // Admin → Epic setup: the fields and the list, read-only without Git storage.
-  await navigate(page, 'Epic setup')
-  assert.equal(await text(page.locator('header.topbar h1')), 'Epic setup')
+  await navigate(page, 'Epic & Feature setup')
+  assert.equal(await text(page.locator('header.topbar h1')), 'Epic & Feature setup')
+  // EPS-08: All Epic setups lists it; Fields opens its Feature fields.
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'All Epic setups' }).click()
+  const listed = page.locator('.epic-setups-table tr', { hasText: `#${epicId}` })
+  assert.match(await text(listed), /Platform \(list\) · Block, Program · Block, Owner · Warn.*\{platform\} \| \{feature\}/)
+  await listed.getByRole('button', { name: 'Fields' }).click()
+  assert.equal(await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Feature fields per Epic' }).getAttribute('aria-selected'), 'true')
   await page.getByLabel('Epic', { exact: true }).selectOption(String(epicId))
   assert.equal(await page.getByLabel('Field 1 label').inputValue(), 'Platform')
   assert.equal(await page.getByLabel('Field 1 label').isDisabled(), true, 'read-only without Git storage')

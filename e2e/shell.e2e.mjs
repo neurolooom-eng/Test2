@@ -13,7 +13,7 @@ test('TC-NAV-01 / TC-NAV-17: the sidebar shows the groups in order, with Documen
   const groups = await page.locator('.sidebar nav .nav-group').allInnerTexts()
   assert.deepEqual(groups.map((group) => group.replace(/^[▾▸]\s*/, '').trim().toLowerCase()), ['data insights', 'my work', 'i&d board', 'release details', 'data & governance', 'admin'])
   const entries = (await page.locator('.sidebar nav .nav-items button').allInnerTexts()).map((entry) => entry.replace(/\s+/g, ' ').trim())
-  for (const entry of ['My dashboard', 'Team overview', 'Pulse Check', 'My Tasks [Board]', 'Time Writing', 'Sprint check', 'Backlog Health', 'Streams', 'Stream options', 'Data & sharing', 'People & roles', 'Feature setup', 'Documentation']) assert.ok(entries.some((item) => item.endsWith(entry)), `${entry} is in the menu`)
+  for (const entry of ['My dashboard', 'Team overview', 'Pulse Check', 'My Tasks [Board]', 'Time Writing', 'Sprint check', 'Backlog Health', 'Streams', 'Stream options', 'Data & sharing', 'People & roles', 'Epic & Feature setup', 'Documentation']) assert.ok(entries.some((item) => item.endsWith(entry)), `${entry} is in the menu`)
   assert.match(await text(page.locator('.sidebar-footer')), /v\d+\.\d+\.\d+/, 'the footer shows the version (NAV-15)')
   assert.equal(await page.getByRole('button', { name: /^My settings/ }).count(), 1, 'My settings opens from your name (SET-15)')
   assert.deepEqual(errors, [])
@@ -575,9 +575,9 @@ test('TC-SET-06: Admin lists the shared setup pages, My settings opens from your
   assert.equal(await text(page.locator('header.topbar h1')), 'My settings')
   assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Your work email', 'Servers and PATs', 'My views', 'My naming patterns'])
   assert.match(await text(page.locator('.scope-line')), /Only you · This computer/)
-  // A page with one section has no section row.
-  await navigate(page, 'Feature setup')
-  assert.equal(await page.getByRole('tablist', { name: 'Sections' }).count(), 0)
+  // EPS-08: Epic setup and Feature setup are one page, starting from the list of all Epic setups.
+  await navigate(page, 'Epic & Feature setup')
+  assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['All Epic setups', 'Feature fields per Epic', 'Value lists', 'Feature setup'])
   assert.deepEqual(errors, [])
   await context.close()
 })
@@ -1218,7 +1218,8 @@ test('TC-CON-60: Feature setup — All Epics defaults, and an Epic setup showing
     { epicId: 4242, epicTitle: 'Inheriting Epic', inherits: ['stories', 'estimate'], featureDoD: 'Own DoD', stories: [], timeWritingStory: { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: '', iterationPath: '' }, task: { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' } },
   ] }
   const { page, context, errors } = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-feature-setup-v1', text), initArg: JSON.stringify(shared) })
-  await navigate(page, 'Feature setup')
+  await navigate(page, 'Epic & Feature setup')
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Feature setup' }).click()
   const all = page.locator('details.setup-all-epics')
   assert.match(await text(all.locator('summary')), /All Epics.*\(2 set\)/)
   await all.locator('summary').click()

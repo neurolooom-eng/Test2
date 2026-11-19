@@ -15,12 +15,12 @@ import { EmptyState, Modal, Notice, Panel, Info } from './ui'
 // by default) and the defaults of the month Time Writing Task. Two layers: "My setup" (feature-setup/<my email>.json,
 // used only when I create a Feature, before the shared one) and "Shared" (feature-setup.json, everyone). Anyone whose
 // Git token can write may edit either, and "Enable for everyone" copies my setup of an Epic into the shared one.
-export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { setup: FeatureSetup; git: GitStorage; items: AzureWorkItem[]; qeColumnNames?: string[] }) {
+export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [], initialEpicId = 0 }: { setup: FeatureSetup; git: GitStorage; items: AzureWorkItem[]; qeColumnNames?: string[]; initialEpicId?: number }) {
   // QV-59: the release-type sets and QE Mapping columns also belong to the Epics chosen for DP and IOCC bulk creation.
   const dpBulkEpic = useBulkEpic('DP').epicId, ioccBulkEpic = useBulkEpic('IOCC').epicId
   const epics = items.filter((item) => item.workItemType === 'Epic' && item.state.toLowerCase() !== 'removed').sort((a, b) => a.title.localeCompare(b.title))
   const [draft, setDraft] = useState<FeatureSetupFile | null>(null)
-  const [epicId, setEpicId] = useState(0)
+  const [epicId, setEpicId] = useState(initialEpicId)
   const [sample, setSample] = useState('Program | Service | v1.0')
   const [commit, setCommit] = useState('')
   const [busy, setBusy] = useState(false)

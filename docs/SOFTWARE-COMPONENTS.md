@@ -120,6 +120,8 @@ This document lists every software component of the system: the in-house source 
 | myNamingPatterns | `src/myNamingPatterns.ts` | My own release naming patterns for IOCC, Content and Tool Validations, kept on this computer, and the version that redraws the figures (QV-60). | QV |
 | adminOverview | `src/adminOverview.ts` | The Admin Overview's health items and the settings search index (ADM-01, ADM-03). | ADM |
 | onPremValues | `src/onPremValues.ts` | The values of an on-prem field in the fetched data, for the drop-down of an Epic setup field (EPS-06). | EPS |
+| epicSetupRows | `src/epicSetupRows.ts` | The rows of All Epic setups: each Epic's fields, title pattern and Feature setup (EPS-08). | EPS |
+| AllEpicSetups | `src/components/AllEpicSetups.tsx` | Admin → Epic & Feature setup → All Epic setups (EPS-08). | EPS |
 | AdminOverview | `src/components/AdminOverview.tsx` | Admin → Overview: setup health with links, unsaved shared changes with Save to Git, latest changes (ADM-01, ADM-02). | ADM |
 | SettingsSearch | `src/components/SettingsSearch.tsx` | The Search settings pop-up (Ctrl K) (ADM-03). | ADM |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
