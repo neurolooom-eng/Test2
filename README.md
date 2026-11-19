@@ -269,6 +269,8 @@ Since v7.30.0 the Feature setup of an Epic works in layers, field by field: **Bu
 - **Value lists**: the drop-down values, shared by every Epic, one per line.
 - **Copy to Epics** gives other Epics the same fields and pattern (e.g. a stream whose Epics are split by leader), then Save to Git.
 
+A Text field with an **on-prem field** becomes a **drop-down** of that field's values in the fetched on-prem data (v7.33.0). The old *title fields* of the Feature setup are retired: Admin → Feature setup → **Remove the old title fields from Git** cleans them out, and when the Epic setup has a *Release Classification* field the built-in picker is hidden.
+
 The fields apply to every new Feature under the Epic — **New Feature** and **bulk creation** (DP, IOCC, Content) — with or without a Feature setup, in place of the Feature setup's title fields. Editing needs **Edit the Epic setup** (by default Tool Owner, Admin and Scrum Master) and, for the lists, **Edit Epic setup value lists** (Tool Owner and Admin), plus a Git token that can write; everyone else sees it read-only.
 
 ### Roles and access

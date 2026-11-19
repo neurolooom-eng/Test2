@@ -5,7 +5,7 @@ import { useCan } from '../useCan'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
 import { AllEpicsDefaults } from './AllEpicsDefaults'
-import { resolveFields, type InheritField, type SetupOrigin, dpEpicId, releaseTypesOf, maxTitleFields, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
+import { resolveFields, type InheritField, type SetupOrigin, dpEpicId, releaseTypesOf, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
 import { currentIndiaMonth } from '../azureDevOps'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { GitStorage } from '../useGitStorage'
@@ -116,6 +116,17 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
     catch (failure) { setResult({ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }) }
     finally { setBusy(false) }
   }
+  // EPS-07: the old title fields moved to the Epic setup; saving the files again leaves them out.
+  async function clearOldFields() {
+    if (!window.confirm('Remove the old title fields from the shared Feature setup (and yours) in Git? The Epic setup holds the Feature fields now.')) return
+    setBusy(true)
+    try {
+      if (setup.shared) await setup.saveShared(setup.shared, 'Remove the old title fields (moved to the Epic setup)')
+      if (setup.personal && setup.email) await setup.savePersonal(setup.personal, `Remove my old title fields (${setup.email})`)
+      setResult({ tone: 'success', text: 'The old title fields were removed from Git.' })
+    } catch (failure) { setResult({ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }) }
+    finally { setBusy(false) }
+  }
   async function enableForEveryone() {
     if (!myEntry || draft || !myEntry.featureDoD.trim()) return
     if (!window.confirm(`Enable your setup of Epic #${chosen} for everyone? It replaces the shared setup of this Epic.`)) return
@@ -169,6 +180,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
       {sharedEditable && listMissing.length > 0 && <Notice tone="warning">The Feature DoD is mandatory: add it for Epic {listMissing.map((id) => `#${id}`).join(', ')} to save.</Notice>}
     </details>
     <AllEpicsDefaults setup={setup} editable={sharedEditable} />
+    {sharedEditable && setup.shared && <div className="button-row"><button type="button" className="ghost" disabled={busy} title="The old title fields are no longer used: the Epic setup holds the Feature fields. This saves the shared setup (and yours) again without them." onClick={() => void clearOldFields()}>Remove the old title fields from Git</button></div>}
     <div className="setup-jump"><label>Go to Epic #<input inputMode="numeric" value={goTo} placeholder="e.g. 13946" onChange={(event) => setGoTo(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); jump() } }} /></label><button type="button" className="ghost" disabled={!idOf(goTo)} onClick={jump}>Open</button></div>
     {chosen > 0 && <div className="setup-flow" role="group" aria-label={`Which setup applies to Epic #${chosen}`}>
       <p><strong>When you create a Feature under Epic {epicLabel}</strong>, the first of these that exists is used:</p>
@@ -196,15 +208,8 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         {fieldOrigin('featureDoD', 'Feature DoD')}
         <label className="setup-dod">Feature DoD (Definition of Done) — required<textarea rows={2} required={!inh('featureDoD')} disabled={inh('featureDoD')} maxLength={100000} value={inh('featureDoD') ? inherited.featureDoD : current?.featureDoD ?? ''} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => change((entry) => { entry.featureDoD = event.target.value })} /><small>A new Feature under this Epic starts with it as “Feature DoD: …” at the top of its Description; it can be changed when creating.</small></label>
         {!inh('featureDoD') && !current?.featureDoD.trim() && <div className="button-row"><button type="button" className="text-button" onClick={() => change((entry) => { entry.featureDoD = defaultDoDFor(entry) })}>Use the default: “{defaultDoDFor(current ?? { stories: [] })}”</button></div>}
-        <h3>Title fields</h3>
-        {epicFields && <Notice tone="info">Epic #{epicFields.epicId} has an Epic setup (Admin → Epic setup): its fields {epicFields.fields.map((field) => field.label).join(', ')} apply to every new Feature under it, in place of the title fields below.</Notice>}
-        <p className="muted">Optional, up to {maxTitleFields}: the parts of a Feature title for this Epic (e.g. DP: Program, Service, Release; CP: Platform, Release Name, Number). New Feature asks for each, joins them with “ | ” into the title, writes “Field : value” into the Description and offers {'{Field}'} as a placeholder. The on-prem field (reference or plain name, e.g. SourceProgram) fills it from the release in Release Details. Blank or repeated names are dropped on save.</p>
-        {current?.titleFields?.map((field, index) => <div key={index} className="setup-field">
-          <label>Field<input value={field.label} maxLength={60} placeholder="e.g. Platform" onChange={(event) => change((entry) => { entry.titleFields![index].label = event.target.value })} /></label>
-          <label>On-prem field<input value={field.source} maxLength={255} placeholder="Optional, e.g. SourceProgram" onChange={(event) => change((entry) => { entry.titleFields![index].source = event.target.value })} /></label>
-          <div className="button-row"><button type="button" className="ghost" aria-label="Move up" disabled={index === 0} onClick={() => change((entry) => { const list = entry.titleFields!; [list[index - 1], list[index]] = [list[index], list[index - 1]] })}>↑</button><button type="button" className="text-button" aria-label={`Remove field ${index + 1}`} onClick={() => change((entry) => { entry.titleFields!.splice(index, 1); if (!entry.titleFields!.length) delete entry.titleFields })}>✕</button></div>
-        </div>)}
-        {(current?.titleFields?.length ?? 0) < maxTitleFields && <button type="button" className="ghost" onClick={() => change((entry) => { entry.titleFields = [...(entry.titleFields ?? []), { label: '', source: '' }] })}>＋ Add title field</button>}
+        <h3>Feature fields</h3>
+        <p className="muted">{epicFields ? <>From the Epic setup of #{epicFields.epicId}: {epicFields.fields.map((field) => field.label).join(', ')} (Admin → Epic setup).</> : <>None for this Epic: Feature fields (Program, Platform…) are set per Epic in Admin → Epic setup.</>}</p>
         <h3>Optional User Stories</h3>
         {fieldOrigin('stories', 'Optional User Stories')}
         {inh('stories') && <ul className="setup-inherited">{inherited.stories.length ? inherited.stories.map((story, index) => <li key={index}>{story.title}</li>) : <li className="muted">None</li>}</ul>}

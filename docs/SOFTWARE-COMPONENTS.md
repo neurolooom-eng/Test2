@@ -119,6 +119,7 @@ This document lists every software component of the system: the in-house source 
 | AllEpicsDefaults | `src/components/AllEpicsDefaults.tsx` | Admin → Feature setup → All Epics: the defaults every Epic's setup can inherit (CON-95). | CON |
 | myNamingPatterns | `src/myNamingPatterns.ts` | My own release naming patterns for IOCC, Content and Tool Validations, kept on this computer, and the version that redraws the figures (QV-60). | QV |
 | adminOverview | `src/adminOverview.ts` | The Admin Overview's health items and the settings search index (ADM-01, ADM-03). | ADM |
+| onPremValues | `src/onPremValues.ts` | The values of an on-prem field in the fetched data, for the drop-down of an Epic setup field (EPS-06). | EPS |
 | AdminOverview | `src/components/AdminOverview.tsx` | Admin → Overview: setup health with links, unsaved shared changes with Save to Git, latest changes (ADM-01, ADM-02). | ADM |
 | SettingsSearch | `src/components/SettingsSearch.tsx` | The Search settings pop-up (Ctrl K) (ADM-03). | ADM |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
@@ -306,6 +307,7 @@ This document lists every software component of the system: the in-house source 
 | feature-setup-inheritance.test | `tests/feature-setup-inheritance.test.mjs` | Feature setup layers per field and the All Epics defaults (TC-CON-59). | CON |
 | my-naming-patterns.test | `tests/my-naming-patterns.test.mjs` | My naming patterns: the streams allowed, kept locally, used before the shared ones (TC-QV-41). | QV |
 | admin-overview.test | `tests/admin-overview.test.mjs` | Admin overview checks and settings search (TC-ADM-01). | ADM |
+| onprem-values.test | `tests/onprem-values.test.mjs` | On-prem field values for the Feature field drop-down (TC-EPS-05). | EPS |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |

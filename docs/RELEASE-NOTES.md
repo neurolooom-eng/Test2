@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.33.0 — 2026-11-19
+
+**Changed**
+- **On-prem fields are drop-downs** — an Epic setup field that names an on-prem field (e.g. Custom.Program) offers, in New Feature, the values of that field found in the fetched on-prem data (EPS-06).
+- **The old title fields are gone** — Feature fields are set only in Admin → Epic setup; the Feature setup no longer reads, shows or saves its title fields, and **Remove the old title fields from Git** cleans the stored files. With a Release Classification field in the Epic setup, the built-in Release Classification picker is hidden so it is not asked twice (EPS-07; CON-75, BKL-18 retired).
+
+TC-EPS-05. PR #307.
+
 ## v7.32.0 — 2026-11-19
 
 **Added**
