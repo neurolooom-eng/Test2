@@ -47,7 +47,6 @@ test('CAP-50: capacity roles read from Git are checked; the built-in choice is n
 })
 
 test('CAP-51: a person\'s work email comes from Azure DevOps (Assigned To); one saved in the profile is used only where Azure has none', () => {
-  const settings = { ...base, profiles: { Pat: { role: 'QE', email: 'old.pat@example.com' }, Kim: { role: 'QE', email: 'kim@example.com' } }, accessRoles: { 'pat@example.com': ['People Manager'], 'kim@example.com': ['People Manager'] } }
   setAzureEmails([{ assignedTo: 'Pat', assignedToEmail: 'Pat@Example.com' }, { assignedTo: 'Nobody' }, { assignedTo: '', assignedToEmail: 'x@example.com' }])
   assert.deepEqual(capacityContext({}).azureEmails, { Pat: 'pat@example.com' }, 'read from the fetched work, lower case; never stored in the settings')
   setAzureEmails([])

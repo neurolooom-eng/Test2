@@ -2,6 +2,17 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.22.0 — 2026-11-19
+
+**Added**
+- **Sprint check → State checks: PI check** — an Active Feature still in an older PI than its Active User Stories is flagged with both PIs and **Move Feature to <PI>** (Iteration Path only, after a confirmation) (ATM-30).
+
+**Changed**
+- **Time Writing: ＋ Add a new activity** is a button at the top next to Activities of and opens the form as a pop-up; the activities list keeps the full width (ACT-20; ACT-19 retired).
+- **My dashboard → My hours** says why you are not counted in the month (removed, team role not counted, Joined on / Left on, or no month Task yet) instead of showing 0h (CAP-56).
+
+DF-103, DF-107; SM-73; TC-ATM-23, TC-ACT-15, TC-CAP-28. PR #296.
+
 ## v7.21.1 — 2026-11-19
 
 **Fixed**
