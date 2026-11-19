@@ -805,7 +805,8 @@ test('TC-OVW-03: an Admin opens the Planning Overview with its tiles, chart, que
   await content.getByRole('combobox', { name: 'Epic' }).selectOption({ index: 1 })
   await content.getByRole('button', { name: 'Clear filters' }).click()
   await content.getByRole('button', { name: 'Generate Monthly Pack' }).click()
-  assert.equal(await text(page.locator('header.topbar h1')), 'Monthly pack')
+  assert.equal(await text(page.locator('header.topbar h1')), 'Reports', 'Admin → Reports, Monthly pack section (SET-15)')
+  assert.equal(await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Monthly pack' }).getAttribute('aria-selected'), 'true')
   assert.deepEqual(errors, [])
   await context.close()
 })
@@ -927,7 +928,7 @@ test('TC-GIT-08: while the app is open, newer planning data in Git loads by itse
   await page.clock.install()
   await page.reload()
   await page.locator('.sidebar nav').waitFor()
-  await page.locator('.sidebar nav button', { hasText: /^.Storage$/ }).first().click()
+  await page.locator('.sidebar nav button', { hasText: /^.Data & sharing$/ }).first().click()
   await page.getByText('Loaded from example/storage · planning-data.json').waitFor()
   assert.equal(listings.length, 0, 'no check right at start')
   // Someone else saves new planning data, and creates the Monthly pack setup (read at start: not there then).
