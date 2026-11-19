@@ -123,10 +123,10 @@ export function cleanSetup(input: Partial<Record<keyof EpicSetup, unknown>>): Ep
   const epicId = Number(input.epicId)
   if (!Number.isSafeInteger(epicId) || epicId < 1) return null
   const stories = Array.isArray(input.stories) ? input.stories.map((story: Partial<Record<keyof StoryTemplate, unknown>>) => ({ title: text(story?.title, 255), description: text(story?.description, 100000) })).filter((story) => story.title) : []
-  const titleFields = cleanTitleFields(input.titleFields)
+  // EPS-07: the Feature fields moved to the Epic setup; the old title fields are no longer read or saved.
   const releaseTypes = cleanReleaseTypes(input.releaseTypes), qeColumns = cleanQeColumns(input.qeColumns)
   const inherits = Array.isArray(input.inherits) ? inheritFields.filter((field) => (input.inherits as unknown[]).includes(field)) : []
-  return { epicId, epicTitle: text(input.epicTitle, 255), ...(inherits.length ? { inherits } : {}), featureDoD: text(input.featureDoD, 100000), stories, timeWritingStory: cleanTimeWritingStory(input.timeWritingStory as Partial<Record<keyof TimeWritingStoryTemplate, unknown>> | undefined), task: cleanTask(input.task as Partial<Record<keyof TaskTemplate, unknown>> | undefined), ...(titleFields.length ? { titleFields } : {}), ...(releaseTypes ? { releaseTypes } : {}), ...(qeColumns ? { qeColumns } : {}) }
+  return { epicId, epicTitle: text(input.epicTitle, 255), ...(inherits.length ? { inherits } : {}), featureDoD: text(input.featureDoD, 100000), stories, timeWritingStory: cleanTimeWritingStory(input.timeWritingStory as Partial<Record<keyof TimeWritingStoryTemplate, unknown>> | undefined), task: cleanTask(input.task as Partial<Record<keyof TaskTemplate, unknown>> | undefined), ...(releaseTypes ? { releaseTypes } : {}), ...(qeColumns ? { qeColumns } : {}) }
 }
 
 export function parseFeatureSetup(raw: string): FeatureSetupFile {
