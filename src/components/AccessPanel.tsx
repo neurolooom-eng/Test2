@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { actions, areas, defaultPolicy, isEmail, keepsManager, normalEmail, roles, serializeAccess, type AccessPolicy, type Action, type Area, type Role } from '../access'
+import { actions, areas, defaultPolicy, isEmail, keepsManager, normalEmail, roles, serializeAccess, toolOwnerChange, type AccessPolicy, type Action, type Area, type Role } from '../access'
 import type { Access } from '../useAccess'
 import type { GitStorage } from '../useGitStorage'
 import { Notice, Panel, Pill } from './ui'
@@ -38,6 +38,9 @@ export function AccessPanel({ access, git, people, membersInPeople = false }: { 
   async function save(event: React.FormEvent) {
     event.preventDefault()
     if (!draft) return
+    // CON-93: only a Tool Owner changes who holds the stream mapping, and one must remain.
+    const ownerProblem = toolOwnerChange(access.policy, draft, access.email)
+    if (ownerProblem) { setResult({ tone: 'error', text: `Not saved: ${ownerProblem}` }); return }
     if (!keepsManager(draft, access.email)) { setResult({ tone: 'error', text: access.email ? `Not saved: ${access.email} would lose “Manage access”. Keep a role with it for yourself (e.g. Admin).` : 'Not saved: no email is set on your Time Writing connection, so the app cannot check that you keep “Manage access”.' }); return }
     setBusy(true)
     try {

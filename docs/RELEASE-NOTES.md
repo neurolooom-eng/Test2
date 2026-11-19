@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.26.0 — 2026-11-19
+
+**Changed**
+- **Stream mapping locked to the Tool Owner** — a new app access role, Tool Owner (Role rights), alone changes the stream mapping and its query logic: servers, projects and queries of DP, CP, IOCC, Content and Tool Validations, their data sets and the shared release naming patterns. Admins no longer hold it by default; while nobody holds it, those who manage access can, so nobody is locked out; only a Tool Owner changes who holds it, and one must remain (CON-93, CON-42).
+
+**Fixed**
+- Monthly pack: a new bullet always takes the focus, so the first letters typed are no longer lost (KB-50).
+
+DF-111; SM-75; KB-49, KB-50; TC-CON-57. PR #300.
+
 ## v7.25.0 — 2026-11-19
 
 **Added**

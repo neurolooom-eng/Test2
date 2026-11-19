@@ -238,8 +238,8 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, qeCo
   return <Page>
     {tab === 'connections' && <SectionTabs page="connections" sections={[
       { key: 'email', label: 'Your work email', node: <AzureConnections section="email" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
-      { key: 'servers', label: 'Servers and PATs', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
-      { key: 'mapping', label: 'Stream mapping', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
+      { key: 'servers', label: 'Servers and PATs', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} canManageStreams={access.canManageStreams} /> },
+      { key: 'mapping', label: 'Stream mapping', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} canManageStreams={access.canManageStreams} /> },
       { key: 'views', label: 'Other views', node: <AzureConnections section="views" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
       ...((store.state.azureSources ?? []).length ? [{ key: 'sources', label: 'Read-only sources', node: <AzureConnections section="sources" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> }] : []),
       { key: 'sample', label: 'Synthetic sample', node: <AzureConnections section="sample" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={shared} /> },
