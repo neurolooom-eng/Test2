@@ -1,3 +1,4 @@
+import { normalizeBulkEpics, type BulkStream } from './bulkEpics.ts'
 import { normalizeNamingPatterns, patternsFor, type NamingPattern, type NamingPatterns } from './namingPatterns.ts'
 import type { AzureWorkItem } from './domain'
 import { mapAzureWorkItem, requestAzure, type AzureConfig, type AzureRequest } from './azureDevOps.ts'
@@ -14,7 +15,7 @@ import { isMonthTask, timeWritingStoryIds } from './azureInsights.ts'
 // countOverrides (QV-58): Completed / Supported release counts entered by an Admin for CP, DP and IOCC per month, used
 // only while the stream has no data for the month (not set up or not fetched).
 export interface EnteredCounts { completed?: number; supported?: number }
-export interface ReleaseSourceSettings { approvalDateField?: string; matchThreshold?: number; namingPatterns?: NamingPatterns; featureEpics?: Record<string, number[]>; countOverrides?: Record<string, Record<string, EnteredCounts>> }
+export interface ReleaseSourceSettings { approvalDateField?: string; matchThreshold?: number; namingPatterns?: NamingPatterns; featureEpics?: Record<string, number[]>; countOverrides?: Record<string, Record<string, EnteredCounts>>; bulkEpics?: Partial<Record<BulkStream, number>> }
 export const defaultReleaseSourceSettings: ReleaseSourceSettings = {}
 export interface ReleaseSourceSnapshot { organization: string; project: string; query: string; fetchedAt: string; items: AzureWorkItem[]; columns?: { ref: string; name: string }[]; orderBy?: { ref: string; desc: boolean }[] }
 export interface ReleaseEntry { key: string; group?: string; match?: { feature: AzureWorkItem; score: number }; name: string; release: string; documents: number; items: AzureWorkItem[]; tracked: boolean; trackedBy: AzureWorkItem[]; features: AzureWorkItem[]; planned: number; booked: number; hourTasks: number; approvalDate?: string; approvalMonth?: string }
@@ -39,7 +40,8 @@ export function normalizeReleaseSourceSettings(value: unknown): ReleaseSourceSet
   const namingPatterns = normalizeNamingPatterns((input as Record<string, unknown>).namingPatterns)
   const featureEpics = normalizeFeatureEpics((input as Record<string, unknown>).featureEpics)
   const countOverrides = normalizeCountOverrides((input as Record<string, unknown>).countOverrides)
-  return { ...(approvalDateField ? { approvalDateField } : {}), ...(Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? { matchThreshold: threshold } : {}), ...(namingPatterns ? { namingPatterns } : {}), ...(featureEpics ? { featureEpics } : {}), ...(countOverrides ? { countOverrides } : {}) }
+  const bulkEpics = normalizeBulkEpics((input as Record<string, unknown>).bulkEpics)
+  return { ...(approvalDateField ? { approvalDateField } : {}), ...(Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? { matchThreshold: threshold } : {}), ...(namingPatterns ? { namingPatterns } : {}), ...(featureEpics ? { featureEpics } : {}), ...(countOverrides ? { countOverrides } : {}), ...(bulkEpics ? { bulkEpics } : {}) }
 }
 // QV-58: the streams whose release counts can be entered, and the entered counts read from the shared settings:
 // those streams only, months YYYY-MM, whole numbers 0–10,000; a month with neither count is dropped.

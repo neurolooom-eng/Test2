@@ -54,6 +54,8 @@ This document lists every software component of the system: the in-house source 
 | NamingPatternsPanel | `src/components/NamingPatternsPanel.tsx` | Settings → Stream mapping → Release naming patterns: edit, try a Title, apply, reset. | QV |
 | FeatureEpicsPanel | `src/components/FeatureEpicsPanel.tsx` | Settings → Stream mapping → Epics to match Features in: per stream, the QMS-0025 Epics its releases are matched in (QV-57). | QV, SET |
 | ReleaseCounts | `src/components/ReleaseCounts.tsx` | Completed / Supported release counts of CP, DP and IOCC with entered placeholders, and the Admin entry of those counts (QV-58). | QV, SET |
+| BulkEpicsPanel | `src/components/BulkEpicsPanel.tsx` | Settings → Stream mapping → Bulk creation Epics: shared and personal Epic per stream (QV-59). | QV, SET |
+| IoccBulkCreate | `src/components/IoccBulkCreate.tsx` | Create Features for the selected IOCC releases by the DP rules (QV-59). | QV |
 | ZoomControl | `src/components/ZoomControl.tsx` | The desktop app's zoom control: − / % / +, Auto, Ctrl keys. | UI |
 | SnapshotsPage | `src/pages/SnapshotsPage.tsx` | Snapshots: SharePoint snapshot history, browser storage and backup recovery, legacy snapshot records. | SNP, STO |
 
@@ -109,6 +111,7 @@ This document lists every software component of the system: the in-house source 
 | chartLabels (component) | `src/components/chartLabels.tsx` | The Data labels box and the X / Y axis names of a chart (UI-17). | UI |
 | chartLabels | `src/chartLabels.ts` | Chart data labels: each chart's own choice kept per computer, else the shared default (UI-17). | UI |
 | useStreamEpics | `src/useStreamEpics.ts` | The shared release-source settings in a React context and the hook giving a stream's Epics for the board match (QV-57). | QV |
+| bulkEpics | `src/bulkEpics.ts` | The bulk creation Epic per stream: built in, shared, personal (QV-59). | QV |
 | useDataLabels | `src/useDataLabels.ts` | The hook a chart uses for its Data labels switch (UI-17). | UI |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
 | SectionTabs | `src/components/SectionTabs.tsx` | The section row of a Settings page: one section at a time, the last one remembered per page (SET-14). | SET, NAV |
@@ -320,6 +323,7 @@ This document lists every software component of the system: the in-house source 
 | naming-patterns.test | `tests/naming-patterns.test.mjs` | Naming patterns: matching, checks, shared settings, Content and IOCC grouping. | QV |
 | feature-epics.test | `tests/feature-epics.test.mjs` | Epics to match Features in: shared setting checked and kept in Git, board match limited to the chosen Epics (TC-QV-38). | QV |
 | release-counts.test | `tests/release-counts.test.mjs` | Entered release counts: checks, use while a stream has no data, Pulse Check and Monthly pack (TC-QV-39). | QV |
+| bulk-epics.test | `tests/bulk-epics.test.mjs` | Bulk creation Epics (mine / shared / built in) and the IOCC bulk plan (TC-QV-40). | QV |
 | desktop-zoom.test | `tests/desktop-zoom.test.mjs` | Desktop zoom: Auto fit, steps, limits, kept setting. | UI |
 | my-signatures.test | `tests/my-signatures.test.mjs` | Signed by me: signature fields, name matching, signature dates, per-stream counts in a period, Windchill exports (TC-MYD-06). | MYD |
 | close-feature.test | `tests/close-feature.test.mjs` | Close Features: only my items, children first, others' open work keeps parents open, failure handling. | ACT |

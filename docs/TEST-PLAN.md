@@ -906,6 +906,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-QV-39 Release counts with entered placeholders** — Req QV-58 — L1 `release-counts.test.mjs` ("QV-58: entered release counts — CP, DP and IOCC only, months YYYY-MM, whole numbers (TC-QV-39)"; "QV-58: a stream without data takes the entered counts, marked; without them it is a placeholder; data always wins (TC-QV-39)"); E2E `shell.e2e.mjs` ("TC-QV-39: an Admin enters CP release counts for a month without data; My dashboard shows them as entered, the others as placeholders"); browser check: with CP not fetched, enter CP Completed 3 / Supported 5 for the month — My dashboard, the CP page, Pulse Check and the Monthly pack show 3 / 5 as entered; fetch CP — its real counts replace them; DP without data and without entered counts shows — and the reason.
 
+**TC-QV-40 IOCC bulk Features and bulk creation Epics** — Req QV-59 — L1 `bulk-epics.test.mjs` ("QV-59: the bulk creation Epic per stream — mine over shared over built in; IOCC has none built in (TC-QV-40)"; "QV-59: IOCC releases in bulk by the DP rules — type from the number, set from the Epic setup, QE by the release name (TC-QV-40)"); E2E `shell.e2e.mjs` ("TC-QV-40: Stream mapping → Bulk creation Epics — shared and my own Epic per stream, mine used"); browser check with the QMS-0025 board and IOCC: set the IOCC bulk Epic (shared), its Feature setup (Release / PU sets, QE Mapping columns), tick IOCC releases, Create Features — each Feature is created under that Epic with its set's DoD and stories, assigned to the mapped QE; set my own DP Epic — DP's Create Features uses it, others keep the shared one.
+
 
 
 **TC-QV-24 CP releases from the asset Titles** — *(Retired — see TC-QV-25)* Req QV-40 — L1 `streams.test.mjs` ("CP: the release from the asset Title "[Release name] [Release No] [Asset name]", each release once; fuzzy QMS-0025 match (TC-QV-24)"); browser check with a CP query holding three assets of one release in both namings ("Care Pathways 3.1 Test Report", "Care Pathways 3.1.0 SRS", "Risk Analysis v3.1 (Care Pathways)") and one of another (3.2), and a QMS-0025 Feature "CP | Care Pathways | v3.1": Release Details → CP lists two releases (3 and 1 assets), 3.1 with its Feature and %, 3.2 with Create Feature opening the New Feature form titled "Care Pathways | v3.2" (release name and number only) under the CP Epic, and found after it is created; Pulse Check's Releases and Supported summary show "CP [2]"; no page errors. **UAT**
@@ -1729,6 +1731,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-56 | TC-QV-36 |
 | QV-57 | TC-QV-38 |
 | QV-58 | TC-QV-39 |
+| QV-59 | TC-QV-40 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -1945,7 +1948,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | Use case | Test cases |
 |---|---|
 | UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-UI-09, TC-UI-10 |
-| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47, TC-QV-38, TC-QV-39 |
+| UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47, TC-QV-38, TC-QV-39, TC-QV-40 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |

@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.25.0 — 2026-11-19
+
+**Added**
+- **IOCC bulk Feature creation** — Select and Create Features on the IOCC release table, by the DP rules: release type from the release number, DoD and User Stories from the Feature setup of the IOCC bulk Epic, assigned to the QE from the QE Mapping by the release name; 100% matches cannot be selected (QV-59).
+- **Bulk creation Epics** (Settings → Stream mapping) — for DP, IOCC and Content, a shared default Epic (saved to Git) and each person's own choice (this browser), which wins; built in DP #13946, Content #22919 (QV-59).
+
+DF-110; SM-74; TC-QV-40. PR #299.
+
 ## v7.24.0 — 2026-11-19
 
 **Added**
