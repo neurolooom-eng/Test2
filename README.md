@@ -248,13 +248,14 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 
 | Role (default) | Sees | May |
 |---|---|---|
-| Admin | everything | everything, including managing access |
-| Product Owner | Dashboard, I&D Board, Backlog Health, Release Details, Baselines, Documentation | change work items, edit baselines |
-| People Manager | Dashboard, My Work, I&D Board, Release Details, Baselines, Snapshots, Documentation | change work items, edit baselines |
-| Scrum Master | Dashboard, My Work, I&D Board, Backlog Health, Release Details, Documentation | change work items |
-| Team Member | Dashboard, My Work, I&D Board, Release Details, Documentation | change work items |
+| Tool Owner | everything | everything, including the stream mapping and its query logic |
+| Admin | everything | everything except the stream mapping |
+| Product Owner | Dashboard, I&D Board, Backlog Health, Release Details, Baselines, QE Mapping, Documentation | work items (including bulk create and for others), baselines, QE Mapping, export, Monthly pack text |
+| People Manager | Dashboard, team insights, My Work, I&D Board, Release Details, Baselines, QE Mapping, Snapshots, Documentation | the same as Product Owner |
+| Scrum Master | Dashboard, My Work, I&D Board, Backlog Health, Release Details, Documentation | work items (also for others), export, the shared Feature setup |
+| Team Member | Dashboard, My Work, I&D Board, Release Details, Documentation | their own work items, export |
 
-Every cell is a checkbox in Settings → Access; the actions are *Change work items in Azure DevOps*, *Edit baselines*, *Import Windchill exports*, *Manage shared settings* (capacity, periods, resources, master data, the shared connection setup) and *Manage access*. People listed under **Members** get the union of their roles; everyone else gets the **Everyone else** role (or nothing but Settings). Settings stays open to everyone for their own connections and tokens.
+**Role rights is a permission matrix** (v7.27.0): every menu area and every action is a row, in groups — *Work items in Azure DevOps* (create, assign to others, edit fields, change state / close Features, move to a Sprint or PI, enter hours, comment, bulk create), *Release data*, *Streams*, *Setup*, *Capacity and time*, *People and access* and *Reports and sharing* — and each cell is **Allow**, **Deny** or **Not set** for a role. People listed under **Members** get everything any of their roles allows, **except what any of their roles denies: a denial wins**; *Not set* means not allowed unless another role allows it. Everyone else gets the **Everyone else** role (or nothing but Settings). Search the matrix by name; **Check access** picks a person and a permission and says whether it is allowed and which role allows or denies it. Each Settings page and section appears only with its permission; Settings stays open to everyone for their own connections and tokens. An `access.json` saved before v7.27.0 keeps every person's rights: each new permission is allowed where the old action it came from was.
 
 - Without `access.json` (or without Git storage) nothing is restricted, as before. **Set up roles** starts from the table above with you as Admin; you cannot save a change that takes *Manage access* away from yourself.
 - The last roles read from Git are kept in the browser, so disconnecting Git storage does not lift them; while your email is not known yet (or cannot be read), the *Everyone else* role applies.

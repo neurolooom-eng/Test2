@@ -43,7 +43,7 @@ export function useAccess(git: GitStorage, azure: AzureWorkspace, viewAs: ViewAs
   const ownRights = rightsFor(current.policy, email)
   const active = viewAs && canViewAs(ownRights) ? viewAs : null
   const rights = active ? viewAsRights(current.policy, active) : ownRights
-  useEffect(() => { guardAzureWrites(() => rights.actions.has('azure.write')) })
+  useEffect(() => { guardAzureWrites((permission) => rights.actions.has(permission)) })
   useEffect(() => { setViewAsGuard(active ? viewAsLabel(active) : ''); return () => setViewAsGuard('') }, [active])
 
   async function save(policy: AccessPolicy, message: string) {

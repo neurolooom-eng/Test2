@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.27.0 — 2026-11-19
+
+**Changed**
+- **Role rights as a permission matrix** — every menu area and every action is now a permission of its own, in groups (Work items in Azure DevOps, Release data, Streams, Setup, Capacity and time, People and access, Reports and sharing), and each cell is **Allow**, **Deny** or **Not set** per role. A denial wins over any other role's allow. "Change work items" is split into create, edit fields, change state / close Features, move to a Sprint or PI, enter hours, comment and bulk create, each checked before anything is sent to Azure DevOps; "Manage shared settings" is split per Settings section (capacity, rules, holidays, period control, historical hours, people, capacity roles, Monthly pack setup, table defaults, shared setup, release counts, stream options). New permissions for QE Mapping edits, table export, Monthly pack text, the shared Feature setup and View as. The matrix can be searched, and **Check access** shows for a person and a permission whether it is allowed and which roles allow or deny it. An access.json saved before this version keeps every person's rights (CON-94).
+
+DF-112; SM-76; TC-CON-58. PR #301.
+
 ## v7.26.0 — 2026-11-19
 
 **Changed**
