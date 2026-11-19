@@ -253,6 +253,10 @@ Every section shows a **scope chip** saying whom a change affects: *Only you · 
 
 **My views** (My settings → My views) are your own read-only views: a name, a server you already have a PAT for, a project and a WIQL query. They appear under **Other views** in your menu and are fetched like any view, but stay on this computer — never in the shared setup in Git, a backup or SharePoint — and can never replace or change a stream (a name like *DP* or *CP* is refused), so the release figures stay the same for everyone.
 
+### Feature setup in layers
+
+Since v7.30.0 the Feature setup of an Epic works in layers, field by field: **Built in → All Epics → the Epic's shared setup → My setup**. For the **Feature DoD**, the **optional User Stories** and the **default estimate** of the month Task, a setup either sets the field (*Set here*) or inherits it (*Inherited from …*), and a new Feature gets each from the nearest layer that sets it. **All Epics** (top of Admin → Feature setup) holds the defaults, changed by the roles allowed to edit the shared setup. In the editor, **Override here** copies the inherited value for you to change, and **Revert to inherited** hands the field back. Existing setups set every field, so nothing changes until you revert a field; an Epic without a setup of its own still offers the built-in milestones.
+
 ### Epic setup
 
 **Admin → Epic setup** (v7.29.0, replacing Master data) holds, per Epic, the extra fields its new Features carry — Program for DP, Platform for CP, and so on — shared with everyone through Git (`epic-setup.json`):

@@ -736,3 +736,8 @@ label.formula-term{justify-content:flex-start}
 .epic-list{display:flex;flex-direction:column;gap:6px}.epic-list-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .epic-list textarea{width:100%;font-size:13px}
 .required-mark{color:var(--danger-text)}
+/* FSI: Feature setup inheritance */
+.setup-origin{display:inline-flex;gap:8px;align-items:center;margin:4px 0;font-weight:400}
+.setup-inherited{margin:4px 0 10px;padding-left:20px;color:var(--text-2)}
+.setup-all-epics{margin:10px 0;padding:8px 12px;border:1px solid var(--accent-line);border-radius:10px}
+.setup-all-epics label{display:block;margin:8px 0}.setup-all-epics textarea,.setup-all-epics input{width:100%}

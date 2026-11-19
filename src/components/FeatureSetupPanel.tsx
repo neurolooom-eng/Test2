@@ -4,7 +4,8 @@ import { useEpicSetupFile } from '../useEpicSetup'
 import { useCan } from '../useCan'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { dpEpicId, releaseTypesOf, maxTitleFields, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
+import { AllEpicsDefaults } from './AllEpicsDefaults'
+import { resolveFields, type InheritField, type SetupOrigin, dpEpicId, releaseTypesOf, maxTitleFields, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
 import { currentIndiaMonth } from '../azureDevOps'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { GitStorage } from '../useGitStorage'
@@ -87,6 +88,14 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
     update(entry); entry.epicTitle = epic?.title ?? entry.epicTitle
     setDraft(next); setResult(null)
   }
+  // CON-96: each inheritable field is set here or inherited from the layer above (for Mine: the Epic's shared setup;
+  // then All Epics; then Built in), with Override and Revert.
+  const inherited = resolveFields(mine && sharedEntry ? [{ entry: sharedEntry, origin: 'epic' }] : [], setup.shared?.defaults)
+  const inh = (field: InheritField) => Boolean(current?.inherits?.includes(field))
+  const originLabel: Record<SetupOrigin, string> = { mine: 'my setup', epic: 'the shared setup of this Epic', all: 'All Epics', builtin: 'Built in' }
+  const fieldOrigin = (field: InheritField, name: string) => current && <span className="setup-origin">{inh(field)
+    ? <><span className="scope-chip">Inherited from {originLabel[inherited.origin[field]]}</span>{editable && <button type="button" className="text-button" aria-label={`Override ${name}`} onClick={() => change((entry) => { entry.inherits = (entry.inherits ?? []).filter((item) => item !== field); if (!entry.inherits.length) delete entry.inherits; if (field === 'featureDoD') entry.featureDoD = inherited.featureDoD; else if (field === 'stories') entry.stories = structuredClone(inherited.stories); else if (inherited.originalEstimate != null) entry.task.originalEstimate = inherited.originalEstimate; else delete entry.task.originalEstimate })}>Override here</button>}</>
+    : <><span className="scope-chip scope-you">Set here</span>{editable && <button type="button" className="text-button" aria-label={`Revert ${name} to inherited`} title={`Use ${originLabel[inherited.origin[field]]}: ${field === 'featureDoD' ? inherited.featureDoD || '—' : field === 'stories' ? inherited.stories.map((story) => story.title).join(', ') || 'none' : inherited.originalEstimate ?? 'none'}`} onClick={() => change((entry) => { entry.inherits = [...new Set([...(entry.inherits ?? []), field])] })}>Revert to inherited</button>}</>}</span>
   const preview = (template: string) => { const missing = missingValues(template, values); return missing.length ? `needs {${missing.join('}, {')}} — the sample title has no such part` : fillTitle(template, values) || '—' }
 
   async function save(event: React.FormEvent) {
@@ -159,12 +168,14 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
       </form>}
       {sharedEditable && listMissing.length > 0 && <Notice tone="warning">The Feature DoD is mandatory: add it for Epic {listMissing.map((id) => `#${id}`).join(', ')} to save.</Notice>}
     </details>
+    <AllEpicsDefaults setup={setup} editable={sharedEditable} />
     <div className="setup-jump"><label>Go to Epic #<input inputMode="numeric" value={goTo} placeholder="e.g. 13946" onChange={(event) => setGoTo(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); jump() } }} /></label><button type="button" className="ghost" disabled={!idOf(goTo)} onClick={jump}>Open</button></div>
     {chosen > 0 && <div className="setup-flow" role="group" aria-label={`Which setup applies to Epic #${chosen}`}>
       <p><strong>When you create a Feature under Epic {epicLabel}</strong>, the first of these that exists is used:</p>
       <ol>
         <li className={appliesNow === 'mine' ? 'setup-flow-on' : ''}><strong>My setup</strong> of this Epic{setup.email ? '' : ' (needs your email on the Time Writing connection)'} — {myEntry ? `${myEntry.stories.length} optional User Stor${myEntry.stories.length === 1 ? 'y' : 'ies'}` : 'none'}{mine && draft && current ? <em className="setup-unsaved"> · changed here, not saved yet: save to Git to apply</em> : null}</li>
         <li className={appliesNow === 'shared' ? 'setup-flow-on' : ''}><strong>Shared setup</strong> of this Epic — {sharedEntry ? `${sharedEntry.stories.length} optional User Stor${sharedEntry.stories.length === 1 ? 'y' : 'ies'}` : 'none'}{!mine && draft && current ? <em className="setup-unsaved"> · changed here, not saved yet: save to Git to apply</em> : null}</li>
+        <li><strong>All Epics</strong> — for the fields a setup above leaves to it (Feature DoD, optional User Stories, default estimate){setup.shared?.defaults ? '' : ' — none set'}</li>
         <li className={appliesNow === 'builtin' ? 'setup-flow-on' : ''}><strong>Built-in</strong> — you choose PU (SFV, DT, IQOQ) or Full Release (PRD, SFV, DT, IQOQ) in the New Feature form</li>
       </ol>
       <p className="muted">Applies now: <strong>{appliesNow === 'mine' ? 'my setup' : appliesNow === 'shared' ? 'the shared setup' : 'the built-in milestones'}</strong>. The Time Writing User Story and the month Task are always created.</p>
@@ -182,8 +193,9 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
       <fieldset className="plain-fieldset feature-setup" disabled={!editable || busy}>
         {mine && !current && sharedEntry && <Notice tone="info">You use the shared setup of this Epic. <button type="button" className="text-button" onClick={() => { const next = structuredClone(file); next.epics.push(structuredClone(sharedEntry)); setDraft(next); setResult(null) }}>Start my own from the shared one</button></Notice>}
         {!current && <div className="setup-builtin"><p><strong>No {mine ? 'personal' : 'shared'} setup of Epic {epicLabel} yet.</strong> Start from the built-in stories (editable afterwards):</p><div className="button-row"><button type="button" className="ghost" onClick={() => startFromBuiltin('Release')}>Use built-in Full Release ({builtinMilestones.Release.join(', ')})</button><button type="button" className="ghost" onClick={() => startFromBuiltin('PU')}>Use built-in PU ({builtinMilestones.PU.join(', ')})</button></div></div>}
-        <label className="setup-dod">Feature DoD (Definition of Done) — required<textarea rows={2} required maxLength={100000} value={current?.featureDoD ?? ''} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => change((entry) => { entry.featureDoD = event.target.value })} /><small>A new Feature under this Epic starts with it as “Feature DoD: …” at the top of its Description; it can be changed when creating.</small></label>
-        {!current?.featureDoD.trim() && <div className="button-row"><button type="button" className="text-button" onClick={() => change((entry) => { entry.featureDoD = defaultDoDFor(entry) })}>Use the default: “{defaultDoDFor(current ?? { stories: [] })}”</button></div>}
+        {fieldOrigin('featureDoD', 'Feature DoD')}
+        <label className="setup-dod">Feature DoD (Definition of Done) — required<textarea rows={2} required={!inh('featureDoD')} disabled={inh('featureDoD')} maxLength={100000} value={inh('featureDoD') ? inherited.featureDoD : current?.featureDoD ?? ''} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => change((entry) => { entry.featureDoD = event.target.value })} /><small>A new Feature under this Epic starts with it as “Feature DoD: …” at the top of its Description; it can be changed when creating.</small></label>
+        {!inh('featureDoD') && !current?.featureDoD.trim() && <div className="button-row"><button type="button" className="text-button" onClick={() => change((entry) => { entry.featureDoD = defaultDoDFor(entry) })}>Use the default: “{defaultDoDFor(current ?? { stories: [] })}”</button></div>}
         <h3>Title fields</h3>
         {epicFields && <Notice tone="info">Epic #{epicFields.epicId} has an Epic setup (Admin → Epic setup): its fields {epicFields.fields.map((field) => field.label).join(', ')} apply to every new Feature under it, in place of the title fields below.</Notice>}
         <p className="muted">Optional, up to {maxTitleFields}: the parts of a Feature title for this Epic (e.g. DP: Program, Service, Release; CP: Platform, Release Name, Number). New Feature asks for each, joins them with “ | ” into the title, writes “Field : value” into the Description and offers {'{Field}'} as a placeholder. The on-prem field (reference or plain name, e.g. SourceProgram) fills it from the release in Release Details. Blank or repeated names are dropped on save.</p>
@@ -194,6 +206,9 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         </div>)}
         {(current?.titleFields?.length ?? 0) < maxTitleFields && <button type="button" className="ghost" onClick={() => change((entry) => { entry.titleFields = [...(entry.titleFields ?? []), { label: '', source: '' }] })}>＋ Add title field</button>}
         <h3>Optional User Stories</h3>
+        {fieldOrigin('stories', 'Optional User Stories')}
+        {inh('stories') && <ul className="setup-inherited">{inherited.stories.length ? inherited.stories.map((story, index) => <li key={index}>{story.title}</li>) : <li className="muted">None</li>}</ul>}
+        {!inh('stories') && <>
         {!current?.stories.length && <p className="muted">{current ? 'No optional User Stories: only the Time Writing story and Task are created.' : mine && sharedEntry ? 'No setup of your own for this Epic: the shared one applies (see above).' : 'No setup for this Epic yet: Features under it use the PU / Full Release milestones. Add a User Story or set the Task defaults to start one.'}</p>}
         {current?.stories.map((story, index) => <div key={index} className="setup-story">
           <label>Title<input value={story.title} maxLength={255} onChange={(event) => change((entry) => { entry.stories[index].title = event.target.value })} /><small className="muted">→ {preview(story.title)}</small></label>
@@ -201,6 +216,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
           <div className="button-row"><button type="button" className="ghost" aria-label="Move up" disabled={index === 0} onClick={() => change((entry) => { [entry.stories[index - 1], entry.stories[index]] = [entry.stories[index], entry.stories[index - 1]] })}>↑</button><button type="button" className="ghost" aria-label="Move down" disabled={index === current.stories.length - 1} onClick={() => change((entry) => { [entry.stories[index + 1], entry.stories[index]] = [entry.stories[index], entry.stories[index + 1]] })}>↓</button><button type="button" className="text-button" onClick={() => change((entry) => { entry.stories.splice(index, 1) })}>Remove</button></div>
         </div>)}
         <button type="button" className="ghost" onClick={() => change((entry) => { entry.stories.push({ title: '', description: '' }) })}>＋ Add optional User Story</button>
+        </>}
         {/* DPF-01…02: the DP Epic's sets per release type and the QE Mapping columns (Release Details → DP, Create Features). */}
         {current && (chosen === dpEpicId || chosen === dpBulkEpic || chosen === ioccBulkEpic) && <div className="setup-dp">
           <h3>{chosen === ioccBulkEpic && chosen !== dpBulkEpic ? 'IOCC releases' : 'DP releases'} <Info>Release Details → DP (and IOCC, QV-59) reads the release type from the version x.y.z.a: X.0.0.0 Major and x.y.0.0 Minor use the Release set; x.y.z.0 MLD and x.y.z.a Platform Update use the PU set. Create Features uses that set's DoD and User Stories, and assigns everything to the release's QE from the QE Mapping.</Info></h3>
@@ -217,7 +233,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         </div>}
         <h3>Time Writing <Info>The same for every Epic (BKL-28): the person's month Task “&lt;Month&gt; | &lt;Feature&gt;” under “&lt;Feature&gt; - Time Writing” (their own Time Writing story first), assigned to the person, in the Feature's Area Path and the project root iteration; an existing month Task of theirs is reused. Only the default planned hours are set per Epic.</Info></h3>
         <div className="form-row">
-          <label>Default Original Estimate (hours) of a new month Task<input type="number" min="0" max="1000000" step="0.25" value={current?.task.originalEstimate ?? ''} placeholder="None" onChange={(event) => change((entry) => { const value = event.target.value.trim(); if (value === '') delete entry.task.originalEstimate; else if (Number.isFinite(Number(value)) && Number(value) >= 0) entry.task.originalEstimate = Number(value) })} /><small className="muted">Hours typed when creating win; an existing Task keeps its hours.</small></label>
+          <label>Default Original Estimate (hours) of a new month Task {fieldOrigin('estimate', 'Default Original Estimate')}<input type="number" min="0" max="1000000" step="0.25" disabled={inh('estimate')} value={inh('estimate') ? inherited.originalEstimate ?? '' : current?.task.originalEstimate ?? ''} placeholder="None" onChange={(event) => change((entry) => { const value = event.target.value.trim(); if (value === '') delete entry.task.originalEstimate; else if (Number.isFinite(Number(value)) && Number(value) >= 0) entry.task.originalEstimate = Number(value) })} /><small className="muted">Hours typed when creating win; an existing Task keeps its hours.</small></label>
         </div>
         {current && <button type="button" className="text-button" onClick={() => { const next = structuredClone(file); next.epics = next.epics.filter((entry) => entry.epicId !== chosen); setDraft(next); setResult(null) }}>{mine ? `Delete my setup of this Epic (${sharedEntry ? 'use the shared one' : 'back to PU / Full Release'})` : 'Delete the shared setup of this Epic (back to PU / Full Release)'}</button>}
       </fieldset>
