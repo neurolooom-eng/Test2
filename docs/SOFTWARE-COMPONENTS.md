@@ -111,6 +111,7 @@ This document lists every software component of the system: the in-house source 
 | chartLabels (component) | `src/components/chartLabels.tsx` | The Data labels box and the X / Y axis names of a chart (UI-17). | UI |
 | chartLabels | `src/chartLabels.ts` | Chart data labels: each chart's own choice kept per computer, else the shared default (UI-17). | UI |
 | useStreamEpics | `src/useStreamEpics.ts` | The shared release-source settings in a React context and the hook giving a stream's Epics for the board match (QV-57). | QV |
+| useCan | `src/useCan.ts` | The viewer's permissions in a React context, for the controls deep in the page tree (bulk create, QE Mapping, Monthly pack text, shared Feature setup, export) (CON-94). | CON |
 | bulkEpics | `src/bulkEpics.ts` | The bulk creation Epic per stream: built in, shared, personal (QV-59). | QV |
 | useDataLabels | `src/useDataLabels.ts` | The hook a chart uses for its Data labels switch (UI-17). | UI |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |

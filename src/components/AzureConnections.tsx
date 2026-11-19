@@ -34,7 +34,7 @@ const empty = (role: AzureConnectionRole = 'time-tracking'): ConnectionInput => 
 // Azure DevOps connection setup, shown as the first section of Settings.
 // section: the one part to show (SET-14: Servers and PATs, Stream mapping, Other views, Read-only sources, Synthetic
 // sample); without it, every part.
-export function AzureConnections({ azure, store, git, onOpenBoard, canManage = true, canManageStreams = canManage, section }: { azure: AzureWorkspace; store: PageProps['store']; git?: GitStorage; onOpenBoard: () => void; canManage?: boolean; canManageStreams?: boolean; section?: 'email' | 'servers' | 'mapping' | 'views' | 'sources' | 'sample' }) {
+export function AzureConnections({ azure, store, git, onOpenBoard, canManage = true, canManageStreams = canManage, canEnterCounts = canManage, section }: { azure: AzureWorkspace; store: PageProps['store']; git?: GitStorage; onOpenBoard: () => void; canManage?: boolean; canManageStreams?: boolean; canEnterCounts?: boolean; section?: 'email' | 'servers' | 'mapping' | 'views' | 'sources' | 'sample' }) {
   const show = (part: string) => !section || section === part
   const threshold = normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold
   const { connectionProfiles, connectionStatus, activeConnectionProfileId, busy } = azure
@@ -245,7 +245,7 @@ export function AzureConnections({ azure, store, git, onOpenBoard, canManage = t
     {show('mapping') && <NamingPatternsPanel store={store} canManage={canManageStreams} />}
     {show('mapping') && <FeatureEpicsPanel store={store} items={azure.items} canManage={canManage} />}
     {show('mapping') && <BulkEpicsPanel store={store} items={azure.items} canManage={canManage} />}
-    {show('mapping') && <ReleaseCountsAdmin store={store} canManage={canManage} month={todayIso().slice(0, 7)} />}
+    {show('mapping') && <ReleaseCountsAdmin store={store} canManage={canEnterCounts} month={todayIso().slice(0, 7)} />}
     {show('views') && <Panel className="connection-panel" eyebrow="STEP 3" title="Other views" info="Any other Azure DevOps view: custom queries, backlog views and background sources such as the DHP release register (Pedestal). Each is saved as soon as it is fetched (an empty Time Writing result never replaces saved data without asking). Nothing is written to Azure DevOps when fetching. Connections on a server with a PAT need no PAT of their own."
       action={<div className="button-row"><button type="button" className="ghost" onClick={() => { setFormError(''); setForm(empty(connectionProfiles.some((profile) => profile.role === 'time-tracking') ? 'reference' : 'time-tracking')) }}>＋ Add connection</button><button type="button" className="primary" disabled={!connectionProfiles.length || fetchingAll || busy} onClick={() => { setFetchingAll(true); void azure.fetchAll().finally(() => setFetchingAll(false)) }}>{fetchingAll ? 'Fetching all…' : 'Fetch all'}</button></div>}>
       {otherPresets.length > 0 && <div className="preset-list">{otherPresets.map((preset) => <div className="preset-row" key={preset.key}>

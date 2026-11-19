@@ -156,13 +156,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-109 | Entered release counts (QV-58) | Entered counts are taken for real figures, or left in place after the data arrives | Wrong release figures reported (dashboard, Pulse Check, Monthly pack) | A view not fetched; counts entered for the wrong month | 3 | 2 | 2 | 12 | Used only while the stream has no data for that month; always marked as entered with the reason; real counts replace them automatically; audited (TC-QV-39) | 3×1×2 = 6 | TC-QV-39 | — |
 | DF-110 | IOCC bulk Features and bulk creation Epics (QV-59) | Features created under the wrong Epic, with the wrong set, or assigned to the wrong QE | Work tracked in the wrong place; wrong owner | A personal Epic left set; a release number that is not x.y.z.a; a QE Mapping name that only partly matches | 4 | 2 | 2 | 16 | The Epic used is shown with its source (mine / shared / built in) and named in the pop-up; releases without a type, QE or email are skipped with the reason; 100% matches cannot be selected; created one by one with the result listed (TC-QV-40) | 4×1×2 = 8 | TC-QV-40 | — |
 | DF-111 | Stream mapping locked to the Tool Owner (CON-93) | A wrong server, project, query or naming pattern changes the release figures for everyone; or nobody can fix the mapping | Wrong Completed / Supported counts, Feature matching and Monthly pack; or a stale mapping | An Admin editing the mapping by mistake; the last Tool Owner removed | 5 | 2 | 2 | 20 | Only Tool Owners change it; nobody locked out while none exists; only a Tool Owner changes who holds it and one must remain; read-only notice for everyone else (TC-CON-57) | 5×1×1 = 5 | TC-CON-57 | — |
+| DF-112 | Role rights as a permission matrix (CON-94) | A person gets a right a role meant to withhold, or loses one they had; an older access.json changes meaning | Unwanted changes in Azure DevOps or the shared setup; or people blocked from their work | A cell set wrongly; allow and deny combined across roles misunderstood; migration of the old actions | 4 | 3 | 3 | 36 | Deny wins over any allow; Not set is not allowed; old files migrated so every person keeps their rights; each Azure change checked per permission before anything is sent; Check access names the allowing and denying roles; you cannot deny yourself Manage access (TC-CON-58) | 4×2×1 = 8 | TC-CON-58 | — |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 111 |
+| Failure modes analysed | 112 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

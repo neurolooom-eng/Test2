@@ -778,6 +778,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-57 Stream mapping locked to the Tool Owner** — Req CON-93, CON-42 — L1 `access.test.mjs` ("CON-93: the Tool Owner role alone changes the stream mapping; while none exists, those who manage access may; only a Tool Owner changes who holds it (TC-CON-57)"); browser check with access.json in Git: as an Admin without the Tool Owner role, Settings → Azure DevOps → Stream mapping shows the mapping read-only (no Edit, no Save stream mapping to Git, naming patterns read-only); give yourself Tool Owner in Role rights while no Tool Owner exists — saved; as that Tool Owner the mapping is editable; as an Admin, adding another Tool Owner is refused; removing the last Tool Owner is refused.
 
+**TC-CON-58 Role rights as a permission matrix** — Req CON-94, CON-42, CON-89 — L1 `access.test.mjs` ("CON-94: every permission is Allow, Deny or Not set per role; a denial wins; older files keep what they allowed; Check access explains (TC-CON-58)"); E2E `shell.e2e.mjs` ("TC-CON-58: Role rights is a matrix of Allow, Deny and Not set per permission, grouped and searchable; a denial hides what it denies and Check access explains why"); browser check with access.json in Git: Settings → People & access → Role rights shows each permission with Allow / Deny / Not set per role in groups; set Deny on *Export tables* for one of your roles while another allows it — after Save to Git the Export buttons are gone; Check access names the denying role; an access.json saved before v7.27.0 keeps every person's rights.
+
 
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
@@ -1609,6 +1611,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-91 | TC-ACC-04 |
 | CON-92 | TC-ACC-04, TC-ACC-05 |
 | CON-93 | TC-CON-57 |
+| CON-94 | TC-CON-58 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -1971,7 +1974,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
-| UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-57 |
+| UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-57, TC-CON-58 |
 | UC-23 | TC-QEM-01…08 |
 | UC-24 | TC-PCK-01…10 |
 | UC-25 | TC-WSP-01…07 |

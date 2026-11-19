@@ -1,4 +1,5 @@
 import { IoccBulkCreate } from './IoccBulkCreate'
+import { useCan } from '../useCan'
 import type { QeMappingFile } from '../qeMapping'
 import { useMemo, useState, type ReactNode } from 'react'
 import { ContentBulkCreate } from './ContentBulkCreate'
@@ -60,7 +61,9 @@ function ReleaseTable({ name, title = 'Releases', detail, register, azure, assig
   // UI-07…12: the release table follows the shared design default; the documents of a release open under it.
   // CNB-01: Content releases are ticked for Create Features (all assigned to one person, chosen in the pop-up).
   // QV-59: IOCC releases too, by the DP rules (IoccBulkCreate).
-  const bulk = (titled || Boolean(typed)) && Boolean(azure)
+  // CON-94: bulk creation needs "Bulk create Features".
+  const can = useCan()
+  const bulk = (titled || Boolean(typed)) && Boolean(azure) && can('work.bulk')
   const [picked, setPicked] = useState<string[]>([])
   const [bulkOpen, setBulkOpen] = useState(false)
   const featureMatch = (release: ReleaseEntry) => matches.get(release.key)?.feature

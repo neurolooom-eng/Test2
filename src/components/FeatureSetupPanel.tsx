@@ -1,4 +1,5 @@
 import { useBulkEpic } from '../useStreamEpics'
+import { useCan } from '../useCan'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
 import { dpEpicId, releaseTypesOf, maxTitleFields, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
@@ -29,7 +30,9 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
   const mine = layer === 'mine' && Boolean(setup.email)
   const base = mine ? setup.personal : setup.shared
   const file = draft ?? base ?? { schema: 1, kind: 'feature-setup', epics: [] }
-  const editable = git.connected && !git.readOnly && !git.isSample && (!mine || Boolean(setup.email))
+  // CON-94: the shared layer needs "Edit the shared Feature setup"; my own layer only my Git token.
+  const can = useCan()
+  const editable = git.connected && !git.readOnly && !git.isSample && (mine ? Boolean(setup.email) : can('setup.feature'))
   const chosen = epicId || base?.epics[0]?.epicId || setup.shared?.epics[0]?.epicId || epics[0]?.id || 0
   const sharedEntry = setupFor(setup.shared, chosen), myEntry = setupFor(setup.personal, chosen)
   const switchLayer = (next: 'mine' | 'shared') => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer(next) }
@@ -38,7 +41,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
   const [listDraft, setListDraft] = useState<FeatureSetupFile | null>(null)
   const [listEditing, setListEditing] = useState<number[]>([])
   const [listCommit, setListCommit] = useState('')
-  const sharedEditable = git.connected && !git.readOnly && !git.isSample
+  const sharedEditable = git.connected && !git.readOnly && !git.isSample && can('setup.feature')
   const sharedRows = sharedSetupRows({ shared: listDraft ?? setup.shared, personal: setup.personal })
   const listMissing = listDraft ? setupsMissingDoD(listDraft, setup.shared) : []
   const listChanged = (id: number) => JSON.stringify(setupFor(listDraft, id) ?? null) !== JSON.stringify(setupFor(setup.shared, id) ?? null)
@@ -167,7 +170,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [] }: { s
         <div><span className="field-label">{current ? `${mine ? 'My' : 'Shared'} setup of this Epic` : 'No setup of this Epic here'}</span><p>{current ? <>{current.featureDoD.trim() ? <>DoD “{current.featureDoD.trim()}” · </> : <span className="warning-text">Feature DoD missing · </span>}{current.stories.length ? current.stories.map((entry) => entry.title || '(untitled)').join(' · ') : 'No optional User Stories'} · Month Task {current.task.originalEstimate != null ? `${current.task.originalEstimate}h` : 'without default hours'}</> : mine && sharedEntry ? 'The shared setup applies (see above).' : 'The built-in milestones apply (see above).'}</p></div>
         <div className="button-row"><button type="button" className="primary" onClick={() => { setResult(null); if (editable && current && missingDoD(current)) change((entry) => { entry.featureDoD = defaultDoDFor(entry) }); setEditing(true) }}>{editable ? current ? 'Edit setup…' : 'Create setup…' : 'View setup…'}</button>{editable && current && <button type="button" className="text-button danger-text" disabled={busy || Boolean(draft)} onClick={() => void deleteCurrent()}>Delete setup</button>}</div>
       </div>
-      {mine && editable && myEntry && !draft && <div className="button-row setup-share"><button type="button" className="ghost" disabled={busy || !myEntry.featureDoD.trim()} onClick={() => void enableForEveryone()} title={myEntry.featureDoD.trim() ? 'Copies your setup of this Epic into the shared setup' : 'Add the Feature DoD to your setup first'}>Enable for everyone</button><small className="muted">{sharedEntry ? 'Replaces the shared setup of this Epic.' : 'This Epic has no shared setup yet.'}</small></div>}
+      {mine && editable && can('setup.feature') && myEntry && !draft && <div className="button-row setup-share"><button type="button" className="ghost" disabled={busy || !myEntry.featureDoD.trim()} onClick={() => void enableForEveryone()} title={myEntry.featureDoD.trim() ? 'Copies your setup of this Epic into the shared setup' : 'Add the Feature DoD to your setup first'}>Enable for everyone</button><small className="muted">{sharedEntry ? 'Replaces the shared setup of this Epic.' : 'This Epic has no shared setup yet.'}</small></div>}
       {editing && <Modal title={`${mine ? 'My' : 'Shared'} Feature setup · Epic ${epicLabel}`} eyebrow={editable ? 'SETTINGS · FEATURE SETUP' : 'SETTINGS · FEATURE SETUP · VIEW ONLY'} wide form onClose={closeEditor}>
         <label>Preview with Feature title<input value={sample} onChange={(event) => setSample(event.target.value)} /></label>
       <p className="info-line"><Info label="Placeholders">Placeholders: {placeholders.map((key) => `{${key}}`).join(' ')} — {'{feature}'} is the whole title; {'{program}'}, {'{service}'}, {'{version}'} are its parts for titles like “Program | Service | v1.2”; {'{month}'} is e.g. “{currentIndiaMonth()}”; an Epic with title fields also has {'{Field}'} for each (any letter case, spaces ignored). Text without placeholders is used as typed. ● marks Epics with a setup.</Info></p>

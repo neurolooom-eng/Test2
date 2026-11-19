@@ -1138,3 +1138,38 @@ test('TC-QV-40: Stream mapping → Bulk creation Epics — shared and my own Epi
   assert.deepEqual(errors, [])
   await context.close()
 })
+
+test('TC-CON-58: Role rights is a matrix of Allow, Deny and Not set per permission, grouped and searchable; a denial hides what it denies and Check access explains why', async () => {
+  // A policy written with the split permissions. Everyone has the default role Admin, which denies Export tables;
+  // a member holds Product Owner (denies exports) and Team Member (allows exports and hours).
+  const roleList = ['Tool Owner', 'Admin', 'Product Owner', 'People Manager', 'Scrum Master', 'Team Member']
+  const all = ['overview', 'insights', 'mywork', 'monthly', 'bulk', 'board', 'health', 'release', 'baselines', 'qemapping', 'snapshots', 'docs']
+  const policy = JSON.stringify({ schema: 1, defaultRole: 'Admin', roles: Object.fromEntries(roleList.map((role) => [role,
+    role === 'Admin' ? { areas: all, actions: ['people.edit', 'access.manage', 'access.viewAs'], deny: ['data.export'] }
+      : role === 'Product Owner' ? { areas: ['release'], actions: [], deny: ['data.export'] }
+        : role === 'Team Member' ? { areas: all, actions: ['data.export', 'work.hours'] } : { areas: [], actions: [] }])),
+  members: { 'lead@example.com': ['Product Owner', 'Team Member'] } })
+  const { page, context, errors } = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-access-v1', text), initArg: policy })
+  await loadSample(page)
+  await navigate(page, 'Backlog Health')
+  await page.locator('.content h2, .content h3').first().waitFor()
+  assert.equal(await page.locator('.content').getByRole('button', { name: /^Export/ }).count(), 0, 'Export tables is denied')
+  await navigate(page, 'People & access')
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Role rights' }).click()
+  const matrix = page.locator('table.access-matrix')
+  await matrix.waitFor()
+  for (const group of ['Menu areas (pages)', 'Work items in Azure DevOps', 'Release data', 'Streams', 'Setup', 'Capacity and time', 'People and access', 'Reports and sharing']) assert.equal(await matrix.locator('tr.access-group', { hasText: group }).count(), 1, group)
+  assert.equal(await page.getByLabel('Product Owner: Export tables (Excel, CSV)').inputValue(), 'deny')
+  assert.equal(await page.getByLabel('Team Member: Export tables (Excel, CSV)').inputValue(), 'allow')
+  assert.equal(await page.getByLabel('Scrum Master: Export tables (Excel, CSV)').inputValue(), 'unset')
+  await page.getByLabel('Search permissions').fill('period control')
+  assert.equal(await matrix.locator('tbody tr:not(.access-group)').filter({ has: page.locator('select') }).count(), 1, 'search narrows to the one permission')
+  await page.getByLabel('Search permissions').fill('')
+  await page.getByLabel('Check access for').selectOption('lead@example.com')
+  await page.getByLabel('Check permission').selectOption('data.export')
+  assert.match(await text(page.locator('.access-answer')), /Not allowed\s*Denied by Product Owner/)
+  await page.getByLabel('Check permission').selectOption('work.hours')
+  assert.match(await text(page.locator('.access-answer')), /Allowed\s*Allowed by Team Member/)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
