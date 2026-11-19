@@ -357,7 +357,8 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     return run
   }
   async function pushSnapshotNow(profile: AzureConnectionProfileSummary, source: ViewSnapshot) {
-    if (!config || !token || isSample) return
+    // SET-17: My views stay on this computer: their data is never saved to Git.
+    if (!config || !token || isSample || profile.mine) return
     const target = siblingConfig(config, `${snapshotFolder}/${snapshotFileName(profile.id)}`)
     try {
       if ((await writeCheck.current) === false) { note(profile.id, 'info', 'Not saved to Git: the Git token here is read-only.'); return }
