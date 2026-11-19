@@ -9,9 +9,9 @@ import { EmptyState, Notice, Panel, Pill } from './ui'
 // EPS-01…05 Admin → Epic setup: per Epic, the extra fields of a new Feature (Program, Platform…), where each goes
 // (Description, Title or both), what an empty one does (Optional, Warn, Block), the title pattern, and the shared value
 // lists of the drop-downs. One draft for the whole file, saved to Git in one commit.
-export function EpicSetupPanel({ setup, git, items, canEdit, canEditLists, section }: { setup: EpicSetupStore; git: GitStorage; items: AzureWorkItem[]; canEdit: boolean; canEditLists: boolean; section: 'fields' | 'lists' }) {
+export function EpicSetupPanel({ setup, git, items, canEdit, canEditLists, section, initialEpicId = 0 }: { setup: EpicSetupStore; git: GitStorage; items: AzureWorkItem[]; canEdit: boolean; canEditLists: boolean; section: 'fields' | 'lists'; initialEpicId?: number }) {
   const { draft, setDraft } = setup
-  const [epicId, setEpicId] = useState(0)
+  const [epicId, setEpicId] = useState(initialEpicId)
   const [copyTo, setCopyTo] = useState<number[]>([])
   const [commit, setCommit] = useState('')
   const [busy, setBusy] = useState(false)

@@ -9,10 +9,10 @@ export const settingsSectionKey = 'demand-planning-settings-section-v1'
 
 // The Admin pages in menu order; needs: shown only to people allowed at least one of these permissions (CON-94).
 export const settingsPages: { key: SettingsTab; label: string; needs?: Action[] }[] = [
-  { key: 'home', label: 'Overview' }, { key: 'connections', label: 'Streams' }, { key: 'options', label: 'Stream options' }, { key: 'features', label: 'Feature setup' },
+  { key: 'home', label: 'Overview' }, { key: 'connections', label: 'Streams' }, { key: 'options', label: 'Stream options' }, { key: 'epics', label: 'Epic & Feature setup' },
   { key: 'resources', label: 'People & roles' }, { key: 'capacity', label: 'Capacity & time', needs: ['capacity.settings', 'capacity.rules', 'capacity.time', 'capacity.periods', 'capacity.history'] },
   { key: 'pack', label: 'Reports', needs: ['pack.setup', 'layout.defaults'] }, { key: 'storage', label: 'Data & sharing' },
-  { key: 'epics', label: 'Epic setup' }, { key: 'audit', label: 'History', needs: ['storage.shared'] },
+  { key: 'audit', label: 'History', needs: ['storage.shared'] },
 ]
 export const mySettingsLabel = 'My settings'
 export const settingsPagesFor = (can: (action: Action) => boolean) => settingsPages.filter((page) => !page.needs || page.needs.some(can))
@@ -21,6 +21,8 @@ export const settingsPagesFor = (can: (action: Action) => boolean) => settingsPa
 const moved: Record<string, { tab: SettingsTab; section?: string }> = {
   // EPS-01: the Epic setup replaces Master data.
   masters: { tab: 'epics', section: 'fields' },
+  // EPS-08: Epic setup and Feature setup are one page.
+  features: { tab: 'epics', section: 'feature' },
   access: { tab: 'resources', section: 'rights' }, tables: { tab: 'pack', section: 'tables' }, history: { tab: 'capacity', section: 'history' },
   'connections:email': { tab: 'my', section: 'email' }, 'connections:servers': { tab: 'my', section: 'servers' },
   'connections:views': { tab: 'storage', section: 'views' }, 'connections:sources': { tab: 'storage', section: 'sources' }, 'connections:sample': { tab: 'storage', section: 'sample' },

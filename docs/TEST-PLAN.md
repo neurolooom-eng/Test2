@@ -1551,6 +1551,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 **TC-EPS-04 Epic setup permissions** — Req EPS-04, CON-94 — L1 `access.test.mjs` ("EPS-04: Edit Epic setup and its value lists — Tool Owner, Admin (and Scrum Master for the fields) by default; a file of v7.27 gets them as in the starting matrix (TC-EPS-04)"); browser check: as a Scrum Master, Admin → Epic setup lets you edit the fields but shows Value lists read-only; Deny “Edit the Epic setup” for the role and the fields become read-only.
 
 **TC-EPS-05 On-prem field drop-down and the old title fields** — Req EPS-06, EPS-07 — L1 `onprem-values.test.mjs` ("On-prem field drop-down: the distinct values of the field across the fetched on-prem data, sorted, case ignored (EPS-06, TC-EPS-05)"), `feature-setup.test.mjs` ("title fields per Epic: up to five, unique names, saved with the setup; title, Description lines, placeholders and on-prem values" — the old title fields are no longer kept); browser check with on-prem data fetched: an Epic setup field Program (Text, on-prem field Custom.Program) is a drop-down of the Program values in New Feature; with a Release Classification field in the Epic setup, the built-in Release Classification picker is gone and the Description has one "Release Classification :" line; Admin → Feature setup → Remove the old title fields from Git commits feature-setup.json without titleFields.
+**TC-EPS-06 Epic & Feature setup page and All Epic setups** — Req EPS-08, SET-15 — L1 `epic-setup.test.mjs` ("All Epic setups: every Epic with Feature fields or a Feature setup, with its fields, pattern and setup (EPS-08, TC-EPS-06)"); E2E `backlog.e2e.mjs` ("TC-EPS-01: …" — All Epic setups lists the Epic with its fields and pattern, Fields opens it), `shell.e2e.mjs` ("TC-SET-06: …" — the page's four sections); browser check: Admin → Epic & Feature setup → All Epic setups lists the Epics with fields or a Feature setup; search narrows it; Feature setup on a row opens that Epic's Feature setup; an old link to Feature setup opens the Feature setup section.
+
 **TC-ADM-01 Overview checks and settings search** — Req ADM-01, ADM-03 — L1 `admin-overview.test.mjs` ("Admin overview: open Get started steps and shared-setup checks, required first, each with its fix (ADM-01, TC-ADM-01)"; "Search settings: by name or what it affects, every page reachable (ADM-03, TC-ADM-01)").
 
 **TC-ADM-02 Overview, Ctrl K and History** — Req ADM-01…04 — E2E `shell.e2e.mjs` ("TC-ADM-02: Admin → Overview lists what to set up with links; Ctrl K finds a setting and opens it; History filters the changes"); browser check with Git storage: change a capacity setting — the ADMIN heading shows 1 and the Overview shows Unsaved shared changes with Save to Git; Save to Git clears both; Ctrl K → "dod" offers Feature setup; History → choose an area and type part of a change.
@@ -1973,6 +1975,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | EPS-05 | TC-EPS-03 |
 | EPS-06 | TC-EPS-05 |
 | EPS-07 | TC-EPS-05 |
+| EPS-08 | TC-EPS-06, TC-EPS-01 |
 | ADM-01 | TC-ADM-01, TC-ADM-02 |
 | ADM-02 | TC-ADM-02 |
 | ADM-03 | TC-ADM-01, TC-ADM-02 |
@@ -2022,7 +2025,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-31 | TC-KPT-01…03 |
 | UC-32 | TC-DPF-01…04 |
 | UC-33 | TC-CNB-01, TC-CNB-02 |
-| UC-34 | TC-EPS-01, TC-EPS-02, TC-EPS-03, TC-EPS-04, TC-EPS-05 |
+| UC-34 | TC-EPS-01, TC-EPS-02, TC-EPS-03, TC-EPS-04, TC-EPS-05, TC-EPS-06 |
 | UC-35 | TC-ADM-01, TC-ADM-02 |
 
 ## 8. Result record
