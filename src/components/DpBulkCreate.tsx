@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { QePick } from './QePick'
+import { boardPeople } from '../contentBulk'
 import { epicFieldsFor, withEpicFields } from '../epicSetup'
 import { useEpicSetupFile } from '../useEpicSetup'
 import type { AzureWorkItem } from '../domain'
@@ -7,7 +9,7 @@ import type { FeatureSetups } from '../featureSetup'
 import { chooseSetup } from '../featureSetup'
 import { useBulkEpic } from '../useStreamEpics'
 import type { QeMappingFile } from '../qeMapping'
-import { bulkPlan, dpTypeLabel } from '../dpBulk'
+import { bulkPlan, dpTypeLabel, pickQe } from '../dpBulk'
 import type { BoardHit } from '../dpBoardMatch'
 import { createFeatureFromSetup, currentIndiaMonth, currentIterationPairs, futureIterationPairs, readAzureIterations, withFeatureDoD, HierarchyCreationError, type AzureIteration } from '../azureDevOps'
 import { runInBackground } from '../backgroundJobs'
@@ -23,7 +25,11 @@ export function DpBulkCreate({ rows, azure, featureSetup, qeMapping, featureMatc
   // QV-59: the DP bulk Epic — mine, else shared, else built in (13946).
   const dpEpicId = useBulkEpic('DP').epicId ?? 0
   const setup = chooseSetup(featureSetup, dpEpicId, true).setup
-  const rawPlan = bulkPlan(rows, { setup, qeMapping, board: azure.items, featureMatch })
+  // DPF-06: the QE picked per release in the pop-up (email by release), in place of the QE Mapping's.
+  const [picks, setPicks] = useState<Record<string, string>>({})
+  const people = boardPeople(azure.items)
+  const mappedPlan = bulkPlan(rows, { setup, qeMapping, board: azure.items, featureMatch })
+  const rawPlan = pickQe(mappedPlan, picks, (line) => String(line.row.id), people)
   // EPS-03: the Epic setup's fields of the bulk Epic.
   const plan = withEpicFields(rawPlan, epicFieldsFor(useEpicSetupFile(), dpEpicId), (line) => [line.row])
   const ready = plan.filter((line) => !line.skip)
@@ -76,7 +82,7 @@ export function DpBulkCreate({ rows, azure, featureSetup, qeMapping, featureMatc
           <td>{line.title}</td>
           <td>{line.type ? `${dpTypeLabel(line.type)} (${line.set === undefined ? '' : line.type === 'Major' || line.type === 'Minor' ? 'Release set' : 'PU set'})` : '—'}</td>
           <td>{line.set ? line.set.stories.map((story) => story.title.split(' :')[0]).join(', ') || 'none' : '—'}</td>
-          <td>{line.qe || '—'}{line.email && <small className="muted"> {line.email}</small>}</td>
+          <td>{line.baseSkip ? (line.qe || '—') : <QePick label={line.title} email={line.email} mapped={mappedPlan.find((entry) => String(entry.row.id) === String(line.row.id))?.qe} people={people} onPick={(email) => setPicks((current) => ({ ...current, [String(line.row.id)]: email }))} />}</td>
           <td>{line.skip ? <span className="warning-text">Skipped: {line.skip}</span> : <>Will be created{line.note && <small className="warning-text"> — {line.note}</small>}{line.warned.length > 0 && <small className="warning-text"> — empty {line.warned.join(', ')}</small>}</>}</td>
         </tr>)}</tbody>
       </table></div>
