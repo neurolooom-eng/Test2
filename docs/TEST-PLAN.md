@@ -989,6 +989,8 @@ TC-OVR-01 to TC-OVR-03 tested the earlier Overview and are **retired** with OVR-
 
 **TC-CAP-27 Typed utilization formula (fx)** — Req CAP-55 — L1 `formula.test.mjs` ("CAP-55: a typed formula reads like Excel — figures in brackets, + - * / ( ), MAX, MIN, ROUND, IF; blank on / 0"; "CAP-55: a formula that does not read says why"); `calculation-profiles.test.mjs` ("CAP-55: a profile with a typed formula — the v4 formula typed gives the v4 figures; another formula drives person and team"); E2E `shell.e2e.mjs` ("TC-CAP-27: a calculation profile with a typed formula (fx) — starts from the ticks, is checked as typed, is saved and drives the figures"); browser check with the team data: make a copy of Current (v4) with fx on and its starting formula — every person's and the team's figures equal Current (v4); change it to =[Project work] / [Funded Hours] * 100, make it the default — Pulse Check cards, Team overview Utilization and the Monthly pack follow; Save to Git and reload in another browser.
 
+**TC-CAP-28 My capacity under every name; the reason when not counted** — Req CAP-56 — L1 `capacity.test.mjs` ("CAP-56: my capacity is found under every name my work email carries; when I am not counted the reason is given (TC-CAP-28)"); browser check with the Time Writing connection: Time Writing as Me shows the same Capacity as when your name is chosen at the top right; for a month without a Task of yours, or with a Joined on after it, the Capacity tile shows — and the reason.
+
 **TC-CAP-01 Capacity calculation** — Req CAP-01…09, OVR-09 — L1 `capacity.test.mjs`, `monthly-hours.test.mjs`, `azure-insights.test.mjs`. Plus L3 analysis (A) with one person in October 2026:
 - 22 working days × 8 = 176 h funded.
 - An India holiday of 8 h gives 168 h available.
@@ -1752,6 +1754,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CAP-53 | TC-CAP-25 |
 | CAP-54 | TC-CAP-26 |
 | CAP-55 | TC-CAP-27 |
+| CAP-56 | TC-CAP-28 |
 | BAS-01…04 | TC-BAS-01 |
 | BAS-05…07 | TC-BAS-02 |
 | BAS-08…10 | TC-BAS-03 |

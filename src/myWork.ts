@@ -319,3 +319,13 @@ export function stateCheckChildren(items: AzureWorkItem[], item: Pick<AzureWorkI
   return items.filter((child) => child.parentId === item.id && child.workItemType === type && child.organization === item.organization && child.project === item.project && !stateIs(child, 'removed')).sort((a, b) => a.id - b.id)
 }
 export const canActivateHere = (child: Pick<AzureWorkItem, 'workItemType' | 'state' | 'assignedTo' | 'assignedToEmail'>, me: Me) => child.workItemType === 'User Story' && stateIs(child, 'new') && isMine(child, me)
+
+// CAP-56: every name the person goes by on the board — the chosen / derived name and each Assigned To display name of
+// items carrying their work email (letter case ignored) — so their own figures are found whichever name Azure DevOps shows.
+export function myNames(items: Pick<AzureWorkItem, 'assignedTo' | 'assignedToEmail'>[], me: Me) {
+  const email = me.email?.trim().toLowerCase()
+  const names = new Set<string>(me.name?.trim() ? [me.name.trim()] : [])
+  if (email) for (const item of items) if (item.assignedTo && item.assignedToEmail?.trim().toLowerCase() === email) names.add(item.assignedTo)
+  return [...names]
+}
+
