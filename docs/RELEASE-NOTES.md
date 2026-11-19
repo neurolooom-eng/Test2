@@ -7,7 +7,10 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 **Changed**
 - **Stream mapping locked to the Tool Owner** — a new app access role, Tool Owner (Role rights), alone changes the stream mapping and its query logic: servers, projects and queries of DP, CP, IOCC, Content and Tool Validations, their data sets and the shared release naming patterns. Admins no longer hold it by default; while nobody holds it, those who manage access can, so nobody is locked out; only a Tool Owner changes who holds it, and one must remain (CON-93, CON-42).
 
-DF-111; SM-75; KB-49; TC-CON-57. PR #300.
+**Fixed**
+- Monthly pack: a new bullet always takes the focus, so the first letters typed are no longer lost (KB-50).
+
+DF-111; SM-75; KB-49, KB-50; TC-CON-57. PR #300.
 
 ## v7.25.0 — 2026-11-19
 

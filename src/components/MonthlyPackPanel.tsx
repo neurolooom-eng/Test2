@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { GitStorage } from '../useGitStorage'
 import type { MonthlyPackStore } from '../useMonthlyPack'
@@ -44,7 +44,9 @@ export function MonthlyPackPanel({ month, azure, store, git, pack, windchill }: 
   // The bullet to focus after the next render (a ref, so focusing needs no extra render).
   const focusNext = useRef<string | null>(null)
   const setFocus = (target: string) => { focusNext.current = target }
-  useEffect(() => { if (!focusNext.current) return; document.querySelector<HTMLTextAreaElement>(`[data-bullet="${focusNext.current}"]`)?.focus(); focusNext.current = null })
+  // Before paint (so typing right away lands in it), and kept until the bullet is on the page: with the deferred
+  // render the new bullet can appear one render later (KB-50).
+  useLayoutEffect(() => { if (!focusNext.current) return; const target = document.querySelector<HTMLTextAreaElement>(`[data-bullet="${focusNext.current}"]`); if (!target) return; target.focus(); focusNext.current = null })
   const setBullets = (key: NoteKey, change: (bullets: TypedBullet[]) => TypedBullet[]) => setDraft((current) => withBullets(current, key, change(typedBullets(current, key))))
   const addBullet = (key: NoteKey, at: number, after: number) => { setBullets(key, (bullets) => [...bullets.slice(0, at), { text: '', after }, ...bullets.slice(at)]); setFocus(`${key}:${at}`) }
   const setText = (key: NoteKey, value: string) => setDraft((current) => ({ ...current, text: { ...current.text, [key]: value } }))
