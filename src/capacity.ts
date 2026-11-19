@@ -574,3 +574,17 @@ export function oldCalculation(model: CapacityModel): { rows: OldCalculationRow[
   const netCapacity = sum('netCapacity'), planned = sum('planned'), actual = sum('actual')
   return { rows, standardHours, totals: { funded: sum('funded'), netCapacity, planned, plannedUtilization: percent(planned, netCapacity), available: round(netCapacity - planned), actual, actualUtilization: percent(actual, netCapacity) } }
 }
+
+// CAP-56: why a person has no capacity in a month (shown instead of a bare 0h): removed, a role not counted, not
+// employed on any working day, or no month Time Writing Task of theirs yet. undefined when they are counted.
+export function capacityGap(model: Pick<CapacityModel, 'people' | 'removed' | 'notCounted' | 'outsideEmployment'>, names: string[]): string | undefined {
+  const named = (entry: { name: string }) => names.includes(entry.name)
+  if (model.people.some(named)) return undefined
+  if (model.removed.some(named)) return 'Marked removed in Settings → Resources'
+  const excluded = model.notCounted.find(named)
+  if (excluded) return `Not counted for capacity: ${excluded.reason}`
+  const outside = model.outsideEmployment.find(named)
+  if (outside) return `Not employed on a working day of the month (Joined on ${outside.joinedOn ?? '—'}${outside.leftOn ? `, Left on ${outside.leftOn}` : ''})`
+  return 'No month Time Writing Task of yours in this month yet'
+}
+

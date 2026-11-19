@@ -1,6 +1,6 @@
 import { capacityContext, itemsForPerson, problemBreakdown } from '../capacity'
 import { monthRange, personMonths, streamTotals, totals } from '../dashboard'
-import { isMine, isPending, stateChecks } from '../myWork'
+import { isMine, isPending, myNames, stateChecks } from '../myWork'
 import { formatDate, formatHours, formatPercent, monthName, todayIso } from '../format'
 import { EmptyState, Metric, Metrics, Page, Pill, TablePanel } from '../components/ui'
 import type { AzureWorkspace } from '../useAzureWorkspace'
@@ -18,7 +18,9 @@ export function MyDashboardPage({ month, azure, store, my, navigate, views, canS
   const today = todayIso()
   const name = my.me.name ?? ''
   const months = monthRange(month, 6)
-  const rows = name ? personMonths(azure.items, months, today, settings).filter((row) => row.person === name) : []
+  // CAP-56: the person's rows under every name they go by (their work email's Assigned To names too).
+  const names = myNames(azure.items, my.me)
+  const rows = names.length ? personMonths(azure.items, months, today, settings).filter((row) => names.includes(row.person)) : []
   const now = totals(rows.filter((row) => row.month === month))
   const problems = problemBreakdown(itemsForPerson(azure.items, my.me, settings), [month], settings)
   const checks = stateChecks(azure.items, my.me, my.absenceEpicId)

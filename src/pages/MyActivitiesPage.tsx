@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { isRunning, runInBackground, subscribeJobs } from '../backgroundJobs'
 import { addTask, addUserStory, currentIterationPairs, ensureAbsenceStoryMonthTask, ensureMonthTask, ensureStoryMonthTask, futureIterationPairs, readAzureIterations, updateAzureTimeWritingEffort, type AzureIteration } from '../azureDevOps'
 import { azureInsights, isTimeWritingStory, timeWritingMonth } from '../azureInsights'
-import { capacityContext } from '../capacity'
+import { capacityContext, capacityGap, capacityModel } from '../capacity'
 import { closeFeatureItems, featureClosePlan, featureCloseQuestion } from '../closeChain'
 import { FeatureEditor } from '../components/FeatureEditor'
 import { PersonPicker } from '../components/PersonPicker'
@@ -12,7 +12,7 @@ import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
 import { setupHours, type FeatureSetups } from '../featureSetup'
 import { formatDate, formatHours, monthName, todayIso } from '../format'
-import { absenceStoryType, assignablePeople, isMine, isPending, leaveTaskCandidates, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
+import { absenceStoryType, assignablePeople, isMine, isPending, leaveTaskCandidates, myNames, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -127,8 +127,12 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
   // My dashboard, and the monthly update.
   const kpiItems = my.known ? azure.items.filter((item) => item.workItemType !== 'Task' || isMine(item, my.me)) : []
   const kpi = azureInsights(kpiItems, month, todayIso())
-  const personName = my.me.name ?? ''
-  const capacity = personName ? totals(personMonths(azure.items, [month], todayIso(), locks).filter((row) => row.person === personName)).capacity : null
+  // CAP-56: found by every name the person goes by (their work email's Assigned To names too); when they are not in
+  // the month's capacity, the tile says why instead of 0h.
+  const names = my.known ? myNames(azure.items, my.me) : []
+  const ownRows = names.length ? personMonths(azure.items, [month], todayIso(), locks).filter((row) => names.includes(row.person)) : []
+  const capacity = ownRows.length ? totals(ownRows).capacity : null
+  const capacityWhy = names.length && !ownRows.length ? capacityGap(capacityModel(azure.items, month, locks), names) : undefined
   const unsaved = pendingCount + Object.keys(newHours).filter((key) => newHours[key as keyof Hours]?.trim()).length
   // A small share of capacity next to the planned and actual hours (ACT-11).
   const pctOf = (hours: number | null, whole: number | null) => whole && hours != null ? <span className="act-pct" title="Share of your capacity">{Math.round(hours / whole * 100)}%</span> : null
@@ -339,7 +343,7 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
     {/* One row of equal tiles (ACT-11, ACT-05): the hours, the tasks, the monthly update and the last day. */}
     <div className="act-top">
     <Metrics>
-      <Metric label="Capacity" value={capacity == null ? '—' : `${formatHours(capacity)}h`} hint={capacity == null ? 'Your name is not known yet' : 'Working days less absence'} />
+      <Metric label="Capacity" value={capacity == null ? '—' : `${formatHours(capacity)}h`} hint={capacity != null ? 'Working days less absence' : capacityWhy ?? 'Your name is not known yet'} />
       <Metric label="Planned hours" value={<>{formatHours(kpi.plan.value)}{pctOf(kpi.plan.value, capacity)}</>} hint="Original Estimate · % of capacity" />
       <Metric label="Actual hours" value={<>{formatHours(kpi.actual.value)}{pctOf(kpi.actual.value, capacity)}</>} hint={`Completed Work${kpi.plan.value ? ` · ${Math.round((kpi.actual.value ?? 0) / kpi.plan.value * 100)}% of plan` : ''}`} />
       <Metric label="Tasks" value={kpi.monthlyTasks.length} hint={`Your ${label} Time Writing Tasks`} />
