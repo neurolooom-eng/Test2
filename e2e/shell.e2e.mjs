@@ -433,10 +433,10 @@ test('TC-CAP-22: People & access — one page; names and emails from Azure DevOp
   await remove.locator('input[type=date]').fill('2026-10-31')
   await remove.getByRole('button', { name: 'Confirm' }).click()
   assert.equal(await page.getByLabel('Chen Wei left on').inputValue(), '2026-10-31')
-  // Capacity roles: Lead, Manager and People Manager are not counted by default; QE can be switched off.
+  // Capacity roles (CAP-57): only team roles — Lead and Manager not counted by default, QE counted; no app access roles.
   await sections.getByRole('tab', { name: 'Capacity roles' }).click()
   for (const role of ['Lead', 'Manager']) assert.equal(await page.getByRole('checkbox', { name: role, exact: true }).isChecked(), false, `${role} not counted`)
-  assert.equal(await page.getByRole('checkbox', { name: 'People Manager', exact: true }).isChecked(), false)
+  assert.equal(await page.locator('.capacity-roles').getByRole('checkbox', { name: 'People Manager', exact: true }).count(), 0, 'app access roles never decide capacity')
   assert.equal(await page.getByRole('checkbox', { name: 'QE', exact: true }).isChecked(), true)
   await sections.getByRole('tab', { name: 'Role rights' }).click()
   assert.match(await text(page.locator('.content')), /What each role sees and may do|No access roles yet|Connect Git storage/)
