@@ -192,10 +192,14 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const pairLabel = (pair: { pi: AzureIteration; sprint: AzureIteration }) => `${pair.pi.name} → ${pair.sprint.name} (${pair.sprint.attributes?.startDate?.slice(5, 10)} – ${pair.sprint.attributes?.finishDate?.slice(5, 10)})`
   const steps = ['Feature', 'Definition of Done', 'User Stories', `Estimates for ${monthLabel}`]
   const featureMissing = [!parent && 'the Parent Epic', !(epicSetup ? title.trim() : plan) && (title.trim() ? 'a title in the form “Program | Service | Release”' : 'the title'), !sprintPath && 'the PI → Sprint'].filter(Boolean) as string[]
-  // Sections 2 and 3 count as done once the person has been in them and left (focus moved out of the section): the DoD
-  // usually starts filled and the stories are optional, so being filled cannot tell that they were looked at.
+  // BKL-30: sections 2 and 3 count as done once the person presses Continue in them (an explicit step action, as in
+  // stepped forms generally — not on leaving the box): the DoD usually starts filled and the stories are optional, so
+  // being filled cannot tell that they were looked at. Continue shows the next section and moves the focus to it.
   const [left, setLeft] = useState<number[]>([])
-  const leaveFrom = (index: number) => (event: React.FocusEvent<HTMLElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setLeft((now) => now.includes(index) ? now : [...now, index]) }
+  const advance = (index: number) => {
+    setLeft((now) => now.includes(index) ? now : [...now, index])
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`form.nf-form section[aria-label^="Section ${index + 2}"]`)?.focus())
+  }
   const stepMissing = [featureMissing, dod.trim() ? [] : ['the DoD'], [], []]
   const done = (index: number) => !stepMissing[index].length && (index === 0 || left.includes(index))
   const ready = (index: number) => [0, 1, 2].slice(0, index).every(done)
@@ -206,8 +210,8 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const complete = !wizard || ready(3)
   const sectionClass = (index: number) => `nf-step${wizard ? index === current ? ' nf-current' : index < 3 && done(index) ? ' nf-done' : '' : ''}`
   const heading = (index: number) => wizard ? <h3 className="nf-section-title"><span aria-hidden="true">{index < 3 && done(index) ? '✓' : index + 1}</span>{steps[index]}{index === current && <small> — fill this in next</small>}</h3> : null
-  const goOn = ['', 'Check the DoD, then click outside this section to go on.', 'Choose the User Stories, then click outside this section to go on.', 'Enter the hours if you know them, then Save.']
-  const missingNote = (index: number) => wizard && index === current ? <p className="nf-missing" role="note">{stepMissing[index].length ? `To go on, fill in ${stepMissing[index].join(', ')}.` : goOn[index]}</p> : null
+  const goOn = ['', 'Check the DoD, then Continue.', 'Choose the User Stories, then Continue.', 'Enter the hours if you know them, then Save.']
+  const missingNote = (index: number) => wizard && index === current ? <div className="nf-missing-row"><p className="nf-missing" role="note">{stepMissing[index].length ? `To go on, fill in ${stepMissing[index].join(', ')}.` : goOn[index]}</p>{(index === 1 || index === 2) && !stepMissing[index].length && <button type="button" className="primary nf-continue" disabled={creating} onClick={() => advance(index)}>Continue</button>}</div> : null
   function submit(event: React.FormEvent<HTMLFormElement>) {
     // Only Save creates the Feature (Enter in a field does not, see onKeyDown), and only when every section is filled.
     if (wizard && !complete) { event.preventDefault(); return }
@@ -257,7 +261,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
         {missingNote(0)}
         {resumeFeature && <p className="muted">Adds the missing children of #{resumeFeature.id} without recreating the Feature. Existing children with the same title are reused.</p>}
       </section>
-      {isNew && <section className={sectionClass(1)} hidden={!shown(1)} aria-label="Section 2: Definition of Done" tabIndex={-1} onBlur={leaveFrom(1)}>
+      {isNew && <section className={sectionClass(1)} hidden={!shown(1)} aria-label="Section 2: Definition of Done" tabIndex={-1}>
         {heading(1)}
         <p className="muted nf-hint">What has to be true for “{title.trim() || 'this Feature'}” to be done.</p>
         <label>Feature DoD (Definition of Done) — required<textarea required maxLength={100000} rows={6} value={dod} onChange={(event) => setDodText(event.target.value)} disabled={creating} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." /><small>{dodText == null && epicSetup?.featureDoD.trim() ? `From the ${setupSource === 'personal' ? 'your own' : 'shared'} setup of Epic #${epicSetup.epicId}. ` : dodText == null ? 'The built-in DoD; change it as needed. ' : ''}Saved at the top of the Description.</small></label>
@@ -267,7 +271,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
         </details>
         {missingNote(1)}
       </section>}
-      <section className={`nf-children ${sectionClass(2)}`} hidden={!shown(2)} aria-label={wizard ? 'Section 3: User Stories' : undefined} tabIndex={wizard ? -1 : undefined} onBlur={wizard ? leaveFrom(2) : undefined}>{heading(2)}{wizard ? <p className="muted nf-hint">Tick the User Stories to add under the Feature, and add one of your own if you need it. All are optional.</p> : null}<h4><strong>Child work items</strong> · {childCount} will be created or checked{epicSetup ? ` · ${setupSource === 'personal' ? 'your' : 'shared'} setup of Epic #${epicSetup.epicId}` : ''}</h4>
+      <section className={`nf-children ${sectionClass(2)}`} hidden={!shown(2)} aria-label={wizard ? 'Section 3: User Stories' : undefined} tabIndex={wizard ? -1 : undefined}>{heading(2)}{wizard ? <p className="muted nf-hint">Tick the User Stories to add under the Feature, and add one of your own if you need it. All are optional.</p> : null}<h4><strong>Child work items</strong> · {childCount} will be created or checked{epicSetup ? ` · ${setupSource === 'personal' ? 'your' : 'shared'} setup of Epic #${epicSetup.epicId}` : ''}</h4>
         {epicSetup && bothSetups && <p className="muted setup-source"><button type="button" className="text-button" disabled={creating} onClick={() => { setPreferShared(!preferShared); setSkipStories([]); setReviewChoice(null); setDodText(null) }}>{preferShared ? 'Use my own setup instead' : 'Use the shared setup instead'}</button></p>}
         {epicSetup ? <>
           <fieldset className="milestone-choices" disabled={creating}><legend>Optional User Stories</legend>

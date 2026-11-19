@@ -3,7 +3,7 @@ import type { ReleaseEntry } from './releaseSource.ts'
 import { fieldOf } from './dpReleases.ts'
 import { dpFeatureTitle, dpProgramOf, dpVersionOf, type BoardHit } from './dpBoardMatch.ts'
 import { dpReleaseName } from './dpMilestones.ts'
-import { releaseTypesOf, type EpicSetup, type QeMapColumns, type ReleaseTypeSetup } from './featureSetup.ts'
+import { ioccSetsOf, releaseTypesOf, type EpicSetup, type QeMapColumns, type ReleaseTypeSetup } from './featureSetup.ts'
 import type { QeMappingFile } from './qeMapping.ts'
 
 // DP releases (Release Details → DP, Epic 13946): the release type from the version, the QE from the QE Mapping, the
@@ -61,7 +61,7 @@ export function qeForName(name: string, file: QeMappingFile | null | undefined, 
 // PU) from the bulk Epic's Feature setup, the QE from the QE Mapping by the release name, a 100% match skipped.
 export interface IoccLine { release: ReleaseEntry; title: string; type?: DpReleaseType; set?: ReleaseTypeSetup; qe: string; email: string; skip: string; baseSkip: string; note: string }
 export function ioccPlan(releases: ReleaseEntry[], options: { setup?: EpicSetup; qeMapping?: QeMappingFile | null; board: AzureWorkItem[]; featureTitle: (release: ReleaseEntry) => string; featureMatch: (release: ReleaseEntry) => BoardHit | undefined; epicId?: number }): IoccLine[] {
-  const sets = releaseTypesOf(options.setup)
+  const sets = ioccSetsOf(options.setup)
   return releases.map((release) => {
     const typed = dpReleaseType(release.release), found = qeForName(release.name, options.qeMapping, options.setup?.qeColumns)
     const qe = found?.qe ?? '', email = qe ? emailFor(qe, options.board) : ''

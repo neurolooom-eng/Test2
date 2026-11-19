@@ -53,6 +53,14 @@ export const dpReleaseTypeDefaults: ReleaseTypeSetups = {
   pu: { featureDoD: 'DT is finished.', stories: reviewStories(['SFV', 'DT', 'IQ/OQ']) },
 }
 export const releaseTypesOf = (setup?: Pick<EpicSetup, 'releaseTypes'>): ReleaseTypeSetups => setup?.releaseTypes ?? dpReleaseTypeDefaults
+// QV-61: IOCC releases use the IOCC bulk Epic's own Release / PU sets when they are set, else that Epic's Feature setup
+// itself (its DoD and User Stories, for every release type) — never DP's built-in sets while the Epic has a setup.
+export const ioccSetsOf = (setup?: Pick<EpicSetup, 'releaseTypes' | 'featureDoD' | 'stories'>): ReleaseTypeSetups => {
+  if (setup?.releaseTypes) return setup.releaseTypes
+  if (!setup) return dpReleaseTypeDefaults
+  const own = { featureDoD: setup.featureDoD, stories: structuredClone(setup.stories) }
+  return { release: own, pu: structuredClone(own) }
+}
 // The placeholder key of a label: letters and digits in lower case ({Release Name} and {releasename} are the same).
 export const fieldKey = (label: string) => label.toLowerCase().replace(/[^a-z0-9]/g, '')
 // The values of the placeholders for a Feature title and month. With title fields, a title of exactly that many

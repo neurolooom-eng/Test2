@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.36.0 — 2026-11-19
+
+**Fixed**
+- **IOCC bulk Create Features uses the IOCC Feature setup** — without Release / PU sets of its own, the IOCC bulk Epic's Feature setup (its DoD and User Stories) is used, no longer DP's built-in sets; the pop-up says which it uses (QV-61, KB-52).
+- **New Feature sections** — the next section no longer waits for a click outside the box: the Definition of Done and User Stories sections end with a **Continue** button that shows the next section and moves the focus to it, as stepped forms usually do (BKL-30, KB-51).
+
+TC-BKL-19, TC-QV-42. PR #310.
+
 ## v7.35.0 — 2026-11-19
 
 **Added**
