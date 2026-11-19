@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
+import { NamingPatternsPanel } from '../components/NamingPatternsPanel'
 import { EpicSetupPanel } from '../components/EpicSetupPanel'
 import type { EpicSetupStore } from '../useEpicSetup'
 import { ScopeChip } from '../components/ScopeChip'
@@ -242,6 +243,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       { key: 'email', label: 'Your work email', scope: 'you', node: <AzureConnections section="email" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} /> },
       { key: 'servers', label: 'Servers and PATs', scope: 'you', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canManageStreams={access.canManageStreams} /> },
       { key: 'myviews', label: 'My views', scope: 'you', node: <MyViewsPanel azure={azure} /> },
+      { key: 'patterns', label: 'My naming patterns', scope: 'you', node: <NamingPatternsPanel store={store} canManage mode="mine" /> },
     ]} />}
     {tab === 'connections' && <SectionTabs page="connections" sections={[
       { key: 'mapping', label: 'Stream mapping', scope: 'tool-owner', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canEnterCounts={can('release.counts')} canManageStreams={access.canManageStreams} /> },
