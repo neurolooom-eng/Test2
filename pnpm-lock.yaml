@@ -41,8 +41,8 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       electron:
-        specifier: ^44.11.3
-        version: 44.11.3(supports-color@10.2.2)
+        specifier: ^44.11.4
+        version: 44.11.4(supports-color@10.2.2)
       electron-builder:
         specifier: ^26.18.0
         version: 26.18.0(electron-builder-squirrel-windows@26.18.0)(supports-color@10.2.2)
@@ -686,8 +686,8 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
-  csstype@3.2.3:
-    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+  csstype@3.2.4:
+    resolution: {integrity: sha512-PoKaoPzQapnEoqUSnHx1u6W6ku8CVEgKsnpmmzU3m1nwkidpPBQ8V/Zq2+bWNrsOKoKLwTGdbx6xF7BXP1zLVQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -766,8 +766,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@44.11.3:
-    resolution: {integrity: sha512-yVzJBAM7hfK/gkD3LHvFD4gfHLj1f6cL3yYgzX8pHQyWyz8U9FTfTj9WOFdwzLj5ta+/oIKDD4BsBTLYiFa2Tg==}
+  electron@44.11.4:
+    resolution: {integrity: sha512-AJRr0b0F+Kt+iqmdFGLNUhluVHhcNUfFCm6AFXY/l9TmUr+fE6hW4HWVaaJGdhKkZiiVJ7ZgbAo2vQqWJ1C4jQ==}
     engines: {node: '>= 22.12.0'}
     hasBin: true
 
@@ -2029,7 +2029,7 @@ snapshots:
 
   '@types/react@19.3.0':
     dependencies:
-      csstype: 3.2.3
+      csstype: 3.2.4
 
   '@types/responselike@1.0.3':
     dependencies:
@@ -2291,7 +2291,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  csstype@3.2.3: {}
+  csstype@3.2.4: {}
 
   debug@4.4.3(supports-color@10.2.2):
     dependencies:
@@ -2412,7 +2412,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@44.11.3(supports-color@10.2.2):
+  electron@44.11.4(supports-color@10.2.2):
     dependencies:
       '@electron-internal/extract-zip': 1.0.8
       '@electron/get': 5.1.0(supports-color@10.2.2)

@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "7.20.0"
+      "version": "7.20.1"
     },
     "tools": [
       {
@@ -4158,8 +4158,8 @@
     {
       "type": "library",
       "name": "csstype",
-      "version": "3.2.3",
-      "purl": "pkg:npm/csstype@3.2.3",
+      "version": "3.2.4",
+      "purl": "pkg:npm/csstype@3.2.4",
       "scope": "excluded",
       "licenses": [
         {
@@ -4171,7 +4171,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "cf51c629c632db103c00641fc2b9f43c0cbe3c1ed7fc64a3dd45495bda8aca7e37c566be825e675e6538aaa2cc4735952c50bc2aeb145fc4ffd240a2398a4021"
+          "content": "3e829aa0fcd06a99c4a2a5129c7c75bba5ba92ef0254480ab27a669b35379b59f09227693c143c57f66adbe6d636bb0e2a828bc1319d6f1eb117b0573f5ccb55"
         }
       ],
       "properties": [
@@ -4638,8 +4638,8 @@
     {
       "type": "library",
       "name": "electron",
-      "version": "44.11.3",
-      "purl": "pkg:npm/electron@44.11.3",
+      "version": "44.11.4",
+      "purl": "pkg:npm/electron@44.11.4",
       "scope": "required",
       "licenses": [
         {
@@ -4651,7 +4651,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c95cc904033b85f2bf8240f72c7bc50f881f1cb8f57fa70bdf2620cd7f291d0c96cb3f14f454df4e3f56385770ccb8f9b5afbfa082830f806c0532d88856b64e"
+          "content": "00946bd1bd05f8ab7e8aa99d1462cd52196e54785c3547c50a6e8015763f97d4e652bf9f13a856e0759569a2467612a466289527b6606c0a36bd0a962750b88d"
         }
       ],
       "properties": [
