@@ -754,3 +754,6 @@ label.formula-term{justify-content:flex-start}
 .settings-search-results small{color:var(--text-2)}
 kbd{font-size:11px;border:1px solid var(--accent-line);border-radius:4px;padding:0 4px}
 .epic-setups-table td{vertical-align:top}.epic-setups-table code{font-size:12px}.epic-setups-table .pill{margin-right:4px}
+/* BKL-30: Continue at the end of a New Feature section */
+.nf-missing-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.nf-missing-row .nf-missing{margin:0}
+.nf-step:focus{outline:2px solid var(--accent-line);outline-offset:4px}

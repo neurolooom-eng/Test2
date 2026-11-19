@@ -73,7 +73,7 @@ export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featu
 
   return <Modal eyebrow="IOCC RELEASES" wide title={`Create Features for ${releases.length} IOCC release${releases.length === 1 ? '' : 's'}`} onClose={onClose}>
     <div className="dp-bulk">
-      <p className="muted">Under Epic #{epicId}{epic ? ` “${epic.title}”` : ''}: each Feature gets the DoD and default User Stories of its release type (Feature setup → Epic {epicId || '—'}), its Time Writing story and month Task, all assigned to the QE from the QE Mapping.</p>
+      <p className="muted">Under Epic #{epicId}{epic ? ` “${epic.title}”` : ''}: each Feature gets {setup ? setup.releaseTypes ? <>the DoD and User Stories of its release type (the Release / PU sets of Epic #{epicId}'s Feature setup)</> : <>the DoD and User Stories of Epic #{epicId}'s Feature setup</> : <>DP's built-in Release / PU sets (Epic #{epicId || '—'} has no Feature setup)</>}, its Time Writing story and month Task, all assigned to the person chosen on its row.</p>
       <div className="azure-table"><table>
         <thead><tr><th scope="col">Feature title</th><th scope="col">Type</th><th scope="col">User Stories</th><th scope="col">QE</th><th scope="col">Result</th></tr></thead>
         <tbody>{plan.map((line) => <tr key={line.release.key} className={line.skip ? 'muted' : undefined}>

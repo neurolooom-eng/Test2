@@ -746,7 +746,7 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-18 One Time Writing Task rule everywhere** — Req BKL-28, BKL-14, BKL-22, CON-52, CON-53 — L1 `azure-devops.test.mjs` ("BKL-28: the Epic setup no longer shapes the Time Writing story or Task — fixed titles, the person, the Feature's area, the project root", "BKL-28: a new month Task gets the Epic setup's default hours; an existing one is reused and keeps its hours"); browser check with the Time Writing connection: under an Epic whose setup has 6 default hours, create a Feature, add a month Task with ＋ Time Writing Task (header month December) and on Time Writing — each Task is "<Month> \| <Feature>" under "<Feature> - Time Writing", assigned to you, in the Feature's Area Path and the project root, with 6h unless hours were typed; a second add for the same month reuses the Task; Settings → Feature setup shows only the default hours for Time Writing.
 
-**TC-BKL-19 New Feature in four sections, shown in order** — Req BKL-29, BKL-24, BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-19: New Feature shows its sections one after another: Feature, then the DoD, then the User Stories, then the month estimates": only section 1 and highlighted at first, the missing fields named; section 2 alone after section 1; an emptied DoD keeps section 3 hidden; leaving the DoD shows section 3, leaving the User Stories shows section 4; Save off until then; no Next button; Enter in the title creates nothing; "TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature" fills section 1 and leaves the DoD first); browser check with the Time Writing connection: create a Feature from Backlogs, My Tasks [Board], Release Details and Time Writing — the DoD, the stories ticked and the hours entered are on the new Feature and its month Task.
+**TC-BKL-19 New Feature in four sections, shown in order** — Req BKL-29, BKL-30, BKL-24, BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-19: New Feature shows its sections one after another: Feature, then the DoD, then the User Stories, then the month estimates": only section 1 and highlighted at first, the missing fields named; section 2 alone after section 1; an emptied DoD keeps section 3 hidden; leaving the DoD shows section 3, leaving the User Stories shows section 4; Save off until then; no Next button; Enter in the title creates nothing; "TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature" fills section 1 and leaves the DoD first); browser check with the Time Writing connection: create a Feature from Backlogs, My Tasks [Board], Release Details and Time Writing — the DoD, the stories ticked and the hours entered are on the new Feature and its month Task.
 
 **TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
 
@@ -915,6 +915,8 @@ Cases marked **UAT** are also run in acceptance testing.
 **TC-QV-39 Release counts with entered placeholders** — Req QV-58 — L1 `release-counts.test.mjs` ("QV-58: entered release counts — CP, DP and IOCC only, months YYYY-MM, whole numbers (TC-QV-39)"; "QV-58: a stream without data takes the entered counts, marked; without them it is a placeholder; data always wins (TC-QV-39)"); E2E `shell.e2e.mjs` ("TC-QV-39: an Admin enters CP release counts for a month without data; My dashboard shows them as entered, the others as placeholders"); browser check: with CP not fetched, enter CP Completed 3 / Supported 5 for the month — My dashboard, the CP page, Pulse Check and the Monthly pack show 3 / 5 as entered; fetch CP — its real counts replace them; DP without data and without entered counts shows — and the reason.
 
 **TC-QV-40 IOCC bulk Features and bulk creation Epics** — Req QV-59 — L1 `bulk-epics.test.mjs` ("QV-59: the bulk creation Epic per stream — mine over shared over built in; IOCC has none built in (TC-QV-40)"; "QV-59: IOCC releases in bulk by the DP rules — type from the number, set from the Epic setup, QE by the release name (TC-QV-40)"); E2E `shell.e2e.mjs` ("TC-QV-40: Stream mapping → Bulk creation Epics — shared and my own Epic per stream, mine used"); browser check with the QMS-0025 board and IOCC: set the IOCC bulk Epic (shared), its Feature setup (Release / PU sets, QE Mapping columns), tick IOCC releases, Create Features — each Feature is created under that Epic with its set's DoD and stories, assigned to the mapped QE; set my own DP Epic — DP's Create Features uses it, others keep the shared one.
+
+**TC-QV-42 IOCC bulk creation uses the IOCC Feature setup** — Req QV-61, QV-59 — L1 `bulk-epics.test.mjs` ("QV-61: IOCC bulk creation uses the IOCC Epic's own Feature setup (DoD and User Stories) when it has no Release / PU sets; DP's built-in sets only without a setup (TC-QV-42)"); browser check: with a Feature setup (DoD and stories) on the IOCC bulk Epic, IOCC → Create Features says it uses that Feature setup and each row lists its User Stories; the created Feature has that DoD and those stories.
 
 **TC-QV-41 My naming patterns** — Req QV-60, CON-93 — L1 `my-naming-patterns.test.mjs` ("My naming patterns: IOCC, Content and Tool Validations only, kept here, used for me instead of the shared ones (QV-60, TC-QV-41)"); E2E `shell.e2e.mjs` ("TC-QV-41: My settings → My naming patterns — your own patterns for IOCC, Content and Tool Validations, kept on this computer, back to the shared ones"); browser check: with Content fetched, My settings → My naming patterns → Content: a pattern of your own changes Release Details → Content and the Content counts for you only (another browser keeps the shared names); Use the shared patterns restores them; DP and CP are not offered.
 
@@ -1721,6 +1723,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-27 | TC-BKL-17 |
 | BKL-28 | TC-BKL-18 |
 | BKL-29 | TC-BKL-19 |
+| BKL-30 | TC-BKL-19 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -1764,6 +1767,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | QV-58 | TC-QV-39 |
 | QV-59 | TC-QV-40 |
 | QV-60 | TC-QV-41 |
+| QV-61 | TC-QV-42 |
 | QV-38 | TC-CON-42 |
 | OVR-01…08 | retired (TC-OVR-01…03 retired) |
 | OV-11 | TC-OV-11 |
@@ -2002,7 +2006,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-ATM-23, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41, TC-QV-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
