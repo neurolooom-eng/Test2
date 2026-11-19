@@ -1167,7 +1167,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-SET-05 Manager not on the board** — Req SET-13 — E2E `shell.e2e.mjs` ("TC-SET-05": synthetic sample, Settings → Resources, Chen Wei reports to → Other (type a name)… → "Maria Lopez" → OK; the select shows Maria Lopez, the reporting lines show Maria Lopez at the top marked "not on the board" with Chen Wei under her, and Diya Sharma's Reports to offers Maria Lopez under "Not on the board").
 
-**TC-SET-06 Settings pages and sections** — Req SET-14, NAV-17 — E2E `shell.e2e.mjs` ("TC-SET-06: each Settings page is its own menu entry; its sections show one at a time and the last one is remembered" — also opens the connection editor from the Stream mapping section, KB-24; also "TC-NAV-01 / TC-NAV-17" for the Settings group and entries); browser check: the menu has a SETTINGS group with Azure DevOps, Storage, Access, Feature setup (and, with Manage shared settings, Capacity & periods, Resources, Master data, Monthly pack, Audit); each opens its page with its name in the header; Azure DevOps shows the sections Servers and PATs · Stream mapping · Other views · Synthetic sample (Read-only sources once something was fetched), one at a time; after another page and back, the section last shown is open; Feature setup has no section row; Get started → Open for the Time Writing step lands on Azure DevOps → Stream mapping, for Git on Storage → Git storage; a stream not set up in the menu (＋) opens Stream mapping; no page errors.
+**TC-SET-06 Admin pages, My settings and sections** — Req SET-15, SET-16, NAV-17 — L1 `my-views.test.mjs` ("Admin and My settings: the pages, and older links opening where they moved (SET-15, TC-SET-06)"); E2E `shell.e2e.mjs` ("TC-SET-06: Admin lists the shared setup pages, My settings opens from your name; sections show one at a time with their scope, and the last one is remembered" — also opens the connection editor from Streams, KB-24; also "TC-NAV-01 / TC-NAV-17" for the Admin group and entries); browser check: the menu has an ADMIN group with Streams, Stream options, Feature setup, People & roles, Data & sharing (and, with their permissions, Capacity & time, Reports, Master data, History); each opens its page with its name in the header; your name in the sidebar opens My settings with Your work email · Servers and PATs · My views; every section shows its scope chip; after another page and back, the section last shown is open; Feature setup and Streams have no section row; Get started → Open for the token step lands on My settings → Servers and PATs, for Git on Data & sharing → Git storage; a stream not set up in the menu (＋) opens Streams; no page errors.
+
+**TC-SET-07 My views** — Req SET-17, CON-42 — L1 `my-views.test.mjs` ("My views: on a server with a PAT, never named after a stream, never a stream connection, never in Git, kept when the shared setup is reset (SET-17, TC-SET-07)"); E2E `shell.e2e.mjs` ("TC-SET-07: My views — a view of your own on a server you have a PAT for, under Other views in the menu, never a stream and never in the shared setup"); browser check: My settings → My views offers only servers with a PAT; a view named DP is refused; a view with a name, project and WIQL query is added, fetched and listed under Other views in the menu; it is not in Data & sharing → Other views, not in Shared setup in Git (Save stream mapping to Git leaves it out), not in a JSON backup; Back up and remove all keeps it.
 
 **TC-SET-04 Master data, audit, reset** — Req SET-10…12, OI-06, OI-09
 - Expected:
@@ -1799,6 +1801,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | SET-07…09 | TC-SET-03 |
 | SET-13 | TC-SET-05 |
 | SET-14 | TC-SET-06 |
+| SET-15 | TC-SET-06 |
+| SET-16 | TC-SET-06 |
+| SET-17 | TC-SET-07 |
 | SET-10…12 | TC-SET-04 |
 | STO-01, STO-02 | TC-STO-01 |
 | STO-03 | TC-STO-02 |
@@ -1966,7 +1971,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-11 | TC-BAS-01…04 |
 | UC-12 | TC-GIT-01…04, TC-GIT-05, TC-GIT-06, TC-GIT-07, TC-GIT-08, TC-ACC-03…05 |
 | UC-13 | TC-SNP-01…03 |
-| UC-14 | TC-SET-01…05, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07, TC-CAP-09 |
+| UC-14 | TC-SET-01…07, TC-CAP-02, TC-CAP-03, TC-NAV-34, TC-CAP-07, TC-CAP-09 |
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |

@@ -112,6 +112,9 @@ This document lists every software component of the system: the in-house source 
 | chartLabels | `src/chartLabels.ts` | Chart data labels: each chart's own choice kept per computer, else the shared default (UI-17). | UI |
 | useStreamEpics | `src/useStreamEpics.ts` | The shared release-source settings in a React context and the hook giving a stream's Epics for the board match (QV-57). | QV |
 | useCan | `src/useCan.ts` | The viewer's permissions in a React context, for the controls deep in the page tree (bulk create, QE Mapping, Monthly pack text, shared Feature setup, export) (CON-94). | CON |
+| myViews | `src/myViews.ts` | My views: the servers with a PAT, a new view checked (no stream names, no duplicates), and the app data without My views' data for SharePoint and backups (SET-17). | SET |
+| MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
+| ScopeChip | `src/components/ScopeChip.tsx` | The chip saying whom a setting affects: only you, this computer, everyone, or the Tool Owner (SET-16). | SET |
 | bulkEpics | `src/bulkEpics.ts` | The bulk creation Epic per stream: built in, shared, personal (QV-59). | QV |
 | useDataLabels | `src/useDataLabels.ts` | The hook a chart uses for its Data labels switch (UI-17). | UI |
 | ScopeSwitch | `src/components/ScopeSwitch.tsx` | Team / Individual toggle with person picker, in the header or page top. | MON, OVR |
@@ -290,6 +293,7 @@ This document lists every software component of the system: the in-house source 
 | bucket-rules.test | `tests/bucket-rules.test.mjs` | Bucket rules: built-in words, custom rules moving Tasks between buckets, the normaliser (CAP-46). | CAP |
 | insight-thresholds.test | `tests/insight-thresholds.test.mjs` | Insight thresholds moving each insight, and the normaliser (CAP-47). | CAP, OVR |
 | people-access.test | `tests/people-access.test.mjs` | People & access: work email on the profile, capacity roles and who is counted (CAP-49, CAP-50). | CAP |
+| my-views.test | `tests/my-views.test.mjs` | My views and the Admin / My settings pages and redirects (TC-SET-06, TC-SET-07). | SET |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
 | dashboard.test | `tests/dashboard.test.mjs` | Periods, person-month records, overload, concentration, rebalancing and bands. | OVR |

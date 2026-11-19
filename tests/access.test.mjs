@@ -149,7 +149,7 @@ test('CON-94: every permission is Allow, Deny or Not set per role; a denial wins
   // Settings pages and View as follow their own permissions.
   const pages = (rights) => settingsPagesFor((key) => rights.actions.has(key)).map((page) => page.key)
   const smOnly = defaultPolicy('lead@example.com'); smOnly.members['sm@example.com'] = ['Scrum Master']
-  assert.deepEqual(pages(rightsFor(smOnly, 'sm@example.com')), ['connections', 'storage', 'features', 'resources'])
+  assert.deepEqual(pages(rightsFor(smOnly, 'sm@example.com')), ['connections', 'options', 'features', 'resources', 'storage'])
   setCell(smOnly.roles['Scrum Master'], 'capacity.periods', 'allow')
   assert.ok(pages(rightsFor(smOnly, 'sm@example.com')).includes('capacity'), 'one capacity permission opens the page')
   assert.ok(canViewAs(rightsFor(smOnly, 'lead@example.com')) && !canViewAs(rightsFor(smOnly, 'sm@example.com')))

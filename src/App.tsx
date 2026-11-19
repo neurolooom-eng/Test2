@@ -22,7 +22,7 @@ import { CapacityActualPage } from './pages/CapacityActualPage'
 import { BaselinesPage } from './pages/BaselinesPage'
 import { SnapshotsPage } from './pages/SnapshotsPage'
 import { AdminPage } from './pages/AdminPage'
-import { readSettingsTab, saveSettingsSection, saveSettingsTab, settingsLabel, settingsPagesFor, type SettingsTab } from './settingsTabs'
+import { mySettingsLabel, readSettingsTab, resolveSettings, saveSettingsSection, saveSettingsTab, settingsLabel, settingsPagesFor, type SettingsTab } from './settingsTabs'
 import { normalizeReleaseSourceSettings } from './releaseSource'
 import { dataSets, defaultMatchThreshold, defaultStreams, profileForDataSet, profileForStream, windchillStreamExports } from './streams'
 import { connectionPresets } from './connectionPresets'
@@ -242,7 +242,8 @@ export default function App() {
   // section. The page is remounted so it picks up the section asked for.
   const [settingsTab, setSettingsTab] = useState<SettingsTab>(readSettingsTab)
   const [settingsVisit, setSettingsVisit] = useState(0)
-  const openSettings = (tab: SettingsTab, section?: string) => { if (section) saveSettingsSection(tab, section); saveSettingsTab(tab); setSettingsTab(tab); setSettingsVisit((visit) => visit + 1); setPage('admin') }
+  // SET-15: an older page or section opens where it lives now.
+  const openSettings = (asked: SettingsTab, askedSection?: string) => { const { tab, section } = resolveSettings(asked, askedSection); if (section) saveSettingsSection(tab, section); saveSettingsTab(tab); setSettingsTab(tab); setSettingsVisit((visit) => visit + 1); setPage('admin') }
   // Azure DevOps connections: the Stream mapping section of Settings → Azure DevOps.
   const openConnection = () => openSettings('connections', 'mapping')
   // Get started: the setup steps with their live status; the pop-up opens by itself while a required step is open,
@@ -303,7 +304,7 @@ export default function App() {
         const open = !collapsed.includes(group)
         const holdsActive = group === (isOther ? 'Other views' : page === 'board' ? (view.onPrem ? 'Release Details' : 'I&D Board') : meta.group)
         return <div key={group} className="nav-section">
-          <button type="button" className={`nav-group${holdsActive && !open ? ' nav-group-active' : ''}`} aria-expanded={open} onClick={() => toggleNav(group)}><span aria-hidden="true">{open ? '▾' : '▸'}</span>{group.toUpperCase()}</button>
+          <button type="button" className={`nav-group${holdsActive && !open ? ' nav-group-active' : ''}`} aria-expanded={open} onClick={() => toggleNav(group)}><span aria-hidden="true">{open ? '▾' : '▸'}</span>{group === 'Settings' ? 'ADMIN' : group.toUpperCase()}</button>
           {/* Collapsed lists stay in the page but are hidden on wide screens only: the narrow sidebar has no headings. */}
           <div className={`nav-items${open ? '' : ' nav-collapsed'}`}>{shown.map((section) => section.label ? <div key={section.key} className="nav-subsection">
             <button type="button" className="nav-subgroup" aria-expanded={!collapsed.includes(section.key)} onClick={() => toggleNav(section.key)}><span aria-hidden="true">{collapsed.includes(section.key) ? '▸' : '▾'}</span>{section.label}</button>
@@ -311,7 +312,7 @@ export default function App() {
           </div> : <div key={section.key} className="nav-items">{section.entries}</div>)}</div>
         </div>
       })}</nav>
-      <div className="sidebar-footer"><ZoomControl /><div className="sidebar-tools"><button type="button" className="download-link" onClick={() => setMenuEditor(true)}><span aria-hidden="true">☰</span>Customize menu</button>{access.canViewAs && <button type="button" className="download-link" onClick={() => setViewAsOpen(true)}><span aria-hidden="true">👁</span>View as…</button>}</div><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
+      <div className="sidebar-footer"><button type="button" className={`my-settings-button${page === 'admin' && settingsTab === 'my' ? ' active' : ''}`} title={mySettingsLabel} aria-label={`${mySettingsLabel}${my.me.name ? ` (${my.me.name})` : ''}`} onClick={() => { openSettings('my'); setNavOpen(false) }}><span className="my-settings-avatar" aria-hidden="true">{(my.me.name || azure.creatorEmail || '?').trim().charAt(0).toUpperCase()}</span><span className="my-settings-name">{my.me.name || azure.creatorEmail.trim() || mySettingsLabel}<small>{mySettingsLabel}</small></span></button><ZoomControl /><div className="sidebar-tools"><button type="button" className="download-link" onClick={() => setMenuEditor(true)}><span aria-hidden="true">☰</span>Customize menu</button>{access.canViewAs && <button type="button" className="download-link" onClick={() => setViewAsOpen(true)}><span aria-hidden="true">👁</span>View as…</button>}</div><DesktopDownload /><small className="storage-line" title="Where app data is saved">{storageLabel}</small>{buildStatus}</div>
     </aside>
     {menuEditor && <MenuCustomizer pages={pages.filter((item) => !item.hidden && item.id !== 'admin' && allowed(item.id)).map(({ id, label, group }) => ({ id, label, group }))} menu={personalViews.menu} onChange={personalViews.setMenu} onClose={() => setMenuEditor(false)} />}
     <main>

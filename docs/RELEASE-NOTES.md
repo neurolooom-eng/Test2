@@ -2,6 +2,17 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.28.0 — 2026-11-19
+
+**Changed**
+- **My settings and Admin** — your work email, servers and PATs and your own views move to **My settings**, opened from your name at the bottom of the sidebar. The Settings menu group becomes **Admin**, holding the shared setup: Streams, Stream options (Epics to match Features in, Bulk creation Epics, Release counts), Feature setup, People & roles, Capacity & time (now with Historical hours), Reports (Monthly pack, Table and chart defaults), Data & sharing (Git, SharePoint, Other views, Read-only sources, Synthetic sample), Master data and History. Old links open the new place (SET-15; SET-14 retired).
+- **Scope chips** — every settings section says whom a change affects: only you, this computer, everyone, or the Tool Owner only (SET-16).
+
+**Added**
+- **My views** — your own read-only views on a server you already have a PAT for, under Other views in your menu; kept on this computer only (never in Git, backups or SharePoint) and never a stream, so the release figures do not change (SET-17).
+
+DF-113; SM-77; TC-SET-06, TC-SET-07. PR #302.
+
 ## v7.27.0 — 2026-11-19
 
 **Changed**
