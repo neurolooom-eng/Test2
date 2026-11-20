@@ -1546,6 +1546,10 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-DPF-05 QE picked per release in bulk** — Req DPF-06, DPF-04, CNB-02 — L1 `dp-bulk.test.mjs` ("DPF-06: the QE picked in the pop-up replaces the QE Mapping's and lets a release without one be created; other reasons still skip it (TC-DPF-05)"); browser check with the QMS-0025 board and DP / IOCC / Content data: Create Features shows a person drop-down on each release that will be created, prefilled from the QE Mapping (its name under it) or, for Content, from Assign all; a release with no QE in the mapping can be picked and is then created; changing a row assigns that Feature and its stories and Task to the person picked; the result lists each Feature with its person.
 
+**TC-DPF-06 DoD and User Stories per Release Classification value** — Req DPF-07, EPS-07 — **UAT** — L1 `class-sets.test.mjs` ("DPF-07: an Epic keeps a DoD and User Stories per Release Classification value, cleaned and saved (TC-DPF-06)", "DPF-07: the value chosen picks its own set, else the old Release / PU set, else the Epic default (TC-DPF-06)", "DPF-07: bulk sets — the value’s set, else the old set of the number’s type, else the Epic’s own, built-ins only without a setup", "DPF-07: my own version without sets per value uses the shared ones", "DPF-07: an Epic’s Release Classification values come from its own List field, else the built-in picker"); `dp-bulk.test.mjs` ("DPF-04 / BLK-01: the bulk plan …": an Epic with a setup uses its own DoD, DP's built-ins only without a setup); E2E `backlog.e2e.mjs` ("TC-DPF-06: a DoD and User Stories per Release Classification value — set up per Epic, picked by the value chosen in New Feature"); UAT: give an Epic's Release Classification values their own DoD and stories, Save to Git, create a Feature for two values and check its DoD and User Stories in Azure DevOps.
+
+**TC-DPF-07 Release Classification per row in bulk** — Req DPF-08, DPF-07 — L1 `class-sets.test.mjs` ("DPF-08: bulk rows — the classification prefilled from the release number, picked per row, and it picks the set (TC-DPF-07)", "DPF-07: an Epic’s Release Classification values come from its own List field, else the built-in picker": the picked value fills the Epic's field); browser check: DP and IOCC Create Features show the drop-down per row, prefilled from the number, and the row's User Stories change with it.
+
 **TC-CNB-01 Content Features in bulk** — Req CNB-01, DPF-05 — L1 `content-bulk.test.mjs` ("CNB-01: Content bulk Features — Epic 22919, NA, the DoD, one Review of Deliverables story, 4 h; a 100% Feature match is never created, a closer one is named (BLK-01)"); browser check with QMS-0025 (a test Epic first): Release Details → Content: releases with a Feature matching 100 % cannot be ticked; Select all, Create Features → the list shows each Feature title, with similar Features named; after Create each Feature is under Epic 22919 with "Release Classification : NA", "Feature DoD: All Documents are approved", one "Review of Deliverables - <title>" story in the current Sprint and the month Task with 4 h Original Estimate.
 
 **TC-CNB-02 One person for all** — Req CNB-02 — L1 `content-bulk.test.mjs` ("CNB-02: the pop-up assigns to one person — a name on the board, "Name <email>" or an email"); browser check: Create stays disabled until a person is chosen; typing a board name shows its email; every Feature, story and Task made is assigned to that person.
@@ -1980,6 +1984,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DPF-04 | TC-DPF-04 |
 | DPF-06 | TC-DPF-05 |
 | DPF-05 | TC-DPF-04, TC-CNB-01 |
+| DPF-07 | TC-DPF-06, TC-DPF-07 |
+| DPF-08 | TC-DPF-07 |
 | CNB-01 | TC-CNB-01 |
 | CNB-02 | TC-CNB-02 |
 | EPS-01 | TC-EPS-01, TC-EPS-02 |
@@ -2012,7 +2018,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-ATM-23, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
-| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-BKL-20, TC-BKL-21, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
+| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-BKL-20, TC-BKL-21, TC-DPF-06, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41, TC-QV-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
@@ -2037,7 +2043,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-29 | TC-OVW-01…03 |
 | UC-30 | TC-CVA-01…03 |
 | UC-31 | TC-KPT-01…03 |
-| UC-32 | TC-DPF-01…04, TC-DPF-05 |
+| UC-32 | TC-DPF-01…04, TC-DPF-05, TC-DPF-06, TC-DPF-07 |
 | UC-33 | TC-CNB-01, TC-CNB-02 |
 | UC-34 | TC-EPS-01, TC-EPS-02, TC-EPS-03, TC-EPS-04, TC-EPS-05, TC-EPS-06 |
 | UC-35 | TC-ADM-01, TC-ADM-02 |

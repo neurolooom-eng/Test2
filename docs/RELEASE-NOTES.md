@@ -2,6 +2,18 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.39.0 — 2026-11-20
+
+**Added**
+- **DoD and User Stories by Release Classification** — Setup per Epic shows a tab per Release Classification value (the Epic's own list, else the built-in values) after *Epic default*; each value can have its own Definition of Done and User Stories. The value chosen in New Feature picks its set (DPF-07).
+- **Release Classification per row in bulk** — DP and IOCC Create Features have a drop-down per release, prefilled from the release number, that picks the row's DoD and User Stories and is written as the Feature's Release Classification (DPF-08).
+
+**Changed**
+- The fixed *Release (Major, Minor)* / *PU (MLD, Platform Update)* tabs are replaced by the value tabs; sets saved there still apply to Major / Minor and MLD / Platform Update / Service Pack until a value gets its own.
+- DP and IOCC bulk creation use the Epic's own DoD and User Stories when it has a setup; DP's built-in Release / PU sets only when it has none (KB-56).
+
+DF-120, SM-81, KB-56; TC-DPF-06, TC-DPF-07. PR #315.
+
 ## v7.38.0 — 2026-11-20
 
 **Added**

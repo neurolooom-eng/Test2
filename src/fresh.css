@@ -805,3 +805,7 @@ kbd{font-size:11px;border:1px solid var(--accent-line);border-radius:4px;padding
 .nf-month-hours input{width:100%;max-width:140px}
 .nf-month-hours tfoot th,.nf-month-hours tfoot td{font-weight:600;border-bottom:0}
 .nf-month-hours th{text-transform:none;letter-spacing:normal;font-size:13px;color:var(--text)}.nf-month-hours thead th{font-size:12px;color:var(--muted);font-weight:600}.nf-month-hours tbody th{font-weight:500}
+/* DPF-07: DoD and User Stories by Release Classification value. */
+.efe-classes{display:flex;flex-direction:column;gap:10px;padding:12px 16px;border:1px dashed var(--accent-line);border-radius:12px}
+.efe-classes>div:first-child{display:flex;flex-direction:column;gap:2px}.efe-classes small{color:var(--muted)}
+.efe-classhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}

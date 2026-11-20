@@ -10,7 +10,7 @@ import { featureMonths, isFutureMonth } from '../featureMonths'
 import { useEpicSetupFile } from '../useEpicSetup'
 import { onPremValues, useOnPremSources } from '../onPremValues'
 import { asTitleFields, epicFieldsFor, featureFromFields, listOf, offList } from '../epicSetup'
-import { chooseSetup, defaultDoDFor, fieldKey, fieldLines, fieldPlaceholders, fieldTitle, fieldsFromItems, fieldsFromTitle, fillTitle, missingValues, reviewStoryTitle, setupFor, titleValues, type FeatureSetups } from '../featureSetup'
+import { chooseSetup, setForClass, defaultDoDFor, fieldKey, fieldLines, fieldPlaceholders, fieldTitle, fieldsFromItems, fieldsFromTitle, fillTitle, missingValues, reviewStoryTitle, setupFor, titleValues, type FeatureSetups } from '../featureSetup'
 
 // The "Add Feature under an Epic" / "Complete Feature children" modal, shared by the QMS-0025 board and Assigned to
 // Me. mode.parent: create a Feature (the Epic can still be changed) with its children; mode.resume: add the missing
@@ -80,7 +80,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   // My own setup of the Epic first, else the shared one; the switch below picks the shared one instead.
   const [preferShared, setPreferShared] = useState(false)
   const epicId = parent?.id ?? resumeFeature?.parentId
-  const { setup: epicSetup, source: setupSource } = chooseSetup(featureSetup, epicId, preferShared)
+  const { setup: baseSetup, source: setupSource } = chooseSetup(featureSetup, epicId, preferShared)
   // EPS-02: the Epic setup's fields (Admin → Epic & Feature setup) apply to every new Feature under the Epic and take the place
   // of the Feature setup's title fields.
   const epicFile = useEpicSetupFile()
@@ -95,6 +95,12 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const fieldsElsewhere = !resumeFeature && !epicEntry && !titleFields.length && Boolean(otherSetup?.titleFields?.length)
   const fromRelease = releaseItems?.length ? fieldsFromItems(titleFields, releaseItems) : [], fromTitle = fieldsFromTitle(titleFields, initialTitle)
   const fieldValues = titleFields.map((field, index) => typedFields[fieldKey(field.label)] ?? (fromRelease[index] || fromTitle[index] || ''))
+  // DPF-07: the Release Classification chosen (the Epic setup's own field, else the built-in picker) picks the DoD and
+  // User Stories set for that value, else the Epic's default.
+  const classField = epicEntry ? epicEntry.fields.findIndex((field) => fieldKey(field.label) === 'releaseclassification') : -1
+  const classValue = classField >= 0 ? fieldValues[classField] ?? '' : releaseClassification
+  const classSet = setForClass(baseSetup, classValue)
+  const epicSetup = baseSetup && classSet ? { ...baseSetup, featureDoD: classSet.featureDoD, stories: classSet.stories } : baseSetup
   // With an Epic setup the Title follows its pattern or its Title fields; fields that go only into the Description leave the typed title.
   const fromFields = epicEntry ? featureFromFields(epicEntry, fieldValues, titleText) : undefined
   const fieldsMakeTitle = epicEntry ? Boolean(epicEntry.titlePattern || epicEntry.fields.some((field) => field.into !== 'description')) : titleFields.length > 0
@@ -108,6 +114,9 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   // optional stories exclude each other: ticking one side clears the other. By default the stories are ticked and it
   // is not, unless there are no stories to tick.
   const [reviewChoice, setReviewChoice] = useState<boolean | null>(null)
+  // A different classification offers other stories: start their choice afresh.
+  const [storiesOf, setStoriesOf] = useState(classValue)
+  if (storiesOf !== classValue) { setStoriesOf(classValue); setSkipStories([]); setReviewChoice(null); setDodText(null) }
   const reviewStory = reviewChoice ?? (epicSetup ? epicSetup.stories.length === 0 : availableMilestones.length === 0)
   const chooseReview = (checked: boolean) => { setReviewChoice(checked); if (checked) { setSkipStories(epicSetup ? epicSetup.stories.map((_, index) => index) : []); setMilestones([]) } }
   const storiesChosen = (count: number) => { if (count > 0) setReviewChoice(false) }
@@ -301,14 +310,14 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
       {isNew && <section className={sectionClass(1)} hidden={!shown(1)} aria-label="Section 2: Definition of Done" tabIndex={-1}>
         {heading(1)}
         <p className="muted nf-hint">What has to be true for “{title.trim() || 'this Feature'}” to be done.</p>
-        <label>Feature DoD (Definition of Done) — required<textarea required maxLength={100000} rows={6} value={dod} onChange={(event) => setDodText(event.target.value)} disabled={creating} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." /><small>{dodText == null && epicSetup?.featureDoD.trim() ? `From the ${setupSource === 'personal' ? 'your own' : 'shared'} setup of Epic #${epicSetup.epicId}. ` : dodText == null ? 'The built-in DoD; change it as needed. ' : ''}Saved at the top of the Description.</small></label>
+        <label>Feature DoD (Definition of Done) — required<textarea required maxLength={100000} rows={6} value={dod} onChange={(event) => setDodText(event.target.value)} disabled={creating} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." /><small>{dodText == null && epicSetup?.featureDoD.trim() ? `From the ${setupSource === 'personal' ? 'your own' : 'shared'} setup of Epic #${epicSetup.epicId}${classSet ? ` for ${classValue}` : ''}. ` : dodText == null ? 'The built-in DoD; change it as needed. ' : ''}Saved at the top of the Description.</small></label>
         <details className="nf-more"><summary>Description and acceptance criteria (optional)</summary>
           <label>Description<textarea name="description" maxLength={100000} value={description} onChange={(event) => setDescription(event.target.value)} disabled={creating} /></label>
           <label>Acceptance criteria<textarea name="acceptance" maxLength={100000} disabled={creating} /></label>
         </details>
         {missingNote(1)}
       </section>}
-      <section className={`nf-children ${sectionClass(2)}`} hidden={!shown(2)} aria-label={wizard ? 'Section 3: User Stories' : undefined} tabIndex={wizard ? -1 : undefined}>{heading(2)}{wizard ? <p className="muted nf-hint">Tick the User Stories to add under the Feature, and add one of your own if you need it. All are optional.</p> : null}<h4><strong>Child work items</strong> · {childCount} will be created or checked{epicSetup ? ` · ${setupSource === 'personal' ? 'your' : 'shared'} setup of Epic #${epicSetup.epicId}` : ''}</h4>
+      <section className={`nf-children ${sectionClass(2)}`} hidden={!shown(2)} aria-label={wizard ? 'Section 3: User Stories' : undefined} tabIndex={wizard ? -1 : undefined}>{heading(2)}{wizard ? <p className="muted nf-hint">Tick the User Stories to add under the Feature, and add one of your own if you need it. All are optional.</p> : null}<h4><strong>Child work items</strong> · {childCount} will be created or checked{epicSetup ? ` · ${setupSource === 'personal' ? 'your' : 'shared'} setup of Epic #${epicSetup.epicId}${classSet ? ` · ${classValue}` : ''}` : ''}</h4>
         {epicSetup && bothSetups && <p className="muted setup-source"><button type="button" className="text-button" disabled={creating} onClick={() => { setPreferShared(!preferShared); setSkipStories([]); setReviewChoice(null); setDodText(null) }}>{preferShared ? 'Use my own setup instead' : 'Use the shared setup instead'}</button></p>}
         {epicSetup ? <>
           <fieldset className="milestone-choices" disabled={creating}><legend>Optional User Stories</legend>
