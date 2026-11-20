@@ -143,6 +143,7 @@ test('TC-BKL-19: New Feature shows its sections one after another: Feature, then
   assert.match(await section('Section 1: Feature').getAttribute('class'), /nf-current/, 'the section to fill is highlighted')
   assert.match(await text(form.getByRole('note')), /To go on, fill in the Parent Epic, the title, the PI → Sprint/)
   assert.equal(await form.getByRole('button', { name: 'Save' }).isDisabled(), true)
+  assert.equal(await form.getByLabel('Release Classification').count(), 0, 'BKL-33: no built-in Release Classification field')
   await fillFeatureStep(form)
   assert.deepEqual(await visible(), ['✓ Feature', '2 Definition of Done'], 'section 1 filled: only the DoD appears next')
   assert.match(await section('Section 2: Definition of Done').getAttribute('class'), /nf-current/)

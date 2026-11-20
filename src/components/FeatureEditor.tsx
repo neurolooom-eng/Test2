@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AzureWorkItem } from '../domain'
-import { mergeAzureWorkItems, completeFeatureFromSetup, createFeatureFromSetup, addMonthTasks, addUserStory, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, releaseClassifications, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
+import { mergeAzureWorkItems, completeFeatureFromSetup, createFeatureFromSetup, addMonthTasks, addUserStory, updateAzureTimeWritingEffort, createAzureReleaseHierarchy, completeReleaseHierarchy, currentIndiaMonth, releaseHierarchyTitles, HierarchyCreationError, featureDoD, withFeatureDoD, readAzureIterations, currentIterationPairs, futureIterationPairs, type AzureIteration, type AzureConfig, type FeatureInput } from '../azureDevOps'
 import { Modal, Info, Notice } from './ui'
 import { PersonPicker } from './PersonPicker'
 import { assignablePeople } from '../myWork'
@@ -44,8 +44,6 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   // The Feature DoD is mandatory: it starts from the Epic's setup, else the PU / Full Release default, until typed.
   const [dodText, setDodText] = useState<string | null>(null)
   const [description, setDescription] = useState('')
-  // Optional; written into the Description as "Release Classification : …" even when left blank.
-  const [releaseClassification, setReleaseClassification] = useState('')
   // BKL-31 / BKL-32: Start Date and Target date decide the months of the Time Writing Tasks; hours are asked per month.
   const [startDate, setStartDate] = useState('')
   const [targetDate, setTargetDate] = useState('')
@@ -89,18 +87,16 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   const onPremSources = useOnPremSources()
   const epicEntry = resumeFeature ? undefined : epicFieldsFor(epicFile, epicId)
   const titleFields = resumeFeature || !epicEntry ? [] : asTitleFields(epicEntry.fields)
-  // EPS-07: the Epic setup's own Release Classification field replaces the built-in picker.
-  const classificationInFields = Boolean(epicEntry?.fields.some((field) => fieldKey(field.label) === 'releaseclassification'))
   const bothSetups = Boolean(setupFor(featureSetup?.personal ?? null, epicId) && setupFor(featureSetup?.shared ?? null, epicId))
   // Title fields in the other setup of the Epic (mine vs shared) only: say so, with a switch, instead of hiding them.
   const otherSetup = bothSetups ? chooseSetup(featureSetup, epicId, !preferShared).setup : undefined
   const fieldsElsewhere = !resumeFeature && !epicEntry && !titleFields.length && Boolean(otherSetup?.titleFields?.length)
   const fromRelease = releaseItems?.length ? fieldsFromItems(titleFields, releaseItems) : [], fromTitle = fieldsFromTitle(titleFields, initialTitle)
   const fieldValues = titleFields.map((field, index) => typedFields[fieldKey(field.label)] ?? (fromRelease[index] || fromTitle[index] || ''))
-  // DPF-07: the Release Classification chosen (the Epic setup's own field, else the built-in picker) picks the DoD and
+  // DPF-07, BKL-33: the Release Classification chosen in the Epic setup's own field (there is no built-in picker) picks the DoD and
   // User Stories set for that value, else the Epic's default.
   const classField = epicEntry ? epicEntry.fields.findIndex((field) => fieldKey(field.label) === 'releaseclassification') : -1
-  const classValue = classField >= 0 ? fieldValues[classField] ?? '' : releaseClassification
+  const classValue = classField >= 0 ? fieldValues[classField] ?? '' : ''
   const classSet = setForClass(baseSetup, classValue)
   const epicSetup = baseSetup && classSet ? { ...baseSetup, featureDoD: classSet.featureDoD, stories: classSet.stories } : baseSetup
   // With an Epic setup the Title follows its pattern or its Title fields; fields that go only into the Description leave the typed title.
@@ -154,7 +150,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
     const token = pat; setError(''); submitting.current = true; setCreating(true)
     const parseHours = (value: string, label: string) => { if (!value.trim()) return undefined; const hours = Number(value); if (!Number.isFinite(hours) || hours < 0 || hours > 1000000) throw new Error(`${label} must be a number from 0 to 1,000,000.`); return hours }
     let feature: FeatureInput
-    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? ''), classificationInFields ? undefined : releaseClassification, (fromFields ? fromFields.lines : fieldLines(titleFields, fieldValues))) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, ...(isNew && startDate ? { startDate } : {}), targetDate, taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
+    try { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignee)) throw new Error(me ? 'Choose who the Feature and its children are assigned to.' : 'Configure the Feature creator email in Azure DevOps settings before creating a Feature.'); feature = { parentId: parent?.id ?? 0, title: title.trim(), description: needsDoD ? withFeatureDoD(dod, String(data.get('description') ?? ''), undefined, (fromFields ? fromFields.lines : fieldLines(titleFields, fieldValues))) : '', acceptanceCriteria: String(data.get('acceptance') ?? ''), areaPath: String(data.get('areaPath') ?? ''), iterationPath, assignedTo: assignee, storyIterationPath: sprintPath, ...(isNew && startDate ? { startDate } : {}), targetDate, taskOriginalEstimate: parseHours(taskOriginalEstimate, 'Original Estimate'), taskCompletedWork: parseHours(taskCompletedWork, 'Completed Work') } }
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Invalid Task effort.'); submitting.current = false; setCreating(false); return }
     // The months after the first one, with the hours typed for each (none for a future month's Completed Work).
     let later: { month: string; originalEstimate?: number; completedWork?: number }[]
@@ -272,7 +268,6 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
           <div className="nf-headmain">
             {isNew && <div className="nf-top">
               <label>Parent Epic<select required aria-label="Parent Epic" disabled={creating} value={parent?.key ?? ''} onChange={(event) => setParent(epicOptions.find((item) => item.key === event.target.value) ?? null)}><option value="">Choose the parent Epic…</option>{epicOptions.map((epic) => <option value={epic.key} key={epic.key}>#{epic.id} · {epic.title}</option>)}</select></label>
-              {!classificationInFields &&               <label>Release Classification<select value={releaseClassification} disabled={creating} onChange={(event) => setReleaseClassification(event.target.value)}><option value="">(not set)</option>{releaseClassifications.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>}
             </div>}
             <input className="nf-title" aria-label="Feature title" name="title" required maxLength={255} value={title} onChange={(event) => setTitle(event.target.value)} disabled={creating || Boolean(resumeFeature)} placeholder={titleFields.length ? titleFields.map((field) => field.label).join(' | ') : 'Feature title (free text, e.g. Program | Service | Release)'} autoFocus />
             {fieldsElsewhere && <p className="muted">The {setupSource === 'personal' ? 'shared' : 'your own'} setup of this Epic has title fields ({otherSetup!.titleFields!.map((field) => field.label).join(', ')}); this form uses {setupSource === 'personal' ? 'your own' : 'the shared'} setup. <button type="button" className="text-button" disabled={creating} onClick={() => { setPreferShared(!preferShared); setSkipStories([]); setReviewChoice(null); setDodText(null) }}>{setupSource === 'personal' ? 'Use the shared setup' : 'Use my own setup'}</button></p>}

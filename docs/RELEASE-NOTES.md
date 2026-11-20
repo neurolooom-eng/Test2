@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.41.0 — 2026-11-20
+
+**Removed**
+- **Built-in Release Classification on New Feature** — the Major / Minor / MLD / Platform Update / Service Pack drop-down is gone from New Feature, and no "Release Classification :" line is written any more; the Parent Epic takes the full width. An Epic's own Release Classification field (Epic setup) is still asked for and still picks its DoD and User Stories; DP and IOCC bulk creation keep theirs (BKL-33, retires BKL-17).
+
+TC-BKL-22. PR #319.
+
 ## v7.40.1 — 2026-11-20
 
 **Documentation**
