@@ -12,6 +12,6 @@ test('NFR-08: pages load on demand — the shell imports only the start pages; t
   for (const page of pages.filter((name) => !['MyDashboardPage', 'HomePage'].includes(name) && app.includes(`<${name}`))) assert.match(app, new RegExp(`const ${page} = lazy\\(`), `${page} loads on demand`)
   assert.match(app, /<Suspense fallback=\{<p className="muted page-loading"/, 'a loading note while a page loads')
   // The bundled documents are imported only by the Documentation page.
-  const users = [...readdirSync(new URL('../src/', import.meta.url), { recursive: true })].filter((file) => /\.tsx?$/.test(file) && read(`src/${file}`).match(/from '(\.\.?\/)+docs'/)).map(String)
-  assert.deepEqual(users, ['pages/DocsPage.tsx'])
+  const users = [...readdirSync(new URL('../src/', import.meta.url), { recursive: true })].filter((file) => /\.tsx?$/.test(file) && read(`src/${file}`).match(/from '(\.\.?\/)+docs'/)).map((file) => String(file).replaceAll('\\', '/'))
+  assert.deepEqual(users, ['pages/DocsPage.tsx'], 'any OS path separator')
 })
