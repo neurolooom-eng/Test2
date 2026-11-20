@@ -67,13 +67,3 @@ test('Copy to Epics: the fields and pattern to the chosen Epics, replacing their
   assert.equal(copyEpicFields(parsed, 99, [{ id: 23, title: '' }]), parsed, 'nothing to copy from')
 })
 
-test('All Epic setups: every Epic with Feature fields or a Feature setup, with its fields, pattern and setup (EPS-08, TC-EPS-06)', async () => {
-  const { epicSetupRows } = await import('../src/epicSetupRows.ts')
-  const epicFile = parseEpicSetup(JSON.stringify(file))
-  const setup = (epicId, title) => ({ epicId, epicTitle: title, featureDoD: 'DT finished', stories: [{ title: 'S1', description: '' }], timeWritingStory: { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: '', iterationPath: '' }, task: { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' } })
-  const rows = epicSetupRows(epicFile, { shared: { schema: 1, kind: 'feature-setup', epics: [setup(22, 'CP'), setup(30, 'ECP 1')] }, personal: { schema: 1, kind: 'feature-setup', epics: [setup(31, 'ECP 2')] } }, [{ id: 22, title: 'Clinical Platform', workItemType: 'Epic' }])
-  assert.deepEqual(rows.map((row) => [row.epicId, row.title, row.shared, row.mine]), [[22, 'Clinical Platform', true, false], [30, 'ECP 1', true, false], [31, 'ECP 2', false, true]], 'Epic 23 (no fields, no setup) is not listed; titles from the board first')
-  assert.deepEqual(rows[0].fields, ['Platform (list) · Block', 'Release · Warn', 'Program'])
-  assert.equal(rows[0].pattern, '{platform} | {release} | {feature}')
-  assert.deepEqual([rows[0].dod, rows[0].stories], ['DT finished', 1])
-})

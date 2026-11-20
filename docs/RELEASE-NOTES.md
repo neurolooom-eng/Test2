@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.37.0 — 2026-11-20
+
+**Changed**
+- **Setup per Epic** — the Feature setup is redesigned as one screen per Epic (Admin → Epic & Feature setup): the Epic list with *All Epics (defaults)* first and each Epic marked *Uses defaults* or *n of 4 customized*; a preview of a new Feature; and four sections — Fields & title, Definition of Done, User Stories (Release / PU tabs for DP and IOCC), Month Task — each with one **Customize for this Epic** switch. *Use my own version* edits your own copy; one **Save to Git** saves everything. The pop-up editor, the Feature fields and Feature setup tabs and All Epic setups are replaced; old links open the new screen (CON-97; CON-96, EPS-08 retired).
+- An Epic without a setup of its own now uses **All Epics** when All Epics has anything set; with All Epics empty, New Feature still offers the built-in PU / Full Release choice (CON-95).
+
+DF-118; TC-CON-60. PR #313.
+
 ## v7.36.2 — 2026-11-20
 
 **Fixed**

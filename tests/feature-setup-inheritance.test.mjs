@@ -26,7 +26,12 @@ test('Feature setup layers: Mine → Epic (shared) → All Epics → Built in, p
   // Epic 3 inherits everything; without All Epics, Built in applies (the default DoD of its stories, no stories, no estimate).
   const bare = chooseSetup({ shared: { ...shared, defaults: undefined }, personal: null }, 3)
   assert.deepEqual([bare.setup.featureDoD, bare.setup.stories, bare.setup.task.originalEstimate, bare.origin], [defaultDoDFor({ stories: [] }), [], undefined, { featureDoD: 'builtin', stories: 'builtin', estimate: 'builtin' }])
-  assert.deepEqual(chooseSetup(setups, 99), {}, 'an Epic without a setup keeps the built-in milestones (All Epics does not apply)')
+  // CON-97: an Epic without a setup of its own uses All Epics when All Epics has anything set…
+  const none = chooseSetup(setups, 99)
+  assert.deepEqual([none.source, none.setup.featureDoD, none.setup.stories.map((story) => story.title), none.setup.task.originalEstimate], ['defaults', 'All DoD', ['All story'], 4])
+  assert.deepEqual(none.origin, { featureDoD: 'all', stories: 'all', estimate: 'all' })
+  // …and keeps the built-in milestones while All Epics is empty.
+  assert.deepEqual(chooseSetup({ shared: { ...shared, defaults: undefined }, personal: null }, 99), {})
 })
 
 test('Feature setup layers: round trip, DoD rules and Enable for everyone keep the defaults (CON-95, TC-CON-59)', () => {

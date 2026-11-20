@@ -20,9 +20,11 @@ export const settingsPagesFor = (can: (action: Action) => boolean) => settingsPa
 // SET-15: where an older page or section now lives (links, the Get started steps and remembered choices keep working).
 const moved: Record<string, { tab: SettingsTab; section?: string }> = {
   // EPS-01: the Epic setup replaces Master data.
-  masters: { tab: 'epics', section: 'fields' },
+  masters: { tab: 'epics', section: 'setup' },
   // EPS-08: Epic setup and Feature setup are one page.
-  features: { tab: 'epics', section: 'feature' },
+  features: { tab: 'epics', section: 'setup' },
+  // CON-97: one editor per Epic replaces the separate sections.
+  'epics:all': { tab: 'epics', section: 'setup' }, 'epics:fields': { tab: 'epics', section: 'setup' }, 'epics:feature': { tab: 'epics', section: 'setup' },
   access: { tab: 'resources', section: 'rights' }, tables: { tab: 'pack', section: 'tables' }, history: { tab: 'capacity', section: 'history' },
   'connections:email': { tab: 'my', section: 'email' }, 'connections:servers': { tab: 'my', section: 'servers' },
   'connections:views': { tab: 'storage', section: 'views' }, 'connections:sources': { tab: 'storage', section: 'sources' }, 'connections:sample': { tab: 'storage', section: 'sample' },
