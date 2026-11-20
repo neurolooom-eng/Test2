@@ -2,6 +2,17 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.40.0 — 2026-11-20
+
+**Added**
+- **User Story templates** — Admin → Epic & Feature setup → User Story templates: a shared library of User Stories (title and description) tagged with Epics and Release Classification values (STT-01).
+- **Pick templates per Epic** — Setup per Epic offers **＋ Add from templates** (matching ones first) and **Save as template** on a story; picked stories stay linked, so a template change reaches every Epic that uses it in New Feature (ticked) and bulk creation; **Unlink** keeps a copy. A story's description can now be edited in the setup (STT-02).
+
+**Changed**
+- The role right *Edit Epic setup value lists* is now *Edit Epic setup value lists and User Story templates*.
+
+DF-121, SM-82; TC-STT-01, TC-STT-02. PR #316.
+
 ## v7.39.0 — 2026-11-20
 
 **Added**
