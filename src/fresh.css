@@ -832,3 +832,7 @@ kbd{font-size:11px;border:1px solid var(--accent-line);border-radius:4px;padding
 .stt-chip button{border:0;background:transparent;cursor:pointer;color:inherit;padding:0 2px}
 .stt-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
 @media(max-width:560px){.stt-tags{grid-template-columns:1fr}}
+/* BKL-34: ＋ Time Writing Task — months and hours. */
+.month-tasks{display:flex;flex-direction:column;gap:12px}
+.month-tasks th input[type=month]{max-width:170px}
+.month-tasks-note{display:block;font-weight:400;font-size:11px;margin-top:2px}

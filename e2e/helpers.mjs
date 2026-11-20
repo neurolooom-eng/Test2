@@ -56,3 +56,12 @@ export async function loadSample(page) {
 }
 
 export const text = async (locator) => (await locator.innerText()).replace(/\s+/g, ' ').trim()
+
+// Reload a page that has the synthetic sample loaded. The sample is saved to IndexedDB in the background; a reload
+// that beats that save (slow CI runners) starts without it, so it is loaded again. Settings kept in localStorage stay.
+export async function reloadWithSample(page) {
+  await page.reload()
+  await page.locator('.sidebar nav').waitFor()
+  const kept = await page.locator('.notice', { hasText: 'synthetic sample dataset' }).first().waitFor({ timeout: 5000 }).then(() => true, () => false)
+  if (!kept) await loadSample(page)
+}

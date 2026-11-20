@@ -1,6 +1,6 @@
 import test, { after, before } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadSample, navigate, openPage, startApp, text } from './helpers.mjs'
+import { loadSample, navigate, openPage, reloadWithSample, startApp, text } from './helpers.mjs'
 
 // New User Story under a Feature (BKL-19, TC-BKL-10): the form opens from a Feature row of the Backlogs, laid out like
 // New Feature with the Azure DevOps User Story fields. Nothing is written: the sample has no Azure DevOps connection.
@@ -241,8 +241,7 @@ test('TC-DPF-06: a DoD and User Stories per Release Classification value — set
     localStorage.setItem('demand-planning-epic-setup-v1', JSON.stringify({ schema: 1, kind: 'epic-setup', lists: [{ id: 'rc', name: 'Classes', values: ['Major', 'Hotfix'] }], epics: [{ epicId: id, epicTitle: 'E2E Epic', fields: [{ label: 'Release Classification', type: 'list', list: 'rc', ifEmpty: 'block', into: 'description' }] }] }))
     localStorage.setItem('demand-planning-feature-setup-v1', JSON.stringify({ schema: 1, kind: 'feature-setup', epics: [{ epicId: id, epicTitle: 'E2E Epic', featureDoD: 'Epic DoD', stories: [{ title: 'Epic story', description: '' }], timeWritingStory: { ...empty, title: '{feature} - Time Writing' }, task: { ...empty, title: '{month} | {feature}' }, classSets: { Hotfix: { featureDoD: 'Hotfix DoD', stories: [{ title: 'Smoke test', description: '' }] } } }] }))
   }, { id: epicId, empty })
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
@@ -297,8 +296,7 @@ test('TC-STT-01: a User Story template, linked in an Epic’s setup, gives New F
     localStorage.setItem('demand-planning-epic-setup-v1', JSON.stringify({ schema: 1, kind: 'epic-setup', lists: [], epics: [], storyTemplates: [{ id: 't-sfv', title: 'Template SFV review', description: 'Review the SFV deliverables', epics: [id], classes: ['Hotfix'] }] }))
     localStorage.setItem('demand-planning-feature-setup-v1', JSON.stringify({ schema: 1, kind: 'feature-setup', epics: [{ epicId: id, epicTitle: 'E2E Epic', featureDoD: 'Epic DoD', stories: [{ title: 'Old copy', description: '', templateId: 't-sfv' }, { title: 'Own story', description: '' }], timeWritingStory: { ...empty, title: '{feature} - Time Writing' }, task: { ...empty, title: '{month} | {feature}' } }] }))
   }, { id: epicId, empty })
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
@@ -331,6 +329,42 @@ test('TC-STT-01: a User Story template, linked in an Epic’s setup, gives New F
   await context.close()
 })
 
+test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month first, ＋ Add month, any month changeable — and the hours of each', async () => {
+  const { page, context, errors } = await openPage(app, { init: () => { localStorage.setItem('demand-planning-work-email-v1', 'nobody@example.com') } })
+  await loadSample(page)
+  await navigate(page, 'QMS-0025')
+  const mine = page.getByRole('button', { name: 'Assigned to me ✕' })
+  await mine.waitFor()
+  await mine.click()
+  await page.getByRole('button', { name: 'Expand all backlog items' }).click()
+  const button = page.getByRole('button', { name: '＋ Time Writing Task' }).first()
+  await button.waitFor()
+  await button.click()
+  const dialog = page.getByRole('dialog')
+  await dialog.waitFor()
+  const india = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).format(new Date())
+  const header = await page.locator('header.topbar input[type=month]').inputValue().catch(() => india)
+  assert.equal(await dialog.getByLabel('Month 1').inputValue(), header || india, 'the month in the header first')
+  await dialog.getByRole('button', { name: '＋ Add month' }).click()
+  await dialog.getByRole('button', { name: '＋ Add month' }).click()
+  const [year, month] = (header || india).split('-').map(Number)
+  const key = (offset) => { const date = new Date(Date.UTC(year, month - 1 + offset, 1)); return date.toISOString().slice(0, 7) }
+  assert.deepEqual([await dialog.getByLabel('Month 2').inputValue(), await dialog.getByLabel('Month 3').inputValue()], [key(1), key(2)], 'each ＋ Add month adds the next month')
+  assert.equal(await dialog.getByRole('button', { name: 'Add 3 months' }).count(), 1)
+  await dialog.getByLabel('Month 3').fill(key(1))
+  assert.match(await text(dialog), /is listed twice/, 'the same month twice is refused')
+  await dialog.getByLabel('Month 3').fill(key(4))
+  const label = new Date(Date.UTC(year, month - 1 + 4, 1)).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  assert.equal(await dialog.getByLabel(`Completed Work (h) ${label}`).isDisabled(), true, 'no Completed Work for a future month')
+  await dialog.getByLabel(`Original Estimate (h) ${label}`).fill('6')
+  await dialog.getByRole('button', { name: `Remove ${label}` }).click()
+  assert.equal(await dialog.getByRole('button', { name: 'Add 2 months' }).count(), 1)
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  assert.equal(await page.getByRole('dialog').count(), 0)
+  assert.deepEqual(errors.filter((entry) => !/401|Unauthorized/.test(entry)), [])
+  await context.close()
+})
+
 test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, required and warning fields), the title follows its pattern, and Admin → Epic setup shows them', async () => {
   const { page, context, errors } = await openPage(app)
   await loadSample(page)
@@ -347,8 +381,7 @@ test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, 
     { label: 'Program', type: 'text', ifEmpty: 'block', into: 'description' },
     { label: 'Owner', type: 'text', ifEmpty: 'warn', into: 'description' },
   ] }] })), epicId)
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
