@@ -37,7 +37,7 @@ The process is **incremental**: every change goes through the whole life cycle i
 
 | Life-cycle activity | IEC 62304 | ISO 13485 §7.3 | Where it is done | Evidence |
 |---|---|---|---|---|
-| Planning | 5.1 | 7.3.2 | This document; [PROJECT-PLAN.md](PROJECT-PLAN.md) (phases, risks, ownership); CLAUDE.md (working rules) | Documents in Git |
+| Planning | 5.1 | 7.3.2 | This document; [PROJECT-PLAN.md](PROJECT-PLAN.md) (phases, risks, ownership); CLAUDE.md (working rules; AGENTS.md points other coding agents, e.g. Codex, to them) | Documents in Git |
 | Requirements analysis | 5.2 | 7.3.3 (inputs) | [REQUIREMENTS-SPECIFICATION.md](REQUIREMENTS-SPECIFICATION.md): user requirements (UR) → system requirements (SR) → detailed requirements, each with verification method, priority and trace | Requirement rows; the pull request that adds them |
 | Architectural design | 5.3 | 7.3.4 (outputs) | [SOFTWARE-COMPONENTS.md](SOFTWARE-COMPONENTS.md) §1 (software items by layer), §2 (SOUP), §3 (platforms); REQUIREMENTS-SPECIFICATION.md §1.2 (system boundary, external systems) | Component inventory kept with every change |
 | Detailed design | 5.4 | 7.3.4 | The header comment of every source file states what it does and which rule it implements; the detailed requirements are the design specification of behaviour | Source files |
@@ -78,6 +78,8 @@ Every change — feature, fix, dependency update, document correction — follow
 | `automation-testing` | 4 (tests), 6 | tests/*.test.mjs, e2e/*.e2e.mjs, their SOFTWARE-COMPONENTS rows |
 | `dfmea` | 2 (design risk) | DFMEA.md |
 | `security` | 2 (threats), review | SECURITY-ASSESSMENT.md |
+
+Other coding agents (e.g. Codex) follow the same rules through `AGENTS.md`, which points to CLAUDE.md, reads these roles as checklists, and keeps one agent per branch and pull request.
 
 The lead starts every change: it writes the requirement rows and a hand-off brief naming the specialists and what each must do, and lists open questions for the user instead of assuming. The main session runs the specialists from the brief (an agent does not start another agent): Settings / Export (or the main session for other code), then Test Protocol and Automation Testing, then DFMEA and Security, and the lead again for the checklist before the pull request. The agents follow CLAUDE.md and the constraints in it; they do not replace the human review of the pull request.
 

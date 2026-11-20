@@ -10,7 +10,7 @@ This plan says what is under configuration control, how each item is identified 
 |---|---|---|---|
 | Application source (web, desktop shell, scripts) | This repository: `src/`, `electron/`, `scripts/`, `index.html`, `vite.config.ts`, `tsconfig*.json` | Git revision; version `x.y.z` in `package.json` | Pull request to `main` (§4) |
 | Tests and test data | `tests/`, `e2e/` (with `e2e/fixtures`) | Git revision | Pull request, with the requirement and test case it covers |
-| Documents (Validation Package, release notes, this plan) | `docs/`, `README.md`, `CLAUDE.md` | Git revision; document ID in each document; bundled into each build (Documentation page) | Pull request, in the same pull request as the code they describe |
+| Documents (Validation Package, release notes, this plan) | `docs/`, `README.md`, `CLAUDE.md`, `AGENTS.md` | Git revision; document ID in each document; bundled into each build (Documentation page) | Pull request, in the same pull request as the code they describe |
 | Third-party components (SOUP) | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` (overrides) | Exact versions and integrity hashes in the lockfile; [SWBOM.md](SWBOM.md) / `swbom.cdx.json` | Pull request; daily dependency check (§7) |
 | Build and release definition | `.github/workflows/build-and-deploy.yml`, `electron-builder` settings in `package.json` | Git revision | Pull request |
 | Build outputs | GitHub Pages (web app), GitHub release `desktop-latest` (installers, `SHA256SUMS`, `latest.json`), tagged releases `vX.Y.Z` | Version, CI build number and Git revision in `build-info.json` and `latest.json`; SHA-256 per installer | Only by CI (§5); never by hand |

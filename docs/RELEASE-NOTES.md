@@ -12,6 +12,13 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 
 DF-122; TC-NAV-42. PR #318.
 
+## v7.40.1 — 2026-11-20
+
+**Documentation**
+- **AGENTS.md** — instructions for coding agents other than Claude Code (e.g. Codex): follow CLAUDE.md, the checks before every push, the constraints, the roles in `.claude/agents/` as checklists, and one agent per branch and pull request (DEVELOPMENT-PROCESS.md §4, CONFIGURATION-MANAGEMENT.md).
+
+PR #317.
+
 ## v7.40.0 — 2026-11-20
 
 **Added**
