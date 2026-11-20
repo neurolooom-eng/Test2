@@ -5,9 +5,10 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 ## v7.41.0 — 2026-11-20
 
 **Removed**
-- **Built-in Release Classification on New Feature** — the Major / Minor / MLD / Platform Update / Service Pack drop-down is gone from New Feature, and no "Release Classification :" line is written any more; the Parent Epic takes the full width. An Epic's own Release Classification field (Epic setup) is still asked for and still picks its DoD and User Stories; DP and IOCC bulk creation keep theirs (BKL-33, retires BKL-17).
+- **Built-in Release Classification on New Feature** — the Major / Minor / MLD / Platform Update / Service Pack drop-down is gone from New Feature, and no "Release Classification :" line is written any more; the Parent Epic takes the full width. An Epic's own Release Classification field (Epic setup) is still asked for and still picks its DoD and User Stories (BKL-33, retires BKL-17).
+- **Built-in Release Classification and Release / PU (MLD) lists everywhere** — the DP / IOCC Create Features pop-ups offer only the Epic's own Release Classification list (none without one); Release Details → DP has no Release type column; there are no built-in Release (PRD, SFV, DT, IQ/OQ) or PU sets — a bulk Epic without a Feature setup skips its releases; old Release / PU sets in a setup are no longer read; New Feature for an Epic without a setup offers no milestone stories and no PU / Full Release DoD (type the DoD); Content bulk writes no "Release Classification : NA" line (DPF-09; retires DPF-01, BKL-06, QV-61).
 
-TC-BKL-22. PR #319.
+DF-123; TC-BKL-22, TC-DPF-08. PR #319.
 
 ## v7.40.1 — 2026-11-20
 
