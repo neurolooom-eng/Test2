@@ -142,7 +142,7 @@ export interface AzureBacklogScope extends AzureConfig { itemKeys: string[]; are
 export interface AzureFetchResult { items: AzureWorkItem[]; areaPaths: string[]; asOf: string; scope: AzureBacklogScope }
 interface RawItem { id: number; rev?: number; fields: Record<string, unknown>; relations?: { rel: string; url: string }[] }
 interface TeamAreas { field: { referenceName: string }; values: { value: string; includeChildren: boolean }[] }
-type AzureTransport = (request: AzureRequest) => Promise<unknown>
+export type AzureTransport = (request: AzureRequest) => Promise<unknown>
 
 declare global {
   interface Window { azureDevOps?: { request: AzureTransport } }

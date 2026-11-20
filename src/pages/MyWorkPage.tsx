@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { DataTable } from '../components/DataTable'
 import { PersonPicker } from '../components/PersonPicker'
-import { addMonthTask } from '../monthTaskAction'
+import { MonthTasksDialog } from '../components/MonthTasksDialog'
 import { EmptyState, Metric, Metrics, Notice, Page, Pill, TablePanel, type Tone } from '../components/ui'
 import { currentIndiaMonth, updateAzureWorkItem } from '../azureDevOps'
 import { capacityContext } from '../capacity'
 import { featureChildren, hasOptionalStories, isMine, matchesWork, monthTaskCandidates, nextStateFor, workTypes } from '../myWork'
 import { activateFeatureOf, closeRelated, type FollowUpResult } from '../closeChain'
-import { formatHours, monthName } from '../format'
+import { formatHours } from '../format'
 import type { AzureWorkItem } from '../domain'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -37,6 +37,8 @@ export function MyWorkPage({ azure, store, my, month: headerMonth, onOpenActivit
   const [storyOf, setStoryOf] = useState<AzureWorkItem | null>(null)
   // Edit a Feature, User Story or Task.
   const [editing, setEditing] = useState<AzureWorkItem | null>(null)
+  // BKL-34: ＋ Time Writing Task opens the months-and-hours pop-up.
+  const [monthFor, setMonthFor] = useState<AzureWorkItem | null>(null)
   const epics = azure.items.filter((item) => item.workItemType === 'Epic' && item.state.trim().toLowerCase() !== 'removed').sort((a, b) => a.id - b.id)
   const meEmail = (assign?.me || azure.creatorEmail).trim().toLowerCase()
   const toggle = (key: string) => setExpanded((current) => current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key])
@@ -104,7 +106,7 @@ export function MyWorkPage({ azure, store, my, month: headerMonth, onOpenActivit
           <div className="query-toolbar my-work-search"><input type="search" className="search" aria-label="Search all assigned work" placeholder="Search all types (ID, title, state, Feature, path…)" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setSearch('') }} />{searching && <span className="muted">{shown.length} of {pending.length} match, all types</span>}</div>
           {/* UI-07: the work list on the table default; a Feature opens its children as rows of the same table. */}
           {shown.length > 0 && (() => {
-            const monthButton = (entry: AzureWorkItem) => (entry.workItemType === 'Feature' || entry.workItemType === 'User Story') && config && meEmail ? <button type="button" className="text-button" disabled={Boolean(blocked) || busy.startsWith('month-')} title="Add your Time Writing Task for the month in the header under this Feature (or the Feature above this Story)" onClick={() => { setBusy(`month-${entry.id}`); void addMonthTask(config, pat, azure.items, entry, meEmail, headerMonth ? monthName(headerMonth) : undefined, featureSetup).then((done) => { azure.applyWorkItems(done.changed, 'Add Time Writing Task', done.text); setLog((current) => [{ tone: 'success', text: done.text }, ...current]) }, (failure) => setLog((current) => [{ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }, ...current])).finally(() => setBusy('')) }}>{busy === `month-${entry.id}` ? 'Adding…' : '＋ Time Writing Task'}</button> : null
+            const monthButton = (entry: AzureWorkItem) => (entry.workItemType === 'Feature' || entry.workItemType === 'User Story') && config && meEmail ? <button type="button" className="text-button" disabled={Boolean(blocked) || busy.startsWith('month-')} title="Add your Time Writing Task for the month in the header under this Feature (or the Feature above this Story)" onClick={() => setMonthFor(entry)}>＋ Time Writing Task</button> : null
             const editButton = (entry: AzureWorkItem) => ['Feature', 'User Story', 'Task'].includes(entry.workItemType) ? <button type="button" className="text-button" disabled={Boolean(blocked)} title={`Edit ${entry.workItemType} #${entry.id}`} onClick={() => setEditing(entry)}>Edit</button> : null
             const action = (entry: AzureWorkItem) => { const next = nextStateFor(entry, azure.items); return next ? <button type="button" className="ghost" disabled={Boolean(blocked) || busy === `state-${entry.id}`} onClick={() => void finish(entry, next.state)}>{busy === `state-${entry.id}` ? 'Saving…' : next.label}</button> : entry.workItemType === 'Feature' && /new/i.test(entry.state) ? <small className="muted" title="A Feature becomes Active only when one of its User Stories is Active">Set a User Story to Active first</small> : <small className="muted" title="Only an Active Feature or User Story can be closed">Set to Active first</small> }
             type WorkRow = { item: AzureWorkItem; feature?: AzureWorkItem; depth: 0 | 1 | 2; below: AzureWorkItem[]; top: AzureWorkItem }
@@ -131,6 +133,7 @@ export function MyWorkPage({ azure, store, my, month: headerMonth, onOpenActivit
               ]} />
           })()}
         </TablePanel>
+        {monthFor && config && <MonthTasksDialog item={monthFor} items={azure.items} config={config} pat={pat} me={meEmail} month={headerMonth} featureSetup={featureSetup} onClose={() => setMonthFor(null)} onDone={(text, changed) => { setMonthFor(null); azure.applyWorkItems(changed, 'Add Time Writing Task', text); setLog((current) => [{ tone: 'success', text }, ...current]) }} />}
         {editing && config && <WorkItemEditor item={editing} items={azure.items} config={config} savedPat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} onSavePat={azure.rememberPat} onUpdated={azure.featureCreated} onClose={() => setEditing(null)}
           onDone={(text) => { note({ tone: 'success', text }); void azure.refresh() }} onFailed={(text) => note({ tone: 'error', text })} />}
         {storyOf && config && <StoryEditor feature={storyOf} items={azure.items} config={config} savedPat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} onSavePat={azure.rememberPat} onCreated={azure.featureCreated} onClose={() => setStoryOf(null)}

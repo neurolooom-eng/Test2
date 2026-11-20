@@ -28,7 +28,7 @@ import { mySettingsLabel, readSettingsTab, resolveSettings, saveSettingsSection,
 import { normalizeReleaseSourceSettings } from './releaseSource'
 import { dataSets, defaultMatchThreshold, defaultStreams, profileForDataSet, profileForStream, windchillStreamExports } from './streams'
 import { connectionPresets } from './connectionPresets'
-import { gitSyncedIds, markViewsSynced, removeDuplicateConnections, serializeViews, viewsFile } from './viewDefinitions'
+import { gitSyncedIds, markViewsSynced, removeDuplicateConnections } from './viewDefinitions'
 import { listAzureConnectionProfiles } from './azureCredentials'
 import { DocsPage } from './pages/DocsPage'
 import { BoardPage } from './pages/BoardPage'
@@ -133,7 +133,7 @@ export default function App() {
     if (git.connected && !git.readOnly && !azure.isSample) {
       const names = removed.map((profile) => profile.viewName || profile.reason).join(', ')
       void git.removeSnapshots(ids, `Remove duplicate connections: ${names}`).catch(() => undefined)
-      void git.writeViews(serializeViews(viewsFile(listAzureConnectionProfiles())), `Remove duplicate connections: ${names}`).then(() => markViewsSynced(listAzureConnectionProfiles())).catch(() => undefined)
+      void git.shareViews(listAzureConnectionProfiles(), `Remove duplicate connections: ${names}`, ids).then(() => markViewsSynced(listAzureConnectionProfiles())).catch(() => undefined)
     }
   }, [store, git, azure, setupSynced])
   // Every start (opening the app, Force Update, reload) fetches the cloud connections once, after the shared

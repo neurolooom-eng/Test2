@@ -99,3 +99,21 @@ test('addMonthTasks stops at the first failure and reports what it made', async 
   const { transport } = fakeAzure(world, 'January 2027')
   await assert.rejects(addMonthTasks(config, pat, 2, 'ana@x.com', [{ month: 'December 2026' }, { month: 'January 2027' }, { month: 'February 2027' }], undefined, transport), (failure) => failure instanceof HierarchyCreationError && failure.createdItems.length === 1 && failure.createdItems[0].title === 'December 2026 | F' && /refused January 2027/.test(failure.message))
 })
+
+test('BKL-34: ＋ Time Writing Task for several months — each with its hours, from a User Story row to its Feature (TC-BKL-23)', async () => {
+  const { addMonthTasksFor } = await import('../src/monthTaskAction.ts')
+  const world = new Map([
+    [2, raw(2, { 'System.WorkItemType': 'Feature', 'System.Title': 'DP | Core | 5.2' })],
+    [3, raw(3, { 'System.WorkItemType': 'User Story', 'System.Title': 'DP | Core | 5.2 - Time Writing', 'System.Parent': 2, 'System.AssignedTo': { uniqueName: 'ana@x.com' } })],
+  ])
+  const { transport } = fakeAzure(world)
+  const items = [{ id: 1, workItemType: 'Epic', title: 'E', state: 'Active' }, { id: 2, workItemType: 'Feature', title: 'DP | Core | 5.2', parentId: 1, state: 'Active' }, { id: 5, workItemType: 'User Story', title: 'Review', parentId: 2, state: 'Active' }]
+  const steps = []
+  const done = await addMonthTasksFor(config, pat, items, items[2], 'ana@x.com', [{ month: 'December 2026', originalEstimate: 10 }, { month: 'January 2027' }], null, (text) => steps.push(text), transport)
+  assert.equal(done.feature.id, 2, 'a User Story row works on the Feature above it')
+  assert.match(done.text, /December 2026, January 2027 under “DP \| Core \| 5\.2”/)
+  assert.deepEqual(done.changed.map((entry) => [entry.title, entry.originalEstimate]), [['December 2026 | DP | Core | 5.2', 10], ['January 2027 | DP | Core | 5.2', undefined]])
+  assert.deepEqual(steps, ['Adding the December 2026 Task…', 'Adding the January 2027 Task…'])
+  await assert.rejects(addMonthTasksFor(config, pat, items, items[0], 'ana@x.com', [{ month: 'December 2026' }]), /no Feature above it/)
+  await assert.rejects(addMonthTasksFor(config, pat, items, items[1], 'ana@x.com', []), /at least one month/)
+})
