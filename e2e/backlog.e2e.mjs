@@ -158,6 +158,7 @@ test('TC-BKL-19: New Feature shows its sections one after another: Feature, then
   await dod.fill('IQOQ finished and Checklist uploaded into the Feature.')
   await proceed()
   assert.deepEqual(await visible(), ['✓ Feature', '✓ Definition of Done', '3 User Stories'], 'Continue shows the User Stories')
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Section 3: User Stories', null, { timeout: 5000 }).catch(() => {})
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Section 3: User Stories', 'the focus moves to the new section')
   assert.match(await text(form.getByRole('note')), /Choose the User Stories, then Continue/)
   assert.equal(await form.getByRole('button', { name: 'Save' }).isDisabled(), true, 'not every section is done')

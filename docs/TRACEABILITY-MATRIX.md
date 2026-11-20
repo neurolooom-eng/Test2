@@ -392,7 +392,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | BKL-27 | SR-07 | UR-05 | T | M | TC-ACT-13, TC-BKL-17 | — | `my-work.test.mjs` | — |
 | BKL-28 | SR-07 | UR-05 | T | M | TC-BKL-18 | — | `azure-devops.test.mjs` | — |
 | BKL-29 | SR-07 | UR-05 | T | M | TC-BKL-19 | — | — | KB-51 |
-| BKL-30 | SR-07 | UR-05 | T | M | TC-BKL-19 | — | — | KB-51 |
+| BKL-30 | SR-07 | UR-05 | T | M | TC-BKL-19 | — | — | KB-51, KB-55 |
 | BKL-31 | SR-07 | UR-05 | T | M | TC-BKL-20, TC-BKL-21 | 3 | `feature-months.test.mjs` | KB-54 |
 | BKL-32 | SR-07 | UR-05 | T | M | TC-BKL-21 | 3 | `feature-months.test.mjs` | — |
 | QV-01 | SR-08 | UR-06 | D | M | TC-QV-01 | — | — | — |

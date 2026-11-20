@@ -8,7 +8,11 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 - **Start date on New Feature** — next to the Target date, empty = today, saved in the Feature's Start Date field. The Feature's Time Writing Tasks start in the Start date's month, never before the current month: a release starting in December gets no November Task (BKL-31).
 - **Time Writing up to the Target date** — a new Feature gets one Time Writing Task for every month from its first month up to the Target date's month, and section 4 asks for the Original Estimate (and, for the current month, Completed Work) of each month in a table with totals; the months are shown under the dates and in the summary (BKL-32).
 
-DF-119, SM-80, KB-54; TC-BKL-20, TC-BKL-21. PR #314.
+
+**Fixed**
+- **Continue** in New Feature now moves the keyboard focus to the next section only after it is shown; before, the focus could be lost when the page was slow, and section 4 could not take the focus at all (BKL-30, KB-55).
+
+DF-119, SM-80, KB-54, KB-55; TC-BKL-20, TC-BKL-21. PR #314.
 
 ## v7.37.0 — 2026-11-20
 

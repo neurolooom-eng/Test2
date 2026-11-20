@@ -223,9 +223,17 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
   // stepped forms generally — not on leaving the box): the DoD usually starts filled and the stories are optional, so
   // being filled cannot tell that they were looked at. Continue shows the next section and moves the focus to it.
   const [left, setLeft] = useState<number[]>([])
+  // The next section is focused once React has shown it (an effect after the render), never before: focusing a
+  // still-hidden section does nothing.
+  const [focusSection, setFocusSection] = useState<number | null>(null)
+  useEffect(() => {
+    if (focusSection == null) return
+    document.querySelector<HTMLElement>(`form.nf-form section[aria-label^="Section ${focusSection}"]`)?.focus()
+    setFocusSection(null) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [focusSection])
   const advance = (index: number) => {
     setLeft((now) => now.includes(index) ? now : [...now, index])
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`form.nf-form section[aria-label^="Section ${index + 2}"]`)?.focus())
+    setFocusSection(index + 2)
   }
   const stepMissing = [featureMissing, dod.trim() ? [] : ['the DoD'], [], []]
   const done = (index: number) => !stepMissing[index].length && (index === 0 || left.includes(index))
@@ -323,7 +331,7 @@ export function FeatureEditor({ mode, items, config, savedPat = '', me, canChoos
         {missingNote(2)}
         <p className="info-line"><Info label="Paths and assignment">Feature → {resumeFeature ? resumeFeature.iterationPath : iterationPath || 'the PI chosen'}. Optional User Stories → {sprintPath || 'the Sprint chosen'}. Time Writing story and Task → {config.project}, never the Sprint, in the Feature’s Area Path (the same on every page; an existing month Task of the person is reused). Area: the Feature and its User Stories take the Epic’s Area Path. Every new item is assigned to {assignee || 'the person chosen'}. {month ? `Time Writing month: ${monthLabel}.` : 'Current date uses India time.'}</Info></p>
       </section>
-      {isNew && <section className={sectionClass(3)} hidden={!shown(3)} aria-label={`Section 4: Estimates for ${monthRange}`}>
+      {isNew && <section className={sectionClass(3)} hidden={!shown(3)} aria-label={`Section 4: Estimates for ${monthRange}`} tabIndex={-1}>
         {heading(3)}
         {months.length === 1 ? <>
           <p className="muted nf-hint">The hours of the Time Writing Task “{monthLabel} | {title.trim() || '…'}”. Both are optional; you can change them later.</p>
