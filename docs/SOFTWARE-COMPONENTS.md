@@ -42,6 +42,7 @@ This document lists every software component of the system: the in-house source 
 | BritePage | `src/pages/BritePage.tsx` | BRITE placeholder at the root of Release Details, until its exports and rules are known (CON-84). | CON |
 | PiReviewPage | `src/pages/PiReviewPage.tsx` | PI Review placeholder page (planned PI summary). | NAV |
 | PulseCheckPage | `src/pages/PulseCheckPage.tsx` | Pulse Check: last month's and this month's releases per stream, Supported Releases, Windchill exports, analysis and ongoing activities. | OVR, NAV, QV |
+| HomePage | `src/pages/HomePage.tsx` | Home, the start page: a tile per area with links to its pages and a search (NAV-42…44). | NAV |
 | MyDashboardPage | `src/pages/MyDashboardPage.tsx` | My dashboard: the person's hours against capacity, open work, streams and releases for the header month; the start page. | MYD |
 | SignedByMe | `src/components/SignedByMe.tsx` | My dashboard → Signed by me: the period (from–to months, quick picks), releases and documents per stream and in total, and the documents behind them (MYD-13). | MYD |
 | mySignatures | `src/mySignatures.ts` | The documents a person signed as Author, Reviewer or Approver in the Azure DevOps views and Windchill exports, their dates and the counts per period (MYD-13). | MYD |
@@ -167,6 +168,7 @@ This document lists every software component of the system: the in-house source 
 | nestedGroups | `src/nestedGroups.ts` | Nested grouping of a list by several levels, with a unique key per group path (IOCC releases). | QV |
 | dpReleases | `src/dpReleases.ts` | DP releases from Pedestal Release items dated by matching DHFI documents (exact version). | QV |
 | featureSetup | `src/featureSetup.ts` | Per-Epic Feature setup (stories, Time Writing story, task defaults), placeholders, shared/personal layers, parse/serialise. | CON |
+| homeTiles | `src/homeTiles.ts` | The Home tiles and links: types and the search over them (NAV-43, NAV-44). | NAV |
 | featureMonths | `src/featureMonths.ts` | The Time Writing months of a new Feature from its Start date and Target date (BKL-31, BKL-32). | BKL |
 | format | `src/format.ts` | Display formatting: hours, percent, dates in viewer time zone, month names, relative time. | UI |
 | packInputs | `src/packInputs.ts` | The Monthly pack's inputs for a month (streams' releases and supported counts, utilisation), shared by the pack tab and the Insights workspace. | PCK, WSP |
@@ -323,6 +325,7 @@ This document lists every software component of the system: the in-house source 
 | class-sets.test | `tests/class-sets.test.mjs` | Sets per Release Classification value, the Epic's value list, the bulk set choice and the per-row classification (TC-DPF-06, TC-DPF-07). | DPF, EPS |
 | story-templates.test | `tests/story-templates.test.mjs` | User Story templates: cleaning, tags, linked stories and where they are used (TC-STT-01, TC-STT-02). | STT |
 | format.test | `tests/format.test.mjs` | Formatting helpers and page registry consistency. | UI, NAV |
+| home-tiles.test | `tests/home-tiles.test.mjs` | Home: the tile and link search, the Home page entry (TC-NAV-42). | NAV |
 | git-snapshots.test | `tests/git-snapshots.test.mjs` | On-prem view snapshots via Git: no PATs, digests, helpers and validation. | GIT, FET |
 | git-storage.test | `tests/git-storage.test.mjs` | Git config, planning data round trip, read/write/conflict/write-check/delete. | GIT |
 | git-watch.test | `tests/git-watch.test.mjs` | Files changed in Git since they were read here; banner names. | GIT |

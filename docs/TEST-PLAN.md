@@ -327,6 +327,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-NAV-41 Get started opens when the fetch fails** — Req NAV-41 — L1 `setup-guide.test.mjs` ("NAV-41: a failed fetch reopens the token step (token problems) and the Fetch step (any problem)"); E2E `shell.e2e.mjs` ("TC-NAV-41: a fetch that fails shows the reason in Get started and opens the token step again": Azure DevOps answers 401) — **UAT**; browser check: with an expired or revoked PAT, open the app — Get started opens with Could not fetch from Azure DevOps and the token step; save a new PAT and Fetch now — the steps turn Done; with the network off (or VPN for on-prem) the reason says Azure DevOps could not be reached.
 
+**TC-NAV-42 Home: tiles per area, links and search** — Req NAV-42, NAV-43, NAV-44 — **UAT** — L1 `home-tiles.test.mjs` ("NAV-43: a search keeps a matching tile whole, else only its matching links; nothing left out without a match (TC-NAV-42)", "NAV-42: Home is a page of its own, open to everyone, without a month"); E2E `shell.e2e.mjs` ("TC-NAV-42: Home is the start page — a tile per area with links to its pages, a search, and Home first in the menu": the start page and first menu entry, the tiles in order, six links and “+n more” showing the rest, a search keeping only matching links or whole matching tiles, nothing found, a tile opening its area and a link its page; "TC-NAV-01 / TC-NAV-17": the app opens on Home); browser check: dark mode and phone width; a role without Release Details sees no Release Details tile.
+
 **TC-NAV-36 Background jobs** — Req NAV-36 — L1 `background-jobs.test.mjs` ("background jobs: run, report progress and the result; the same job is not started twice"; "… a failed result or a thrown error marks the job; Clear finished keeps the running ones"); browser check (QMS-0025 with a saved PAT): New Feature → Save closes the form at once and the top bar shows “⟳ 1 running” with its progress, then “✓ Jobs done” with “#id … Hierarchy complete”; the menu and other pages stay usable meanwhile; Bulk actions → Create month tasks and Move run the same way and their buttons wait while the job runs; Monthly Time Writing → Save leaves a failed Task staged; reloading while a job runs asks first.
 
 **TC-NAV-34 Settings editors as pop-ups** — Req NAV-34 — browser check: Settings → Storage shows the Git storage and SharePoint summaries; "Connect Git storage…" and "Connect to SharePoint…" open pop-ups, a click beside them keeps them open, Cancel closes them; Settings → Azure DevOps: Edit on the Time Writing row and "＋ Add server" open pop-ups; Settings → Capacity & periods: "Edit capacity settings…" opens the form in a pop-up; "＋ Map an Epic or Feature…" maps #424242 and closes, the mapping's Edit opens "Change the mapping of #424242"; Settings → Feature setup: Go to Epic #13946 → the summary and "View setup…" (no Git) open "Shared Feature setup · Epic #13946", Close closes it; every pop-up form is one column (title, input, explanation per field) with Cancel then the main action at the bottom right; at 390 × 844 the connection pop-up fits without horizontal scrolling; no page errors. **UAT**
@@ -1448,7 +1450,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 ### 6.24 My dashboard and team insights
 
-**TC-MYD-01 My dashboard as the start page** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match My Tasks [Board].
+**TC-MYD-01 My dashboard** — Req MYD-01…MYD-04 — E2E `shell.e2e.mjs` ("TC-MYD-01: My dashboard — my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year"); browser check: without a work email or chosen name it asks who you are; with one, the hours match Monthly Time Writing for the month and the counts match My Tasks [Board].
 
 **TC-MYD-02 Team insights for selected roles** — Req MYD-05 — L1 `access.test.mjs` ("Team insights: My dashboard for every role, the team insights for Tool Owner, Admin and People Manager; older files keep them for those three (MYD-05, TC-MYD-02)"); browser check (Git storage with access.json): a Team Member sees My dashboard but not the Dashboard or Pulse Check; a People Manager sees both; ticking Team insights for Scrum Master in Settings → Access shows them to Scrum Masters.
 
@@ -1599,6 +1601,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NAV-39 | TC-NAV-39 |
 | NAV-40 | TC-NAV-40 |
 | NAV-41 | TC-NAV-41 |
+| NAV-42 | TC-NAV-42 |
+| NAV-43 | TC-NAV-42 |
+| NAV-44 | TC-NAV-42 |
 | CON-01…03 | TC-CON-01 |
 | CON-04…08, CON-19 | TC-CON-02 |
 | CON-09 | TC-CON-03 |
@@ -2018,7 +2023,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-UI-09, TC-UI-10 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-NAV-42, TC-UI-09, TC-UI-10 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47, TC-QV-38, TC-QV-39, TC-QV-40 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
