@@ -385,7 +385,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       <div className="query-toolbar"><select aria-label="Area" value={auditFilter.entity} onChange={(event) => setAuditFilter({ ...auditFilter, entity: event.target.value })}><option value="">All areas</option>{auditEntities.map((entity) => <option key={entity}>{entity}</option>)}</select><input className="search" aria-label="Search changes" placeholder="Search changes" value={auditFilter.text} onChange={(event) => setAuditFilter({ ...auditFilter, text: event.target.value })} /><small className="muted">{auditShown.length} of {store.state.audits.length}</small></div>
       {auditShown.slice(0, 200).map((item) => <div className="audit-row" key={item.id}><span>{item.action}</span><div><strong>{item.entity}</strong><small>{item.detail}</small></div><time>{formatDateTime(item.timestamp)}</time></div>)}
       {!store.state.audits.length && <EmptyState title="No changes recorded yet." detail="Changes made in the app will appear here." />}
-      <button className="danger-button" onClick={store.reset}>Reset synthetic MVP data</button>
+      {/* OI-09: confirmed first, recorded in History, and not offered while the data lives in SharePoint. */}
+      {store.connection.mode === 'sharepoint' ? <p className="muted">Reset synthetic MVP data is not available while the planning data is stored in SharePoint.</p>
+        : <button className="danger-button" onClick={() => { if (window.confirm('Reset the planning data in this browser to the synthetic MVP data? Your periods, capacity, resources, baselines and History here are replaced, and the fetched Azure DevOps data is cleared until the next fetch (connections and PATs are kept). If Git storage is connected, the change is only shared when someone saves it to Git.')) store.reset() }}>Reset synthetic MVP data</button>}
     </Panel>}
   </Page>
 }

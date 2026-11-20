@@ -792,6 +792,8 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | SMP-02 | When saved Azure data exists, loading the sample from Settings shall ask for confirmation first. | D | M | UC-18 |
 | SMP-03 | In sample mode the app shall show "Showing a synthetic sample dataset, not Azure DevOps data. Refresh from Azure to replace it." | D | M | UC-18 |
 | SMP-04 | The sample shall cover every model the pages use: people with profiles, streams, absence, holidays for three regions, the release source, and release scopes including a re-baseline. | T | S | UC-18 |
+| SMP-05 | While the synthetic sample is loaded, **every** write to Azure DevOps — from any page: Feature and User Story creation, Time Writing Tasks and hours, edits, state and Sprint moves, comments — shall be refused before anything is sent, with "Synthetic sample data is loaded: nothing is written to Azure DevOps. Fetch your data first." | T | M | UC-18 |
+| SMP-06 | **Reset synthetic MVP data** (Admin → History) shall ask for confirmation naming what is replaced (periods, capacity, resources, baselines, History; the fetched Azure DevOps data until the next fetch; connections and PATs kept), shall record the reset in History, and shall not be offered while the planning data is stored in SharePoint. | T | M | UC-18 |
 
 ### 5.19 Documentation (DOC) — UC-20
 

@@ -1274,6 +1274,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 ### 6.17 Sample data
 
 **TC-SMP-01 Load sample** — Req SMP-01…04, FET-14 — L1 `sample-data.test.mjs`.
+
+**TC-SMP-02 Sample mode writes nothing; the reset asks first** — Req SMP-05, SMP-06 — L1 `sample-guard.test.mjs` ("OI-10: with the synthetic sample loaded, every write to Azure DevOps is refused before anything is sent (TC-SMP-02)"); E2E `shell.e2e.mjs` ("TC-SMP-02: Reset synthetic MVP data asks first and is recorded in History"); browser check: with the sample loaded, New Feature and Time Writing saves report that nothing is written.
 - Steps:
   1. From an empty state, press "Load synthetic sample".
   2. Repeat from Settings with real data saved, and cancel.
@@ -1875,6 +1877,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DSK-04…06 | TC-DSK-02 |
 | DSK-07…10 | TC-DSK-03 |
 | SMP-01…04 | TC-SMP-01 |
+| SMP-05 | TC-SMP-02 |
+| SMP-06 | TC-SMP-02 |
 | DOC-01…03, DOC-05 | TC-DOC-01 |
 | DOC-04, DOC-06…08 | TC-DOC-02 |
 | DOC-09…11 | TC-DOC-03 |
@@ -2051,7 +2055,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
-| UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04 |
+| UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04, TC-SMP-02 |
 | UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |

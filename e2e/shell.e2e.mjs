@@ -1278,6 +1278,20 @@ test('TC-CON-61: Streams → Removed connections finds a connection dropped from
   await context.close()
 })
 
+test('TC-SMP-02: Reset synthetic MVP data asks first and is recorded in History', async () => {
+  const { page, context, errors } = await openPage(app)
+  await navigate(page, /History$/)
+  const reset = page.getByRole('button', { name: 'Reset synthetic MVP data' })
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await reset.click()
+  assert.equal(await page.locator('.audit-row', { hasText: 'Planning data reset' }).count(), 0, 'Cancel changes nothing')
+  page.once('dialog', (dialog) => { assert.match(dialog.message(), /fetched Azure DevOps data is cleared.*connections and PATs are kept/s); return dialog.accept() })
+  await reset.click()
+  await page.locator('.audit-row', { hasText: 'Planning data reset to the synthetic MVP data' }).waitFor()
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
 test('TC-QV-41: My settings → My naming patterns — your own patterns for IOCC, Content and Tool Validations, kept on this computer, back to the shared ones', async () => {
   const { page, context, errors } = await openPage(app)
   await page.getByRole('button', { name: /^My settings/ }).click()
