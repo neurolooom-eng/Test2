@@ -48,7 +48,8 @@ export async function openPage(app, { width = 1300, height = 1000, guide = false
   return { page, context, errors }
 }
 
-export const navigate = async (page, label) => { await page.locator('.sidebar nav button', { hasText: label }).first().click(); await page.locator('header.topbar h1').waitFor() }
+// Pages load on demand: wait for the page's code too (the "Loading the page…" placeholder gone).
+export const navigate = async (page, label) => { await page.locator('.sidebar nav button', { hasText: label }).first().click(); await page.locator('header.topbar h1').waitFor(); await page.locator('.page-loading').waitFor({ state: 'detached' }) }
 
 export async function loadSample(page) {
   await page.getByRole('button', { name: 'Load synthetic sample' }).first().click()

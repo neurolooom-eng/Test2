@@ -67,6 +67,8 @@ The same documents are in the app under **Data & governance → Documentation**,
 
 ## Run
 
+The browser app loads each page when it is first opened ("Loading the page…" for a moment), so it starts with a small download; the project documents load only with the Documentation page (NFR-08, v7.42.1).
+
 Requires Node.js and pnpm.
 
 ```powershell

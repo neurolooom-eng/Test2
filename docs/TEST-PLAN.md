@@ -397,6 +397,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-OV-10 Releases summary, tracking Feature and local approval dates** — Req QV-18, QV-19, OV-10 — L1 `release-overview.test.mjs`, `format.test.mjs`, `release-source.test.mjs` (the same UTC instant is 30 September in New York and 1 October in India); browser check in Asia/Kolkata with CP, DP and IOCC loaded from Git: October shows three stream quadrants and the total (3 releases, 4 documents); September shows the CP release approved 29 Sep 18:30 UTC as “September 30, 2026”, in both the quadrant and the CP view.
 
+**TC-PERF-01 Pages load on demand** — Req NFR-08 — L1 `bundle-split.test.mjs` ("NFR-08: pages load on demand — the shell imports only the start pages; the documents come with the Documentation page (TC-PERF-01)"); E2E every page opened through `navigate` (helpers.mjs waits for the page's code) and "TC-DOC-01" (the documents load with the page); browser check: `pnpm build:web` lists the main script under 1 MB and one chunk per page.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -2023,6 +2025,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
+| NFR-08 | TC-PERF-01 |
 | NFR-07 | TC-INS-01 |
 | IF-01, IF-03, IF-04 | TC-INS-04 |
 | IF-02 | TC-DSK-02 |

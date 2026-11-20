@@ -1053,6 +1053,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | NFR-05 | PAT input fields shall be password fields, and the desktop proxy shall remove the PAT from any Azure DevOps error text it returns. The redaction shall apply to the PAT as sent (trimmed). | I, T | M |
 | NFR-06 | The desktop window shall open at 1440 × 920 px and shall not be resizable below 1024 × 700 px. | I, D | S |
 | NFR-07 | The source repository shall contain no production data, tokens or employee details. | I | M |
+| NFR-08 | The web app's first download shall hold the shell and the start page only: every other page — and the project documents of the Documentation page — shall be loaded when first opened, with "Loading the page…" shown meanwhile. The main script shall stay under 1 MB (300 KB compressed); v7.43.0: 814 KB (237 KB) against 2.85 MB (830 KB) before. | T | S |
 
 ## 7. Interface requirements
 
