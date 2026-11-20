@@ -247,7 +247,7 @@ Each ADS configuration now carries a **role**: *Time tracking (Read & Write)* �
 Settings are split in two (v7.28.0):
 
 - **My settings** — click **your name** at the bottom of the sidebar. What only you use, kept on this computer: **Your work email**, **Servers and PATs** and **My views**.
-- **Admin** (the menu group, formerly Settings) — the shared setup, one page per area, each shown to the people allowed to change it (Role rights): **Streams** (the stream mapping — Tool Owner only), **Stream options** (Epics to match Features in, Bulk creation Epics, Release counts), **Epic & Feature setup** (All Epic setups, Feature fields per Epic, Value lists, Feature setup), **People & roles** (People, Capacity roles, Role rights), **Capacity & time** (capacity, profiles, bucket rules, thresholds, holidays, period control, historical hours), **Reports** (Monthly pack, Table and chart defaults), **Data & sharing** (Git storage, Load from Git, Shared setup in Git, SharePoint, Other views, Read-only sources, Synthetic sample) and **History**.
+- **Admin** (the menu group, formerly Settings) — the shared setup, one page per area, each shown to the people allowed to change it (Role rights): **Streams** (the stream mapping — Tool Owner only), **Stream options** (Epics to match Features in, Bulk creation Epics, Release counts), **Epic & Feature setup** (Setup per Epic, Value lists), **People & roles** (People, Capacity roles, Role rights), **Capacity & time** (capacity, profiles, bucket rules, thresholds, holidays, period control, historical hours), **Reports** (Monthly pack, Table and chart defaults), **Data & sharing** (Git storage, Load from Git, Shared setup in Git, SharePoint, Other views, Read-only sources, Synthetic sample) and **History**.
 
 **Admin → Overview** (v7.32.0) lists what is left to set up — the open Get started steps and the shared-setup checks — each with a link straight to the setting, shows shared changes not yet saved to Git (with Save to Git; the ADMIN heading shows a count until then) and the latest changes. **Search settings** (Ctrl K, ⌘ K on a Mac, or *Search settings* in the sidebar) finds any setting by name or topic. **History** filters the changes by area and text; Undo is not available yet.
 
@@ -257,15 +257,22 @@ Every section shows a **scope chip** saying whom a change affects: *Only you · 
 
 **My views** (My settings → My views) are your own read-only views: a name, a server you already have a PAT for, a project and a WIQL query. They appear under **Other views** in your menu and are fetched like any view, but stay on this computer — never in the shared setup in Git, a backup or SharePoint — and can never replace or change a stream (a name like *DP* or *CP* is refused), so the release figures stay the same for everyone.
 
-### Feature setup in layers
+### Setup per Epic (Feature setup)
 
-Since v7.30.0 the Feature setup of an Epic works in layers, field by field: **Built in → All Epics → the Epic's shared setup → My setup**. For the **Feature DoD**, the **optional User Stories** and the **default estimate** of the month Task, a setup either sets the field (*Set here*) or inherits it (*Inherited from …*), and a new Feature gets each from the nearest layer that sets it. **All Epics** (top of Admin → Epic & Feature setup → Feature setup) holds the defaults, changed by the roles allowed to edit the shared setup. In the editor, **Override here** copies the inherited value for you to change, and **Revert to inherited** hands the field back. Existing setups set every field, so nothing changes until you revert a field; an Epic without a setup of its own still offers the built-in milestones.
+**Admin → Epic & Feature setup → Setup per Epic** (v7.37.0) shows an Epic's whole setup on one screen. Pick an Epic on the left — **All Epics (defaults)** first; each Epic says *Uses defaults* or *n of 4 customized*. On the right:
+
+- a **preview** of a new Feature under that Epic: its title, Description (DoD and field lines), User Stories and month Task hours;
+- four sections, in the order a Feature is built: **1 Fields & title**, **2 Definition of Done**, **3 User Stories** (for the DP and IOCC bulk Epics: tabs *Release* and *PU*, plus the QE Mapping columns), **4 Month Task**. Each has one switch, **Customize for this Epic**: off, the Epic uses what All Epics gives (shown greyed); on, you edit the Epic's own value, starting from what applied.
+- **Use my own version (only me)** edits your personal copy of the Epic (the fields stay shared); *Share my version with everyone* and *Remove my own version* are below the sections. *Reset this Epic to the defaults* removes its shared setup.
+- **One Save to Git** (bottom bar) saves fields, DoD, stories and Task together; *Discard* drops every change.
+
+All Epics holds the defaults (DoD, User Stories, estimate). An Epic without a setup of its own uses them whenever All Epics has anything set; with All Epics empty, New Feature still offers the built-in PU / Full Release stories. Changing the shared setup needs **Edit the shared Feature setup**; the fields need **Edit the Epic setup**; your own version needs only your work email and a Git token that can write.
 
 ### Epic setup
 
 **Admin → Epic & Feature setup** (v7.29.0, replacing Master data) holds, per Epic, the extra fields its new Features carry — Program for DP, Platform for CP, and so on — shared with everyone through Git (`epic-setup.json`):
 
-- **Feature fields per Epic**: a label (its placeholder, e.g. `{platform}`), a type (Text, List, Number, Date), for a List the value list it offers, **If empty** — *Optional*, *Warn* (the Feature is created and the empty field is pointed out) or *Block* (New Feature waits for it; bulk creation skips that release) — where it **goes** (Description as "Label : value", the Title, or both) and an optional on-prem field read from a release's on-prem item. An optional **title pattern** (e.g. `{platform} | {feature}`) builds the Title; without one, the Title fields are joined with " | ". A preview shows an example Title and Description.
+- **Fields & title** (section 1 of Setup per Epic): a label (its placeholder, e.g. `{platform}`), a type (Text, List, Number, Date), for a List the value list it offers, **If empty** — *Optional*, *Warn* (the Feature is created and the empty field is pointed out) or *Block* (New Feature waits for it; bulk creation skips that release) — where it **goes** (Description as "Label : value", the Title, or both) and an optional on-prem field read from a release's on-prem item. An optional **title pattern** (e.g. `{platform} | {feature}`) builds the Title; without one, the Title fields are joined with " | ". A preview shows an example Title and Description.
 - **Value lists**: the drop-down values, shared by every Epic, one per line.
 - **Copy to Epics** gives other Epics the same fields and pattern (e.g. a stream whose Epics are split by leader), then Save to Git.
 

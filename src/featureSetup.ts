@@ -169,7 +169,7 @@ export function personalSetupPath(email: string) {
 export interface FeatureSetups { shared: FeatureSetupFile | null; personal: FeatureSetupFile | null }
 // BKL-28: the only Time Writing setting of an Epic setup — the default Original Estimate of a new month Task.
 export function setupHours(setups: FeatureSetups | null | undefined, epicId: number | undefined): number | undefined { return chooseSetup(setups, epicId).setup?.task.originalEstimate }
-export type SetupSource = 'personal' | 'shared'
+export type SetupSource = 'personal' | 'shared' | 'defaults'
 // The setup used for an Epic: my own first, else the shared one; preferShared skips mine when a shared one exists.
 // CON-95: an Epic with a setup (mine or shared) gets each inheritable field from the nearest layer that sets it —
 // Mine, then the Epic's shared setup, then All Epics, then Built in (the default DoD of its stories, no stories, no
@@ -179,14 +179,16 @@ export type SetupOrigin = 'mine' | 'epic' | 'all' | 'builtin'
 export function chooseSetup(setups: FeatureSetups | null | undefined, epicId: number | undefined, preferShared = false): { setup?: EpicSetup; source?: SetupSource; origin?: Record<InheritField, SetupOrigin> } {
   const personal = setupFor(setups?.personal ?? null, epicId), shared = setupFor(setups?.shared ?? null, epicId)
   const useMine = Boolean(personal && !(preferShared && shared))
-  const base = useMine ? personal : shared
+  // CON-97: an Epic without a setup of its own uses All Epics when All Epics has anything set.
+  const defaults = setups?.shared?.defaults
+  const base = useMine ? personal : shared ?? (epicId != null && defaults && Object.keys(defaults).length ? { ...emptySetup(epicId), inherits: [...inheritFields] } : undefined)
   if (!base) return {}
-  const layers = [...(useMine ? [{ entry: personal!, origin: 'mine' as const }] : []), ...(shared ? [{ entry: shared, origin: 'epic' as const }] : [])]
+  const layers = [...(useMine ? [{ entry: personal!, origin: 'mine' as const }] : []), ...(shared ? [{ entry: shared, origin: 'epic' as const }] : base && !useMine ? [{ entry: base, origin: 'epic' as const }] : [])]
   const resolved = resolveFields(layers, setups?.shared?.defaults)
   const setup: EpicSetup = { ...structuredClone(base), featureDoD: resolved.featureDoD, stories: resolved.stories, task: { ...base.task, ...(resolved.originalEstimate != null ? { originalEstimate: resolved.originalEstimate } : {}) } }
   if (resolved.originalEstimate == null) delete setup.task.originalEstimate
   delete setup.inherits
-  return { setup, source: useMine ? 'personal' : 'shared', origin: resolved.origin }
+  return { setup, source: useMine ? 'personal' : shared ? 'shared' : 'defaults', origin: resolved.origin }
 }
 // The value of each inheritable field and where it comes from, through the given layers (nearest first).
 export function resolveFields(layers: { entry: EpicSetup; origin: SetupOrigin }[], defaults: SetupDefaults | undefined) {

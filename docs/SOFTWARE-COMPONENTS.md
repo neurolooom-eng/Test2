@@ -85,7 +85,6 @@ This document lists every software component of the system: the in-house source 
 | HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |
 | ViewAsDialog | `src/components/ViewAsDialog.tsx` | View as: choose a person or a role to view the app as, read only. | CON |
 | MonthlyPackSetupPanel | `src/components/MonthlyPackSetupPanel.tsx` | Settings → Monthly pack: slide lines (streams, Epics) and KPI rows (Epic, metric), saved to Git. | PCK |
-| FeatureSetupPanel | `src/components/FeatureSetupPanel.tsx` | Settings → Feature setup: per-Epic optional stories, title fields, Feature DoD and the month Task's default hours, shared and personal layers. | CON |
 | GapsPanel | `src/components/GapsPanel.tsx` | Lists items the page did not pick up for the month and why. | MON, TWN |
 | GitStorage | `src/components/GitStorage.tsx` | Settings panel for the Git data file location and token, plus a Git sync bar. | GIT |
 | Markdown | `src/components/Markdown.tsx` | Renders parsed Markdown blocks as React elements; internal links via callback, external https in new tab. | DOC |
@@ -116,13 +115,11 @@ This document lists every software component of the system: the in-house source 
 | epicSetup | `src/epicSetup.ts` | The Epic setup file (fields, value lists, title pattern), the Title and Description of a new Feature from its fields, Block / Warn, bulk creation and Copy to Epics (EPS-01…05). | EPS |
 | useEpicSetup | `src/useEpicSetup.ts` | The shared Epic setup from Git (epic-setup.json), its cached copy and draft, and the context for New Feature and bulk creation (EPS-01). | EPS |
 | EpicSetupPanel | `src/components/EpicSetupPanel.tsx` | Admin → Epic setup: Feature fields per Epic, title pattern and preview, Copy to Epics, and the value lists (EPS-01, EPS-05). | EPS |
-| AllEpicsDefaults | `src/components/AllEpicsDefaults.tsx` | Admin → Feature setup → All Epics: the defaults every Epic's setup can inherit (CON-95). | CON |
 | myNamingPatterns | `src/myNamingPatterns.ts` | My own release naming patterns for IOCC, Content and Tool Validations, kept on this computer, and the version that redraws the figures (QV-60). | QV |
 | adminOverview | `src/adminOverview.ts` | The Admin Overview's health items and the settings search index (ADM-01, ADM-03). | ADM |
 | onPremValues | `src/onPremValues.ts` | The values of an on-prem field in the fetched data, for the drop-down of an Epic setup field (EPS-06). | EPS |
-| epicSetupRows | `src/epicSetupRows.ts` | The rows of All Epic setups: each Epic's fields, title pattern and Feature setup (EPS-08). | EPS |
-| AllEpicSetups | `src/components/AllEpicSetups.tsx` | Admin → Epic & Feature setup → All Epic setups (EPS-08). | EPS |
 | QePick | `src/components/QePick.tsx` | The person drop-down of a release in the bulk Create Features pop-ups (DPF-06). | DPF |
+| EpicFeatureEditor | `src/components/EpicFeatureEditor.tsx` | Admin → Epic & Feature setup → Setup per Epic: the Epic list, the preview and the four sections with Customize switches, my own version, one Save (CON-97). | CON, EPS |
 | AdminOverview | `src/components/AdminOverview.tsx` | Admin → Overview: setup health with links, unsaved shared changes with Save to Git, latest changes (ADM-01, ADM-02). | ADM |
 | SettingsSearch | `src/components/SettingsSearch.tsx` | The Search settings pop-up (Ctrl K) (ADM-03). | ADM |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |

@@ -15,8 +15,8 @@ export function adminHealth(steps: SetupStep[], facts: AdminFacts): HealthItem[]
   if (!facts.policy) checks.push({ id: 'access', title: 'No access roles yet', detail: 'Without access.json everyone sees every page and may do everything.', tone: 'info', fix: { tab: 'resources', section: 'rights', label: 'Role rights' } })
   else if (!facts.toolOwner) checks.push({ id: 'toolowner', title: 'No Tool Owner', detail: 'Nobody holds the Tool Owner role: those who manage access change the stream mapping until one is named (CON-93).', tone: 'warn', fix: { tab: 'resources', section: 'rights', label: 'Role rights' } })
   if (!facts.ioccBulkEpic) checks.push({ id: 'iocc-epic', title: 'IOCC bulk creation Epic not chosen', detail: 'IOCC Create Features needs the Epic its Features go under.', tone: 'info', fix: { tab: 'options', section: 'bulk', label: 'Bulk creation Epics' } })
-  if (!facts.epicSetups) checks.push({ id: 'epic-setup', title: 'No Epic setup yet', detail: 'Optional: the extra fields (Program, Platform…) new Features carry per Epic.', tone: 'info', fix: { tab: 'epics', section: 'fields', label: 'Epic setup' } })
-  if (!facts.sharedFeatureSetups) checks.push({ id: 'feature-setup', title: 'No shared Feature setup yet', detail: 'Optional: the User Stories, DoD and estimate new Features get per Epic.', tone: 'info', fix: { tab: 'epics', section: 'feature', label: 'Feature setup' } })
+  if (!facts.epicSetups) checks.push({ id: 'epic-setup', title: 'No Epic setup yet', detail: 'Optional: the extra fields (Program, Platform…) new Features carry per Epic.', tone: 'info', fix: { tab: 'epics', section: 'setup', label: 'Epic setup' } })
+  if (!facts.sharedFeatureSetups) checks.push({ id: 'feature-setup', title: 'No shared Feature setup yet', detail: 'Optional: the User Stories, DoD and estimate new Features get per Epic.', tone: 'info', fix: { tab: 'epics', section: 'setup', label: 'Feature setup' } })
   const order: Record<HealthTone, number> = { todo: 0, warn: 1, info: 2, ok: 3 }
   return [...fromSteps, ...checks].sort((a, b) => order[a.tone] - order[b.tone])
 }
@@ -33,9 +33,9 @@ export const settingsIndex: SettingsEntry[] = [
   { tab: 'options', section: 'epics', page: 'Stream options', label: 'Epics to match Features in', words: 'feature matching board epics dp cp iocc content' },
   { tab: 'options', section: 'bulk', page: 'Stream options', label: 'Bulk creation Epics', words: 'create features bulk epic dp iocc content' },
   { tab: 'options', section: 'counts', page: 'Stream options', label: 'Release counts', words: 'completed supported placeholders entered counts' },
-  { tab: 'epics', section: 'feature', page: 'Epic & Feature setup', label: 'Feature setup', words: 'user stories dod estimate all epics inherit new feature task time writing' },
-  { tab: 'epics', section: 'all', page: 'Epic & Feature setup', label: 'All Epic setups', words: 'list every epic overview fields feature setup' },
-  { tab: 'epics', section: 'fields', page: 'Epic & Feature setup', label: 'Feature fields per Epic', words: 'program platform title pattern master data fields copy to epics' },
+  { tab: 'epics', section: 'setup', page: 'Epic & Feature setup', label: 'Feature setup', words: 'user stories dod estimate all epics inherit new feature task time writing' },
+  { tab: 'epics', section: 'setup', page: 'Epic & Feature setup', label: 'Setup per Epic', words: 'list every epic all epics defaults overview' },
+  { tab: 'epics', section: 'setup', page: 'Epic & Feature setup', label: 'Feature fields per Epic', words: 'program platform title pattern master data fields copy to epics' },
   { tab: 'epics', section: 'lists', page: 'Epic & Feature setup', label: 'Value lists', words: 'drop-down dropdown master data values' },
   { tab: 'resources', section: 'people', page: 'People & roles', label: 'People', words: 'region role reports to joined left team' },
   { tab: 'resources', section: 'capacity-roles', page: 'People & roles', label: 'Capacity roles', words: 'qe lead manager counted capacity' },

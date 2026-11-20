@@ -211,16 +211,15 @@ test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, 
   // Admin → Epic setup: the fields and the list, read-only without Git storage.
   await navigate(page, 'Epic & Feature setup')
   assert.equal(await text(page.locator('header.topbar h1')), 'Epic & Feature setup')
-  // EPS-08: All Epic setups lists it; Fields opens its Feature fields.
-  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'All Epic setups' }).click()
-  const listed = page.locator('.epic-setups-table tr', { hasText: `#${epicId}` })
-  assert.match(await text(listed), /Platform \(list\) · Block, Program · Block, Owner · Warn.*\{platform\} \| \{feature\}/)
-  await listed.getByRole('button', { name: 'Fields' }).click()
-  assert.equal(await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Feature fields per Epic' }).getAttribute('aria-selected'), 'true')
-  await page.getByLabel('Epic', { exact: true }).selectOption(String(epicId))
+  // CON-97: Setup per Epic — the Epic in the list, its fields read-only without Git storage, the preview.
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Setup per Epic' }).click()
+  const listed = page.locator('.efe-epics button', { hasText: `#${epicId}` })
+  assert.match(await text(listed), /1 of 4 customized/, 'the Epic shows what it customizes')
+  await listed.click()
+  assert.equal(await page.getByRole('switch', { name: 'Customize Fields and title for this Epic' }).getAttribute('aria-checked'), 'true')
   assert.equal(await page.getByLabel('Field 1 label').inputValue(), 'Platform')
   assert.equal(await page.getByLabel('Field 1 label').isDisabled(), true, 'read-only without Git storage')
-  assert.match(await text(page.locator('.epic-preview')), /Title: Platform 1\.0 \| Feature title.*Description: Program : Program · Owner : Owner/s)
+  assert.match(await text(page.locator('.efe-preview')), /Title Platform 1\.0 \| Feature title.*Description .*Program : Program.*Owner : Owner/s)
   await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Value lists' }).click()
   assert.equal(await page.getByLabel('Values of Platform').inputValue(), 'Platform 1.0\nPlatform 2.0')
   assert.deepEqual(errors, [])

@@ -577,7 +577,7 @@ test('TC-SET-06: Admin lists the shared setup pages, My settings opens from your
   assert.match(await text(page.locator('.scope-line')), /Only you · This computer/)
   // EPS-08: Epic setup and Feature setup are one page, starting from the list of all Epic setups.
   await navigate(page, 'Epic & Feature setup')
-  assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['All Epic setups', 'Feature fields per Epic', 'Value lists', 'Feature setup'])
+  assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Setup per Epic', 'Value lists'])
   assert.deepEqual(errors, [])
   await context.close()
 })
@@ -1213,28 +1213,25 @@ test('TC-SET-07: My views — a view of your own on a server you have a PAT for,
   await context.close()
 })
 
-test('TC-CON-60: Feature setup — All Epics defaults, and an Epic setup showing each field as set here or inherited', async () => {
+test('TC-CON-60: Setup per Epic — All Epics defaults, and an Epic showing which sections it customizes, with a preview', async () => {
   const shared = { schema: 1, kind: 'feature-setup', defaults: { stories: [{ title: 'All Epics story', description: '' }], originalEstimate: 3 }, epics: [
     { epicId: 4242, epicTitle: 'Inheriting Epic', inherits: ['stories', 'estimate'], featureDoD: 'Own DoD', stories: [], timeWritingStory: { title: '{feature} - Time Writing', description: '', assignedTo: '', areaPath: '', iterationPath: '' }, task: { title: '{month} | {feature}', description: '', assignedTo: '', areaPath: '', iterationPath: '' } },
   ] }
   const { page, context, errors } = await openPage(app, { init: (text) => localStorage.setItem('demand-planning-feature-setup-v1', text), initArg: JSON.stringify(shared) })
   await navigate(page, 'Epic & Feature setup')
-  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Feature setup' }).click()
-  const all = page.locator('details.setup-all-epics')
-  assert.match(await text(all.locator('summary')), /All Epics.*\(2 set\)/)
-  await all.locator('summary').click()
-  assert.equal(await page.getByLabel('All Epics optional User Stories').inputValue(), 'All Epics story')
-  assert.equal(await page.getByLabel('All Epics default estimate').inputValue(), '3')
-  assert.equal(await page.getByLabel('All Epics Feature DoD').isDisabled(), true, 'view only without Git storage')
-  await page.getByLabel('Go to Epic #').fill('4242')
-  await page.getByLabel('Go to Epic #').press('Enter')
-  await page.getByRole('button', { name: /^(View|Edit) setup…$/ }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog.waitFor()
-  const origins = (await dialog.locator('.setup-origin').allInnerTexts()).map((entry) => entry.replace(/\s+/g, ' ').trim())
-  assert.deepEqual(origins, ['Set here', 'Inherited from All Epics', 'Inherited from All Epics'], 'DoD set here; stories and estimate inherited')
-  assert.match(await text(dialog.locator('.setup-inherited')), /All Epics story/)
-  assert.equal(await dialog.getByLabel(/^Default Original Estimate/).inputValue(), '3')
+  await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Setup per Epic' }).click()
+  // CON-97: All Epics first — its defaults, view only without Git storage.
+  await page.locator('.efe-epics button', { hasText: 'All Epics' }).click()
+  assert.equal(await text(page.locator('.efe-main h2')), 'All Epics — defaults')
+  assert.equal(await page.getByLabel('User Story 1 title').inputValue(), 'All Epics story')
+  assert.equal(await page.getByLabel('Default Original Estimate').inputValue(), '3')
+  assert.equal(await page.getByLabel('User Story 1 title').isDisabled(), true, 'view only without Git storage')
+  // The Epic: its DoD customized, stories and estimate from All Epics, shown in the preview.
+  await page.locator('.efe-epics button', { hasText: '#4242' }).click()
+  const switchOf = (name) => page.getByRole('switch', { name: `Customize ${name} for this Epic` })
+  assert.deepEqual([await switchOf('Definition of Done').getAttribute('aria-checked'), await switchOf('User Stories').getAttribute('aria-checked'), await switchOf('Month Task').getAttribute('aria-checked')], ['true', 'false', 'false'])
+  assert.match(await text(page.locator('section[aria-label="User Stories"] .efe-inherited')), /FROM ALL EPICS All Epics story/)
+  assert.match(await text(page.locator('.efe-preview')), /Feature DoD: Own DoD.*User Stories All Epics story.*Month Task 3 h/s)
   assert.deepEqual(errors, [])
   await context.close()
 })
