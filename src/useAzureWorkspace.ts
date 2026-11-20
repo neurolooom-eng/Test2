@@ -1,7 +1,7 @@
 import { fetchProblemKind, type FetchProblem } from './setupGuide'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { initialWorkEmail, saveWorkEmail } from './workEmail'
-import { dependencyFields, fetchAzureWorkItems, isCloudBase, mapAzureWorkItem, mergeAzureWorkItems, parseAzureProjectUrl, readFieldNames, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
+import { dependencyFields, fetchAzureWorkItems, guardSampleWrites, isCloudBase, mapAzureWorkItem, mergeAzureWorkItems, parseAzureProjectUrl, readFieldNames, savedBacklogItems, sameAzureScope, updateAzureTimeWritingEffort, type AzureFetchResult, type AzureConfig } from './azureDevOps'
 import type { PageProps } from './pages/types'
 import type { AzureWorkItem } from './domain'
 import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles, loadAzureConnectionProfile, saveAzureConnectionProfile, forgetAzureConnectionProfile, composeAzureUrl, collectionUrlFrom, type AzureConnectionProfile, type AzureConnectionProfileSummary, type AzureConnectionRole, loadServerPat, serverKey } from './azureCredentials'
@@ -67,6 +67,8 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
   const items = preview && sameAzureScope(preview.scope, config) ? preview.items : saved
   const needsScopedRefresh = Boolean((store.state.azureWorkItems?.length ?? 0) && !sameAzureScope(store.state.azureBacklogScope, config))
   const isSample = Boolean(!preview && store.state.azureBacklogScope?.sample && sameAzureScope(store.state.azureBacklogScope, config))
+  // OI-10: every write to Azure DevOps is refused while the sample is loaded (checked in requestAzure).
+  useEffect(() => { guardSampleWrites(() => isSample) })
 
   // Synthetic dataset for demonstrations: replaces the Azure cache and the release source; never touches Azure DevOps.
   function loadSampleData() {
