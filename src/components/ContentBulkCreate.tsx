@@ -39,7 +39,7 @@ export function ContentBulkCreate({ releases, featureTitle, featureMatch, azure,
     return () => { active = false }
   }, [azure.config, azure.pat])
   const pair = pairs?.[choice]
-  const blocked = azure.isSample ? 'Synthetic sample data is loaded: creating in Azure DevOps is disabled.' : !azure.config || !azure.pat ? 'Connect the QMS-0025 Time Writing connection with a PAT first (Settings → Azure DevOps).' : !epic ? `Epic #${contentEpicId} is not on the loaded QMS-0025 board: load the board first.` : !pair ? (error || 'Loading the PI / Sprint…') : !ready.length ? 'None of the selected releases can be created (see the reasons).' : ready.some((line) => !ownerOf(line)) ? 'Choose who the Features are assigned to (a name on QMS-0025, or an email), for all or on each row.' : ''
+  const blocked = azure.isSample ? 'Synthetic sample data is loaded: creating in Azure DevOps is disabled.' : !azure.config || !azure.pat ? 'Connect the QMS-0025 Time Writing connection with a PAT first (My settings → Servers and PATs).' : !epic ? `Epic #${contentEpicId} is not on the loaded QMS-0025 board: load the board first.` : !pair ? (error || 'Loading the PI / Sprint…') : !ready.length ? 'None of the selected releases can be created (see the reasons).' : ready.some((line) => !ownerOf(line)) ? 'Choose who the Features are assigned to (a name on QMS-0025, or an email), for all or on each row.' : ''
 
   function create() {
     if (blocked || !azure.config || !epic || !pair) return

@@ -5,13 +5,13 @@ import { useCan } from '../useCan'
 import { useState } from 'react'
 import type { AzureWorkItem } from '../domain'
 import { AllEpicsDefaults } from './AllEpicsDefaults'
-import { resolveFields, ioccSetsOf, type InheritField, type SetupOrigin, dpEpicId, releaseTypesOf, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, removeSetup, editSetup, setupFor, setupsMissingDoD, defaultDoDFor, fillMissingDoD, missingDoD, sharedSetupRows, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
+import { resolveFields, ioccSetsOf, type InheritField, type SetupOrigin, dpEpicId, releaseTypesOf, builtinMilestones, builtinSetup, copySetup, emptySetup, fillTitle, missingValues, placeholders, setupFor, setupsMissingDoD, defaultDoDFor, missingDoD, titleValues, type EpicSetup, type FeatureSetupFile } from '../featureSetup'
 import { currentIndiaMonth } from '../azureDevOps'
 import type { FeatureSetup } from '../useFeatureSetup'
 import type { GitStorage } from '../useGitStorage'
 import { EmptyState, Modal, Notice, Panel, Info } from './ui'
 
-// Settings → Feature setup: per Epic, the optional User Stories offered when a Feature is created under it (all ticked
+// Admin → Epic & Feature setup → Feature setup: per Epic, the optional User Stories offered when a Feature is created under it (all ticked
 // by default) and the defaults of the month Time Writing Task. Two layers: "My setup" (feature-setup/<my email>.json,
 // used only when I create a Feature, before the shared one) and "Shared" (feature-setup.json, everyone). Anyone whose
 // Git token can write may edit either, and "Enable for everyone" copies my setup of an Epic into the shared one.
@@ -42,32 +42,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [], initi
   const epicFields = epicFieldsFor(epicSetupFile, chosen)
   const sharedEntry = setupFor(setup.shared, chosen), myEntry = setupFor(setup.personal, chosen)
   const switchLayer = (next: 'mine' | 'shared') => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer(next) }
-  // Every shared setup at once, editable in place (titles, stories, estimate) with one Save to Git for all changed
-  // rows; Open shows an Epic's shared setup in the pop-up with every field.
-  const [listDraft, setListDraft] = useState<FeatureSetupFile | null>(null)
-  const [listEditing, setListEditing] = useState<number[]>([])
-  const [listCommit, setListCommit] = useState('')
   const sharedEditable = git.connected && !git.readOnly && !git.isSample && can('setup.feature')
-  const sharedRows = sharedSetupRows({ shared: listDraft ?? setup.shared, personal: setup.personal })
-  const listMissing = listDraft ? setupsMissingDoD(listDraft, setup.shared) : []
-  const listChanged = (id: number) => JSON.stringify(setupFor(listDraft, id) ?? null) !== JSON.stringify(setupFor(setup.shared, id) ?? null)
-  const editRow = (id: number, update: (entry: EpicSetup) => void) => { setListDraft((current) => editSetup(current ?? structuredClone(setup.shared!), id, update)); setResult(null) }
-  // Editing a row whose setup has no Feature DoD pre-fills the default (reviewed before Save to Git).
-  const startRow = (id: number) => { if (draft && !window.confirm('Discard the unsaved changes in the Feature setup editor?')) return; setDraft(null); setListEditing((current) => current.includes(id) ? current : [...current, id]); const entry = setupFor(listDraft ?? setup.shared, id); if (entry && missingDoD(entry)) editRow(id, (item) => { item.featureDoD = defaultDoDFor(item) }) }
-  const missingCount = (listDraft ?? setup.shared)?.epics.filter(missingDoD).length ?? 0
-  const fillAll = () => { setListDraft((current) => fillMissingDoD(current ?? structuredClone(setup.shared!)).file); setResult(null) }
-  const removeRow = (id: number) => { if (!window.confirm(`Delete the shared setup of Epic #${id}? Features under it then use the built-in milestones (or a person's own setup). It is deleted in Git when you press Save to Git.`)) return; setListDraft((current) => removeSetup(current ?? structuredClone(setup.shared!), id)); setListEditing((current) => current.filter((entry) => entry !== id)); setResult(null) }
-  const discardList = () => { setListDraft(null); setListEditing([]); setListCommit('') }
-  async function saveList(event: React.FormEvent) {
-    event.preventDefault()
-    if (!listDraft || listMissing.length) return
-    const changed = [...new Set([...listDraft.epics, ...(setup.shared?.epics ?? [])].map((entry) => entry.epicId))].filter(listChanged)
-    setBusy(true)
-    try { const saved = await setup.saveShared(listDraft, listCommit.trim() || `Update the shared Feature setup of Epic${changed.length === 1 ? '' : 's'} ${changed.map((id) => `#${id}`).join(', ')}`); discardList(); setResult({ tone: 'success', text: `Shared Feature setup saved to Git (${changed.length} Epic${changed.length === 1 ? '' : 's'}).`, url: saved.commitUrl }) }
-    catch (failure) { setResult({ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }) }
-    finally { setBusy(false) }
-  }
-  const openShared = (id: number) => { if (listDraft && !window.confirm('Discard the unsaved changes in the list?')) return; discardList(); if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); setLayer('shared'); setEpicId(id); setEditing(true) }
   const draftMissing = draft ? setupsMissingDoD(draft, base) : []
   // The editor is a pop-up; closing it with unsaved changes asks first.
   const closeEditor = () => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setEditing(false) }
@@ -112,7 +87,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [], initi
     if (!window.confirm(`Delete ${mine ? 'your' : 'the shared'} Feature setup of Epic ${epicLabel} from Git now? ${mine ? (sharedEntry ? 'The shared setup then applies to you.' : 'The built-in milestones then apply.') : 'Features under it then use the built-in milestones (or a person\'s own setup).'}`)) return
     const next = { ...base, epics: base.epics.filter((entry) => entry.epicId !== chosen) }
     setBusy(true)
-    try { const saved = mine ? await setup.savePersonal(next, `Delete my Feature setup of Epic #${chosen} (${setup.email})`) : await setup.saveShared(next, `Delete the shared Feature setup of Epic #${chosen}`); discardList(); setResult({ tone: 'success', text: `${mine ? 'Your' : 'The shared'} Feature setup of Epic #${chosen} was deleted in Git.`, url: saved.commitUrl }) }
+    try { const saved = mine ? await setup.savePersonal(next, `Delete my Feature setup of Epic #${chosen} (${setup.email})`) : await setup.saveShared(next, `Delete the shared Feature setup of Epic #${chosen}`); setResult({ tone: 'success', text: `${mine ? 'Your' : 'The shared'} Feature setup of Epic #${chosen} was deleted in Git.`, url: saved.commitUrl }) }
     catch (failure) { setResult({ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) }) }
     finally { setBusy(false) }
   }
@@ -139,46 +114,13 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [], initi
   return <Panel className="admin-section" eyebrow="NEW FEATURES" title="Feature setup per Epic" info={<>When a Feature is created under an Epic, its optional User Stories (all ticked, untick what is not needed), the Time Writing User Story and the month Time Writing Task defaults come from here. An Epic without a setup keeps the PU / Full Release milestones. <strong>My setup</strong> is yours alone (Git: feature-setup/&lt;your email&gt;.json) and is used before the shared one when you create a Feature. <strong>Shared</strong> is for everyone without their own setup of the Epic (Git: feature-setup.json). <strong>Enable for everyone</strong> copies your setup of the Epic into the shared one. Saving needs a Git token that can write; personal files sit in the same repository, so anyone with access to it can read them.{setup.history && <> <a href={setup.history} target="_blank" rel="noreferrer">History</a></>}</>}
     action={<div className="button-row">
       <div className="segmented" role="group" aria-label="Which setup">{setup.email && <button type="button" aria-pressed={mine} onClick={() => switchLayer('mine')}>My setup</button>}<button type="button" aria-pressed={!mine} onClick={() => switchLayer('shared')}>Shared (everyone)</button></div>
-      {git.connected && <button type="button" className="ghost" onClick={() => { if ((draft || listDraft) && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); discardList(); setResult(null); void setup.reload() }}>Reload from Git</button>}
+      {git.connected && <button type="button" className="ghost" onClick={() => { if (draft && !window.confirm('Discard the unsaved changes?')) return; setDraft(null); setResult(null); void setup.reload() }}>Reload from Git</button>}
     </div>}>
     <p className="muted setup-layer">{mine ? <>Your own setup ({setup.email}). It is used only when <strong>you</strong> create a Feature, before the shared one.</> : <>The shared setup, used by everyone who has no setup of their own for the Epic.</>}</p>
     {!setup.email && <Notice tone="info">Set your email on the Time Writing connection to keep a setup of your own; until then only the shared setup is shown.</Notice>}
-    {!git.connected && <Notice tone="info">Connect Git storage (Storage tab) to share the Feature setup.{setup.shared || setup.personal ? ' The setup last loaded in this browser is used meanwhile.' : ''}</Notice>}
+    {!git.connected && <Notice tone="info">Connect Git storage (Admin → Data & sharing) to share the Feature setup.{setup.shared || setup.personal ? ' The setup last loaded in this browser is used meanwhile.' : ''}</Notice>}
     {git.connected && git.readOnly && <Notice tone="info">View only: your Git token can read but not save.</Notice>}
     {setup.error && <Notice tone="error">Feature setup: {setup.error}</Notice>}
-    <details className="setup-all" open={Boolean(listDraft) || (sharedRows.length > 0 && sharedRows.length <= 12)}>
-      <summary><strong>All shared setups</strong> <span className="muted">({sharedRows.length} Epic{sharedRows.length === 1 ? '' : 's'}{git.connected ? '' : ', as last loaded in this browser'})</span></summary>
-      {sharedRows.length > 0 && !sharedEditable && <p className="muted">{git.connected ? git.readOnly ? 'View only: your Git token can read but not save.' : 'Synthetic sample data is loaded: editing is disabled.' : 'Connect Git storage (Storage tab) to edit them here.'}</p>}
-      {sharedEditable && missingCount > 0 && <div className="setup-fill-dod"><span className="warning-text">{missingCount} shared setup{missingCount === 1 ? ' has' : 's have'} no Feature DoD.</span><button type="button" className="ghost" disabled={busy} onClick={fillAll}>Fill missing DoDs with the default</button><small className="muted">Full Release DoD for setups with a PRD story, PU DoD otherwise; review, then Save to Git.</small></div>}
-      {sharedRows.length ? <div className="azure-table"><table className="setup-all-table"><thead><tr><th>Epic</th><th>Feature DoD</th><th>Optional User Stories</th><th>Month Task hours</th><th /></tr></thead><tbody>
-        {sharedRows.map((row) => { const title = epics.find((item) => item.id === row.epicId)?.title || row.epicTitle, on = sharedEditable && listEditing.includes(row.epicId), changed = Boolean(listDraft) && listChanged(row.epicId); return <tr key={row.epicId} className={on ? 'setup-all-editing' : undefined}>
-          <td><strong>#{row.epicId}</strong>{title && <small>{title}</small>}{changed && <small className="warning-text">Changed · not yet in Git</small>}{row.mineInstead && <small className="warning-text">Your own setup replaces it for you</small>}</td>
-          {on ? <>
-            <td><textarea className="setup-all-dod" aria-label={`Epic #${row.epicId} Feature DoD`} rows={3} required value={row.featureDoD} maxLength={100000} placeholder="Required, e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => editRow(row.epicId, (entry) => { entry.featureDoD = event.target.value })} /></td>
-            <td><ol className="setup-all-stories setup-all-edit">{row.stories.map((story, index) => <li key={index}>
-              <input aria-label={`Epic #${row.epicId} story ${index + 1}`} value={story} maxLength={255} onChange={(event) => editRow(row.epicId, (entry) => { entry.stories[index].title = event.target.value })} />
-              <button type="button" className="ghost" aria-label="Move up" disabled={index === 0} onClick={() => editRow(row.epicId, (entry) => { [entry.stories[index - 1], entry.stories[index]] = [entry.stories[index], entry.stories[index - 1]] })}>↑</button>
-              <button type="button" className="ghost" aria-label="Move down" disabled={index === row.stories.length - 1} onClick={() => editRow(row.epicId, (entry) => { [entry.stories[index + 1], entry.stories[index]] = [entry.stories[index], entry.stories[index + 1]] })}>↓</button>
-              <button type="button" className="text-button" aria-label={`Remove story ${index + 1}`} onClick={() => editRow(row.epicId, (entry) => { entry.stories.splice(index, 1) })}>✕</button>
-            </li>)}</ol><button type="button" className="text-button" onClick={() => editRow(row.epicId, (entry) => { entry.stories.push({ title: '', description: '' }) })}>＋ Add User Story</button></td>
-            <td><label className="setup-all-estimate">Estimate (h)<input type="number" min="0" max="1000000" step="0.25" aria-label={`Epic #${row.epicId} month Task hours`} value={row.originalEstimate ?? ''} placeholder="None" onChange={(event) => editRow(row.epicId, (entry) => { const value = event.target.value.trim(); if (value === '') delete entry.task.originalEstimate; else entry.task.originalEstimate = Number(value) })} /></label></td>
-            <td><div className="button-row setup-all-actions"><button type="button" className="ghost" onClick={() => setListEditing((current) => current.filter((entry) => entry !== row.epicId))}>Done</button><button type="button" className="text-button" title="Open the full editor of this setup: also the Descriptions of the optional User Stories" onClick={() => openShared(row.epicId)}>All fields…</button><button type="button" className="text-button danger-text" onClick={() => removeRow(row.epicId)}>Delete</button></div></td>
-          </> : <>
-            <td>{row.featureDoD.trim() ? row.featureDoD : <><span className="warning-text">Missing</span><small>Default: {defaultDoDFor({ stories: row.stories.map((title) => ({ title, description: '' })) })}</small></>}</td>
-            <td>{row.stories.length ? <ol className="setup-all-stories">{row.stories.map((story, index) => <li key={index}>{story || '(untitled)'}</li>)}</ol> : <span className="muted">None</span>}</td>
-            <td>{row.originalEstimate != null ? `${row.originalEstimate}h` : <span className="muted">None</span>}</td>
-            <td><div className="button-row setup-all-actions">{sharedEditable && <button type="button" className="primary" disabled={busy} onClick={() => startRow(row.epicId)}>Edit</button>}<button type="button" className="ghost" title="Open the full editor of this setup: also the Descriptions of the optional User Stories" onClick={() => openShared(row.epicId)}>{sharedEditable ? 'All fields…' : 'Open'}</button>{sharedEditable && <button type="button" className="text-button danger-text" disabled={busy} onClick={() => removeRow(row.epicId)}>Delete</button>}</div></td>
-          </>}
-        </tr> })}
-      </tbody></table></div> : <p className="muted">{git.connected && !setup.loaded ? 'Loading from Git…' : 'No shared setup yet: every Epic uses the built-in milestones unless someone has a setup of their own.'}</p>}
-      {sharedEditable && listDraft && <form className="git-bar git-bar-dirty" onSubmit={saveList}>
-        <span><strong>Unsaved shared Feature setup</strong> — not yet in Git</span>
-        <input aria-label="Change description" value={listCommit} onChange={(event) => setListCommit(event.target.value)} placeholder="Describe the change" />
-        <button type="button" className="ghost" disabled={busy} onClick={discardList}>Discard</button>
-        <button className="primary" disabled={busy || listMissing.length > 0} title={listMissing.length ? 'Every changed setup needs its Feature DoD' : undefined}>{busy ? 'Saving…' : 'Save to Git'}</button>
-      </form>}
-      {sharedEditable && listMissing.length > 0 && <Notice tone="warning">The Feature DoD is mandatory: add it for Epic {listMissing.map((id) => `#${id}`).join(', ')} to save.</Notice>}
-    </details>
     <AllEpicsDefaults setup={setup} editable={sharedEditable} />
     {sharedEditable && setup.shared && <div className="button-row"><button type="button" className="ghost" disabled={busy} title="The old title fields are no longer used: the Epic setup holds the Feature fields. This saves the shared setup (and yours) again without them." onClick={() => void clearOldFields()}>Remove the old title fields from Git</button></div>}
     <div className="setup-jump"><label>Go to Epic #<input inputMode="numeric" value={goTo} placeholder="e.g. 13946" onChange={(event) => setGoTo(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); jump() } }} /></label><button type="button" className="ghost" disabled={!idOf(goTo)} onClick={jump}>Open</button></div>
@@ -209,7 +151,7 @@ export function FeatureSetupPanel({ setup, git, items, qeColumnNames = [], initi
         <label className="setup-dod">Feature DoD (Definition of Done) — required<textarea rows={2} required={!inh('featureDoD')} disabled={inh('featureDoD')} maxLength={100000} value={inh('featureDoD') ? inherited.featureDoD : current?.featureDoD ?? ''} placeholder="e.g. IQOQ finished and Checklist uploaded into the Feature." onChange={(event) => change((entry) => { entry.featureDoD = event.target.value })} /><small>A new Feature under this Epic starts with it as “Feature DoD: …” at the top of its Description; it can be changed when creating.</small></label>
         {!inh('featureDoD') && !current?.featureDoD.trim() && <div className="button-row"><button type="button" className="text-button" onClick={() => change((entry) => { entry.featureDoD = defaultDoDFor(entry) })}>Use the default: “{defaultDoDFor(current ?? { stories: [] })}”</button></div>}
         <h3>Feature fields</h3>
-        <p className="muted">{epicFields ? <>From the Epic setup of #{epicFields.epicId}: {epicFields.fields.map((field) => field.label).join(', ')} (Admin → Epic setup).</> : <>None for this Epic: Feature fields (Program, Platform…) are set per Epic in Admin → Epic setup.</>}</p>
+        <p className="muted">{epicFields ? <>From the Epic setup of #{epicFields.epicId}: {epicFields.fields.map((field) => field.label).join(', ')} (Admin → Epic & Feature setup).</> : <>None for this Epic: Feature fields (Program, Platform…) are set per Epic in Admin → Epic & Feature setup.</>}</p>
         <h3>Optional User Stories</h3>
         {fieldOrigin('stories', 'Optional User Stories')}
         {inh('stories') && <ul className="setup-inherited">{inherited.stories.length ? inherited.stories.map((story, index) => <li key={index}>{story.title}</li>) : <li className="muted">None</li>}</ul>}

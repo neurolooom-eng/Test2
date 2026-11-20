@@ -6,7 +6,7 @@ import { normalizeReleaseSourceSettings } from '../releaseSource'
 import type { PageProps } from '../pages/types'
 import { Panel, Notice } from './ui'
 
-// QV-55: Settings → Azure DevOps → Stream mapping → Release naming patterns. Per stream, the patterns that name a
+// QV-55: Admin → Streams → Stream mapping → Release naming patterns. Per stream, the patterns that name a
 // release from a document's Title (built in: Content {*_RELEASE}*, IOCC *Conformance Verification {*} and *Test Tools
 // {*}); edited here, tried on a Title, applied to the shared settings and saved to Git with the planning data.
 const streams = defaultStreams.filter((stream) => stream.source === 'azure' && stream.rule !== 'dp' && stream.rule !== 'cp').map((stream) => stream.name)

@@ -66,7 +66,7 @@ export function ioccPlan(releases: ReleaseEntry[], options: { setup?: EpicSetup;
     const typed = dpReleaseType(release.release), found = qeForName(release.name, options.qeMapping, options.setup?.qeColumns)
     const qe = found?.qe ?? '', email = qe ? emailFor(qe, options.board) : ''
     const hit = options.featureMatch(release)
-    const baseSkip = !options.epicId ? 'no IOCC bulk Epic is set (Settings → Stream mapping → Bulk creation Epics)'
+    const baseSkip = !options.epicId ? 'no IOCC bulk Epic is set (Admin → Stream options → Bulk creation Epics)'
       : fullMatch(hit) ? `Feature #${hit!.item.id} on QMS-0025 matches it 100%`
       : !typed ? `no release type from the release number “${release.release || '—'}” (x.y.z.a expected)` : ''
     const qeSkip = !options.setup?.qeColumns ? 'the QE Mapping columns are not set (Feature setup of the IOCC bulk Epic)'

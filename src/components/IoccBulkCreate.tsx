@@ -17,7 +17,7 @@ import { adhocAfterLock } from '../planningLock'
 import { Modal, Notice } from './ui'
 
 // QV-59: Create Features for the selected IOCC releases by the DP rules — under the IOCC bulk Epic (mine, else shared;
-// Settings → Stream mapping → Bulk creation Epics), each with the DoD and default User Stories of its release type
+// Admin → Stream options → Bulk creation Epics), each with the DoD and default User Stories of its release type
 // (Release or PU set, Feature setup of that Epic), the Release Classification, the Time Writing story and month Task,
 // all assigned to the QE from the QE Mapping (by the release name), in the PI / Sprint chosen; a background job.
 export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featureTitle, featureMatch, onClose }: { releases: ReleaseEntry[]; azure: AzureWorkspace; featureSetup?: FeatureSetups | null; qeMapping?: QeMappingFile | null; featureTitle: (release: ReleaseEntry) => string; featureMatch: (release: ReleaseEntry) => BoardHit | undefined; onClose: () => void }) {
@@ -46,7 +46,7 @@ export function IoccBulkCreate({ releases, azure, featureSetup, qeMapping, featu
     return () => { active = false }
   }, [azure.config, azure.pat])
   const pair = pairs?.[choice]
-  const blocked = azure.isSample ? 'Synthetic sample data is loaded: creating in Azure DevOps is disabled.' : !azure.config || !azure.pat ? 'Connect the QMS-0025 Time Writing connection with a PAT first (Settings → Azure DevOps).' : !epicId ? 'Set the IOCC bulk Epic first (Settings → Azure DevOps → Stream mapping → Bulk creation Epics).' : !epic ? `Epic #${epicId} is not on the loaded QMS-0025 board: load the board first.` : !pair ? (error || 'Loading the PI / Sprint…') : !ready.length ? 'None of the selected releases can be created (see the reasons).' : ''
+  const blocked = azure.isSample ? 'Synthetic sample data is loaded: creating in Azure DevOps is disabled.' : !azure.config || !azure.pat ? 'Connect the QMS-0025 Time Writing connection with a PAT first (My settings → Servers and PATs).' : !epicId ? 'Set the IOCC bulk Epic first (My settings → Servers and PATs → Stream mapping → Bulk creation Epics).' : !epic ? `Epic #${epicId} is not on the loaded QMS-0025 board: load the board first.` : !pair ? (error || 'Loading the PI / Sprint…') : !ready.length ? 'None of the selected releases can be created (see the reasons).' : ''
 
   function create() {
     if (blocked || !azure.config || !epic || !pair) return
