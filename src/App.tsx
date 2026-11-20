@@ -148,7 +148,7 @@ export default function App() {
     runInBackground('startup:fetch', 'Fetch Azure DevOps at start', async (progress) => {
       progress('Fetching the Time Writing connection…')
       const result = await azure.fetchCloud()
-      const text = result.skipped || (result.targets ? `${result.ok} of ${result.targets} connection${result.targets === 1 ? '' : 's'} fetched and saved.${result.ok < result.targets ? ' See Settings → Azure DevOps for the one that failed.' : ''}` : 'Nothing to fetch.')
+      const text = result.skipped || (result.targets ? `${result.ok} of ${result.targets} connection${result.targets === 1 ? '' : 's'} fetched and saved.${result.ok < result.targets ? ' See Admin → Streams for the one that failed.' : ''}` : 'Nothing to fetch.')
       return { text, failed: Boolean(result.skipped) || result.ok < result.targets }
     })
   }, [store.ready, azure, git.connected, setupSynced, gitWaitOver])
@@ -161,7 +161,7 @@ export default function App() {
   setAzureEmails(azure.items)
   const viewedPerson = access.viewingAs?.kind === 'person' ? access.viewingAs : undefined
   const my = useMyWork(azure, store, viewedPerson)
-  // Settings → Storage: everything shared through Git, loaded now (as at start, plus the planning data, roles and
+  // Admin → Data & sharing: everything shared through Git, loaded now (as at start, plus the planning data, roles and
   // Feature setup); each part reports separately so one failure does not hide the rest.
   async function loadEverything() {
     const loaded: string[] = [], failed: string[] = []
@@ -227,7 +227,7 @@ export default function App() {
   const windchillView = windchillViews.find((entry) => entry.id === windchillId)
   // "＋ ECP" / "＋ S&S IT" (not imported yet) open the import named after that stream, so the export lands on it (CON-85).
   const [windchillFor, setWindchillFor] = useState('')
-  // QE Mapping (QEM-12): the QE Name of a new row is picked from the Resources list (Settings → Resources): everyone with
+  // QE Mapping (QEM-12): the QE Name of a new row is picked from the Resources list (Admin → People & roles → People): everyone with
   // Time Writing Tasks, and the people with a resource profile.
   const qeResources = useMemo(() => page !== 'qemapping' ? [] : (() => { const capacity = capacityContext(store.state); return [...new Set([...azureResources(azure.items, month, capacity).map((person) => person.name), ...Object.keys(capacity.profiles ?? {})])].filter(Boolean).sort((a, b) => a.localeCompare(b)) })(), [page, azure.items, month, store.state])
   const tableDesign = useMemo(() => normalizeTableDefaults(store.state.tableDefaults), [store.state.tableDefaults])
@@ -256,7 +256,7 @@ export default function App() {
   const [settingsVisit, setSettingsVisit] = useState(0)
   // SET-15: an older page or section opens where it lives now.
   const openSettings = (asked: SettingsTab, askedSection?: string) => { const { tab, section } = resolveSettings(asked, askedSection); if (section) saveSettingsSection(tab, section); saveSettingsTab(tab); setSettingsTab(tab); setSettingsVisit((visit) => visit + 1); setPage('admin') }
-  // Azure DevOps connections: the Stream mapping section of Settings → Azure DevOps.
+  // Azure DevOps connections: the Stream mapping section of Admin → Streams.
   const openConnection = () => openSettings('connections', 'mapping')
   // Get started: the setup steps with their live status; the pop-up opens by itself while a required step is open,
   // unless dismissed in this browser. The Setup button in the top bar reopens it.
@@ -350,7 +350,7 @@ export default function App() {
       {page === 'planover' && <PlanningOverviewPage azure={reportAzure} store={store} month={month} onOpenPack={() => openSettings('pack', 'pack')} />}
       {page === 'activities' && <MyActivitiesPage azure={azure} store={store} my={my} month={month} assign={assign} featureSetup={featureSetup.setups} onOpen={setPage} />}
       {page === 'baselines' && <BaselinesPage azure={azure} month={month} store={store} git={git} onOpenSettings={() => openSettings('storage', 'git')} canEdit={access.can('baselines.edit')} />}
-      {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} month={month} board={{ azure, stream: windchillStreamExports(windchillViews).find((entry) => entry.view?.id === windchillView.id)?.stream.name ?? windchillView.name, threshold: normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold, assign, featureSetup: featureSetup.setups }} /> : access.can('windchill.import') ? <WindchillExportImport key={windchillFor} stream={windchillFor} windchill={windchill} git={git} onImported={(id) => openWindchill(id)} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Settings → Access.</Notice>)}
+      {page === 'windchill' && (windchillView ? <WindchillPage view={windchillView} windchill={windchill} git={git} gitNote={git.snapshotNotes[`wc:${windchillView.id}`]} month={month} board={{ azure, stream: windchillStreamExports(windchillViews).find((entry) => entry.view?.id === windchillView.id)?.stream.name ?? windchillView.name, threshold: normalizeReleaseSourceSettings(store.state.releaseSourceSettings).matchThreshold ?? defaultMatchThreshold, assign, featureSetup: featureSetup.setups }} /> : access.can('windchill.import') ? <WindchillExportImport key={windchillFor} stream={windchillFor} windchill={windchill} git={git} onImported={(id) => openWindchill(id)} /> : <Notice tone="info">Your role does not include importing Windchill exports. Open an export from the menu; an Admin can change this in Admin → People & roles → Role rights.</Notice>)}
       {page === 'health' && <BacklogHealthPage azure={azure} store={store} />}
       {page === 'board' && <BoardPage azure={azure} store={store} current={view} month={month} git={git} onOpenConnection={openConnection} assign={assign} featureSetup={featureSetup.setups} qeMapping={qeMapping.file} />}
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}

@@ -78,7 +78,7 @@ export const accessFile = 'access.json'
 export const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 export const normalEmail = (value: string) => value.trim().toLowerCase()
 
-// The starting matrix (editable in Settings → Access): Backlog Health only for Scrum Masters, Product Owners and Admins.
+// The starting matrix (editable in Admin → People & roles → Role rights): Backlog Health only for Scrum Masters, Product Owners and Admins.
 const workActions: Action[] = ['azure.write', 'work.edit', 'work.state', 'work.move', 'work.hours', 'work.comment']
 export function defaultPolicy(adminEmail = ''): AccessPolicy {
   return inOrder({

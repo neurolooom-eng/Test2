@@ -157,7 +157,7 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     // A connection removed in Git goes with its data here, as a connection removed in Settings does.
     if (result.removedIds.length) store.update((draft) => { if (draft.azureSources?.some((source) => result.removedIds.includes(source.connectionId))) draft.azureSources = draft.azureSources.filter((source) => !result.removedIds.includes(source.connectionId)); return draft })
     const parts = [result.added.length && `${result.added.length} added (${result.added.join(', ')})`, result.updated.length && `${result.updated.length} updated (${result.updated.join(', ')})`, result.enforced.length && `stream mapping set by your admin applied: ${result.enforced.join(', ')}`, result.kept.length && `kept as changed here: ${result.kept.join(', ')}`, result.removed.length && `${result.removed.length} removed as in Git (${result.removed.join(', ')})`].filter(Boolean)
-    setViewsSync(resetNote + (result.emailCleared ? 'Your Time Writing connection had another person\'s email from the shared setup; it was removed — enter your own work email in Settings → Azure DevOps. ' : '') + (parts.length ? `Connections from Git: ${parts.join('; ')}.${result.noPat.length ? ` No PAT here yet for ${result.noPat.join(', ')}: they show the data saved to Git; add a PAT in Settings to fetch.` : ''}` : 'Connections are the same as in Git.'))
+    setViewsSync(resetNote + (result.emailCleared ? 'Your Time Writing connection had another person\'s email from the shared setup; it was removed — enter your own work email in My settings → Servers and PATs. ' : '') + (parts.length ? `Connections from Git: ${parts.join('; ')}.${result.noPat.length ? ` No PAT here yet for ${result.noPat.join(', ')}: they show the data saved to Git; add a PAT in Settings to fetch.` : ''}` : 'Connections are the same as in Git.'))
     return result
   }
   async function writeViews(text: string, commitMessage: string) {
@@ -286,7 +286,7 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
     return trackWrite(siblingConfig(config, packPath(name)), token, text, sha, commitMessage)
   }
   // The Monthly pack's PowerPoint template (monthly-pack-template.pptx): kept only in this private data repository,
-  // never in the app's source; read when the pack is exported, replaced or removed from Settings → Monthly pack.
+  // never in the app's source; read when the pack is exported, replaced or removed from Admin → Reports → Monthly pack.
   const readPackTemplate = useCallback(async () => {
     if (!config || !token) throw new Error('Connect Git storage first.')
     return readBinaryFile(siblingConfig(config, packTemplateFile), token)
@@ -443,7 +443,7 @@ export function useGitStorage(store: ReturnType<typeof useAppStore>, isSample: b
   // replaced only by newer ones, and an export not set up here is added.
   // The Location analysis of an export (windchillLocationsFile) to windchill-analysis/<export>-locations.json.
   async function pushWindchillAnalysis(viewId: string, text: string, message: string): Promise<string> {
-    if (!config || !token) throw new Error('Connect Git storage (Settings → Storage) first.')
+    if (!config || !token) throw new Error('Connect Git storage (Admin → Data & sharing) first.')
     if (isSample) throw new Error('Not saved while the sample data is shown.')
     const target = siblingConfig(config, `${windchillAnalysisFolder}/${viewId}-locations.json`)
     const sha = await fileSha(target, token)

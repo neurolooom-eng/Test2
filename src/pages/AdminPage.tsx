@@ -134,7 +134,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       return draft
     })
   }
-  // The default Joined on (Settings → Resources) of everyone without their own; '' clears it.
+  // The default Joined on (Admin → People & roles → People) of everyone without their own; '' clears it.
   function setDefaultJoined(value: string) {
     store.update((draft) => {
       draft.capacitySettings = normalizeCapacitySettings({ ...normalizeCapacitySettings(draft.capacitySettings), defaultJoinedOn: value })
@@ -342,7 +342,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
         <button type="button" className="ghost" disabled={azure.isSample || !azure.config || !azure.pat} onClick={() => setTeamRead((count) => count + 1)}>↻ Read the team again</button>
       </div>
       {azure.isSample ? <Notice tone="info">Sample data: the Azure DevOps team is not read; the people Assigned To in the sample are listed.</Notice>
-        : !azure.config || !azure.pat ? <Notice tone="info">Set up the Time Writing connection (Settings → Azure DevOps) to read the team; until then the people Assigned To in the fetched work are listed.</Notice>
+        : !azure.config || !azure.pat ? <Notice tone="info">Set up the Time Writing connection (Admin → Streams) to read the team; until then the people Assigned To in the fetched work are listed.</Notice>
         : team?.error ? <Notice tone="warning">The team was not read: {team.error}. The PAT needs Project and Team (Read); the people Assigned To in the fetched work are listed.</Notice>
         : team ? <p className="muted people-count">{team.members.length} team member{team.members.length === 1 ? '' : 's'} read from {azure.config.team}.</p> : <p className="muted people-count">Reading the team from Azure DevOps…</p>}
       {peopleMessage && <Notice tone={peopleMessage.tone}>{peopleMessage.text}</Notice>}

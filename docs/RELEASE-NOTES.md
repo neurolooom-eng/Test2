@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.36.2 — 2026-11-20
+
+**Fixed**
+- **Feature setup** — the "All shared setups" table is removed: it showed only what each Epic set itself (an inherited DoD read as Missing) and repeated **All Epic setups** (CON-61, CON-62 retired; KB-53).
+- **Page names** — texts across the app now name the current pages: My settings, Admin → Streams, Stream options, Epic & Feature setup, People & roles, Capacity & time, Reports, Data & sharing (KB-53).
+
+PR #312.
+
 ## v7.36.1 — 2026-11-20
 
 **Dependencies**
