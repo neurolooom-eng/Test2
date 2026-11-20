@@ -1,7 +1,6 @@
-import { monthName } from '../format'
+import { MonthTasksDialog } from './MonthTasksDialog'
 import { useMemo, useState } from 'react'
 import { mineWithContext } from '../myWork'
-import { addMonthTask } from '../monthTaskAction'
 
 const mineKey = 'demand-planning-backlog-mine-v1'
 import type { AzureWorkItem } from '../domain'
@@ -46,11 +45,10 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
   const visible = useMemo(() => mineOnly && me ? mineWithContext(scoped, { email: me, ...(myName ? { name: myName } : {}) }) : scoped, [mineOnly, me, myName, scoped])
   const tree = useMemo(() => buildWorkItemTree(visible, state, search), [visible, state, search])
   // BKL-22: "＋ Time Writing Task" on a Feature or User Story row.
-  const [monthBusy, setMonthBusy] = useState(0)
-  async function monthTask(item: AzureWorkItem) {
-    setMonthBusy(item.id); setPartialError(''); setResult(null)
-    try { const done = await addMonthTask(config, savedPat, items, item, me, month ? monthName(month) : undefined, featureSetup); onCreated?.(done.changed); setResult(done.result.task); setResultText(done.text) } catch (failure) { setPartialError(failure instanceof Error ? failure.message : String(failure)) } finally { setMonthBusy(0) }
-  }
+  // BKL-34: it opens the months-and-hours pop-up (MonthTasksDialog).
+  const [monthBusy] = useState(0)
+  const [monthFor, setMonthFor] = useState<AzureWorkItem | null>(null)
+  function monthTask(item: AzureWorkItem) { setPartialError(''); setResult(null); setMonthFor(item) }
   // Search reveals matches; state filtering alone must not expand thousands of fetched records.
   const filtering = Boolean(search.trim())
   const states = [...new Set(['New', 'Active', 'Closed', ...scoped.map((item) => item.state)])].filter(Boolean)
@@ -91,6 +89,7 @@ export function AzureWorkItemTree({ items, config, onCreated, savedPat = '', cre
     <div className="panel-heading backlog-heading"><div><p className="muted">{epics.length} Epics · {scoped.length} work items · Epic → Feature → User Story → Task</p></div>{readOnly ? <span className="pill">Read only</span> : <button className="primary" disabled={!epics.length} onClick={() => openEditor(epics[0])}>＋ New Feature</button>}</div>
     <div className="tree-controls"><div className="button-row" role="group" aria-label="Work item states (multi-select)">{[...states, 'All'].map((value) => <button key={value} className={state.includes(value) ? 'primary' : 'ghost'} aria-pressed={state.includes(value)} onClick={() => setState((current) => value === 'All' ? ['All'] : current.includes(value) ? current.filter((item) => item !== value && item !== 'All') : [...current.filter((item) => item !== 'All'), value])}>{value}</button>)}</div><input aria-label="Search work-item tree" placeholder="Search ID, title, type or assignee" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="ghost" onClick={() => { setExpandAll(!expandAll); setExpanded(new Set()) }}>{expandAll ? 'Collapse all' : 'Expand all'}</button>{me && (mineOnly ? <button type="button" className="primary" aria-pressed="true" title="Showing your items with what is above and below them. Clear to see everyone's." onClick={() => setMineOnly(false)}>Assigned to me ✕</button> : <button type="button" className="ghost" aria-pressed="false" onClick={() => setMineOnly(true)}>Show only mine</button>)}</div>
     <p className="muted tree-help">Select multiple states. Default: New + Active. Matching children retain their ancestors as context, even when the parent has another state. All Epics remain available in the New Feature selector.</p>
+    {monthFor && <MonthTasksDialog item={monthFor} items={items} config={config} pat={savedPat} me={me} month={month} featureSetup={featureSetup} onClose={() => setMonthFor(null)} onDone={(text, changed) => { setMonthFor(null); onCreated?.(changed); const task = [...changed].reverse().find((entry) => entry.workItemType === 'Task'); if (task) { setResult(task); setResultText(text) } }} />}
     {result && <div className="notice success" role="status"><a href={result.url} target="_blank" rel="noreferrer">{result.workItemType} #{result.id}: {result.title}</a> — {resultText}</div>}
     {partialError && <div className="notice error" role="alert">{partialError}</div>}
     <BacklogTable key={`${config.organization}/${config.project}/${config.team}`} scope={`${config.organization}/${config.project}/${config.team}`} tree={tree} expanded={expanded} expandAll={expandAll} searching={filtering} onToggle={toggle} onExpand={(value) => { setExpandAll(value); setExpanded(new Set()) }} onNewFeature={readOnly ? undefined : openEditor} onComplete={readOnly ? undefined : openResume} canComplete={(feature) => !hasOptionalStories(scoped, feature)} onAddChild={readOnly ? undefined : openChild} onEdit={readOnly ? undefined : (item) => { setEditing(item); setResult(null) }} onMonthTask={readOnly || !me ? undefined : (item) => void monthTask(item)} monthBusy={monthBusy} tabs={tabs} />
