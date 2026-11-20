@@ -1238,6 +1238,46 @@ test('TC-CON-60: Setup per Epic — All Epics defaults, and an Epic showing whic
   await context.close()
 })
 
+test('TC-CON-61: Streams → Removed connections finds a connection dropped from the shared setup in Git and restores it, for everyone', async () => {
+  // The shared setup in Git: CP Releases was in yesterday's version, today's (saved from another computer) lacks it.
+  const sha = 'b'.repeat(40)
+  const view = (id, viewName, query) => ({ id, reason: viewName, viewName, role: 'release-source', showInMenu: true, url: 'https://dev.azure.com/example/Project', query })
+  const older = { schema: 1, kind: 'azure-devops-views', views: [view('cp-names', 'CP Releases', 'SELECT [System.Id] FROM WorkItems WHERE [System.Title] CONTAINS \'Release\'')] }
+  const writes = []
+  const { page, context, errors } = await openPage(app, { init: () => {
+    localStorage.setItem('demand-planning-git-storage-v1', JSON.stringify({ owner: 'example', repo: 'storage', branch: 'main', path: 'planning-data.json' }))
+    localStorage.setItem('demand-planning-git-token-v1', 'test-token')
+  } })
+  await context.route('https://dev.azure.com/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' }))
+  await context.route('https://api.github.com/**', (route) => {
+    const request = route.request(), url = new URL(request.url())
+    const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname === '/repos/example/storage') return json({ permissions: { push: true } })
+    if (url.pathname === '/repos/example/storage/commits') return json(url.searchParams.get('path') === 'azure-views.json' ? [{ sha, commit: { message: 'Stream mapping: CP Releases', committer: { date: '2026-11-19T10:00:00Z' } } }] : [])
+    const match = /^\/repos\/example\/storage\/contents\/(.*)$/.exec(url.pathname)
+    if (!match) return json({ message: 'Not Found' }, 404)
+    const path = decodeURIComponent(match[1])
+    if (request.method() === 'PUT') { if (path === '.demand-planning-write-check') return json({ message: 'Invalid request' }, 422); writes.push([path, JSON.parse(Buffer.from(JSON.parse(request.postData()).content, 'base64').toString())]); return json({ content: { sha: 'new' }, commit: { html_url: 'https://github.com/example/storage/commit/new' } }) }
+    if (path === 'azure-views.json') { const text = JSON.stringify(url.searchParams.get('ref') === sha ? older : { schema: 1, kind: 'azure-devops-views', views: [] }); return json({ type: 'file', encoding: 'base64', content: Buffer.from(text).toString('base64'), sha: 'v1' }) }
+    return json({ message: 'Not Found' }, 404)
+  })
+  await page.reload()
+  await page.locator('.sidebar nav').waitFor()
+  await navigate(page, /Streams$/)
+  const panel = page.locator('.removed-connections')
+  await panel.getByRole('button', { name: 'Look in Git history' }).click()
+  await panel.getByRole('button', { name: 'Restore' }).waitFor()
+  assert.match(await text(panel.locator('tbody')), /CP Releases.*CONTAINS 'Release'.*Stream mapping: CP Releases/s)
+  await panel.getByRole('button', { name: 'Restore' }).click()
+  await panel.getByText(/“CP Releases” is back here and in the shared setup in Git for everyone/).waitFor()
+  const shared = writes.filter(([path]) => path === 'azure-views.json').pop()
+  assert.deepEqual(shared[1].views.map((entry) => entry.id), ['cp-names'], 'written back to Git (merged, no PAT)')
+  assert.equal(JSON.stringify(shared[1]).includes('token'), false)
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('demand-planning-azure-connection-profiles-v1') ?? '[]').some((entry) => entry.id === 'cp-names')), true, 'restored in this browser')
+  assert.deepEqual(errors.filter((entry) => !/401|Unauthorized/.test(entry)), [])
+  await context.close()
+})
+
 test('TC-QV-41: My settings → My naming patterns — your own patterns for IOCC, Content and Tool Validations, kept on this computer, back to the shared ones', async () => {
   const { page, context, errors } = await openPage(app)
   await page.getByRole('button', { name: /^My settings/ }).click()

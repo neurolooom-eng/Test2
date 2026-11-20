@@ -790,6 +790,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-CON-60 Setup per Epic** — Req CON-97, CON-95 — L1 `feature-setup-inheritance.test.mjs` ("Feature setup layers: Mine → Epic (shared) → All Epics → Built in, per field (CON-95, TC-CON-59)" — an Epic without its own setup uses All Epics); E2E `shell.e2e.mjs` ("TC-CON-60: Setup per Epic — All Epics defaults, and an Epic showing which sections it customizes, with a preview"), `backlog.e2e.mjs` ("TC-EPS-01: …" — the Epic's fields in Setup per Epic); browser check with Git storage: Admin → Epic & Feature setup → Setup per Epic: All Epics — set a DoD and a story; an Epic: switch on Customize for User Stories (it starts from All Epics' story), add one, change its DoD; the preview follows; one Save to Git writes the setup files; Use my own version — customize the estimate, Save; New Feature under the Epic uses your estimate; Remove my own version; Reset this Epic to the defaults. The Epic list scrolls on its own, stays in view and is at most 600 px tall (KB-57).
 
+**TC-CON-61 Shared connections merged, removed ones restored** — Req CON-98, CON-99 — **UAT** — L1 `removed-connections.test.mjs` ("CON-98: sharing merges with the setup in Git — a connection only in Git stays; only named ones are removed (TC-CON-61)", "CON-99: connections in older versions of the shared setup that are gone now are found once, newest version first (TC-CON-61)", "CON-99: the history of the shared setup is read from GitHub — commits of the file, then the file at a commit; nothing is written"); E2E `shell.e2e.mjs` ("TC-CON-61: Streams → Removed connections finds a connection dropped from the shared setup in Git and restores it, for everyone"); UAT: on the computer that lost the second CP query, Settings → Streams → Removed connections → Look in Git history, Restore it, Fetch, and check it is back in the menu and on a second computer after its next start.
+
 
 **TC-CON-44 DP and DHFI defaults** — Req CON-76 — L1 `connections.test.mjs` ("pre-filled connections from the shared setup …": DP reads the Release work items of DHP with DDTDate, SourceProgram, PsName and Release; DHFI [Approved] reads the DHP.Vault documents, hidden from the menu); browser check in a fresh browser with only the on-prem PAT: Settings → Azure DevOps → Stream mapping → Set up DP, Pedestal and DHFI from their defaults; Release Details → DP lists Release items for the DDT month; Get started shows the release streams step done.
 
@@ -1656,6 +1658,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CON-95 | TC-CON-59, TC-CON-60 |
 | CON-96 | TC-CON-60 |
 | CON-97 | TC-CON-60 |
+| CON-98 | TC-CON-61 |
+| CON-99 | TC-CON-61 |
 | QV-20 | TC-QV-06 |
 | QV-21 | TC-QV-07 |
 | CON-21, CON-22 | TC-CON-08 |
@@ -2031,7 +2035,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-ATM-23, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
 | UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-BKL-20, TC-BKL-21, TC-BKL-22, TC-DPF-06, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
-| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41, TC-QV-42 |
+| UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41, TC-QV-42, TC-CON-61 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
 | UC-11 | TC-BAS-01…04 |
