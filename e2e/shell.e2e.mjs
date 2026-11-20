@@ -10,6 +10,7 @@ after(async () => { await app.stop() })
 
 test('TC-NAV-01 / TC-NAV-17: the sidebar shows the groups in order, with Documentation under Data & governance', async () => {
   const { page, context, errors } = await openPage(app)
+  assert.match(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'), /script-src 'self' file:; .*object-src 'none'/, 'NFR-09: the built page carries its Content-Security-Policy')
   const groups = await page.locator('.sidebar nav .nav-group').allInnerTexts()
   assert.deepEqual(groups.map((group) => group.replace(/^[▾▸]\s*/, '').trim().toLowerCase()), ['data insights', 'my work', 'i&d board', 'release details', 'data & governance', 'admin'])
   const entries = (await page.locator('.sidebar nav .nav-items button').allInnerTexts()).map((entry) => entry.replace(/\s+/g, ' ').trim())

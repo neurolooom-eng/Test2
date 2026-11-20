@@ -170,13 +170,14 @@ An RPN ≥ 40, or S = 5 with D ≥ 3, needs an action. The **Residual RPN** is t
 | DF-124 | Shared connection setup in Git (CON-98, CON-99) | One computer's save drops connections others added; a restore brings back a connection that was removed on purpose | A stream view or query disappears for everyone; an unwanted connection returns | Several computers (browser and desktop) of one admin; an old connection in the history | 3 | 3 | 2 | 18 | Saves merge with Git and only explicit removals leave it; Removed connections lists each candidate with its query and last date, and nothing changes until Restore is pressed; duplicates of a connection here are not offered (TC-CON-61) | 3×1×1 = 3 | TC-CON-61 | — |
 | DF-125 | ＋ Time Writing Task for several months (BKL-34) | Tasks made for months not intended, or the hours of an existing Task overwritten | Hours booked against the wrong month; a plan changed by mistake | A month added by mistake; hours typed for a month that already has a Task | 3 | 2 | 2 | 12 | Each month is listed with its hours before Add; a month listed twice is refused; an existing Task is named and only the hours typed change it; no Completed Work for a future month; the one Task rule (TC-BKL-23) | 3×1×1 = 3 | TC-BKL-23 | — |
 | DF-126 | Sample mode and the sample reset (SMP-05, SMP-06) | A write with sample data reaches Azure DevOps from a page that did not check for it; a reset wipes the planning data by one click | Synthetic items or hours in the real backlog; local planning data lost | A new page or action without its own sample check; a mis-click on Reset | 4 | 2 | 2 | 16 | One check in requestAzure refuses every write in sample mode; the reset asks first, names what is lost, is recorded in History and is not offered in SharePoint mode (TC-SMP-02) | 4×1×1 = 4 | TC-SMP-02 | — |
+| DF-127 | Content-Security-Policy (NFR-09) | The policy blocks something the app needs (a page's code, the sign-in frame, a download, the desktop app's local files) | A page, sign-in or export does not work | A new kind of resource added later; the desktop app's file: page | 3 | 2 | 2 | 12 | Every E2E scenario runs on the built page under the policy; every menu page, an export and Documentation checked for blocked content; file: allowed for the desktop app; the policy is one list in vite.config.ts with a unit test (TC-CSP-01) | 3×1×1 = 3 | TC-CSP-01 | Check the desktop app once (KB-59) |
 | DF-30 | Release the documents | The app shows documents that do not match its build | Wrong instructions or requirements | Documents published separately | 2 | 3 | 3 | 18 | Documents bundled at build time; the traceability matrix regenerated and checked in CI (DOC-02, DOC-10) | 2×1×1 = 2 | TC-DOC-01, TC-DOC-03 | — |
 
 ## 7. Summary
 
 | | Count |
 |---|---|
-| Failure modes analysed | 125 |
+| Failure modes analysed | 126 |
 | With S = 5 | 10 (DF-01…04, 06, 23, 24, 27, 28) — all with residual D = 1 |
 | Initial RPN ≥ 40 | 4 (DF-01, DF-02, DF-23, DF-59) — DF-01, DF-02, DF-23 reduced to 5, DF-59 to 12 |
 | Residual RPN ≥ 15 | 0 (DF-26 reduced to 12 by reading the Location column first; LIM-04 keeps the correction table as a further option) |

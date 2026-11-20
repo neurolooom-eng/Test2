@@ -399,6 +399,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-PERF-01 Pages load on demand** — Req NFR-08 — L1 `bundle-split.test.mjs` ("NFR-08: pages load on demand — the shell imports only the start pages; the documents come with the Documentation page (TC-PERF-01)"); E2E every page opened through `navigate` (helpers.mjs waits for the page's code) and "TC-DOC-01" (the documents load with the page); browser check: `pnpm build:web` lists the main script under 1 MB and one chunk per page.
 
+**TC-CSP-01 Content-Security-Policy on the built page** — Req NFR-09 — L1 `csp.test.mjs` ("NFR-09: the built page carries a Content-Security-Policy — scripts from the app only, no plugins, no foreign forms (TC-CSP-01)"); E2E `shell.e2e.mjs` ("TC-NAV-01 / TC-NAV-17 …": the meta is on the built page) and every E2E scenario runs under it (a blocked script fails the page); browser check: every menu page with the sample, a CSV export and Documentation open with no "Refused to …" console message; desktop app: opens and fetches with the policy.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -2030,6 +2032,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
 | NFR-08 | TC-PERF-01 |
+| NFR-09 | TC-CSP-01 |
 | NFR-07 | TC-INS-01 |
 | IF-01, IF-03, IF-04 | TC-INS-04 |
 | IF-02 | TC-DSK-02 |

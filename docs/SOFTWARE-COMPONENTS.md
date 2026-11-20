@@ -276,7 +276,7 @@ This document lists every software component of the system: the in-house source 
 | swbom | `scripts/swbom.mjs` | Generates the Software Bill of Materials (docs/SWBOM.md, docs/swbom.cdx.json) from pnpm-lock.yaml and checks it (`--check`). | CI |
 | release-entry | `scripts/release-entry.mjs` | Prints one version's RELEASE-NOTES.md entry, the notes of that version's tagged GitHub release. | CI |
 | verify-version | `scripts/verify-version.mjs` | Checks package.json version is x.y.z and matches a vX.Y.Z release tag. | CI |
-| vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag). | CI, UPD |
+| vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag), the Content-Security-Policy of the built page (NFR-09). | CI, UPD, NFR |
 | index | `index.html` | HTML entry page with favicon, title and root element loading src/main.tsx. | — |
 | build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
 | dependabot | `.github/dependabot.yml` | Weekly update pull requests for the GitHub Actions pinned to commit SHAs in the workflow (KB-08). | CI |
@@ -326,6 +326,7 @@ This document lists every software component of the system: the in-house source 
 | story-templates.test | `tests/story-templates.test.mjs` | User Story templates: cleaning, tags, linked stories and where they are used (TC-STT-01, TC-STT-02). | STT |
 | bundle-split.test | `tests/bundle-split.test.mjs` | Pages load on demand; the documents only with the Documentation page (TC-PERF-01). | NFR |
 | sample-guard.test | `tests/sample-guard.test.mjs` | Every write to Azure DevOps refused while the synthetic sample is loaded (TC-SMP-02). | SMP |
+| csp.test | `tests/csp.test.mjs` | The Content-Security-Policy of the built page (TC-CSP-01). | NFR |
 | removed-connections.test | `tests/removed-connections.test.mjs` | Merging the shared connections, finding removed ones in the Git history, the read-only history calls (TC-CON-61). | CON |
 | format.test | `tests/format.test.mjs` | Formatting helpers and page registry consistency. | UI, NAV |
 | git-snapshots.test | `tests/git-snapshots.test.mjs` | On-prem view snapshots via Git: no PATs, digests, helpers and validation. | GIT, FET |
