@@ -12,7 +12,10 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 - The fixed *Release (Major, Minor)* / *PU (MLD, Platform Update)* tabs are replaced by the value tabs; sets saved there still apply to Major / Minor and MLD / Platform Update / Service Pack until a value gets its own.
 - DP and IOCC bulk creation use the Epic's own DoD and User Stories when it has a setup; DP's built-in Release / PU sets only when it has none (KB-56).
 
-DF-120, SM-81, KB-56; TC-DPF-06, TC-DPF-07. PR #315.
+**Fixed**
+- Setup per Epic: the Epic list is at most 600px (or the window) tall with its own scroll bar, its search box stays on top and the list stays in view while the setup scrolls; on a narrow screen it is at most 320px (CON-97, KB-57).
+
+DF-120, SM-81, KB-56, KB-57; TC-DPF-06, TC-DPF-07. PR #315.
 
 ## v7.38.0 — 2026-11-20
 

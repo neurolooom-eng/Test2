@@ -278,7 +278,7 @@ Ver. = verification method (T test, D demonstration, I inspection, A analysis); 
 | CON-94 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-58, TC-EPS-04 | — | `access.test.mjs` | — |
 | CON-95 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | S | TC-CON-59, TC-CON-60 | — | `feature-setup-inheritance.test.mjs` | — |
 | CON-96 *(retired)* | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | S | — | — | — | — |
-| CON-97 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-60 | — | `feature-setup-inheritance.test.mjs` | — |
+| CON-97 | SR-02 | UR-02, UR-06, UR-16, UR-17, UR-19 | T | M | TC-CON-60 | — | `feature-setup-inheritance.test.mjs` | KB-57 |
 | FET-01 | SR-03 | UR-01, UR-02 | T | M | TC-CON-03 | 1 | — | — |
 | FET-02 | SR-03 | UR-01, UR-02 | T | M | TC-FET-01 | — | — | — |
 | FET-03 | SR-03 | UR-01, UR-02 | T | M | TC-FET-01 | — | — | — |

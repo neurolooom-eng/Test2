@@ -809,3 +809,10 @@ kbd{font-size:11px;border:1px solid var(--accent-line);border-radius:4px;padding
 .efe-classes{display:flex;flex-direction:column;gap:10px;padding:12px 16px;border:1px dashed var(--accent-line);border-radius:12px}
 .efe-classes>div:first-child{display:flex;flex-direction:column;gap:2px}.efe-classes small{color:var(--muted)}
 .efe-classhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+/* Setup per Epic: the Epic list is as tall as the window at most, scrolls on its own and stays in view beside the setup;
+   the search box stays on top. On a narrow screen (the list above the setup) it is at most 320px tall. */
+.efe-epics{position:sticky;top:116px;max-height:min(600px,calc(100vh - 136px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
+.efe-epics>label{position:sticky;top:-12px;z-index:1;background:var(--surface,#fff);margin:-12px -12px 0;padding:12px 16px 8px}
+.efe-epics .efe-epic{flex:none}
+@media(max-width:860px){.efe-epics{position:static;max-width:none;max-height:320px}}
+.efe-epics{scrollbar-color:var(--muted) transparent}
