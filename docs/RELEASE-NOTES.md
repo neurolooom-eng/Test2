@@ -2,6 +2,14 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.38.0 — 2026-11-20
+
+**Added**
+- **Start date on New Feature** — next to the Target date, empty = today, saved in the Feature's Start Date field. The Feature's Time Writing Tasks start in the Start date's month, never before the current month: a release starting in December gets no November Task (BKL-31).
+- **Time Writing up to the Target date** — a new Feature gets one Time Writing Task for every month from its first month up to the Target date's month, and section 4 asks for the Original Estimate (and, for the current month, Completed Work) of each month in a table with totals; the months are shown under the dates and in the summary (BKL-32).
+
+DF-119, SM-80, KB-54; TC-BKL-20, TC-BKL-21. PR #314.
+
 ## v7.37.0 — 2026-11-20
 
 **Changed**

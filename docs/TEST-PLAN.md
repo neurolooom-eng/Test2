@@ -748,6 +748,10 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-BKL-19 New Feature in four sections, shown in order** — Req BKL-29, BKL-30, BKL-24, BKL-25 — E2E `backlog.e2e.mjs` ("TC-BKL-19: New Feature shows its sections one after another: Feature, then the DoD, then the User Stories, then the month estimates": only section 1 and highlighted at first, the missing fields named; section 2 alone after section 1; an emptied DoD keeps section 3 hidden; leaving the DoD shows section 3, leaving the User Stories shows section 4; Save off until then; no Next button; Enter in the title creates nothing; "TC-BKL-15: New Feature offers your own User Story (title and description) under the new Feature" fills section 1 and leaves the DoD first); browser check with the Time Writing connection: create a Feature from Backlogs, My Tasks [Board], Release Details and Time Writing — the DoD, the stories ticked and the hours entered are on the new Feature and its month Task.
 
+**TC-BKL-20 Start date on New Feature** — Req BKL-31 — L1 `feature-months.test.mjs` ("Start Date in a future month: Time Writing starts in that month, not this one (TC-BKL-20)", "the Start Date goes to the Feature’s Start Date field, the same on web and desktop (TC-BKL-20)", "createAzureFeature refuses a malformed Start Date before any write", "month helpers read and write \"Month YYYY\" and ISO dates"); browser check: on New Feature, a Start date next month shows one Task for next month only; an empty Start date says "from today"; the created Feature shows the Start Date in Azure DevOps.
+
+**TC-BKL-21 Time Writing months up to the Target date, hours per month** — Req BKL-32, BKL-31 — **UAT** — L1 `feature-months.test.mjs` ("Target date: one Task for every month from the start up to it, no limit (TC-BKL-21)", "addMonthTasks adds one Task per later month with the hours typed for it, else the setup default (TC-BKL-21)", "addMonthTasks stops at the first failure and reports what it made"); E2E `backlog.e2e.mjs` ("TC-BKL-21: New Feature with a Start Date and a Target date asks for the hours of every month from the start to the target": no dates → this month; Start date next month → that month only; Target date two months later → three months; a Target date before the Start date refused; section 4 names the months, one row per month, no Completed Work for a future month, totals, the summary names the months); UAT: create a Feature starting next month with a Target date two months later, enter hours per month, and check in Azure DevOps that one Task per month exists under "{Feature} - Time Writing" with those hours and none for the current month.
+
 **TC-BKL-14 Release number without "v" in Feature titles** — Req BKL-24 — L1 `release-source.test.mjs` ("Create Feature title from a release: \"Stream | Name | Release\" without a \"v\", mapping back to the release (BKL-24)"), `dp-board-match.test.mjs`, `cp-reporting.test.mjs`; browser check: Create Feature on a DP, CP and Windchill row pre-fills the title with the number and no "v".
 
 **TC-CON-45 Git view data with another query is not applied** — Req CON-77 — L1 `git-snapshots.test.mjs` ("a snapshot fetched with another query than the connection has here is not applied"); browser check:
@@ -1725,6 +1729,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | BKL-28 | TC-BKL-18 |
 | BKL-29 | TC-BKL-19 |
 | BKL-30 | TC-BKL-19 |
+| BKL-31 | TC-BKL-20, TC-BKL-21 |
+| BKL-32 | TC-BKL-21 |
 | QV-01, QV-02 | TC-QV-01 |
 | QV-03, QV-05 | TC-QV-02 |
 | QV-04 | TC-FET-07 |
@@ -2006,7 +2012,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
 | UC-05 | TC-MON-07 |
 | UC-06 | TC-ATM-01…11, TC-ATM-21, TC-ATM-22, TC-ATM-23, TC-TWN-03, TC-CON-20, TC-CON-33, TC-CON-34, TC-CON-43 |
-| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
+| UC-07 | TC-BKL-01…09, TC-BKL-15, TC-BKL-16, TC-BKL-17, TC-BKL-18, TC-BKL-19, TC-BKL-20, TC-BKL-21, TC-NAV-36, TC-CON-23, TC-CON-25…27, TC-CON-29…32, TC-CON-35 |
 | UC-08 | TC-QV-01…05, TC-FET-07, TC-CON-08, TC-CON-11…16, TC-QV-08, TC-QV-09, TC-QV-10, TC-QV-11, TC-QV-12, TC-QV-13, TC-QV-14, TC-QV-15, TC-QV-16, TC-CON-37, TC-CON-38, TC-CON-39, TC-CON-40, TC-CON-41, TC-QV-18, TC-QV-19, TC-QV-20, TC-QV-21, TC-QV-22, TC-CON-42, TC-QV-41, TC-QV-42 |
 | UC-09 | TC-OV-11…14, TC-CAP-01, TC-CAP-02, TC-CAP-03, TC-CAP-08, TC-CAP-10, TC-CAP-11, TC-CAP-12, TC-CAP-13, TC-CAP-14, TC-CAP-15, TC-CAP-16, TC-CAP-17, TC-CAP-18, TC-CAP-19, TC-CAP-20, TC-CAP-21, TC-CAP-22, TC-CAP-23, TC-CAP-24, TC-CAP-25, TC-CAP-26, TC-CAP-27, TC-QV-17, TC-CON-21, TC-QV-10, TC-QV-11, TC-QV-21 |
 | UC-10 | TC-OV-11 (Months, Streams), TC-OV-13 |
