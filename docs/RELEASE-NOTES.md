@@ -7,6 +7,10 @@ Version history of the I&D Quality Demand Planning app, newest first. Every merg
 **Changed**
 - **＋ Time Writing Task asks for the months and hours** — on a Feature or User Story row (Backlogs, My Tasks [Board]) it opens a pop-up: the month in the header first, **＋ Add month** for the next one, any month changeable or removed, and the Original Estimate (and, except for a future month, Completed Work) of each; **Add n months** creates one Task per month by the usual Task rule. A month you already have a Task for is shown and kept; only the hours you type change it (BKL-34).
 
+
+**Tests**
+- E2E: a page reload with the synthetic sample now loads the sample again when the reload beat its background save (slow CI runners left New Feature disabled in TC-EPS-01).
+
 DF-125; TC-BKL-23. PR #320.
 
 ## v7.41.0 — 2026-11-20

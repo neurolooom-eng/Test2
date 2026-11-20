@@ -1,6 +1,6 @@
 import test, { after, before } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadSample, navigate, openPage, startApp, text } from './helpers.mjs'
+import { loadSample, navigate, openPage, reloadWithSample, startApp, text } from './helpers.mjs'
 
 // New User Story under a Feature (BKL-19, TC-BKL-10): the form opens from a Feature row of the Backlogs, laid out like
 // New Feature with the Azure DevOps User Story fields. Nothing is written: the sample has no Azure DevOps connection.
@@ -241,8 +241,7 @@ test('TC-DPF-06: a DoD and User Stories per Release Classification value — set
     localStorage.setItem('demand-planning-epic-setup-v1', JSON.stringify({ schema: 1, kind: 'epic-setup', lists: [{ id: 'rc', name: 'Classes', values: ['Major', 'Hotfix'] }], epics: [{ epicId: id, epicTitle: 'E2E Epic', fields: [{ label: 'Release Classification', type: 'list', list: 'rc', ifEmpty: 'block', into: 'description' }] }] }))
     localStorage.setItem('demand-planning-feature-setup-v1', JSON.stringify({ schema: 1, kind: 'feature-setup', epics: [{ epicId: id, epicTitle: 'E2E Epic', featureDoD: 'Epic DoD', stories: [{ title: 'Epic story', description: '' }], timeWritingStory: { ...empty, title: '{feature} - Time Writing' }, task: { ...empty, title: '{month} | {feature}' }, classSets: { Hotfix: { featureDoD: 'Hotfix DoD', stories: [{ title: 'Smoke test', description: '' }] } } }] }))
   }, { id: epicId, empty })
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
@@ -297,8 +296,7 @@ test('TC-STT-01: a User Story template, linked in an Epic’s setup, gives New F
     localStorage.setItem('demand-planning-epic-setup-v1', JSON.stringify({ schema: 1, kind: 'epic-setup', lists: [], epics: [], storyTemplates: [{ id: 't-sfv', title: 'Template SFV review', description: 'Review the SFV deliverables', epics: [id], classes: ['Hotfix'] }] }))
     localStorage.setItem('demand-planning-feature-setup-v1', JSON.stringify({ schema: 1, kind: 'feature-setup', epics: [{ epicId: id, epicTitle: 'E2E Epic', featureDoD: 'Epic DoD', stories: [{ title: 'Old copy', description: '', templateId: 't-sfv' }, { title: 'Own story', description: '' }], timeWritingStory: { ...empty, title: '{feature} - Time Writing' }, task: { ...empty, title: '{month} | {feature}' } }] }))
   }, { id: epicId, empty })
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
@@ -383,8 +381,7 @@ test('TC-EPS-01: Epic setup — its fields appear in New Feature (a value list, 
     { label: 'Program', type: 'text', ifEmpty: 'block', into: 'description' },
     { label: 'Owner', type: 'text', ifEmpty: 'warn', into: 'description' },
   ] }] })), epicId)
-  await page.reload()
-  await page.locator('.sidebar nav').waitFor()
+  await reloadWithSample(page)
   await navigate(page, 'QMS-0025')
   await page.getByRole('button', { name: '＋ New Feature' }).first().click()
   form = page.locator('form.nf-form')
