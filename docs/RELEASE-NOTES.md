@@ -2,6 +2,40 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change gets a version and its entry here (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4). Since v7.43.0 the pull request adds a change note in [`docs/changes/`](changes/README.md) instead, and after the merge CI writes the version into `package.json` and the entry (with the PR number) at the top of this file in a release commit (CI-11): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.45.1 — 2026-11-21
+
+**Tests**
+- **End-to-end tests on a slow machine** — CI also runs every end-to-end scenario with the page on a CPU four times slower (Chromium's throttling), in its own job, so a step that only works because the app is fast fails in CI before users meet it (CI-12).
+
+TC-CI-08.
+
+PR #329.
+
+## v7.45.0 — 2026-11-21
+
+**Added**
+- **My page usage** (My settings) — off unless you turn it on: counts how often you open each page, in this browser only, and lists them most used first; never sent, shared or backed up; turning it off deletes the counts (NAV-45).
+
+DF-129, SM-87; TC-NAV-45.
+
+PR #328.
+
+## v7.44.1 — 2026-11-21
+
+**Changed (code structure)**
+- `src/azureDevOps.ts` (1,037 lines) is split in three: `azureClient.ts` (connection settings, the transport, api-version negotiation, the write guards and the request bodies), `azureRead.ts` (iterations, the backlog fetch and its mapping, field names, team members) and `azureDevOps.ts` (the writes), which re-exports the other two so every import stays as it was. No behaviour changes; the same unit and end-to-end tests pass.
+
+PR #327.
+
+## v7.44.0 — 2026-11-21
+
+**Added**
+- **Admin → Overview warns about Feature setup gaps** — a DP or IOCC bulk creation Epic without a shared Feature setup (its Create Features would skip every row), and shared Feature setups whose Feature DoD is empty, each with a link to Feature setup (ADM-05).
+
+TC-ADM-03.
+
+PR #326.
+
 ## v7.43.0 — 2026-11-21
 
 **Changed (development process)**

@@ -119,12 +119,14 @@ This document lists every software component of the system: the in-house source 
 | useEpicSetup | `src/useEpicSetup.ts` | The shared Epic setup from Git (epic-setup.json), its cached copy and draft, and the context for New Feature and bulk creation (EPS-01). | EPS |
 | EpicSetupPanel | `src/components/EpicSetupPanel.tsx` | Admin → Epic setup: Feature fields per Epic, title pattern and preview, Copy to Epics, and the value lists (EPS-01, EPS-05). | EPS |
 | myNamingPatterns | `src/myNamingPatterns.ts` | My own release naming patterns for IOCC, Content and Tool Validations, kept on this computer, and the version that redraws the figures (QV-60). | QV |
-| adminOverview | `src/adminOverview.ts` | The Admin Overview's health items and the settings search index (ADM-01, ADM-03). | ADM |
+| adminOverview | `src/adminOverview.ts` | The Admin Overview's health items, the Feature setup gaps (ADM-05) and the settings search index (ADM-01, ADM-03). | ADM |
+| usageCounts | `src/usageCounts.ts` | My page usage: opt-in page-opening counts in this browser's local storage, read safely, deleted when turned off (NAV-45). | NAV |
 | onPremValues | `src/onPremValues.ts` | The values of an on-prem field in the fetched data, for the drop-down of an Epic setup field (EPS-06). | EPS |
 | QePick | `src/components/QePick.tsx` | The person drop-down of a release in the bulk Create Features pop-ups (DPF-06). | DPF |
 | EpicFeatureEditor | `src/components/EpicFeatureEditor.tsx` | Admin → Epic & Feature setup → Setup per Epic: the Epic list, the preview and the four sections with Customize switches, my own version, one Save (CON-97). | CON, EPS |
 | StoryTemplatesPanel | `src/components/StoryTemplatesPanel.tsx` | Admin → Epic & Feature setup → User Story templates: the shared library with Epic and Release Classification tags (STT-01). | STT |
 | AdminOverview | `src/components/AdminOverview.tsx` | Admin → Overview: setup health with links, unsaved shared changes with Save to Git, latest changes (ADM-01, ADM-02). | ADM |
+| UsagePanel | `src/components/UsagePanel.tsx` | My settings → My page usage: the opt-in tick, the counts most used first, Start again from zero (NAV-45). | NAV |
 | SettingsSearch | `src/components/SettingsSearch.tsx` | The Search settings pop-up (Ctrl K) (ADM-03). | ADM |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
 | ScopeChip | `src/components/ScopeChip.tsx` | The chip saying whom a setting affects: only you, this computer, everyone, or the Tool Owner (SET-16). | SET |
@@ -225,7 +227,9 @@ This document lists every software component of the system: the in-house source 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
-| azureDevOps | `src/azureDevOps.ts` | Azure DevOps REST client: URL normalising, iterations, WIQL fetch, work-item mapping (with Successor / Predecessor IDs from Dependency links, CON-81), constrained Feature/Story/Task creation and updates. | CON, FET, ATM, MON, IF |
+| azureDevOps | `src/azureDevOps.ts` | Azure DevOps writes: constrained Feature / Story / Task creation, the Time Writing and release hierarchies, updates, edits and comments; re-exports azureClient and azureRead, so it stays the one import for the rest of the app. | CON, FET, ATM, MON, IF |
+| azureClient | `src/azureClient.ts` | Azure DevOps request client: connection settings and URL normalising, the transport (fetch or the desktop proxy), api-version negotiation, the write guards (roles, sample mode, dev.azure.com only) and the constrained request bodies. | CON, FET, SMP |
+| azureRead | `src/azureRead.ts` | Azure DevOps reads: iterations, the WIQL backlog fetch, work-item mapping (with Successor / Predecessor IDs from Dependency links, CON-81), field names and team members. | CON, IF |
 | pptxTemplate | `src/pptxTemplate.ts` | Fills the team's PowerPoint template (kept in Storage) with the Monthly pack: Performance Pulse and 2x2 boxes found by label and position, status colours, KPI rows, shrink to fit; checks an uploaded template. | PCK |
 | workItemEdit | `src/workItemEdit.ts` | The fields an edit may change, their checks, the revision-tested JSON patch, rich text as editable text, the Feature DoD split and the edit locks. | BKL |
 | planningLock | `src/planningLock.ts` | The planning / actuals lock rule of a month (deadline, extension, explicit lock) shared by the Monthly page and the Task creation paths, and whether a new month Task is ad-hoc. | MON |
@@ -281,7 +285,7 @@ This document lists every software component of the system: the in-house source 
 | verify-version | `scripts/verify-version.mjs` | Checks package.json version is x.y.z and matches a vX.Y.Z release tag. | CI |
 | vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag), the Content-Security-Policy of the built page (NFR-09). | CI, UPD, NFR |
 | index | `index.html` | HTML entry page with favicon, title and root element loading src/main.tsx. | — |
-| build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: the release commit after a merge (CI-11); change-note check, lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
+| build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: the release commit after a merge (CI-11); E2E also on a 4x slower CPU (CI-12); change-note check, lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
 | dependabot | `.github/dependabot.yml` | Weekly update pull requests for the GitHub Actions pinned to commit SHAs in the workflow (KB-08). | CI |
 | buildInfo | `src/buildInfo.ts` | Exposes the build metadata injected by Vite as `appBuild`. | UPD |
 
@@ -293,6 +297,7 @@ This document lists every software component of the system: the in-house source 
 | swbom.test | `tests/swbom.test.mjs` | The SWBOM lists exactly the lockfile's components with scope, licence and hash; lockfile key parsing. | CI |
 | release-notes.test | `tests/release-notes.test.mjs` | The newest release-notes version is the package version; versions unique, descending, each with an entry; the release job tags each version and takes its notes from its entry. | CI |
 | release-changes.test | `tests/release-changes.test.mjs` | Change notes are valid; the next version from the highest bump; the entry with PR numbers at the top; the release-commit job installs nothing and every build uses its commit. | CI |
+| e2e-slow.test | `tests/e2e-slow.test.mjs` | The slow-machine E2E job: 4x CPU throttling, read-only token, the release commit; the helper throttles every page (TC-CI-08). | CI |
 | validation-package.test | `tests/validation-package.test.mjs` | Validation Package documents: required sections, unique IDs, mitigations and DFMEA controls traced to existing requirements. | DOC |
 | access.test | `tests/access.test.mjs` | Access policy: no-policy defaults, role union, file round trip, refusing writes for roles without Azure changes. | CON |
 | app-update.test | `tests/app-update.test.mjs` | Build metadata validation, cache-busting URLs, update checks and reload blocking, release version check. | UPD, CI |
@@ -314,7 +319,8 @@ This document lists every software component of the system: the in-house source 
 | epic-setup.test | `tests/epic-setup.test.mjs` | Epic setup: file cleaning, Title / Description from the fields, Block and Warn, bulk creation and Copy to Epics (TC-EPS-02, TC-EPS-03). | EPS |
 | feature-setup-inheritance.test | `tests/feature-setup-inheritance.test.mjs` | Feature setup layers per field and the All Epics defaults (TC-CON-59). | CON |
 | my-naming-patterns.test | `tests/my-naming-patterns.test.mjs` | My naming patterns: the streams allowed, kept locally, used before the shared ones (TC-QV-41). | QV |
-| admin-overview.test | `tests/admin-overview.test.mjs` | Admin overview checks and settings search (TC-ADM-01). | ADM |
+| admin-overview.test | `tests/admin-overview.test.mjs` | Admin overview checks, Feature setup gaps and settings search (TC-ADM-01, TC-ADM-03). | ADM |
+| usage-counts.test | `tests/usage-counts.test.mjs` | My page usage: off by default, counts only when on, deleted when off, tampered entries read safely (TC-NAV-45). | NAV |
 | onprem-values.test | `tests/onprem-values.test.mjs` | On-prem field values for the Feature field drop-down (TC-EPS-05). | EPS |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |
@@ -387,7 +393,7 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
-| helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate — waiting for the page's code —, load sample, reload with the sample kept). | CI |
+| helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, throttles the CPU when `E2E_CPU_SLOWDOWN` is set (CI-12), shared actions (navigate — waiting for the page's code —, load sample, reload with the sample kept). | CI |
 | shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, refresh while open (TC-GIT-08), KPI tracker hidden from the menu (TC-KPT-01), typed formula (TC-CAP-27), release naming patterns (TC-QV-37), desktop zoom (TC-UI-07), manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02); Removed connections restored from the Git history (TC-CON-61); the sample reset asks first and is recorded (TC-SMP-02). | NAV, UI, SMP, UPD |
 | documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; "＋ ECP" import named after the stream with the ECP CSV, Project No / Project Name columns, an ECP setup at the 3rd folder with the type-2 CSV (TC-CON-53, 54, 55); the table default on the Windchill raw data — move, hide, density, Excel export with dates, Settings → Table defaults (TC-UI-04, 05); My Work tree, Backlog Health and Baselines on the default (TC-UI-06); neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); Windchill releases' QMS-0025 match column (TC-QV-23); auto-fit tables and Wrap text (TC-CON-42); the DP Supported Releases list in Pulse Check folded until Show list (TC-QV-17). | DOC, CON, STO, NFR, QV |
 | backlog.e2e | `e2e/backlog.e2e.mjs` | New User Story form from a Feature row of the Backlogs (TC-BKL-10); the Edit form from Feature, User Story and Task rows (TC-BKL-11); New Feature sections, Start date and the Time Writing months with hours per month (TC-BKL-19, TC-BKL-21); DoD and User Stories per Release Classification value (TC-DPF-06); User Story templates (TC-STT-01). | CI, BKL |

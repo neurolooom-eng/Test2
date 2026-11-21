@@ -264,6 +264,51 @@ jobs:
       - name: Run end-to-end tests
         run: pnpm test:e2e
 
+
+  # CI-12: the same scenarios on a CPU four times slower (Chromium throttling), as on a busy laptop: a step that only
+  # passes because the app happens to be fast (a race between rendering, focus and saving) fails here first.
+  end-to-end-slow:
+    name: End-to-end tests (slow machine)
+    needs: release-commit
+    if: ${{ !cancelled() && needs.release-commit.result != 'failure' }}
+    # Pinned: `ubuntu-latest` moved to Ubuntu 26.04, for which Playwright 1.56 has no Chromium build.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.19.0
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build web application
+        run: pnpm build:web
+
+      - name: Run end-to-end tests on a 4x slower CPU
+        env:
+          E2E_CPU_SLOWDOWN: '4'
+        run: pnpm test:e2e
   # macOS runners often queue for a long time, so the disk image is built only for main (and tags or manual runs),
   # not for pull requests, and is published on its own: Web and Windows never wait for it.
   package-macos:

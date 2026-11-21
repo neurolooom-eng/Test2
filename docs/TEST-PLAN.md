@@ -329,6 +329,8 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-NAV-42 Home: tiles per area, links and search** — Req NAV-42, NAV-43, NAV-44 — **UAT** — L1 `home-tiles.test.mjs` ("NAV-43: a search keeps a matching tile whole, else only its matching links; nothing left out without a match (TC-NAV-42)", "NAV-42: Home is a page of its own, open to everyone, without a month"); E2E `shell.e2e.mjs` ("TC-NAV-42: Home is the start page — a tile per area with links to its pages, a search, and Home first in the menu": the start page and first menu entry, the tiles in order, six links and “+n more” showing the rest, a search keeping only matching links or whole matching tiles, nothing found, a tile opening its area and a link its page; "TC-NAV-01 / TC-NAV-17": the app opens on Home); browser check: dark mode and phone width; a role without Release Details sees no Release Details tile.
 
+**TC-NAV-45 My page usage** — Req NAV-45 — L1 `usage-counts.test.mjs` ("NAV-45: page usage is off until turned on; nothing is counted or stored while off (TC-NAV-45)"; "NAV-45: on, each opening of a page counts; off deletes the counts; most used first (TC-NAV-45)"; "NAV-45: a tampered or broken entry is read safely (TC-NAV-45)"); E2E `shell.e2e.mjs` ("TC-NAV-45: My page usage is off by default; turned on, it counts the pages opened in this browser; off deletes the counts"); inspection: an exported JSON backup and a Git snapshot contain no usage counts.
+
 **TC-NAV-36 Background jobs** — Req NAV-36 — L1 `background-jobs.test.mjs` ("background jobs: run, report progress and the result; the same job is not started twice"; "… a failed result or a thrown error marks the job; Clear finished keeps the running ones"); browser check (QMS-0025 with a saved PAT): New Feature → Save closes the form at once and the top bar shows “⟳ 1 running” with its progress, then “✓ Jobs done” with “#id … Hierarchy complete”; the menu and other pages stay usable meanwhile; Bulk actions → Create month tasks and Move run the same way and their buttons wait while the job runs; Monthly Time Writing → Save leaves a failed Task staged; reloading while a job runs asks first.
 
 **TC-NAV-34 Settings editors as pop-ups** — Req NAV-34 — browser check: Settings → Storage shows the Git storage and SharePoint summaries; "Connect Git storage…" and "Connect to SharePoint…" open pop-ups, a click beside them keeps them open, Cancel closes them; Settings → Azure DevOps: Edit on the Time Writing row and "＋ Add server" open pop-ups; Settings → Capacity & periods: "Edit capacity settings…" opens the form in a pop-up; "＋ Map an Epic or Feature…" maps #424242 and closes, the mapping's Edit opens "Change the mapping of #424242"; Settings → Feature setup: Go to Epic #13946 → the summary and "View setup…" (no Git) open "Shared Feature setup · Epic #13946", Close closes it; every pop-up form is one column (title, input, explanation per field) with Cancel then the main action at the bottom right; at 390 × 844 the connection pop-up fits without horizontal scrolling; no page errors. **UAT**
@@ -1396,6 +1398,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-CI-07 Release commit** — Req CI-11 — L1 `release-changes.test.mjs` ("CI-11: the highest bump of the waiting notes gives the next version (TC-CI-07)"; "CI-11: the notes become the new version’s entry at the top, each with its pull request (TC-CI-07)"; "CI-11: the release commit is written after every merge by a job that installs nothing; builds use that commit (TC-CI-07)"), `traceability.test.mjs` ("the traceability matrix is complete, and current on main (TC-CI-07)"); inspection after a merge with a change note: the job *Write release commit* is green and `main` has the commit "Release vX.Y.Z [skip ci]" right after the squash commit, with the version in `package.json`, the entry with "PR #N." at the top of RELEASE-NOTES.md, the note removed and the SWBOM and matrix regenerated; the Windows, macOS, end-to-end and web jobs check out that commit, the tag `vX.Y.Z` is on it, and the app shows the new version; two merges in quick succession give two release commits or one with both notes, and no run on main is cancelled.
 
+**TC-CI-08 End-to-end on a slow machine** — Req CI-12 — L1 `e2e-slow.test.mjs` ("CI-12: the E2E scenarios also run on a 4x slower CPU, in their own read-only job (TC-CI-08)"); inspection: `E2E_CPU_SLOWDOWN=4 pnpm test:e2e` passes every scenario (locally: shell 56, backlog 11, documents-and-data 14, monthly-pack 2, about twice the time); a fixed loop in the page takes about four times as long with the throttle; the job *End-to-end tests (slow machine)* runs on every pull request and push to main and turns the run red when a scenario fails.
+
 ### 6.21 QE Mapping
 
 **TC-QEM-01 Read an Excel as it is** — Req QEM-02 — L1 `qe-mapping.test.mjs` ("reads an Excel workbook as it is: every sheet, shared / rich / inline strings, dates, numbers, booleans, formulas"; "reads CSV with commas, semicolons or tabs, quotes and line breaks in fields"; "a sheet becomes a table as it is: header from the first non-empty row, names made unique, empty rows and columns dropped"; "a crafted Excel sheet with cells beyond Excel's limits is refused, not padded (KB-04, TC-QEM-01)").
@@ -1585,7 +1589,9 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-ADM-01 Overview checks and settings search** — Req ADM-01, ADM-03 — L1 `admin-overview.test.mjs` ("Admin overview: open Get started steps and shared-setup checks, required first, each with its fix (ADM-01, TC-ADM-01)"; "Search settings: by name or what it affects, every page reachable (ADM-03, TC-ADM-01)").
 
-**TC-ADM-02 Overview, Ctrl K and History** — Req ADM-01…04 — E2E `shell.e2e.mjs` ("TC-ADM-02: Admin → Overview lists what to set up with links; Ctrl K finds a setting and opens it; History filters the changes"); browser check with Git storage: change a capacity setting — the ADMIN heading shows 1 and the Overview shows Unsaved shared changes with Save to Git; Save to Git clears both; Ctrl K → "dod" offers Feature setup; History → choose an area and type part of a change.
+**TC-ADM-02 Overview, Ctrl K and History** — Req ADM-01…04 — E2E `shell.e2e.mjs` ("TC-ADM-02: Admin → Overview lists what to set up with links (and the bulk Epic without a setup, TC-ADM-03); Ctrl K finds a setting and opens it; History filters the changes"); browser check with Git storage: change a capacity setting — the ADMIN heading shows 1 and the Overview shows Unsaved shared changes with Save to Git; Save to Git clears both; Ctrl K → "dod" offers Feature setup; History → choose an area and type part of a change.
+
+**TC-ADM-03 Feature setup gaps on the Overview** — Req ADM-05 — L1 `admin-overview.test.mjs` ("ADM-05: bulk creation Epics without a shared Feature setup, and shared setups without a Feature DoD (TC-ADM-03)"); E2E `shell.e2e.mjs` ("TC-ADM-02: Admin → Overview lists what to set up with links (and the bulk Epic without a setup, TC-ADM-03); …"): on a fresh start the Overview warns "DP bulk creation Epic #13946 has no Feature setup"; browser check with Git storage: share a Feature setup for the DP bulk Epic and the warning goes; share a setup with an empty Feature DoD and no All Epics DoD and "Feature setup without a Feature DoD: #…" appears, its button opening Feature setup.
 
 **TC-STT-01 User Story templates: library, tags and linked stories** — Req STT-01, STT-02 — **UAT** — L1 `story-templates.test.mjs` ("STT-01: a User Story template is cleaned and kept with the Epic setup (TC-STT-01)", "STT-01: the templates offered follow their Epic and Release Classification tags (TC-STT-01)"); E2E `backlog.e2e.mjs` ("TC-STT-01: a User Story template, linked in an Epic’s setup, gives New Feature its current title, ticked; Admin lists it with its tags"); UAT: save a story of an Epic's setup as a template, tag it to a second Epic and a Release Classification value, add it there with ＋ Add from templates, Save to Git, change the template's title and check that New Feature under both Epics offers the new title, ticked.
 
@@ -1620,6 +1626,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NAV-42 | TC-NAV-42 |
 | NAV-43 | TC-NAV-42 |
 | NAV-44 | TC-NAV-42 |
+| NAV-45 | TC-NAV-45 |
 | CON-01…03 | TC-CON-01 |
 | CON-04…08, CON-19 | TC-CON-02 |
 | CON-09 | TC-CON-03 |
@@ -1914,6 +1921,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CI-09 | TC-CI-05 |
 | CI-10 | TC-CI-06 |
 | CI-11 | TC-CI-07 |
+| CI-12 | TC-CI-08 |
 | QEM-01 | TC-QEM-03, TC-QEM-04 |
 | QEM-02 | TC-QEM-01, TC-QEM-04 |
 | QEM-03…QEM-06 | TC-QEM-02, TC-QEM-04 |
@@ -2033,6 +2041,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | ADM-02 | TC-ADM-02 |
 | ADM-03 | TC-ADM-01, TC-ADM-02 |
 | ADM-04 | TC-ADM-02 |
+| ADM-05 | TC-ADM-03 |
 | STT-01 | TC-STT-01 |
 | STT-02 | TC-STT-01, TC-STT-02 |
 | IF-05 | TC-KPT-02 |
@@ -2049,7 +2058,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 | Use case | Test cases |
 |---|---|
-| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-NAV-42, TC-UI-09, TC-UI-10 |
+| UC-01 | TC-NAV-01…06, TC-NAV-33, TC-NAV-37, TC-UI-01, TC-UI-02, TC-UI-03, TC-CON-36, TC-CON-38, TC-NAV-38, TC-NAV-39, TC-NAV-40, TC-NAV-41, TC-NAV-42, TC-NAV-45, TC-UI-09, TC-UI-10 |
 | UC-02 | TC-CON-01…07, TC-CON-17…19, TC-CON-44, TC-CON-28, TC-NAV-02, TC-NAV-34, TC-QV-14, TC-QV-16, TC-QV-23, TC-QV-24, TC-CON-46, TC-QV-25, TC-CON-47, TC-QV-38, TC-QV-39, TC-QV-40 |
 | UC-03 | TC-CON-03, TC-FET-01…06, TC-FET-09 |
 | UC-04 | TC-TWN-01, TC-TWN-02, TC-MON-01…06, TC-MON-09, TC-MON-10, TC-ATM-19, TC-BKL-18, TC-ACT-14, TC-ACT-15 |
@@ -2067,7 +2076,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
 | UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04, TC-SMP-02 |
-| UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-CI-07, TC-DOC-03 |
+| UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-CI-07, TC-CI-08, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-57, TC-CON-58 |
@@ -2083,7 +2092,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-32 | TC-DPF-01…04, TC-DPF-05, TC-DPF-06, TC-DPF-07, TC-DPF-08 |
 | UC-33 | TC-CNB-01, TC-CNB-02 |
 | UC-34 | TC-EPS-01, TC-EPS-02, TC-EPS-03, TC-EPS-04, TC-EPS-05, TC-EPS-06 |
-| UC-35 | TC-ADM-01, TC-ADM-02 |
+| UC-35 | TC-ADM-01, TC-ADM-02, TC-ADM-03 |
 | UC-36 | TC-STT-01, TC-STT-02 |
 
 ## 8. Result record

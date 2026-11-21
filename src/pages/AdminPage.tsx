@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from 'react'
 import { EpicFeatureEditor } from '../components/EpicFeatureEditor'
 import { AdminOverview } from '../components/AdminOverview'
+import { setupGaps } from '../adminOverview'
+import { UsagePanel } from '../components/UsagePanel'
 import type { SetupStep } from '../setupGuide'
 import { useBulkEpic } from '../useStreamEpics'
 import { NamingPatternsPanel } from '../components/NamingPatternsPanel'
@@ -243,8 +245,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
   const asked = resolveSettings(requested).tab
   const tab = asked === 'my' || settingsPagesFor(can).some((page) => page.key === asked) ? asked : 'connections'
   // ADM-01: the Overview's shared-setup checks.
-  const ioccBulk = useBulkEpic('IOCC').epicId
-  const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly }
+  const ioccBulk = useBulkEpic('IOCC').epicId, dpBulk = useBulkEpic('DP').epicId
+  const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly,
+    ...setupGaps(featureSetup.shared, [{ stream: 'DP', epicId: dpBulk }, { stream: 'IOCC', epicId: ioccBulk }]) }
   // ADM-04: History, filtered by area and text.
   const [auditFilter, setAuditFilter] = useState({ entity: '', text: '' })
   const auditEntities = [...new Set(store.state.audits.map((item) => item.entity))].sort()
@@ -256,6 +259,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       { key: 'servers', label: 'Servers and PATs', scope: 'you', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canManageStreams={access.canManageStreams} /> },
       { key: 'myviews', label: 'My views', scope: 'you', node: <MyViewsPanel azure={azure} /> },
       { key: 'patterns', label: 'My naming patterns', scope: 'you', node: <NamingPatternsPanel store={store} canManage mode="mine" /> },
+      { key: 'usage', label: 'My page usage', scope: 'you', node: <UsagePanel /> },
     ]} />}
     {tab === 'connections' && <SectionTabs page="connections" sections={[
       { key: 'mapping', label: 'Stream mapping', scope: 'tool-owner', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canEnterCounts={can('release.counts')} canManageStreams={access.canManageStreams} /> },

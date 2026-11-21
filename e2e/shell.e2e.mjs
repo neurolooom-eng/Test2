@@ -607,7 +607,7 @@ test('TC-SET-06: Admin lists the shared setup pages, My settings opens from your
   // My settings: from the name in the sidebar, everything that is only yours.
   await page.getByRole('button', { name: /^My settings/ }).click()
   assert.equal(await text(page.locator('header.topbar h1')), 'My settings')
-  assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Your work email', 'Servers and PATs', 'My views', 'My naming patterns'])
+  assert.deepEqual((await sections.getByRole('tab').allInnerTexts()).map((label) => label.trim()), ['Your work email', 'Servers and PATs', 'My views', 'My naming patterns', 'My page usage'])
   assert.match(await text(page.locator('.scope-line')), /Only you · This computer/)
   // EPS-08: Epic setup and Feature setup are one page, starting from the list of all Epic setups.
   await navigate(page, 'Epic & Feature setup')
@@ -1346,13 +1346,14 @@ test('TC-QV-41: My settings → My naming patterns — your own patterns for IOC
   await context.close()
 })
 
-test('TC-ADM-02: Admin → Overview lists what to set up with links; Ctrl K finds a setting and opens it; History filters the changes', async () => {
+test('TC-ADM-02: Admin → Overview lists what to set up with links (and the bulk Epic without a setup, TC-ADM-03); Ctrl K finds a setting and opens it; History filters the changes', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, /Overview$/)
   assert.equal(await text(page.locator('header.topbar h1')), 'Overview')
   const health = page.locator('.admin-overview')
   assert.match(await text(health), /Connect Git storage/, 'the open Get started steps are listed')
   assert.match(await text(health), /No access roles yet/)
+  assert.match(await text(health), /DP bulk creation Epic #13946 has no Feature setup/, 'ADM-05: the built-in DP bulk Epic has no shared Feature setup yet')
   await health.locator('li', { hasText: 'IOCC bulk creation Epic not chosen' }).getByRole('button').click()
   assert.equal(await text(page.locator('header.topbar h1')), 'Stream options')
   assert.equal(await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Bulk creation Epics' }).getAttribute('aria-selected'), 'true', 'the fix opens the section')
@@ -1370,6 +1371,33 @@ test('TC-ADM-02: Admin → Overview lists what to set up with links; Ctrl K find
   assert.equal(await page.locator('.audit-row').count(), 0)
   await page.getByLabel('Search changes').fill('')
   assert.equal(await page.locator('.audit-row').count(), before)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-NAV-45: My page usage is off by default; turned on, it counts the pages opened in this browser; off deletes the counts', async () => {
+  const { page, context, errors } = await openPage(app)
+  const openUsage = async () => {
+    await page.keyboard.press('Control+k')
+    const search = page.getByRole('dialog').filter({ hasText: 'Search settings' })
+    await search.getByLabel('Search settings').fill('page usage')
+    await search.getByLabel('Search settings').press('Enter')
+    return page.locator('.usage-panel')
+  }
+  let panel = await openUsage()
+  const toggle = panel.getByLabel('Count the pages I open (this browser only)')
+  assert.equal(await toggle.isChecked(), false, 'off by default')
+  await toggle.check()
+  assert.match(await text(panel), /Nothing counted yet/)
+  await navigate(page, /Documentation$/)
+  await navigate(page, /My dashboard$/)
+  await navigate(page, /Documentation$/)
+  panel = await openUsage()
+  assert.match(await text(panel.locator('tbody tr').first()), /^Documentation 2$/i, 'most used first')
+  assert.match(await text(panel), /My dashboard 1/i)
+  assert.ok(await page.evaluate(() => localStorage.getItem('demand-planning-usage-v1')?.includes('"docs":2')), 'kept in this browser')
+  await panel.getByLabel('Count the pages I open (this browser only)').uncheck()
+  assert.equal(await page.evaluate(() => localStorage.getItem('demand-planning-usage-v1')), null, 'turning it off deletes the counts')
   assert.deepEqual(errors, [])
   await context.close()
 })
