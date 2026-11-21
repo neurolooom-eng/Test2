@@ -8,6 +8,7 @@ import { loadAzurePat, saveAzurePat, forgetAzurePat, listAzureConnectionProfiles
 import { approvalDateFrom, checkWorkItemQuery, defaultReleaseQuery, fetchReleaseSource, normalizeReleaseSourceSettings, projectQuery, runWorkItemQuery, withAncestors } from './releaseSource'
 import { sampleDataset, sampleProfiles, sampleReleaseScopes } from './sampleData'
 import { indiaMonth } from './azureInsights'
+import { syncTitlesAfterSave } from './monthTaskAction'
 import { columnName, pickFields, queryLayout } from './queryView'
 import { duplicateOf, markResetApplied, promoteToTimeWriting, removeAllConnections } from './viewDefinitions'
 
@@ -191,13 +192,16 @@ export function useAzureWorkspace(store: PageProps['store'], onFetched?: { curre
   async function saveTimeWritingEffort(workItemId: number, planHours: number | undefined, actualHours: number | undefined, markAdhoc = false) {
     if (!config) throw new Error('Configure a valid Azure DevOps project first.')
     const updated = await updateAzureTimeWritingEffort(config, pat, workItemId, planHours, actualHours, markAdhoc)
-    setPreview((current) => current ? { ...current, items: mergeAzureWorkItems(current.items, [updated]), scope: { ...current.scope, itemKeys: [...new Set([...current.scope.itemKeys, updated.key])] } } : current)
+    // BKL-36: a month Task saved: its Feature's Time Writing titles follow the Feature name (silently).
+    const titles = await syncTitlesAfterSave(config, pat, items, updated)
+    const changed = [updated, ...titles.renamed]
+    setPreview((current) => current ? { ...current, items: mergeAzureWorkItems(current.items, changed), scope: { ...current.scope, itemKeys: [...new Set([...current.scope.itemKeys, ...changed.map((entry) => entry.key)])] } } : current)
     store.update((draft) => {
-      draft.azureWorkItems = mergeAzureWorkItems(draft.azureWorkItems ?? [], [updated])
-      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update Azure effort', entity: 'AzureDevOps Time Writing Task', entityId: String(updated.id), detail: `Updated Original Estimate to ${planHours ?? 'unchanged'}h and Completed Work to ${actualHours ?? 'unchanged'}h on Azure DevOps Task #${updated.id}${markAdhoc ? '; tagged ad-hoc' : ''}.` })
+      draft.azureWorkItems = mergeAzureWorkItems(draft.azureWorkItems ?? [], changed)
+      draft.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Update Azure effort', entity: 'AzureDevOps Time Writing Task', entityId: String(updated.id), detail: `Updated Original Estimate to ${planHours ?? 'unchanged'}h and Completed Work to ${actualHours ?? 'unchanged'}h on Azure DevOps Task #${updated.id}${markAdhoc ? '; tagged ad-hoc' : ''}.${titles.note}` })
       return draft
     })
-    setMessage(`Azure DevOps Task #${updated.id} saved and verified.`); setError('')
+    setMessage(`Azure DevOps Task #${updated.id} saved and verified.${titles.note}`); setError('')
     return updated
   }
 

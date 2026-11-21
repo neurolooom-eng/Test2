@@ -1,5 +1,5 @@
 import type { AzureWorkItem } from './domain'
-import { addMonthTasks, currentIndiaMonth, ensureMonthTask, type AzureConfig, type AzureTransport } from './azureDevOps.ts'
+import { addMonthTasks, currentIndiaMonth, ensureMonthTask, syncTimeWritingTitles, type AzureConfig, type AzureTransport } from './azureDevOps.ts'
 import { setupHours, type FeatureSetups } from './featureSetup.ts'
 import { adhocAfterLock } from './planningLock.ts'
 import { featureOf } from './myWork.ts'
@@ -56,4 +56,17 @@ export const existingMonthNotice = (label: string, task: AzureWorkItem, who: str
 export function overrideConfirmText(months: { label: string; task: AzureWorkItem; typed: boolean }[]) {
   const lines = months.map(({ label, task, typed }) => `• ${label}: Task #${task.id} (${hoursText(task)})${typed ? ' — its hours will be overridden by the ones typed' : ' — no hours typed, it stays as it is'}`)
   return `${months.length === 1 ? 'This month already has' : 'These months already have'} a Time Writing Task:\n${lines.join('\n')}\n\nNo second Task is created. Continue?`
+}
+
+// BKL-36: after a Feature, a Time Writing story or a month Task is saved, the Feature's Time Writing titles are brought in
+// line with its title, silently (no question asked). Never fails the save: a failure only adds a short note.
+export async function syncTitlesAfterSave(config: AzureConfig, pat: string, items: AzureWorkItem[], saved: AzureWorkItem, transport?: AzureTransport): Promise<{ renamed: AzureWorkItem[]; note: string }> {
+  const feature = featureOf([...items.filter((entry) => entry.id !== saved.id), saved], saved)
+  if (!feature) return { renamed: [], note: '' }
+  try {
+    const renamed = await syncTimeWritingTitles(config, pat, feature.id, transport)
+    return { renamed, note: renamed.length ? ` Time Writing titles updated to the Feature name (${renamed.length}).` : '' }
+  } catch (failure) {
+    return { renamed: [], note: ` Time Writing titles not updated: ${failure instanceof Error ? failure.message : 'failed'}.` }
+  }
 }

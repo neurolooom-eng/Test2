@@ -308,12 +308,58 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   return { status: 'created', task, story, storyCreated, storyAssigned }
 }
 
+// BKL-36: a Feature renamed after its Time Writing story and month Tasks were made leaves them with the old name. A story
+// "<Old> - Time Writing" whose month Tasks are all exactly "<Month YYYY> | <Old>" (at least one) was made from the
+// Feature's former title, so it becomes "<New> - Time Writing" and its Tasks "<Month YYYY> | <New>" — everyone's.
+// Anything else is left alone: a story with no month Task, Tasks with another name after the month (leave kinds such as
+// "Ana Costa - PTO", holidays), stories people titled themselves, Tasks directly under the Feature.
+const monthTaskTitle = /^([A-Z][a-z]+ \d{4}) \| (.+)$/
+const storySuffix = ' - Time Writing'
+export function staleTimeWritingTitles(featureTitle: string, stories: { story: Pick<AzureWorkItem, 'id' | 'title' | 'state'>; tasks: Pick<AzureWorkItem, 'id' | 'title' | 'state' | 'workItemType'>[] }[]) {
+  const name = featureTitle.trim()
+  const live = (item: { state: string }) => item.state.trim().toLowerCase() !== 'removed'
+  const renames: { id: number; from: string; title: string }[] = []
+  if (!name || `${name}${storySuffix}`.length > 255) return renames
+  for (const { story, tasks } of stories) {
+    const title = story.title.trim()
+    if (!live(story) || !title.endsWith(storySuffix)) continue
+    const old = title.slice(0, -storySuffix.length).trim()
+    if (!old || old === name) continue
+    const months = tasks.filter((task) => live(task) && task.workItemType === 'Task').map((task) => ({ task, match: monthTaskTitle.exec(task.title.trim()) })).filter((entry) => entry.match && timeWritingMonth(entry.match[1]))
+    if (!months.length || months.some((entry) => entry.match![2].trim() !== old)) continue
+    if (months.some((entry) => `${entry.match![1]} | ${name}`.length > 255)) continue
+    renames.push({ id: story.id, from: story.title, title: `${name}${storySuffix}` })
+    for (const { task, match } of months) renames.push({ id: task.id, from: task.title, title: `${match![1]} | ${name}` })
+  }
+  return renames
+}
+
+// BKL-36: checks a Feature's Time Writing stories and month Tasks against its title now (re-read from Azure DevOps) and
+// renames the stale ones, each at the revision just read. Returns what was renamed; stops at the first failure.
+export async function syncTimeWritingTitles(config: AzureConfig, pat: string, featureId: number, transport: AzureTransport = requestAzure) {
+  const source = await transport({ ...config, pat, operation: 'items', ids: [featureId] }) as { value?: RawItem[] }
+  const raw = source.value?.find((item) => item.id === featureId)
+  if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') return []
+  const feature = mapAzureWorkItem(raw, config)
+  const children = await directChildren(config, pat, feature.id, transport)
+  const stories = []
+  for (const story of children.filter((item) => item.workItemType === 'User Story' && item.title.trim().endsWith(storySuffix))) stories.push({ story, tasks: await directChildren(config, pat, story.id, transport) })
+  const renamed: AzureWorkItem[] = []
+  for (const rename of staleTimeWritingTitles(feature.title, stories)) renamed.push(await editAtCurrentRevision(config, pat, rename.id, { title: rename.title }, transport))
+  return renamed
+}
+
+// A change by the app itself (not a person's edit form), at the work item's current revision.
+async function editAtCurrentRevision(config: AzureConfig, pat: string, workItemId: number, change: WorkItemEdit, transport: AzureTransport) {
+  const read = await transport({ ...config, pat, operation: 'items', ids: [workItemId] }) as { value?: RawItem[] }
+  const rev = read.value?.find((item) => item.id === workItemId)?.rev
+  if (typeof rev !== 'number') throw new Error(`#${workItemId} could not be read to update it.`)
+  return editWorkItem(config, pat, workItemId, rev, change, { planningLocked: () => false, actualsLocked: () => false }, transport)
+}
+
 // Assigned To of an unassigned Time Writing story, at its current revision (a change in between is refused).
-async function assignStory(config: AzureConfig, pat: string, storyId: number, email: string, transport: AzureTransport) {
-  const read = await transport({ ...config, pat, operation: 'items', ids: [storyId] }) as { value?: RawItem[] }
-  const rev = read.value?.find((item) => item.id === storyId)?.rev
-  if (typeof rev !== 'number') throw new Error(`#${storyId} could not be read to assign it. Nothing was created.`)
-  return editWorkItem(config, pat, storyId, rev, { assignedTo: email }, { planningLocked: () => false, actualsLocked: () => false }, transport)
+function assignStory(config: AzureConfig, pat: string, storyId: number, email: string, transport: AzureTransport) {
+  return editAtCurrentRevision(config, pat, storyId, { assignedTo: email }, transport)
 }
 
 // BKL-32: the month Tasks of a new Feature after its first month, one per month up to the Target date, each by the one
