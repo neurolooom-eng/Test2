@@ -329,7 +329,7 @@ test('TC-STT-01: a User Story template, linked in an Epic’s setup, gives New F
   await context.close()
 })
 
-test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month first, ＋ Add month, any month changeable — and the hours of each', async () => {
+test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month first, ＋ Add month, any month changeable — and the hours of each; Assigned to is the person creating (TC-BKL-24)', async () => {
   const { page, context, errors } = await openPage(app, { init: () => { localStorage.setItem('demand-planning-work-email-v1', 'nobody@example.com') } })
   await loadSample(page)
   await navigate(page, 'QMS-0025')
@@ -345,6 +345,8 @@ test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month 
   const india = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).format(new Date())
   const header = await page.locator('header.topbar input[type=month]').inputValue().catch(() => india)
   assert.equal(await dialog.getByLabel('Month 1').inputValue(), header || india, 'the month in the header first')
+  assert.match(await text(dialog), /Assigned to/, 'BKL-35: the pop-up asks who the Tasks are assigned to')
+  assert.match(await text(dialog), /Assigned To of the Task and its Time Writing story in Azure DevOps: nobody@example\.com/, 'BKL-35: the person creating by default')
   await dialog.getByRole('button', { name: '＋ Add month' }).click()
   await dialog.getByRole('button', { name: '＋ Add month' }).click()
   const [year, month] = (header || india).split('-').map(Number)

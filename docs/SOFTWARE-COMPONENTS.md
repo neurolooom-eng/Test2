@@ -81,7 +81,7 @@ This document lists every software component of the system: the in-house source 
 | DpMonthCounts | `src/components/DpMonthCounts.tsx` | Table of a month's DP Supported Releases with milestones passed (DT, SFV, PRD, RPE) and dates. | QV, OVR |
 | ErrorBoundary | `src/components/ErrorBoundary.tsx` | Catches render errors in a view and shows what failed with a way back instead of a blank app. | UI |
 | FeatureEditor | `src/components/FeatureEditor.tsx` | The one New Feature form (BKL-26): add a Feature under an Epic or complete a Feature's children, used by Backlogs, My Tasks [Board], Release Details and Time Writing; the Parent Epic starts blank. | ATM, CON, BKL, ACT |
-| MonthTasksDialog | `src/components/MonthTasksDialog.tsx` | ＋ Time Writing Task: the months (header month first, ＋ Add month) and the hours of each (BKL-34). | BKL |
+| MonthTasksDialog | `src/components/MonthTasksDialog.tsx` | ＋ Time Writing Task: the months (header month first, ＋ Add month) and the hours of each (BKL-34); Assigned to and the warning on a month that already has a Task (BKL-35). | BKL |
 | JobsIndicator | `src/components/JobsIndicator.tsx` | Top-bar list of the background jobs: running count, results, Clear finished; asks before leaving the page while one runs. | NAV |
 | MonthlyPackPanel | `src/components/MonthlyPackPanel.tsx` | Pulse Check → Monthly pack: the two slides as boxes with generated lines and the month's text, Save to Git, copy, Download .pptx. | PCK |
 | HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |

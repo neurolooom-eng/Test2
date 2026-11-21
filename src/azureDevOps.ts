@@ -272,7 +272,8 @@ export async function detectWorkEmail(config: AzureConfig, pat: string, transpor
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.
-export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean }
+// storyAssigned: an existing Time Writing story with no Assigned To was given the person (BKL-35).
+export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean; storyAssigned?: boolean }
 // adhoc: the month's planning has locked, so a newly created Task is tagged 'ad-hoc' (an existing one is left as it is).
 // BKL-28: the one Time Writing Task rule of every page — "<Month> | <Feature>" under "<Feature> - Time Writing" (the
 // person's own story first), assigned to the person, in the Feature's Area Path and the project root; any month Task of
@@ -295,12 +296,24 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   const plan = planMonthStory(stories, children.filter((item) => item.workItemType === 'Task'), timeWritingMonth(monthLabel) ?? '', storyTitle, (item) => item.assignedToEmail === email)
   if (plan.status === 'exists') return { status: 'exists', task: plan.task, story: plan.story ?? feature, storyCreated: false }
   if (plan.status === 'conflict') throw new Error(`#${feature.id} has ${plan.stories.length} possible Time Writing stories (${plan.stories.map((item) => `#${item.id}`).join(', ')}). Add your month Task under the right one in Azure DevOps.`)
-  let story: AzureWorkItem, storyCreated = false
-  if (plan.status === 'use') story = plan.story
-  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
+  let story: AzureWorkItem, storyCreated = false, storyAssigned = false
+  if (plan.status === 'use') {
+    story = plan.story
+    // BKL-35: the story holding the person's Task is assigned to them too — a new one is created so; an existing one with
+    // no Assigned To is given the person. Another person's story is never reassigned (ATM-23).
+    if (!story.assignedToEmail) { story = await assignStory(config, pat, story.id, email, transport); storyAssigned = true }
+  } else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
   let task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
   if (defaultHours != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, defaultHours, undefined, false, transport)
-  return { status: 'created', task, story, storyCreated }
+  return { status: 'created', task, story, storyCreated, storyAssigned }
+}
+
+// Assigned To of an unassigned Time Writing story, at its current revision (a change in between is refused).
+async function assignStory(config: AzureConfig, pat: string, storyId: number, email: string, transport: AzureTransport) {
+  const read = await transport({ ...config, pat, operation: 'items', ids: [storyId] }) as { value?: RawItem[] }
+  const rev = read.value?.find((item) => item.id === storyId)?.rev
+  if (typeof rev !== 'number') throw new Error(`#${storyId} could not be read to assign it. Nothing was created.`)
+  return editWorkItem(config, pat, storyId, rev, { assignedTo: email }, { planningLocked: () => false, actualsLocked: () => false }, transport)
 }
 
 // BKL-32: the month Tasks of a new Feature after its first month, one per month up to the Target date, each by the one
@@ -317,7 +330,7 @@ export async function addMonthTasks(config: AzureConfig, pat: string, featureId:
       // An existing Task keeps its hours unless new ones were typed; a new one already has its Original Estimate.
       const plan = result.status === 'exists' ? entry.originalEstimate : undefined
       if (plan != null || entry.completedWork != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, plan, entry.completedWork, false, transport)
-      if (result.storyCreated) items.push(result.story)
+      if (result.storyCreated || result.storyAssigned) items.push(result.story)
       items.push(task)
     }
     return items
