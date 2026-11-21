@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { EpicFeatureEditor } from '../components/EpicFeatureEditor'
 import { AdminOverview } from '../components/AdminOverview'
+import { setupGaps } from '../adminOverview'
 import type { SetupStep } from '../setupGuide'
 import { useBulkEpic } from '../useStreamEpics'
 import { NamingPatternsPanel } from '../components/NamingPatternsPanel'
@@ -243,8 +244,9 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
   const asked = resolveSettings(requested).tab
   const tab = asked === 'my' || settingsPagesFor(can).some((page) => page.key === asked) ? asked : 'connections'
   // ADM-01: the Overview's shared-setup checks.
-  const ioccBulk = useBulkEpic('IOCC').epicId
-  const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly }
+  const ioccBulk = useBulkEpic('IOCC').epicId, dpBulk = useBulkEpic('DP').epicId
+  const facts = { policy: Boolean(access.policy), toolOwner: toolOwnerExists(access.policy), epicSetups: epicSetup.file?.epics.filter((entry) => entry.fields.length).length ?? 0, sharedFeatureSetups: featureSetup.shared?.epics.length ?? 0, ioccBulkEpic: Boolean(ioccBulk), unsaved: git.dirty, gitConnected: git.connected, gitReadOnly: git.readOnly,
+    ...setupGaps(featureSetup.shared, [{ stream: 'DP', epicId: dpBulk }, { stream: 'IOCC', epicId: ioccBulk }]) }
   // ADM-04: History, filtered by area and text.
   const [auditFilter, setAuditFilter] = useState({ entity: '', text: '' })
   const auditEntities = [...new Set(store.state.audits.map((item) => item.entity))].sort()

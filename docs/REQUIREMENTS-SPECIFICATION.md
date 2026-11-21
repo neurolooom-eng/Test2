@@ -1037,6 +1037,7 @@ OVR-01 to OVR-08 describe the earlier Overview (Team / Individual switch, "This 
 | ADM-02 | Shared planning-data changes not yet saved to Git shall be shown on the Overview with **Save to Git** (the publish tray) and as a count next to the **ADMIN** heading of the menu until saved; shared changes keep saving as today. | T | S | UC-35 |
 | ADM-03 | **Search settings** — Ctrl K (⌘ K), a Search settings link in the sidebar and a button on the Overview — shall find any settings page or section by its name, its page or what it affects (e.g. PAT, IOCC, DoD, master data), list only those the person may open, and open the chosen one (Enter opens the first). | T | S | UC-35 |
 | ADM-04 | **Admin → History** shall list the recorded changes, newest first, filtered by area and by text, with how many are shown. | T | C | UC-35 |
+| ADM-05 | The Overview shall also warn (Attention) about gaps in the shared Feature setup that others meet: a DP or IOCC bulk creation Epic with no shared Feature setup (its Create Features skips every row; All Epics counts as a setup), naming the stream and Epic, and shared Feature setups whose Feature DoD is empty after inheritance (own value, All Epics), listing their Epics; each links to Feature setup. Only the shared file is judged: a person's own setup does not hide a gap others have. | T | S | UC-35 |
 
 ### 5.35 User Story templates (STT) — UC-36
 

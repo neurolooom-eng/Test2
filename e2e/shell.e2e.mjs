@@ -1313,13 +1313,14 @@ test('TC-QV-41: My settings → My naming patterns — your own patterns for IOC
   await context.close()
 })
 
-test('TC-ADM-02: Admin → Overview lists what to set up with links; Ctrl K finds a setting and opens it; History filters the changes', async () => {
+test('TC-ADM-02: Admin → Overview lists what to set up with links (and the bulk Epic without a setup, TC-ADM-03); Ctrl K finds a setting and opens it; History filters the changes', async () => {
   const { page, context, errors } = await openPage(app)
   await navigate(page, /Overview$/)
   assert.equal(await text(page.locator('header.topbar h1')), 'Overview')
   const health = page.locator('.admin-overview')
   assert.match(await text(health), /Connect Git storage/, 'the open Get started steps are listed')
   assert.match(await text(health), /No access roles yet/)
+  assert.match(await text(health), /DP bulk creation Epic #13946 has no Feature setup/, 'ADM-05: the built-in DP bulk Epic has no shared Feature setup yet')
   await health.locator('li', { hasText: 'IOCC bulk creation Epic not chosen' }).getByRole('button').click()
   assert.equal(await text(page.locator('header.topbar h1')), 'Stream options')
   assert.equal(await page.getByRole('tablist', { name: 'Sections' }).getByRole('tab', { name: 'Bulk creation Epics' }).getAttribute('aria-selected'), 'true', 'the fix opens the section')
