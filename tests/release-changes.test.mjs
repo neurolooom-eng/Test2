@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { nextVersion, parseChange, prOf, setVersion, withEntry } from '../scripts/release-changes.mjs'
 import { releaseEntry } from '../scripts/release-entry.mjs'
 
-const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 
 test('CI-09: every waiting change note is valid — a bump type and at least one change (TC-CI-05)', () => {
   const files = readdirSync(new URL('../docs/changes/', import.meta.url)).filter((name) => name.endsWith('.md') && name !== 'README.md')
