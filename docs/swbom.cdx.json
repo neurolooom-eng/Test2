@@ -6,7 +6,7 @@
     "component": {
       "type": "application",
       "name": "demandplanning",
-      "version": "7.42.3"
+      "version": "7.42.4"
     },
     "tools": [
       {
@@ -9796,8 +9796,8 @@
     {
       "type": "library",
       "name": "source-map-js",
-      "version": "1.2.3",
-      "purl": "pkg:npm/source-map-js@1.2.3",
+      "version": "1.2.4",
+      "purl": "pkg:npm/source-map-js@1.2.4",
       "scope": "excluded",
       "licenses": [
         {
@@ -9809,7 +9809,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c63f96ac0932bf9429fadeebf4de47bc206eee0d6a39ee82291369ab6d97d4619c3c44000c5539e2fe6ab0f56cdffbeb50543b5e2bc5adc015280dacb48d2458"
+          "content": "27b66332f1ddf4ed5f713ff9574f5059a69297605b5b1dc5e8ed3cb2975ef3635a99ff540741b145520f88d6d5b1d2a4a22cc7892a53a1da37be9d9b032f7530"
         }
       ],
       "properties": [
