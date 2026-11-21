@@ -43,6 +43,10 @@ export async function openPage(app, { width = 1300, height = 1000, guide = false
   if (init) await context.addInitScript(init, initArg)
   const page = await context.newPage()
   page.on('pageerror', (error) => errors.push(error.message))
+  // CI-12: E2E_CPU_SLOWDOWN=4 runs the page on a CPU four times slower (Chromium's own throttling), as on a busy
+  // laptop, so a step that only works because the app happens to be fast (a race) fails here rather than for a user.
+  const slowdown = Number(process.env.E2E_CPU_SLOWDOWN ?? 1)
+  if (slowdown > 1) await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: slowdown })
   await page.goto(app.url)
   await page.locator('.sidebar nav').waitFor()
   return { page, context, errors }
