@@ -1,5 +1,6 @@
 import type { AzureWorkItem } from './domain'
-import { addMonthTasks, currentIndiaMonth, ensureMonthTask, syncTimeWritingTitles, type AzureConfig, type AzureTransport } from './azureDevOps.ts'
+import { addMonthTasks, currentIndiaMonth, ensureMonthTask, HierarchyCreationError, syncTimeWritingTitles, type AzureConfig, type AzureTransport } from './azureDevOps.ts'
+import { runInBackground } from './backgroundJobs.ts'
 import { setupHours, type FeatureSetups } from './featureSetup.ts'
 import { adhocAfterLock } from './planningLock.ts'
 import { featureOf } from './myWork.ts'
@@ -69,4 +70,26 @@ export async function syncTitlesAfterSave(config: AzureConfig, pat: string, item
   } catch (failure) {
     return { renamed: [], note: ` Time Writing titles not updated: ${failure instanceof Error ? failure.message : 'failed'}.` }
   }
+}
+
+// BKL-37: "Add n months" runs as a background job like every other long Azure DevOps write (NAV-36): the pop-up closes
+// at once and the top bar shows the job's progress and result. One job per Feature and person at a time; returns
+// whether it started. Tasks made before a failure are still handed to onDone so the page shows them.
+export function startMonthTasksJob(input: { config: AzureConfig; pat: string; items: AzureWorkItem[]; item: AzureWorkItem; assignee: string; entries: MonthEntry[]; setups?: FeatureSetups | null; onDone: (text: string, changed: AzureWorkItem[]) => void; onFailed?: (text: string, changed: AzureWorkItem[]) => void; transport?: AzureTransport }) {
+  const feature = featureOf(input.items, input.item)
+  const months = input.entries.map((entry) => entry.month)
+  const label = `Time Writing Task${months.length === 1 ? '' : 's'} ${months.join(', ')} · ${feature ? `#${feature.id}` : `#${input.item.id}`}`
+  return runInBackground(`month-tasks:${feature?.id ?? input.item.id}:${input.assignee.trim().toLowerCase()}`, label, async (progress) => {
+    try {
+      const done = await addMonthTasksFor(input.config, input.pat, input.items, input.item, input.assignee, input.entries, input.setups, progress, input.transport)
+      input.onDone(done.text, done.changed)
+      return { text: done.text }
+    } catch (failure) {
+      const made = failure instanceof HierarchyCreationError ? failure.createdItems : []
+      const reason = (failure instanceof Error ? failure.message : 'The Time Writing Tasks could not be added').trim().replace(/([^.!?])$/, '$1.')
+      const text = `${reason}${made.length ? ` Made before it stopped: ${made.map((entry) => `#${entry.id}`).join(', ')}.` : ''}`
+      ;(input.onFailed ?? input.onDone)(text, made)
+      return { text, failed: true }
+    }
+  })
 }
