@@ -3,6 +3,7 @@ import { addMonthTasks, currentIndiaMonth, ensureMonthTask, type AzureConfig, ty
 import { setupHours, type FeatureSetups } from './featureSetup.ts'
 import { adhocAfterLock } from './planningLock.ts'
 import { featureOf } from './myWork.ts'
+import { timeWritingMonth } from './azureInsights.ts'
 
 // "＋ Time Writing Task" on a Feature or User Story row (BKL-22): this month's Task for the person, under the Feature
 // (the row's own Feature, or the one above the Story), placed by the usual rules (planMonthStory: an existing Task of
@@ -17,7 +18,7 @@ export async function addMonthTask(config: AzureConfig, pat: string, items: Azur
   for (let guard = 0; epic && epic.workItemType !== 'Epic' && guard < 6; guard += 1) epic = epic.parentId == null ? undefined : byId.get(epic.parentId)
   const result = await ensureMonthTask(config, pat, feature.id, assignee, month, undefined, adhocAfterLock(month), setupHours(setups, epic?.id))
   const text = result.status === 'created' ? `${month} Time Writing Task created under ${result.storyCreated ? 'a new' : 'the'} story “${result.story.title}”.` : `Your ${month} Time Writing Task under “${feature.title}” already exists.`
-  return { result, feature, text, changed: [result.task, ...(result.storyCreated ? [result.story] : [])] }
+  return { result, feature, text, changed: [result.task, ...(result.storyCreated || result.storyAssigned ? [result.story] : [])] }
 }
 
 // BKL-34: "＋ Time Writing Task" for several months at once, each with its own hours (Original Estimate; Completed Work
@@ -35,4 +36,24 @@ export async function addMonthTasksFor(config: AzureConfig, pat: string, items: 
   const months = entries.map((entry) => entry.month)
   const text = `Time Writing Task${months.length === 1 ? '' : 's'} for ${months.join(', ')} under “${feature.title}” ready (an existing one is reused).`
   return { feature, changed, text }
+}
+
+// BKL-35: the person's month Tasks already under the Feature (any story), by month key "YYYY-MM" — what the pop-up
+// warns about. A month listed there gets no second Task: the hours typed for it override the Task's hours.
+export function existingMonthTasks(items: AzureWorkItem[], feature: AzureWorkItem | undefined, email: string) {
+  const found = new Map<string, AzureWorkItem>()
+  const who = email.trim().toLowerCase()
+  if (!feature || !who) return found
+  const byId = new Map(items.map((entry) => [entry.id, entry]))
+  const under = (task: AzureWorkItem) => { let at: AzureWorkItem | undefined = task; for (let guard = 0; at && guard < 4; guard += 1) { if (at.id === feature.id) return true; at = at.parentId == null ? undefined : byId.get(at.parentId) } return false }
+  for (const task of items) if (task.workItemType === 'Task' && task.assignedToEmail === who && task.state.toLowerCase() !== 'removed' && under(task)) { const key = timeWritingMonth(task.title); if (key) found.set(key, task) }
+  return found
+}
+
+const hoursText = (task: AzureWorkItem) => [task.originalEstimate != null ? `Original Estimate ${task.originalEstimate} h` : '', task.completedWork != null ? `Completed Work ${task.completedWork} h` : ''].filter(Boolean).join(', ') || 'no hours yet'
+// The warning on a month that already has a Task, and the confirmation before Add when any month has one.
+export const existingMonthNotice = (label: string, task: AzureWorkItem, who: string) => `There is already a Time Writing Task for ${label} (#${task.id}, ${hoursText(task)})${who ? ` for ${who}` : ''}. No second Task is created: the hours you type here will override its hours.`
+export function overrideConfirmText(months: { label: string; task: AzureWorkItem; typed: boolean }[]) {
+  const lines = months.map(({ label, task, typed }) => `• ${label}: Task #${task.id} (${hoursText(task)})${typed ? ' — its hours will be overridden by the ones typed' : ' — no hours typed, it stays as it is'}`)
+  return `${months.length === 1 ? 'This month already has' : 'These months already have'} a Time Writing Task:\n${lines.join('\n')}\n\nNo second Task is created. Continue?`
 }
