@@ -1,16 +1,44 @@
 # Release notes
 
-Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
+Version history of the I&D Quality Demand Planning app, newest first. Every merged change gets a version and its entry here (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4). Since v7.43.0 the pull request adds a change note in [`docs/changes/`](changes/README.md) instead, and after the merge CI writes the version into `package.json` and the entry (with the PR number) at the top of this file in a release commit (CI-11): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
-## v7.43.0 — 2026-11-20
+## v7.43.0 — 2026-11-21
 
-**Added**
-- **Home** — the app now opens on Home, first in the menu: a soft-coloured tile per area (My Work, My dashboard, Team Insights, I&D Board, Release Details, Planning & Baselines, QE Mapping, Snapshots & Documents, Admin, My settings), each opening its area and with links straight to its pages; Release Details links each stream; a search filters tiles and pages; only what the person's roles may open is shown (NAV-42, NAV-43, NAV-44).
+**Changed (development process)**
+- **CI writes the version, release notes and generated documents** — each pull request adds its own change note in `docs/changes/` (bump type and text) instead of editing `package.json` and the top of RELEASE-NOTES.md; after the merge, the new job *Write release commit* sets the version, writes the entry (with the PR number), regenerates the SWBOM and the traceability matrix and pushes one release commit, which the run then builds, tags and publishes. Open pull requests no longer conflict on these files. A run on main is no longer cancelled by the next merge, so every version is tagged (CI-07, CI-09, CI-11; LIM-13 closed).
+
+DF-128, SM-86; TC-CI-05, TC-CI-07.
+
+PR #325.
+
+## v7.42.4 — 2026-11-21
+
+**Dependencies**
+- Daily package update: `source-map-js` 1.2.3 → 1.2.4 (build-time, through Vite). `pnpm audit`: no known vulnerabilities before and after. Majors not taken: Electron 45, TypeScript 7, @types/node 26; Playwright stays at 1.56.1.
+
+PR #324.
+
+## v7.42.3 — 2026-11-20
+
+**Security**
+- **Content-Security-Policy** on the built app: scripts only from the app itself, no inline or evaluated scripts, no plugins or foreign form posts, frames only for the Microsoft sign-in, requests only to https hosts. It narrows script injection as a way to the PATs and Git token kept in the browser. Checked on every menu page in the browser; the desktop app is still to be opened once with it (NFR-09, KB-59).
+
+DF-127, SM-85, KB-59; TC-CSP-01. PR #323.
+
+## v7.42.2 — 2026-11-20
+
+**Fixed**
+- **Sample mode writes nothing** — with the synthetic sample loaded, every write to Azure DevOps is refused before anything is sent, from any page (before, only My Tasks [Board] blocked it) (SMP-05, OI-10).
+- **Reset synthetic MVP data** asks first, names what is replaced, is recorded in History and is not offered while the planning data is stored in SharePoint (SMP-06, OI-09).
+
+DF-126, SM-84; TC-SMP-02. PR #322.
+
+## v7.42.1 — 2026-11-20
 
 **Changed**
-- My dashboard is no longer the page the app opens on; it is a tile on Home and stays in the menu (MYD-01).
+- **Faster start** — pages now load when first opened instead of all at start, and the project documents only with the Documentation page: the first download is 814 KB (237 KB compressed) instead of 2.85 MB (830 KB), about 70 % less; a page shows "Loading the page…" for a moment the first time (NFR-08).
 
-DF-122; TC-NAV-42. PR #318.
+TC-PERF-01. PR #321.
 
 ## v7.42.0 — 2026-11-20
 

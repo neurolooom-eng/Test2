@@ -276,11 +276,12 @@ This document lists every software component of the system: the in-house source 
 | desktop-manifest | `scripts/desktop-manifest.cjs` | Merges one platform's installer into latest.json on the desktop-latest release with per-platform build numbers. | CI, DSK |
 | traceability | `scripts/traceability.mjs` | Generates docs/TRACEABILITY-MATRIX.md from the documents and checks the trace (`--check`). | DOC, CI |
 | swbom | `scripts/swbom.mjs` | Generates the Software Bill of Materials (docs/SWBOM.md, docs/swbom.cdx.json) from pnpm-lock.yaml and checks it (`--check`). | CI |
+| release-changes | `scripts/release-changes.mjs` | Change notes in docs/changes/: checks them (`--check`, `--pr-check`) and, in the release commit after a merge, turns them into the new version, its RELEASE-NOTES.md entry with the PR numbers, and removes them (`--apply`). | CI |
 | release-entry | `scripts/release-entry.mjs` | Prints one version's RELEASE-NOTES.md entry, the notes of that version's tagged GitHub release. | CI |
 | verify-version | `scripts/verify-version.mjs` | Checks package.json version is x.y.z and matches a vX.Y.Z release tag. | CI |
-| vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag). | CI, UPD |
+| vite.config | `vite.config.ts` | Vite build: React plugin, version check, build metadata (__APP_BUILD__, build-info.json, meta tag), the Content-Security-Policy of the built page (NFR-09). | CI, UPD, NFR |
 | index | `index.html` | HTML entry page with favicon, title and root element loading src/main.tsx. | — |
-| build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
+| build-and-deploy | `.github/workflows/build-and-deploy.yml` | CI: the release commit after a merge (CI-11); change-note check, lint, version check, test, build; package/publish Windows and macOS installers; build and deploy web app to GitHub Pages. | CI |
 | dependabot | `.github/dependabot.yml` | Weekly update pull requests for the GitHub Actions pinned to commit SHAs in the workflow (KB-08). | CI |
 | buildInfo | `src/buildInfo.ts` | Exposes the build metadata injected by Vite as `appBuild`. | UPD |
 
@@ -288,9 +289,10 @@ This document lists every software component of the system: the in-house source 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
-| traceability.test | `tests/traceability.test.mjs` | Validation Package consistency: requirement levels, test-case and UAT traces, component list, current matrix. | DOC, CI |
+| traceability.test | `tests/traceability.test.mjs` | Validation Package consistency: requirement levels, test-case and UAT traces, component list, the matrix current on main. | DOC, CI |
 | swbom.test | `tests/swbom.test.mjs` | The SWBOM lists exactly the lockfile's components with scope, licence and hash; lockfile key parsing. | CI |
 | release-notes.test | `tests/release-notes.test.mjs` | The newest release-notes version is the package version; versions unique, descending, each with an entry; the release job tags each version and takes its notes from its entry. | CI |
+| release-changes.test | `tests/release-changes.test.mjs` | Change notes are valid; the next version from the highest bump; the entry with PR numbers at the top; the release-commit job installs nothing and every build uses its commit. | CI |
 | validation-package.test | `tests/validation-package.test.mjs` | Validation Package documents: required sections, unique IDs, mitigations and DFMEA controls traced to existing requirements. | DOC |
 | access.test | `tests/access.test.mjs` | Access policy: no-policy defaults, role union, file round trip, refusing writes for roles without Azure changes. | CON |
 | app-update.test | `tests/app-update.test.mjs` | Build metadata validation, cache-busting URLs, update checks and reload blocking, release version check. | UPD, CI |
@@ -326,6 +328,9 @@ This document lists every software component of the system: the in-house source 
 | feature-months.test | `tests/feature-months.test.mjs` | Start date and Target date months, the Start Date field on web and desktop, the later month Tasks with their hours (TC-BKL-20, TC-BKL-21). | BKL |
 | class-sets.test | `tests/class-sets.test.mjs` | Sets per Release Classification value, the Epic's value list, the bulk set choice and the per-row classification (TC-DPF-06, TC-DPF-07). | DPF, EPS |
 | story-templates.test | `tests/story-templates.test.mjs` | User Story templates: cleaning, tags, linked stories and where they are used (TC-STT-01, TC-STT-02). | STT |
+| bundle-split.test | `tests/bundle-split.test.mjs` | Pages load on demand; the documents only with the Documentation page (TC-PERF-01). | NFR |
+| sample-guard.test | `tests/sample-guard.test.mjs` | Every write to Azure DevOps refused while the synthetic sample is loaded (TC-SMP-02). | SMP |
+| csp.test | `tests/csp.test.mjs` | The Content-Security-Policy of the built page (TC-CSP-01). | NFR |
 | removed-connections.test | `tests/removed-connections.test.mjs` | Merging the shared connections, finding removed ones in the Git history, the read-only history calls (TC-CON-61). | CON |
 | format.test | `tests/format.test.mjs` | Formatting helpers and page registry consistency. | UI, NAV |
 | home-tiles.test | `tests/home-tiles.test.mjs` | Home: the tile and link search, the Home page entry (TC-NAV-42). | NAV |
@@ -382,8 +387,8 @@ The end-to-end suite (`pnpm test:e2e`, after `pnpm build:web`) drives the built 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
-| helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate, load sample, reload with the sample kept). | CI |
-| shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, refresh while open (TC-GIT-08), KPI tracker hidden from the menu (TC-KPT-01), typed formula (TC-CAP-27), release naming patterns (TC-QV-37), desktop zoom (TC-UI-07), manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02); Removed connections restored from the Git history (TC-CON-61). | NAV, UI, SMP, UPD |
+| helpers | `e2e/helpers.mjs` | Starts `vite preview` on a free port, opens Chromium pages with clean storage, records page errors, shared actions (navigate — waiting for the page's code —, load sample, reload with the sample kept). | CI |
+| shell.e2e | `e2e/shell.e2e.mjs` | Sidebar groups and footer, header and month picker, Get started pop-up, synthetic sample, theme toggle, phone width, Force Update dialog, Git storage form defaults, refresh while open (TC-GIT-08), KPI tracker hidden from the menu (TC-KPT-01), typed formula (TC-CAP-27), release naming patterns (TC-QV-37), desktop zoom (TC-UI-07), manager not on the board (TC-GIT-06, TC-SET-05, TC-NAV-01, 03, 31, 33, TC-UI-01, TC-SMP-01, TC-UPD-02); Removed connections restored from the Git history (TC-CON-61); the sample reset asks first and is recorded (TC-SMP-02). | NAV, UI, SMP, UPD |
 | documents-and-data.e2e | `e2e/documents-and-data.e2e.mjs` | Documentation tabs, links and download; Windchill export releases from names and from Location with the locations CSV; "＋ ECP" import named after the stream with the ECP CSV, Project No / Project Name columns, an ECP setup at the 3rd folder with the type-2 CSV (TC-CON-53, 54, 55); the table default on the Windchill raw data — move, hide, density, Excel export with dates, Settings → Table defaults (TC-UI-04, 05); My Work tree, Backlog Health and Baselines on the default (TC-UI-06); neutralised CSV; JSON backup without credentials (TC-DOC-01, 02, TC-CON-39, 40, 37, TC-STO-04, TC-INS-01); Windchill releases' QMS-0025 match column (TC-QV-23); auto-fit tables and Wrap text (TC-CON-42); the DP Supported Releases list in Pulse Check folded until Show list (TC-QV-17). | DOC, CON, STO, NFR, QV |
 | backlog.e2e | `e2e/backlog.e2e.mjs` | New User Story form from a Feature row of the Backlogs (TC-BKL-10); the Edit form from Feature, User Story and Task rows (TC-BKL-11); New Feature sections, Start date and the Time Writing months with hours per month (TC-BKL-19, TC-BKL-21); DoD and User Stories per Release Classification value (TC-DPF-06); User Story templates (TC-STT-01). | CI, BKL |
 | monthly-pack.e2e | `e2e/monthly-pack.e2e.mjs` | Monthly pack tab with the synthetic sample, the .pptx download and the setup tab (TC-PCK-04). | CI |

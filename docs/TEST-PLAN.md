@@ -399,6 +399,10 @@ Cases marked **UAT** are also run in acceptance testing.
 
 **TC-OV-10 Releases summary, tracking Feature and local approval dates** — Req QV-18, QV-19, OV-10 — L1 `release-overview.test.mjs`, `format.test.mjs`, `release-source.test.mjs` (the same UTC instant is 30 September in New York and 1 October in India); browser check in Asia/Kolkata with CP, DP and IOCC loaded from Git: October shows three stream quadrants and the total (3 releases, 4 documents); September shows the CP release approved 29 Sep 18:30 UTC as “September 30, 2026”, in both the quadrant and the CP view.
 
+**TC-PERF-01 Pages load on demand** — Req NFR-08 — L1 `bundle-split.test.mjs` ("NFR-08: pages load on demand — the shell imports only the start pages; the documents come with the Documentation page (TC-PERF-01)"); E2E every page opened through `navigate` (helpers.mjs waits for the page's code) and "TC-DOC-01" (the documents load with the page); browser check: `pnpm build:web` lists the main script under 1 MB and one chunk per page.
+
+**TC-CSP-01 Content-Security-Policy on the built page** — Req NFR-09 — L1 `csp.test.mjs` ("NFR-09: the built page carries a Content-Security-Policy — scripts from the app only, no plugins, no foreign forms (TC-CSP-01)"); E2E `shell.e2e.mjs` ("TC-NAV-01 / TC-NAV-17 …": the meta is on the built page) and every E2E scenario runs under it (a blocked script fails the page); browser check: every menu page with the sample, a CSV export and Documentation open with no "Refused to …" console message; desktop app: opens and fetches with the policy.
+
 **TC-INS-01 Credentials storage** — Req CON-18, STO-09, NFR-05, NFR-07
 - Steps:
   1. Inspect `azureCredentials.ts`, `gitStorage.ts` and `domain.ts` (AppState).
@@ -1274,6 +1278,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 ### 6.17 Sample data
 
 **TC-SMP-01 Load sample** — Req SMP-01…04, FET-14 — L1 `sample-data.test.mjs`.
+
+**TC-SMP-02 Sample mode writes nothing; the reset asks first** — Req SMP-05, SMP-06 — L1 `sample-guard.test.mjs` ("OI-10: with the synthetic sample loaded, every write to Azure DevOps is refused before anything is sent (TC-SMP-02)"); E2E `shell.e2e.mjs` ("TC-SMP-02: Reset synthetic MVP data asks first and is recorded in History"); browser check: with the sample loaded, New Feature and Time Writing saves report that nothing is written.
 - Steps:
   1. From an empty state, press "Load synthetic sample".
   2. Repeat from Settings with real data saved, and cancel.
@@ -1384,9 +1390,11 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 
 **TC-CI-04 Software Bill of Materials** — Req CI-08 — L1 `swbom.test.mjs` ("the SWBOM lists exactly the components of pnpm-lock.yaml, with scope and licence (TC-CI-04)"; "lockfile keys: scoped names and peer suffixes (TC-CI-04)"); inspection: after a dependency change, `pnpm swbom` rewrites `docs/SWBOM.md` and `docs/swbom.cdx.json`; without it `pnpm test` fails; the Documentation page has a SWBOM tab listing the shipped components (react, react-dom, @azure/msal-browser and their dependencies, Electron) with licences.
 
-**TC-CI-05 Version bump and release notes** — Req CI-09 — L1 `release-notes.test.mjs` ("release notes: the newest version is the package version; versions unique, descending, each with an entry (TC-CI-05)"; "release-notes headings are read exactly (TC-CI-05)"); inspection: a pull request that changes `package.json` without a release-notes entry for the new version (or adds an entry without the bump) fails `pnpm test`; after the merge CI tags the commit `vX.Y.Z` (TC-CI-06); the Documentation page has the Release notes and Configuration management tabs; the app footer shows the new version.
+**TC-CI-05 Change notes, version and release notes** — Req CI-09 — L1 `release-notes.test.mjs` ("release notes: the newest version is the package version; versions unique, descending, each with an entry (TC-CI-05)"; "release-notes headings are read exactly (TC-CI-05)"), `release-changes.test.mjs` ("CI-09: every waiting change note is valid — a bump type and at least one change (TC-CI-05)"; "CI-09: a change note is read exactly; malformed ones are refused (TC-CI-05)"); inspection: a pull request without a note in `docs/changes/`, or one that changes the version in `package.json`, fails the step *Check the change note* of the Windows job; a Dependabot pull request passes without a note; after the merge the release commit carries the version (TC-CI-07) and CI tags it (TC-CI-06); the Documentation page has the Release notes and Configuration management tabs; the app footer shows the new version.
 
-**TC-CI-06 Automatic version tag and release** — Req CI-10 — L1 `release-notes.test.mjs` ("the versioned release takes its notes from the release-notes entry of its version (TC-CI-06)"; "CI tags every version on main and publishes its release; nobody tags by hand (TC-CI-06)"); inspection after a merge that bumps the version: the run's job *Tag and publish versioned release* is green, the repository has the tag `vX.Y.Z` on the merge commit, and the GitHub release `Demand Planning Hub vX.Y.Z` has `Demand-Planning-Hub-Setup.exe`, `Demand-Planning-Hub-mac.dmg`, `SHA256SUMS.txt`, `SHA256SUMS-mac.txt` and the version's release-notes entry; a merge without a bump logs "already exists" and changes nothing; `desktop-latest` and `latest.json` are unchanged by this job.
+**TC-CI-06 Automatic version tag and release** — Req CI-10 — L1 `release-notes.test.mjs` ("the versioned release takes its notes from the release-notes entry of its version (TC-CI-06)"; "CI tags every version on main and publishes its release; nobody tags by hand (TC-CI-06)"); inspection after a merge that bumps the version: the run's job *Tag and publish versioned release* is green, the repository has the tag `vX.Y.Z` on the release commit, and the GitHub release `Demand Planning Hub vX.Y.Z` has `Demand-Planning-Hub-Setup.exe`, `Demand-Planning-Hub-mac.dmg`, `SHA256SUMS.txt`, `SHA256SUMS-mac.txt` and the version's release-notes entry; a merge without a bump logs "already exists" and changes nothing; `desktop-latest` and `latest.json` are unchanged by this job.
+
+**TC-CI-07 Release commit** — Req CI-11 — L1 `release-changes.test.mjs` ("CI-11: the highest bump of the waiting notes gives the next version (TC-CI-07)"; "CI-11: the notes become the new version’s entry at the top, each with its pull request (TC-CI-07)"; "CI-11: the release commit is written after every merge by a job that installs nothing; builds use that commit (TC-CI-07)"), `traceability.test.mjs` ("the traceability matrix is complete, and current on main (TC-CI-07)"); inspection after a merge with a change note: the job *Write release commit* is green and `main` has the commit "Release vX.Y.Z [skip ci]" right after the squash commit, with the version in `package.json`, the entry with "PR #N." at the top of RELEASE-NOTES.md, the note removed and the SWBOM and matrix regenerated; the Windows, macOS, end-to-end and web jobs check out that commit, the tag `vX.Y.Z` is on it, and the app shows the new version; two merges in quick succession give two release commits or one with both notes, and no run on main is cancelled.
 
 ### 6.21 QE Mapping
 
@@ -1878,6 +1886,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | DSK-04…06 | TC-DSK-02 |
 | DSK-07…10 | TC-DSK-03 |
 | SMP-01…04 | TC-SMP-01 |
+| SMP-05 | TC-SMP-02 |
+| SMP-06 | TC-SMP-02 |
 | DOC-01…03, DOC-05 | TC-DOC-01 |
 | DOC-04, DOC-06…08 | TC-DOC-02 |
 | DOC-09…11 | TC-DOC-03 |
@@ -1903,6 +1913,7 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | CI-08 | TC-CI-04 |
 | CI-09 | TC-CI-05 |
 | CI-10 | TC-CI-06 |
+| CI-11 | TC-CI-07 |
 | QEM-01 | TC-QEM-03, TC-QEM-04 |
 | QEM-02 | TC-QEM-01, TC-QEM-04 |
 | QEM-03…QEM-06 | TC-QEM-02, TC-QEM-04 |
@@ -2028,6 +2039,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | NFR-02 | TC-STO-01 |
 | NFR-03…05 | TC-DSK-02, TC-INS-01 |
 | NFR-06 | TC-INS-02 |
+| NFR-08 | TC-PERF-01 |
+| NFR-09 | TC-CSP-01 |
 | NFR-07 | TC-INS-01 |
 | IF-01, IF-03, IF-04 | TC-INS-04 |
 | IF-02 | TC-DSK-02 |
@@ -2053,8 +2066,8 @@ Expected (L3): an India holiday applies only to people mapped to India, and a pe
 | UC-15 | TC-STO-01…04, TC-SNP-04 |
 | UC-16 | TC-UPD-01, TC-UPD-02 |
 | UC-17 | TC-DSK-01…03, TC-INS-02 |
-| UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04 |
-| UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-DOC-03 |
+| UC-18 | TC-SMP-01, TC-ATM-06, TC-GIT-04, TC-SMP-02 |
+| UC-19 | TC-INS-04, TC-CI-01, TC-CI-02, TC-CI-03, TC-CI-07, TC-DOC-03 |
 | UC-20 | TC-DOC-01, TC-DOC-02, TC-DOC-03 |
 | UC-21 | TC-SCR-01 |
 | UC-22 | TC-ACC-01, TC-ACC-02, TC-CON-57, TC-CON-58 |

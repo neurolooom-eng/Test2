@@ -93,8 +93,11 @@ export function useAppStore() {
     })
   }
 
+  // OI-09: the reset is recorded in the History of the new state (who reset it and when).
   function reset() {
-    setState(structuredClone(seedState))
+    const next = structuredClone(seedState)
+    next.audits.unshift({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), actor: 'u-owner', action: 'Reset', entity: 'Planning data', entityId: 'all', detail: 'Planning data reset to the synthetic MVP data in this browser' })
+    setState(next)
   }
 
   async function connectSharePoint(config: SharePointConfig) {

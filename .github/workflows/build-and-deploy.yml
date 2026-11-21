@@ -11,13 +11,80 @@ on:
 permissions:
   contents: read
 
+# A newer push cancels an older run of the same pull request; a run on main is never cancelled, so every release
+# commit is built, tagged and published (CI-11). A third merge while one run builds replaces only the waiting run, whose
+# change notes the next release commit still includes.
 concurrency:
   group: demand-planning-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # CI-11: after a merge to main, the change notes in docs/changes/ become the new version (package.json), its entry at
+  # the top of docs/RELEASE-NOTES.md (with the PR numbers) and the regenerated SWBOM and traceability matrix, pushed as
+  # one release commit; the jobs below build, test, tag and publish that commit. It works on the newest main (a merge
+  # that landed meanwhile is included) and retries when main moves under it. It runs only this repository's own
+  # scripts with Node.js and installs nothing (CI-07); a push with GITHUB_TOKEN starts no new workflow run.
+  release-commit:
+    name: Write release commit
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: release-commit
+      cancel-in-progress: false
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+
+    steps:
+      - name: Check out the newest main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Write and push the release commit
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            version=$(node scripts/release-changes.mjs --apply)
+            node scripts/swbom.mjs
+            node scripts/traceability.mjs
+            git add -A package.json docs
+            if git diff --cached --quiet; then
+              echo "::notice::No change notes and the generated documents are current: nothing to commit."
+              break
+            fi
+            if [ -n "$version" ]; then message="Release v$version"; else message="Regenerate SWBOM and traceability matrix"; fi
+            git commit -q -m "$message [skip ci]"
+            if git -c "http.extraheader=$auth" push -q origin HEAD:main; then
+              echo "::notice::Pushed $message as $(git rev-parse HEAD)."
+              break
+            fi
+            if [ "$attempt" = 3 ]; then echo "::error::main kept moving; the next merge writes the release."; exit 1; fi
+            echo "::warning::main moved; writing the release again on the newest main."
+          done
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   validate-and-package:
     name: Validate and package Windows application
+    needs: release-commit
+    if: ${{ !cancelled() && needs.release-commit.result != 'failure' }}
     runs-on: windows-latest
     timeout-minutes: 30
 
@@ -25,6 +92,8 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Install pnpm
@@ -48,7 +117,21 @@ jobs:
       - name: Verify release version
         run: node scripts/verify-version.mjs
 
+      # CI-09: a pull request adds its change note in docs/changes/ and leaves the version to the release commit.
+      # Dependabot's pull requests (GitHub Actions updates) carry no note and make no release.
+      - name: Check the change note
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$PR_AUTHOR" = 'dependabot[bot]' ]; then echo "Dependabot: no change note needed."; exit 0; fi
+          node scripts/release-changes.mjs --pr-check "$BASE_SHA"
+
       - name: Run unit tests
+        env:
+          CHECK_GENERATED: ${{ github.event_name != 'pull_request' && '1' || '' }}
         run: pnpm test
 
       - name: Build web application
@@ -82,14 +165,15 @@ jobs:
     permissions:
       contents: read
 
-  # CI-10: every push to main that passes the Windows, macOS and end-to-end jobs tags its commit vX.Y.Z (the
+  # CI-10: every push to main that passes the Windows, macOS and end-to-end jobs tags its release commit vX.Y.Z (the
   # package.json version) and publishes that version's GitHub release with both installers and its release-notes
   # entry; nobody tags by hand. A tag pushed by hand runs the same job. When the release already exists (the version
   # was not bumped, or the tag build that GITHUB_TOKEN tags do not start anyway) it does nothing.
   publish-tagged-release:
     name: Tag and publish versioned release
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-    needs: [validate-and-package, package-macos, end-to-end]
+    # The release commit is skipped on a tag push; the job still needs the three builds to pass.
+    if: ${{ !cancelled() && needs.release-commit.result != 'failure' && needs.validate-and-package.result == 'success' && needs.package-macos.result == 'success' && needs.end-to-end.result == 'success' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+    needs: [release-commit, validate-and-package, package-macos, end-to-end]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -102,6 +186,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
           persist-credentials: false
 
       - name: Download Windows installer
@@ -120,6 +205,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ needs.release-commit.outputs.sha || github.sha }}
         run: |
           version=$(node -p "require('./package.json').version")
           tag="v$version"
@@ -133,12 +219,14 @@ jobs:
           ls -la release
           gh release create "$tag" \
             release/*.exe release/*.blockmap release/SHA256SUMS.txt release/*.dmg release/SHA256SUMS-mac.txt \
-            --repo "$REPO" --target "$GITHUB_SHA" \
+            --repo "$REPO" --target "$RELEASE_SHA" \
             --title "Demand Planning Hub $tag" --notes-file release-notes.md
-          echo "::notice::Tagged $GITHUB_SHA as $tag and published its release."
+          echo "::notice::Tagged $RELEASE_SHA as $tag and published its release."
 
   end-to-end:
     name: End-to-end tests
+    needs: release-commit
+    if: ${{ !cancelled() && needs.release-commit.result != 'failure' }}
     # Pinned: `ubuntu-latest` moved to Ubuntu 26.04, for which Playwright 1.56 has no Chromium build.
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -149,6 +237,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pnpm
@@ -179,7 +268,8 @@ jobs:
   # not for pull requests, and is published on its own: Web and Windows never wait for it.
   package-macos:
     name: Package macOS application
-    if: github.event_name != 'pull_request'
+    needs: release-commit
+    if: ${{ !cancelled() && needs.release-commit.result != 'failure' && github.event_name != 'pull_request' }}
     runs-on: macos-latest
     timeout-minutes: 40
 
@@ -187,6 +277,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pnpm
@@ -318,7 +409,8 @@ jobs:
 
   build-web-site:
     name: Build browser application
-    if: github.ref == 'refs/heads/main'
+    needs: release-commit
+    if: ${{ !cancelled() && needs.release-commit.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -326,6 +418,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ needs.release-commit.outputs.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pnpm
@@ -347,6 +440,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Verify version and update safety
+        env:
+          CHECK_GENERATED: '1'
         run: |
           node scripts/verify-version.mjs
           pnpm test

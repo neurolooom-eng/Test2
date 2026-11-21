@@ -3,7 +3,7 @@ import { BrandMark } from './components/BrandMark'
 import { TableDefaultsContext } from './components/tableDesign'
 import { ReleaseSettingsContext } from './useStreamEpics'
 import { normalizeTableDefaults } from './tableDefaults'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
 import './App.css'
 import './fresh.css'
 import { useAppStore } from './store'
@@ -14,44 +14,28 @@ import { ThemeToggle } from './components/Clock'
 import { DataNotices, DataStatus } from './components/DataStatus'
 import { JobsIndicator } from './components/JobsIndicator'
 import { pages, pageGroups, pageMeta, type Page } from './pages/registry'
-import { DashboardPage } from './pages/DashboardPage'
 import { MyDashboardPage } from './pages/MyDashboardPage'
 import { HomePage } from './pages/HomePage'
 import { visibleTiles, type HomeLink, type HomeTile } from './homeTiles'
-import { MyActivitiesPage } from './pages/MyActivitiesPage'
-import { PlanningOverviewPage } from './pages/PlanningOverviewPage'
-import { CapacityActualPage } from './pages/CapacityActualPage'
-import { BaselinesPage } from './pages/BaselinesPage'
-import { SnapshotsPage } from './pages/SnapshotsPage'
-import { AdminPage } from './pages/AdminPage'
 import { mySettingsLabel, readSettingsTab, resolveSettings, saveSettingsSection, saveSettingsTab, settingsLabel, settingsPagesFor, type SettingsTab } from './settingsTabs'
 import { normalizeReleaseSourceSettings } from './releaseSource'
 import { dataSets, defaultMatchThreshold, defaultStreams, profileForDataSet, profileForStream, windchillStreamExports } from './streams'
 import { connectionPresets } from './connectionPresets'
 import { gitSyncedIds, markViewsSynced, removeDuplicateConnections } from './viewDefinitions'
 import { listAzureConnectionProfiles } from './azureCredentials'
-import { DocsPage } from './pages/DocsPage'
-import { BoardPage } from './pages/BoardPage'
 import { useAzureWorkspace, type FetchListener, type GitDataSource } from './useAzureWorkspace'
 import { sharedThroughGit } from './gitSnapshots'
 import { useGitStorage } from './useGitStorage'
 import { useWindchill } from './useWindchill'
-import { WindchillExportImport, WindchillPage } from './components/WindchillViews'
-import { BacklogHealthPage } from './pages/BacklogHealthPage'
 import { viewAsLabel, viewAsPeople, type ViewAs } from './viewAs'
 import { ViewAsDialog } from './components/ViewAsDialog'
 import { useHistory } from './useHistory'
 import { withHistory } from './history'
-import { PulseCheckPage } from './pages/PulseCheckPage'
-import { PiReviewPage } from './pages/PiReviewPage'
-import { BritePage } from './pages/BritePage'
-import { KpiTrackerPage } from './pages/KpiTrackerPage'
 import { CanContext } from './useCan'
 import { SettingsSearch } from './components/SettingsSearch'
 import { EpicSetupContext, useEpicSetup } from './useEpicSetup'
 import { OnPremContext } from './onPremValues'
 import { myPatternsVersion, subscribeMyPatterns } from './myNamingPatterns'
-import { QeMappingPage } from './pages/QeMappingPage'
 import { useAccess } from './useAccess'
 import { useFeatureSetup } from './useFeatureSetup'
 import { useQeMapping } from './useQeMapping'
@@ -60,8 +44,6 @@ import { previousMonth } from './pulseCheck'
 import type { Area } from './access'
 import { useMyWork } from './useMyWork'
 import { setLockSettings } from './planningLock'
-import { MyWorkPage } from './pages/MyWorkPage'
-import { SprintCheckPage } from './pages/SprintCheckPage'
 import { DesktopDownload } from './components/DesktopDownload'
 import { exportStateJson } from './download'
 import { BuildStatus } from './components/BuildStatus'
@@ -76,6 +58,28 @@ import { defaultGitRepository, normalizeSetupLinks, type SetupLinks } from './gi
 import { guideKey, requiredOpen, setupSteps } from './setupGuide'
 import { azureResources, capacityContext, setAccessRoles, setAzureEmails } from './capacity'
 import { hasServerPat, serverKey } from './azureCredentials'
+
+// Pages load on demand (their own chunk), so the first download is the shell and the start page only; the
+// Documentation page brings the bundled documents with it.
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
+const MyActivitiesPage = lazy(() => import('./pages/MyActivitiesPage').then((module) => ({ default: module.MyActivitiesPage })))
+const PlanningOverviewPage = lazy(() => import('./pages/PlanningOverviewPage').then((module) => ({ default: module.PlanningOverviewPage })))
+const CapacityActualPage = lazy(() => import('./pages/CapacityActualPage').then((module) => ({ default: module.CapacityActualPage })))
+const BaselinesPage = lazy(() => import('./pages/BaselinesPage').then((module) => ({ default: module.BaselinesPage })))
+const SnapshotsPage = lazy(() => import('./pages/SnapshotsPage').then((module) => ({ default: module.SnapshotsPage })))
+const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })))
+const DocsPage = lazy(() => import('./pages/DocsPage').then((module) => ({ default: module.DocsPage })))
+const BoardPage = lazy(() => import('./pages/BoardPage').then((module) => ({ default: module.BoardPage })))
+const BacklogHealthPage = lazy(() => import('./pages/BacklogHealthPage').then((module) => ({ default: module.BacklogHealthPage })))
+const PulseCheckPage = lazy(() => import('./pages/PulseCheckPage').then((module) => ({ default: module.PulseCheckPage })))
+const PiReviewPage = lazy(() => import('./pages/PiReviewPage').then((module) => ({ default: module.PiReviewPage })))
+const BritePage = lazy(() => import('./pages/BritePage').then((module) => ({ default: module.BritePage })))
+const KpiTrackerPage = lazy(() => import('./pages/KpiTrackerPage').then((module) => ({ default: module.KpiTrackerPage })))
+const QeMappingPage = lazy(() => import('./pages/QeMappingPage').then((module) => ({ default: module.QeMappingPage })))
+const MyWorkPage = lazy(() => import('./pages/MyWorkPage').then((module) => ({ default: module.MyWorkPage })))
+const WindchillPage = lazy(() => import('./components/WindchillViews').then((module) => ({ default: module.WindchillPage })))
+const WindchillExportImport = lazy(() => import('./components/WindchillViews').then((module) => ({ default: module.WindchillExportImport })))
+const SprintCheckPage = lazy(() => import('./pages/SprintCheckPage').then((module) => ({ default: module.SprintCheckPage })))
 const menuMiniKey = 'demand-planning-menu-mini-v1'
 
 
@@ -363,6 +367,7 @@ export default function App() {
       {store.cache.status === 'error' && <Notice tone="error"><p>{store.cache.message}</p><div className="button-row"><button className="ghost" onClick={() => exportStateJson(store.state)}>Export JSON backup now</button><button className="primary" onClick={store.retrySave}>Retry browser save</button></div></Notice>}
       {store.connection.mode !== 'sharepoint' && store.connection.status === 'error' && <Notice tone="error">{store.connection.message}</Notice>}
       {git.remoteChanges.length > 0 && <Notice className="git-update-banner"><p><strong>Newer data in Git</strong>, saved by someone else since you opened the app: {git.remoteChanges.map((change) => change.label).join(', ')}.{git.remoteChanges.some((change) => change.planning) && git.dirty ? ' Reloading drops the planning changes you have not saved to Git here.' : ' Reload to see it.'}</p><div className="button-row"><button type="button" onClick={() => window.location.reload()}>Reload</button></div></Notice>}
+      <Suspense fallback={<p className="muted page-loading" role="status">Loading the page…</p>}>
       {page === 'home' && <HomePage tiles={homeTiles} name={my.me.name} />}
       {page === 'mydash' && <MyDashboardPage month={month} azure={reportAzure} store={store} my={my} navigate={setPage} views={personalViews} canSetDefault={access.can('layout.defaults')} windchill={windchill} />}
       {page === 'overview' && <DashboardPage month={month} azure={reportAzure} navigate={setPage} store={store} setMonth={setMonth} my={my} views={personalViews} canSetDefault={access.can('layout.defaults')} canLock={access.can('capacity.periods')} />}
@@ -383,6 +388,7 @@ export default function App() {
       {page === 'snapshots' && <SnapshotsPage {...pageProps} />}
       {page === 'admin' && <AdminPage key={`${settingsTab}:${settingsVisit}`} tab={settingsTab} onOpenTab={openSettings} {...pageProps} azure={azure} git={git} access={access} featureSetup={featureSetup} epicSetup={epicSetup} setupSteps={steps} onSearch={() => setSearchOpen(true)} qeColumnNames={[...new Set((qeMapping.file?.sheets ?? []).flatMap((sheet) => sheet.columns.map((column) => column.name)))]} monthlyPack={monthlyPack} history={history} loadEverything={loadEverything} onOpenBoard={() => setPage('board')} />}
       {page === 'docs' && <DocsPage />}
+      </Suspense>
     </main>
   </div></HeaderSlot.Provider></OnPremContext.Provider></EpicSetupContext.Provider></CanContext.Provider></ReleaseSettingsContext.Provider></TableDefaultsContext.Provider>
 }

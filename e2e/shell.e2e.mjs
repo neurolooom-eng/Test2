@@ -11,6 +11,7 @@ after(async () => { await app.stop() })
 test('TC-NAV-01 / TC-NAV-17: the sidebar shows the groups in order, with Documentation under Data & governance', async () => {
   const { page, context, errors } = await openPage(app)
   assert.equal(await text(page.locator('header.topbar h1')), 'Home', 'the app opens on Home (NAV-42)')
+  assert.match(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'), /script-src 'self' file:; .*object-src 'none'/, 'NFR-09: the built page carries its Content-Security-Policy')
   const groups = await page.locator('.sidebar nav .nav-group').allInnerTexts()
   assert.deepEqual(groups.map((group) => group.replace(/^[▾▸]\s*/, '').trim().toLowerCase()), ['data insights', 'my work', 'i&d board', 'release details', 'data & governance', 'admin'])
   const entries = (await page.locator('.sidebar nav .nav-items button').allInnerTexts()).map((entry) => entry.replace(/\s+/g, ' ').trim())
@@ -1308,6 +1309,20 @@ test('TC-CON-61: Streams → Removed connections finds a connection dropped from
   assert.equal(JSON.stringify(shared[1]).includes('token'), false)
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('demand-planning-azure-connection-profiles-v1') ?? '[]').some((entry) => entry.id === 'cp-names')), true, 'restored in this browser')
   assert.deepEqual(errors.filter((entry) => !/401|Unauthorized/.test(entry)), [])
+  await context.close()
+})
+
+test('TC-SMP-02: Reset synthetic MVP data asks first and is recorded in History', async () => {
+  const { page, context, errors } = await openPage(app)
+  await navigate(page, /History$/)
+  const reset = page.getByRole('button', { name: 'Reset synthetic MVP data' })
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await reset.click()
+  assert.equal(await page.locator('.audit-row', { hasText: 'Planning data reset' }).count(), 0, 'Cancel changes nothing')
+  page.once('dialog', (dialog) => { assert.match(dialog.message(), /fetched Azure DevOps data is cleared.*connections and PATs are kept/s); return dialog.accept() })
+  await reset.click()
+  await page.locator('.audit-row', { hasText: 'Planning data reset to the synthetic MVP data' }).waitFor()
+  assert.deepEqual(errors, [])
   await context.close()
 })
 
