@@ -119,11 +119,13 @@ This document lists every software component of the system: the in-house source 
 | EpicSetupPanel | `src/components/EpicSetupPanel.tsx` | Admin → Epic setup: Feature fields per Epic, title pattern and preview, Copy to Epics, and the value lists (EPS-01, EPS-05). | EPS |
 | myNamingPatterns | `src/myNamingPatterns.ts` | My own release naming patterns for IOCC, Content and Tool Validations, kept on this computer, and the version that redraws the figures (QV-60). | QV |
 | adminOverview | `src/adminOverview.ts` | The Admin Overview's health items, the Feature setup gaps (ADM-05) and the settings search index (ADM-01, ADM-03). | ADM |
+| usageCounts | `src/usageCounts.ts` | My page usage: opt-in page-opening counts in this browser's local storage, read safely, deleted when turned off (NAV-45). | NAV |
 | onPremValues | `src/onPremValues.ts` | The values of an on-prem field in the fetched data, for the drop-down of an Epic setup field (EPS-06). | EPS |
 | QePick | `src/components/QePick.tsx` | The person drop-down of a release in the bulk Create Features pop-ups (DPF-06). | DPF |
 | EpicFeatureEditor | `src/components/EpicFeatureEditor.tsx` | Admin → Epic & Feature setup → Setup per Epic: the Epic list, the preview and the four sections with Customize switches, my own version, one Save (CON-97). | CON, EPS |
 | StoryTemplatesPanel | `src/components/StoryTemplatesPanel.tsx` | Admin → Epic & Feature setup → User Story templates: the shared library with Epic and Release Classification tags (STT-01). | STT |
 | AdminOverview | `src/components/AdminOverview.tsx` | Admin → Overview: setup health with links, unsaved shared changes with Save to Git, latest changes (ADM-01, ADM-02). | ADM |
+| UsagePanel | `src/components/UsagePanel.tsx` | My settings → My page usage: the opt-in tick, the counts most used first, Start again from zero (NAV-45). | NAV |
 | SettingsSearch | `src/components/SettingsSearch.tsx` | The Search settings pop-up (Ctrl K) (ADM-03). | ADM |
 | MyViewsPanel | `src/components/MyViewsPanel.tsx` | My settings → My views: list, add, fetch and remove your own read-only views (SET-17). | SET |
 | ScopeChip | `src/components/ScopeChip.tsx` | The chip saying whom a setting affects: only you, this computer, everyone, or the Tool Owner (SET-16). | SET |
@@ -314,7 +316,8 @@ This document lists every software component of the system: the in-house source 
 | epic-setup.test | `tests/epic-setup.test.mjs` | Epic setup: file cleaning, Title / Description from the fields, Block and Warn, bulk creation and Copy to Epics (TC-EPS-02, TC-EPS-03). | EPS |
 | feature-setup-inheritance.test | `tests/feature-setup-inheritance.test.mjs` | Feature setup layers per field and the All Epics defaults (TC-CON-59). | CON |
 | my-naming-patterns.test | `tests/my-naming-patterns.test.mjs` | My naming patterns: the streams allowed, kept locally, used before the shared ones (TC-QV-41). | QV |
-| admin-overview.test | `tests/admin-overview.test.mjs` | Admin overview checks and settings search (TC-ADM-01). | ADM |
+| admin-overview.test | `tests/admin-overview.test.mjs` | Admin overview checks, Feature setup gaps and settings search (TC-ADM-01, TC-ADM-03). | ADM |
+| usage-counts.test | `tests/usage-counts.test.mjs` | My page usage: off by default, counts only when on, deleted when off, tampered entries read safely (TC-NAV-45). | NAV |
 | onprem-values.test | `tests/onprem-values.test.mjs` | On-prem field values for the Feature field drop-down (TC-EPS-05). | EPS |
 | cloud-snapshots.test | `tests/cloud-snapshots.test.mjs` | Snapshot freezing, folder safety, verified upload, failures and history listing. | SNP |
 | connections.test | `tests/connections.test.mjs` | Connection URLs, roles, paged queries, on-prem servers, presets, desktop downloads and menu views. | CON, FET, DSK |

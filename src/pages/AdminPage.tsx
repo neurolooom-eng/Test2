@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { EpicFeatureEditor } from '../components/EpicFeatureEditor'
 import { AdminOverview } from '../components/AdminOverview'
 import { setupGaps } from '../adminOverview'
+import { UsagePanel } from '../components/UsagePanel'
 import type { SetupStep } from '../setupGuide'
 import { useBulkEpic } from '../useStreamEpics'
 import { NamingPatternsPanel } from '../components/NamingPatternsPanel'
@@ -258,6 +259,7 @@ export function AdminPage({ store, month, azure, git, access, featureSetup, epic
       { key: 'servers', label: 'Servers and PATs', scope: 'you', node: <AzureConnections section="servers" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canManageStreams={access.canManageStreams} /> },
       { key: 'myviews', label: 'My views', scope: 'you', node: <MyViewsPanel azure={azure} /> },
       { key: 'patterns', label: 'My naming patterns', scope: 'you', node: <NamingPatternsPanel store={store} canManage mode="mine" /> },
+      { key: 'usage', label: 'My page usage', scope: 'you', node: <UsagePanel /> },
     ]} />}
     {tab === 'connections' && <SectionTabs page="connections" sections={[
       { key: 'mapping', label: 'Stream mapping', scope: 'tool-owner', node: <AzureConnections section="mapping" azure={azure} store={store} git={git} onOpenBoard={onOpenBoard} canManage={can('streams.options')} canEnterCounts={can('release.counts')} canManageStreams={access.canManageStreams} /> },

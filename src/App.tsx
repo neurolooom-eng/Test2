@@ -4,6 +4,7 @@ import { TableDefaultsContext } from './components/tableDesign'
 import { ReleaseSettingsContext } from './useStreamEpics'
 import { normalizeTableDefaults } from './tableDefaults'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react'
+import { recordVisit } from './usageCounts'
 import './App.css'
 import './fresh.css'
 import { useAppStore } from './store'
@@ -224,6 +225,8 @@ export default function App() {
   const testing = access.rights.roles.includes('Admin')
   const allowed = (id: Page) => { if (pageMeta(id).group === 'Testing' && !testing) return false; const area = areaOf(id); return area == null || access.sees(area) }
   const page = allowed(requested) ? requested : pages.find((entry) => allowed(entry.id))?.id ?? 'admin'
+  // NAV-45: count the page opened, only when the person turned My page usage on (this browser only).
+  useEffect(() => { recordVisit(page) }, [page])
   const meta = pageMeta(page)
   // Windchill exports, each in the sidebar under Release Details ('' = the import page).
   const windchillViews = windchill.views.filter((entry) => entry.exportFile && entry.showInMenu)
