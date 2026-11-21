@@ -272,7 +272,8 @@ export async function detectWorkEmail(config: AzureConfig, pat: string, transpor
 // Month Time Writing task for one person on one Feature: "<Feature> - Time Writing" story (created if missing) and
 // "<Month YYYY> | <Feature>" Task assigned to that person. Children are re-read from Azure first, so an existing task
 // for the same person is reused rather than duplicated; another person's task with the same title is left alone.
-export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean }
+// storyAssigned: an existing Time Writing story with no Assigned To was given the person (BKL-35).
+export type MonthTaskResult = { status: 'exists' | 'created'; task: AzureWorkItem; story: AzureWorkItem; storyCreated: boolean; storyAssigned?: boolean }
 // adhoc: the month's planning has locked, so a newly created Task is tagged 'ad-hoc' (an existing one is left as it is).
 // BKL-28: the one Time Writing Task rule of every page — "<Month> | <Feature>" under "<Feature> - Time Writing" (the
 // person's own story first), assigned to the person, in the Feature's Area Path and the project root; any month Task of
@@ -295,12 +296,70 @@ export async function ensureMonthTask(config: AzureConfig, pat: string, featureI
   const plan = planMonthStory(stories, children.filter((item) => item.workItemType === 'Task'), timeWritingMonth(monthLabel) ?? '', storyTitle, (item) => item.assignedToEmail === email)
   if (plan.status === 'exists') return { status: 'exists', task: plan.task, story: plan.story ?? feature, storyCreated: false }
   if (plan.status === 'conflict') throw new Error(`#${feature.id} has ${plan.stories.length} possible Time Writing stories (${plan.stories.map((item) => `#${item.id}`).join(', ')}). Add your month Task under the right one in Azure DevOps.`)
-  let story: AzureWorkItem, storyCreated = false
-  if (plan.status === 'use') story = plan.story
-  else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
+  let story: AzureWorkItem, storyCreated = false, storyAssigned = false
+  if (plan.status === 'use') {
+    story = plan.story
+    // BKL-35: the story holding the person's Task is assigned to them too — a new one is created so; an existing one with
+    // no Assigned To is given the person. Another person's story is never reassigned (ATM-23).
+    if (!story.assignedToEmail) { story = await assignStory(config, pat, story.id, email, transport); storyAssigned = true }
+  } else { story = await createChildItem(config, pat, feature, 'User Story', storyTitle, config.project, email, transport); storyCreated = true }
   let task = await createChildItem(config, pat, story, 'Task', taskTitle, config.project, email, transport, adhoc)
   if (defaultHours != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, defaultHours, undefined, false, transport)
-  return { status: 'created', task, story, storyCreated }
+  return { status: 'created', task, story, storyCreated, storyAssigned }
+}
+
+// BKL-36: a Feature renamed after its Time Writing story and month Tasks were made leaves them with the old name. A story
+// "<Old> - Time Writing" whose month Tasks are all exactly "<Month YYYY> | <Old>" (at least one) was made from the
+// Feature's former title, so it becomes "<New> - Time Writing" and its Tasks "<Month YYYY> | <New>" — everyone's.
+// Anything else is left alone: a story with no month Task, Tasks with another name after the month (leave kinds such as
+// "Ana Costa - PTO", holidays), stories people titled themselves, Tasks directly under the Feature.
+const monthTaskTitle = /^([A-Z][a-z]+ \d{4}) \| (.+)$/
+const storySuffix = ' - Time Writing'
+export function staleTimeWritingTitles(featureTitle: string, stories: { story: Pick<AzureWorkItem, 'id' | 'title' | 'state'>; tasks: Pick<AzureWorkItem, 'id' | 'title' | 'state' | 'workItemType'>[] }[]) {
+  const name = featureTitle.trim()
+  const live = (item: { state: string }) => item.state.trim().toLowerCase() !== 'removed'
+  const renames: { id: number; from: string; title: string }[] = []
+  if (!name || `${name}${storySuffix}`.length > 255) return renames
+  for (const { story, tasks } of stories) {
+    const title = story.title.trim()
+    if (!live(story) || !title.endsWith(storySuffix)) continue
+    const old = title.slice(0, -storySuffix.length).trim()
+    if (!old || old === name) continue
+    const months = tasks.filter((task) => live(task) && task.workItemType === 'Task').map((task) => ({ task, match: monthTaskTitle.exec(task.title.trim()) })).filter((entry) => entry.match && timeWritingMonth(entry.match[1]))
+    if (!months.length || months.some((entry) => entry.match![2].trim() !== old)) continue
+    if (months.some((entry) => `${entry.match![1]} | ${name}`.length > 255)) continue
+    renames.push({ id: story.id, from: story.title, title: `${name}${storySuffix}` })
+    for (const { task, match } of months) renames.push({ id: task.id, from: task.title, title: `${match![1]} | ${name}` })
+  }
+  return renames
+}
+
+// BKL-36: checks a Feature's Time Writing stories and month Tasks against its title now (re-read from Azure DevOps) and
+// renames the stale ones, each at the revision just read. Returns what was renamed; stops at the first failure.
+export async function syncTimeWritingTitles(config: AzureConfig, pat: string, featureId: number, transport: AzureTransport = requestAzure) {
+  const source = await transport({ ...config, pat, operation: 'items', ids: [featureId] }) as { value?: RawItem[] }
+  const raw = source.value?.find((item) => item.id === featureId)
+  if (!raw || raw.fields['System.WorkItemType'] !== 'Feature') return []
+  const feature = mapAzureWorkItem(raw, config)
+  const children = await directChildren(config, pat, feature.id, transport)
+  const stories = []
+  for (const story of children.filter((item) => item.workItemType === 'User Story' && item.title.trim().endsWith(storySuffix))) stories.push({ story, tasks: await directChildren(config, pat, story.id, transport) })
+  const renamed: AzureWorkItem[] = []
+  for (const rename of staleTimeWritingTitles(feature.title, stories)) renamed.push(await editAtCurrentRevision(config, pat, rename.id, { title: rename.title }, transport))
+  return renamed
+}
+
+// A change by the app itself (not a person's edit form), at the work item's current revision.
+async function editAtCurrentRevision(config: AzureConfig, pat: string, workItemId: number, change: WorkItemEdit, transport: AzureTransport) {
+  const read = await transport({ ...config, pat, operation: 'items', ids: [workItemId] }) as { value?: RawItem[] }
+  const rev = read.value?.find((item) => item.id === workItemId)?.rev
+  if (typeof rev !== 'number') throw new Error(`#${workItemId} could not be read to update it.`)
+  return editWorkItem(config, pat, workItemId, rev, change, { planningLocked: () => false, actualsLocked: () => false }, transport)
+}
+
+// Assigned To of an unassigned Time Writing story, at its current revision (a change in between is refused).
+function assignStory(config: AzureConfig, pat: string, storyId: number, email: string, transport: AzureTransport) {
+  return editAtCurrentRevision(config, pat, storyId, { assignedTo: email }, transport)
 }
 
 // BKL-32: the month Tasks of a new Feature after its first month, one per month up to the Target date, each by the one
@@ -317,7 +376,7 @@ export async function addMonthTasks(config: AzureConfig, pat: string, featureId:
       // An existing Task keeps its hours unless new ones were typed; a new one already has its Original Estimate.
       const plan = result.status === 'exists' ? entry.originalEstimate : undefined
       if (plan != null || entry.completedWork != null) task = await updateAzureTimeWritingEffort(config, pat, task.id, plan, entry.completedWork, false, transport)
-      if (result.storyCreated) items.push(result.story)
+      if (result.storyCreated || result.storyAssigned) items.push(result.story)
       items.push(task)
     }
     return items

@@ -22,7 +22,7 @@ This document lists every software component of the system: the in-house source 
 | fresh | `src/fresh.css` | Final "fresh look" style layer (white sidebar, soft canvas, borderless cards) built on the index.css tokens. | UI |
 | theme | `src/theme.ts` | Theme preference (system/light/dark): parse, cycle, resolve against prefers-color-scheme, apply and store per browser; `?theme=` support. | UI |
 | headerSlot | `src/headerSlot.ts` | React context for a header slot that pages can fill (e.g. the Team / Individual switch). | NAV |
-| monthTaskAction | `src/monthTaskAction.ts` | ＋ Time Writing Task on a Feature or Story row: this month's Task under its Feature by the Bulk actions rules (BKL-22). | BKL, ATM |
+| monthTaskAction | `src/monthTaskAction.ts` | ＋ Time Writing Task on a Feature or Story row: this month's Task under its Feature by the Bulk actions rules (BKL-22); a month already there (BKL-35); Time Writing titles brought in line after a save (BKL-36). | BKL, ATM |
 | workEmail | `src/workEmail.ts` | Your work email as its own setting on the computer: read, save, and the one-time take-over from the Time Writing connection (CON-82). | CON, ATM |
 | settingsTabs | `src/settingsTabs.ts` | The Settings pages (menu order, shared ones), the remembered page and the remembered section of each page (SET-14). | SET, CON, NAV |
 | index | `src/docs/index.ts` | Bundles docs/*.md at build time into the list of project documents shown on the Documentation page. | DOC |
@@ -82,7 +82,7 @@ This document lists every software component of the system: the in-house source 
 | DpMonthCounts | `src/components/DpMonthCounts.tsx` | Table of a month's DP Supported Releases with milestones passed (DT, SFV, PRD, RPE) and dates. | QV, OVR |
 | ErrorBoundary | `src/components/ErrorBoundary.tsx` | Catches render errors in a view and shows what failed with a way back instead of a blank app. | UI |
 | FeatureEditor | `src/components/FeatureEditor.tsx` | The one New Feature form (BKL-26): add a Feature under an Epic or complete a Feature's children, used by Backlogs, My Tasks [Board], Release Details and Time Writing; the Parent Epic starts blank. | ATM, CON, BKL, ACT |
-| MonthTasksDialog | `src/components/MonthTasksDialog.tsx` | ＋ Time Writing Task: the months (header month first, ＋ Add month) and the hours of each (BKL-34). | BKL |
+| MonthTasksDialog | `src/components/MonthTasksDialog.tsx` | ＋ Time Writing Task: the months (header month first, ＋ Add month) and the hours of each (BKL-34); Assigned to and the warning on a month that already has a Task (BKL-35). | BKL |
 | JobsIndicator | `src/components/JobsIndicator.tsx` | Top-bar list of the background jobs: running count, results, Clear finished; asks before leaving the page while one runs. | NAV |
 | MonthlyPackPanel | `src/components/MonthlyPackPanel.tsx` | Pulse Check → Monthly pack: the two slides as boxes with generated lines and the month's text, Save to Git, copy, Download .pptx. | PCK |
 | HistoryPanel | `src/components/HistoryPanel.tsx` | Settings → Historical hours: upload the planning workbook, check names and stream Epics, save to or remove from Git. | HIS |

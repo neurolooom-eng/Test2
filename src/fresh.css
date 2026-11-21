@@ -873,3 +873,5 @@ kbd{font-size:11px;border:1px solid var(--accent-line);border-radius:4px;padding
 .month-tasks{display:flex;flex-direction:column;gap:12px}
 .month-tasks th input[type=month]{max-width:170px}
 .month-tasks-note{display:block;font-weight:400;font-size:11px;margin-top:2px}
+.month-tasks-exists{color:var(--warning-text);max-width:34ch;white-space:normal}
+.month-tasks-assignee{display:flex;flex-direction:column;gap:4px;margin:8px 0}

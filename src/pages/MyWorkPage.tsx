@@ -133,7 +133,7 @@ export function MyWorkPage({ azure, store, my, month: headerMonth, onOpenActivit
               ]} />
           })()}
         </TablePanel>
-        {monthFor && config && <MonthTasksDialog item={monthFor} items={azure.items} config={config} pat={pat} me={meEmail} month={headerMonth} featureSetup={featureSetup} onClose={() => setMonthFor(null)} onDone={(text, changed) => { setMonthFor(null); azure.applyWorkItems(changed, 'Add Time Writing Task', text); setLog((current) => [{ tone: 'success', text }, ...current]) }} />}
+        {monthFor && config && <MonthTasksDialog item={monthFor} items={azure.items} config={config} pat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} month={headerMonth} featureSetup={featureSetup} onClose={() => setMonthFor(null)} onDone={(text, changed) => { setMonthFor(null); azure.applyWorkItems(changed, 'Add Time Writing Task', text); setLog((current) => [{ tone: 'success', text }, ...current]) }} />}
         {editing && config && <WorkItemEditor item={editing} items={azure.items} config={config} savedPat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} onSavePat={azure.rememberPat} onUpdated={azure.featureCreated} onClose={() => setEditing(null)}
           onDone={(text) => { note({ tone: 'success', text }); void azure.refresh() }} onFailed={(text) => note({ tone: 'error', text })} />}
         {storyOf && config && <StoryEditor feature={storyOf} items={azure.items} config={config} savedPat={pat} me={meEmail} canChoose={Boolean(assign?.canChoose)} onSavePat={azure.rememberPat} onCreated={azure.featureCreated} onClose={() => setStoryOf(null)}
