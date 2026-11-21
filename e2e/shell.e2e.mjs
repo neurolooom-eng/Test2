@@ -10,6 +10,7 @@ after(async () => { await app.stop() })
 
 test('TC-NAV-01 / TC-NAV-17: the sidebar shows the groups in order, with Documentation under Data & governance', async () => {
   const { page, context, errors } = await openPage(app)
+  assert.equal(await text(page.locator('header.topbar h1')), 'Home', 'the app opens on Home (NAV-42)')
   assert.match(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'), /script-src 'self' file:; .*object-src 'none'/, 'NFR-09: the built page carries its Content-Security-Policy')
   const groups = await page.locator('.sidebar nav .nav-group').allInnerTexts()
   assert.deepEqual(groups.map((group) => group.replace(/^[▾▸]\s*/, '').trim().toLowerCase()), ['data insights', 'my work', 'i&d board', 'release details', 'data & governance', 'admin'])
@@ -17,6 +18,38 @@ test('TC-NAV-01 / TC-NAV-17: the sidebar shows the groups in order, with Documen
   for (const entry of ['My dashboard', 'Team overview', 'Pulse Check', 'My Tasks [Board]', 'Time Writing', 'Sprint check', 'Backlog Health', 'Streams', 'Stream options', 'Data & sharing', 'People & roles', 'Epic & Feature setup', 'Documentation']) assert.ok(entries.some((item) => item.endsWith(entry)), `${entry} is in the menu`)
   assert.match(await text(page.locator('.sidebar-footer')), /v\d+\.\d+\.\d+/, 'the footer shows the version (NAV-15)')
   assert.equal(await page.getByRole('button', { name: /^My settings/ }).count(), 1, 'My settings opens from your name (SET-15)')
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+test('TC-NAV-42: Home is the start page — a tile per area with links to its pages, a search, and Home first in the menu', async () => {
+  const { page, context, errors } = await openPage(app)
+  await loadSample(page)
+  await page.locator('.sidebar nav button', { hasText: 'Home' }).first().click()
+  assert.equal(await text(page.locator('header.topbar h1')), 'Home')
+  assert.equal((await page.locator('.sidebar nav .nav-items button').first().innerText()).replace(/\s+/g, ' ').trim().replace(/^\S+\s/, ''), 'Home', 'Home is first in the menu')
+  const tiles = page.getByRole('listitem')
+  assert.deepEqual((await tiles.locator('.home-tile-title').allInnerTexts()).map((entry) => entry.trim()), ['My Work', 'My dashboard', 'Team Insights', 'I&D Board', 'Release Details', 'Planning & Baselines', 'QE Mapping', 'Snapshots & Documents', 'Admin', 'My settings'])
+  const release = page.locator('article[aria-label="Release Details"]')
+  assert.equal(await release.locator('.home-link').count(), 7, 'six links and “+n more”')
+  await release.getByRole('button', { name: /^Show \d+ more Release Details pages$/ }).click()
+  assert.ok(await release.getByRole('button', { name: 'S&S IT' }).isVisible(), 'the rest of the links are shown in the tile')
+  // Search: a tile whose title matches keeps all its links; otherwise only its matching links stay.
+  await page.getByLabel('Search pages').fill('stream options')
+  assert.deepEqual((await tiles.locator('.home-tile-title').allInnerTexts()).map((entry) => entry.trim()), ['Admin'])
+  assert.deepEqual((await page.locator('article[aria-label="Admin"]').locator('.home-link-label').allInnerTexts()), ['Stream options'], 'only the matching link')
+  await page.getByLabel('Search pages').fill('backlog')
+  assert.deepEqual((await tiles.locator('.home-tile-title').allInnerTexts()).map((entry) => entry.trim()), ['I&D Board'], 'a tile whose description matches keeps all its links')
+  assert.equal(await page.locator('article[aria-label="I&D Board"]').locator('.home-link').count(), 2)
+  await page.getByLabel('Search pages').fill('nothing like this')
+  assert.match(await text(page.locator('.home')), /Nothing matches “nothing like this”/)
+  await page.getByLabel('Search pages').fill('')
+  // A tile opens its area; a link opens its page.
+  await page.getByRole('button', { name: /^Open My Work/ }).click()
+  assert.equal(await text(page.locator('header.topbar h1')), 'Time Writing')
+  await page.locator('.sidebar nav button', { hasText: 'Home' }).first().click()
+  await page.locator('article[aria-label="Team Insights"]').getByRole('button', { name: 'Pulse Check' }).click()
+  assert.equal(await text(page.locator('header.topbar h1')), 'Pulse Check')
   assert.deepEqual(errors, [])
   await context.close()
 })
@@ -596,9 +629,9 @@ test('TC-CON-56: Storage → Shared setup in Git offers Back up and clean up; re
   await context.close()
 })
 
-test('TC-MYD-01: My dashboard is the start page: my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year', async () => {
+test('TC-MYD-01: My dashboard — my hours, my open work, my streams and what I signed; Pulse Check offers quarter, half-year and year', async () => {
   const { page, context, errors } = await openPage(app, { init: () => { localStorage.setItem('demand-planning-my-name-v1', 'Ana Costa') } })
-  assert.equal(await text(page.locator('header.topbar h1')), 'My dashboard', 'the start page')
+  assert.equal(await text(page.locator('header.topbar h1')), 'Home', 'the start page is Home (NAV-42)')
   await loadSample(page)
   await navigate(page, 'My dashboard')
   const content = page.locator('.content')
