@@ -329,7 +329,7 @@ test('TC-STT-01: a User Story template, linked in an Epic’s setup, gives New F
   await context.close()
 })
 
-test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month first, ＋ Add month, any month changeable — and the hours of each; Assigned to is the person creating (TC-BKL-24)', async () => {
+test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month first, ＋ Add month, any month changeable — and the hours of each; Assigned to is the person creating (TC-BKL-24); Add runs as a background job (TC-BKL-26)', async () => {
   const { page, context, errors } = await openPage(app, { init: () => { localStorage.setItem('demand-planning-work-email-v1', 'nobody@example.com') } })
   await loadSample(page)
   await navigate(page, 'QMS-0025')
@@ -361,8 +361,16 @@ test('TC-BKL-23: ＋ Time Writing Task asks for the months — the header month 
   await dialog.getByLabel(`Original Estimate (h) ${label}`).fill('6')
   await dialog.getByRole('button', { name: `Remove ${label}` }).click()
   assert.equal(await dialog.getByRole('button', { name: 'Add 2 months' }).count(), 1)
-  await dialog.getByRole('button', { name: 'Cancel' }).click()
-  assert.equal(await page.getByRole('dialog').count(), 0)
+  // BKL-37: Add closes the pop-up at once; the work is a background job in the top bar (TC-BKL-26).
+  await dialog.getByRole('button', { name: 'Add 2 months' }).click()
+  assert.equal(await page.getByRole('dialog').count(), 0, 'the pop-up closes on Add')
+  const jobs = page.locator('.jobs-button')
+  await jobs.waitFor()
+  await jobs.click()
+  const panel = page.getByRole('dialog', { name: 'Background jobs' })
+  await panel.waitFor()
+  assert.match(await text(panel), /Time Writing Tasks .* · #\d+/, 'the job is listed with its months and Feature')
+  await jobs.click()
   assert.deepEqual(errors.filter((entry) => !/401|Unauthorized/.test(entry)), [])
   await context.close()
 })
