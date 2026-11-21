@@ -223,7 +223,9 @@ This document lists every software component of the system: the in-house source 
 
 | Component | Path | Purpose | Requirement areas |
 |---|---|---|---|
-| azureDevOps | `src/azureDevOps.ts` | Azure DevOps REST client: URL normalising, iterations, WIQL fetch, work-item mapping (with Successor / Predecessor IDs from Dependency links, CON-81), constrained Feature/Story/Task creation and updates. | CON, FET, ATM, MON, IF |
+| azureDevOps | `src/azureDevOps.ts` | Azure DevOps writes: constrained Feature / Story / Task creation, the Time Writing and release hierarchies, updates, edits and comments; re-exports azureClient and azureRead, so it stays the one import for the rest of the app. | CON, FET, ATM, MON, IF |
+| azureClient | `src/azureClient.ts` | Azure DevOps request client: connection settings and URL normalising, the transport (fetch or the desktop proxy), api-version negotiation, the write guards (roles, sample mode, dev.azure.com only) and the constrained request bodies. | CON, FET, SMP |
+| azureRead | `src/azureRead.ts` | Azure DevOps reads: iterations, the WIQL backlog fetch, work-item mapping (with Successor / Predecessor IDs from Dependency links, CON-81), field names and team members. | CON, IF |
 | pptxTemplate | `src/pptxTemplate.ts` | Fills the team's PowerPoint template (kept in Storage) with the Monthly pack: Performance Pulse and 2x2 boxes found by label and position, status colours, KPI rows, shrink to fit; checks an uploaded template. | PCK |
 | workItemEdit | `src/workItemEdit.ts` | The fields an edit may change, their checks, the revision-tested JSON patch, rich text as editable text, the Feature DoD split and the edit locks. | BKL |
 | planningLock | `src/planningLock.ts` | The planning / actuals lock rule of a month (deadline, extension, explicit lock) shared by the Monthly page and the Task creation paths, and whether a new month Task is ad-hoc. | MON |
