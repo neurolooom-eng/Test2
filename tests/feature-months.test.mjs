@@ -203,3 +203,32 @@ test('BKL-36: a renamed Feature’s Time Writing story and month Tasks take its 
   assert.deepEqual([broken.renamed, broken.note], [[], ' Time Writing titles not updated: offline.'])
   assert.deepEqual(await syncTitlesAfterSave(config, pat, [], { id: 9, workItemType: 'Task', title: 'x', state: 'Active' }, transport), { renamed: [], note: '' }, 'no Feature above: nothing to do')
 })
+
+test('BKL-37: ＋ Time Writing Task runs as a background job — progress and result in the top bar; one at a time per Feature and person; Tasks made before a failure are kept (TC-BKL-26)', async () => {
+  const { startMonthTasksJob } = await import('../src/monthTaskAction.ts')
+  const { listJobs, resetJobs, isRunning } = await import('../src/backgroundJobs.ts')
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+  const until = async (check) => { for (let i = 0; i < 200 && !check(); i += 1) await settle() }
+  resetJobs()
+  const world = new Map([[2, raw(2, { 'System.WorkItemType': 'Feature', 'System.Title': 'DP | Core | 5.2' })]])
+  const items = [{ id: 1, workItemType: 'Epic', title: 'E', state: 'Active' }, { id: 2, workItemType: 'Feature', title: 'DP | Core | 5.2', parentId: 1, state: 'Active' }]
+  const done = [], failed = []
+  const { transport } = fakeAzure(world)
+  const input = { config, pat, items, item: items[1], assignee: 'Ana@x.com', entries: [{ month: 'December 2026' }, { month: 'January 2027' }], transport, onDone: (text, changed) => done.push([text, changed.length]), onFailed: (text, changed) => failed.push([text, changed.map((entry) => entry.title)]) }
+  assert.equal(startMonthTasksJob(input), true)
+  assert.equal(isRunning('month-tasks:2:ana@x.com'), true, 'one job per Feature and person')
+  assert.equal(startMonthTasksJob(input), false, 'a second Add while it runs does not start another')
+  assert.equal(listJobs()[0].label, 'Time Writing Tasks December 2026, January 2027 · #2')
+  await until(() => listJobs()[0].state !== 'running')
+  assert.deepEqual([listJobs()[0].state, done.length, done[0][1]], ['done', 1, 3], 'story and two Tasks; the page gets them')
+  assert.match(listJobs()[0].detail, /December 2026, January 2027 under “DP \| Core \| 5\.2” ready/)
+
+  // A failure part-way: the job says what failed and what was made; the page still gets what was made.
+  const partial = fakeAzure(new Map([[2, raw(2, { 'System.WorkItemType': 'Feature', 'System.Title': 'DP | Core | 5.2' })]]), 'January 2027')
+  assert.equal(startMonthTasksJob({ ...input, transport: partial.transport }), true)
+  await until(() => listJobs()[0].state !== 'running')
+  assert.equal(listJobs()[0].state, 'error')
+  assert.match(listJobs()[0].detail, /refused January 2027\. Made before it stopped: #\d+, #\d+\./)
+  assert.deepEqual(failed, [[listJobs()[0].detail, ['DP | Core | 5.2 - Time Writing', 'December 2026 | DP | Core | 5.2']]])
+  resetJobs()
+})

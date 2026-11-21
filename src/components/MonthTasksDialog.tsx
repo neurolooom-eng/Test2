@@ -4,7 +4,7 @@ import type { AzureConfig } from '../azureDevOps'
 import { currentIndiaMonth } from '../azureDevOps'
 import { setupHours, type FeatureSetups } from '../featureSetup'
 import { isFutureMonth, monthKeyOfLabel, monthLabelOfKey } from '../featureMonths'
-import { addMonthTasksFor, existingMonthNotice, existingMonthTasks, overrideConfirmText } from '../monthTaskAction'
+import { existingMonthNotice, existingMonthTasks, overrideConfirmText, startMonthTasksJob } from '../monthTaskAction'
 import { assignablePeople, featureOf } from '../myWork'
 import { adhocAfterLock } from '../planningLock'
 import { Modal, Notice } from './ui'
@@ -16,14 +16,14 @@ import { PersonPicker } from './PersonPicker'
 // BKL-35: Assigned to — the person creating, changeable with the right to create work for others — is the Task's and
 // the Time Writing story's assignee; a month that person already has a Task for is warned about on its row (no second
 // Task, the typed hours override its hours) and confirmed before Add.
+// BKL-37: Add closes the pop-up and runs as a background job (top bar), like every other long write (NAV-36).
 type Row = { key: string; plan: string; done: string }
 const nextKey = (key: string) => { const [year, month] = key.split('-').map(Number); return month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}` }
 
-export function MonthTasksDialog({ item, items, config, pat, me, canChoose = false, month, featureSetup, onDone, onClose }: { item: AzureWorkItem; items: AzureWorkItem[]; config: AzureConfig; pat: string; me: string; canChoose?: boolean; month?: string; featureSetup?: FeatureSetups | null; onDone: (text: string, changed: AzureWorkItem[]) => void; onClose: () => void }) {
+export function MonthTasksDialog({ item, items, config, pat, me, canChoose = false, month, featureSetup, onDone, onFailed, onClose }: { item: AzureWorkItem; items: AzureWorkItem[]; config: AzureConfig; pat: string; me: string; canChoose?: boolean; month?: string; featureSetup?: FeatureSetups | null; onDone: (text: string, changed: AzureWorkItem[]) => void; onFailed?: (text: string, changed: AzureWorkItem[]) => void; onClose: () => void }) {
   const todayLabel = currentIndiaMonth()
   const start = month && /^\d{4}-\d{2}$/.test(month) ? month : monthKeyOfLabel(todayLabel) ?? ''
   const [rows, setRows] = useState<Row[]>([{ key: start, plan: '', done: '' }])
-  const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const feature = featureOf(items, item)
   const people = useMemo(() => assignablePeople(items), [items])
@@ -45,7 +45,7 @@ export function MonthTasksDialog({ item, items, config, pat, me, canChoose = fal
   const set = (index: number, change: Partial<Row>) => setRows((now) => now.map((row, at) => at === index ? { ...row, ...change } : row))
   const addMonth = () => setRows((now) => { const last = [...now.map((row) => row.key)].filter(Boolean).sort().pop() ?? start; let key = nextKey(last); while (now.some((row) => row.key === key)) key = nextKey(key); return [...now, { key, plan: '', done: '' }] })
 
-  async function save() {
+  function save() {
     if (!feature) { setError(`#${item.id} has no Feature above it to hold a Time Writing Task.`); return }
     if (rows.some((row) => !/^\d{4}-\d{2}$/.test(row.key))) { setError('Choose a month for every row.'); return }
     if (duplicate) { setError(`${monthLabelOfKey(duplicate)} is listed twice.`); return }
@@ -56,12 +56,13 @@ export function MonthTasksDialog({ item, items, config, pat, me, canChoose = fal
     catch (failure) { setError(failure instanceof Error ? failure.message : 'Check the hours.'); return }
     const existing = rows.flatMap((row) => { const task = mine.get(row.key); return task ? [{ label: monthLabelOfKey(row.key), task, typed: Boolean(row.plan.trim() || row.done.trim()) }] : [] })
     if (existing.length && !window.confirm(overrideConfirmText(existing))) return
-    setError(''); setBusy('Adding…')
-    try { const done = await addMonthTasksFor(config, pat, items, item, assignee, entries, featureSetup, setBusy); onDone(done.text, done.changed) }
-    catch (failure) { setError(failure instanceof Error ? failure.message : 'The Time Writing Tasks could not be added.'); setBusy('') }
+    setError('')
+    const started = startMonthTasksJob({ config, pat, items, item, assignee, entries, setups: featureSetup, onDone, onFailed })
+    if (!started) { setError('These Time Writing Tasks are already being added in the background (see the top bar).'); return }
+    onClose()
   }
 
-  return <Modal title="Time Writing Tasks" eyebrow="AZURE DEVOPS WRITE" onClose={() => { if (!busy) onClose() }}>
+  return <Modal title="Time Writing Tasks" eyebrow="AZURE DEVOPS WRITE" onClose={onClose}>
     <div className="month-tasks">
       <p className="muted">Your Time Writing Task per month under “{feature?.title ?? `#${item.id}`}” — “{'{Month}'} | {feature?.title ?? '…'}”. Add the months you need; the hours are optional and can be changed later.</p>
       {canChoose
@@ -70,19 +71,19 @@ export function MonthTasksDialog({ item, items, config, pat, me, canChoose = fal
       {assignee && <small className="muted">Assigned To of the Task and its Time Writing story in Azure DevOps: {assignee}</small>}
       <table className="nf-month-hours"><thead><tr><th scope="col">Month</th><th scope="col">Original Estimate (h)</th><th scope="col">Completed Work (h)</th><th scope="col"><span className="sr-only">Remove</span></th></tr></thead>
         <tbody>{rows.map((row, index) => { const label = row.key ? monthLabelOfKey(row.key) : '', future = Boolean(label) && isFutureMonth(label, todayLabel), existing = mine.get(row.key); return <tr key={index}>
-          <th scope="row"><input type="month" aria-label={`Month ${index + 1}`} value={row.key} disabled={Boolean(busy)} onChange={(event) => set(index, { key: event.target.value })} />
+          <th scope="row"><input type="month" aria-label={`Month ${index + 1}`} value={row.key} onChange={(event) => set(index, { key: event.target.value })} />
             {existing && <small className="month-tasks-note month-tasks-exists" role="note">{existingMonthNotice(monthLabelOfKey(row.key), existing, forOther)}</small>}
             {label && adhocAfterLock(label) && !existing && <small className="muted month-tasks-note">Planning is locked: tagged ad-hoc</small>}</th>
-          <td><input type="number" aria-label={`Original Estimate (h) ${label || index + 1}`} min="0" max="1000000" step="0.25" value={row.plan} disabled={Boolean(busy)} placeholder={existing?.originalEstimate != null ? String(existing.originalEstimate) : defaultHours != null ? `${defaultHours} (setup)` : 'Optional'} onChange={(event) => set(index, { plan: event.target.value })} /></td>
-          <td><input type="number" aria-label={`Completed Work (h) ${label || index + 1}`} min="0" max="1000000" step="0.25" value={future ? '' : row.done} disabled={Boolean(busy) || future} placeholder={future ? '—' : existing?.completedWork != null ? String(existing.completedWork) : 'Optional'} onChange={(event) => set(index, { done: event.target.value })} /></td>
-          <td>{rows.length > 1 && <button type="button" className="text-button danger-text" aria-label={`Remove ${label || `month ${index + 1}`}`} disabled={Boolean(busy)} onClick={() => setRows((now) => now.filter((_, at) => at !== index))}>✕</button>}</td>
+          <td><input type="number" aria-label={`Original Estimate (h) ${label || index + 1}`} min="0" max="1000000" step="0.25" value={row.plan} placeholder={existing?.originalEstimate != null ? String(existing.originalEstimate) : defaultHours != null ? `${defaultHours} (setup)` : 'Optional'} onChange={(event) => set(index, { plan: event.target.value })} /></td>
+          <td><input type="number" aria-label={`Completed Work (h) ${label || index + 1}`} min="0" max="1000000" step="0.25" value={future ? '' : row.done} disabled={future} placeholder={future ? '—' : existing?.completedWork != null ? String(existing.completedWork) : 'Optional'} onChange={(event) => set(index, { done: event.target.value })} /></td>
+          <td>{rows.length > 1 && <button type="button" className="text-button danger-text" aria-label={`Remove ${label || `month ${index + 1}`}`} onClick={() => setRows((now) => now.filter((_, at) => at !== index))}>✕</button>}</td>
         </tr> })}</tbody>
       </table>
-      <div className="button-row"><button type="button" className="ghost" disabled={Boolean(busy)} onClick={addMonth}>＋ Add month</button></div>
+      <div className="button-row"><button type="button" className="ghost" onClick={addMonth}>＋ Add month</button></div>
       {duplicate && <Notice tone="warning">{monthLabelOfKey(duplicate)} is listed twice.</Notice>}
       {error && <div className="notice error" role="alert">{error}</div>}
-      <div className="modal-actions"><button type="button" className="ghost" disabled={Boolean(busy)} onClick={onClose}>Cancel</button>
-        <button type="button" className="primary" disabled={Boolean(busy) || Boolean(duplicate) || !assignee} onClick={() => void save()}>{busy || `Add ${rows.length} month${rows.length === 1 ? '' : 's'}`}</button></div>
+      <div className="modal-actions"><button type="button" className="ghost" onClick={onClose}>Cancel</button>
+        <button type="button" className="primary" disabled={Boolean(duplicate) || !assignee} onClick={() => void save()}>{`Add ${rows.length} month${rows.length === 1 ? '' : 's'}`}</button></div>
     </div>
   </Modal>
 }
