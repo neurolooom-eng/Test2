@@ -2,6 +2,16 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change gets a version and its entry here (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4). Since v7.43.0 the pull request adds a change note in [`docs/changes/`](changes/README.md) instead, and after the merge CI writes the version into `package.json` and the entry (with the PR number) at the top of this file in a release commit (CI-11): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.46.0 — 2026-11-21
+
+**Changed**
+- **＋ Time Writing Task: Assigned to** — the pop-up asks who the Tasks are assigned to, starting at the person creating (anyone in the backlog with the right “Assign new work to other people”); that person is the Assigned To of each Task and of its Time Writing User Story (a new story, or an existing one with no Assigned To; another person's story is never reassigned) (BKL-35).
+- **A month that already has a Time Writing Task** — its row says so with the Task's hours; no second Task is created, the hours typed override its hours, and Add asks to confirm first (BKL-35).
+
+DF-130, SM-88; TC-BKL-24.
+
+PR #330.
+
 ## v7.45.1 — 2026-11-21
 
 **Tests**
