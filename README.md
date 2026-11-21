@@ -267,6 +267,8 @@ Every section shows a **scope chip** saying whom a change affects: *Only you · 
 
 **My naming patterns** (My settings, v7.31.0) are your own release naming patterns for IOCC, Content and Tool Validations — never DP or CP, which the Tool Owner sets. Where you set a stream's patterns they are used for you instead of the shared ones (release names, counts and everything built on them), on this computer only; **Use the shared patterns** goes back. Others see the shared names, so figures you share (e.g. a Monthly pack) may differ from theirs while yours are set.
 
+**My page usage** (My settings) — off unless you turn it on — counts how often you open each page and lists them most used first, so you can see which pages you actually use. The counts stay in this browser: they are never sent anywhere, shared through Git or SharePoint, or put in a backup, and turning it off deletes them.
+
 **My views** (My settings → My views) are your own read-only views: a name, a server you already have a PAT for, a project and a WIQL query. They appear under **Other views** in your menu and are fetched like any view, but stay on this computer — never in the shared setup in Git, a backup or SharePoint — and can never replace or change a stream (a name like *DP* or *CP* is refused), so the release figures stay the same for everyone.
 
 ### Setup per Epic (Feature setup)

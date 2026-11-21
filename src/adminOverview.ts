@@ -43,6 +43,7 @@ export const settingsIndex: SettingsEntry[] = [
   { tab: 'my', section: 'servers', page: 'My settings', label: 'Servers and PATs', words: 'token pat azure devops server password' },
   { tab: 'my', section: 'myviews', page: 'My settings', label: 'My views', words: 'personal query wiql other views' },
   { tab: 'my', section: 'patterns', page: 'My settings', label: 'My naming patterns', words: 'release names iocc content tool validations personal' },
+  { tab: 'my', section: 'usage', page: 'My settings', label: 'My page usage', words: 'usage statistics counts visits analytics pages opened' },
   { tab: 'connections', section: 'mapping', page: 'Streams', label: 'Stream mapping', words: 'dp cp iocc content tool validations query server project data sets naming patterns tool owner' },
   { tab: 'options', section: 'epics', page: 'Stream options', label: 'Epics to match Features in', words: 'feature matching board epics dp cp iocc content' },
   { tab: 'options', section: 'bulk', page: 'Stream options', label: 'Bulk creation Epics', words: 'create features bulk epic dp iocc content' },
