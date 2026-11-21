@@ -12,7 +12,7 @@ import { personMonths, totals } from '../dashboard'
 import type { AzureWorkItem } from '../domain'
 import { setupHours, type FeatureSetups } from '../featureSetup'
 import { formatDate, formatHours, monthName, todayIso } from '../format'
-import { absenceStoryType, assignablePeople, isMine, isPending, leaveTaskCandidates, myNames, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
+import { absenceStoryType, assignablePeople, byFeatureNumber, isMine, isPending, leaveTaskCandidates, myNames, monthTaskCandidates, type MonthTaskCandidate } from '../myWork'
 import { actualsLockDate, actualsLocked as isActualsLocked, planLockDate, planningLocked as isPlanningLocked } from '../planningLock'
 import type { AzureWorkspace } from '../useAzureWorkspace'
 import type { MyWork } from '../useMyWork'
@@ -94,17 +94,19 @@ export function MyActivitiesPage({ azure, store, my, month, assign, featureSetup
 
   // This month's tasks of mine, then the Features still without one (work ticked, leave and training not).
   const mine = my.known ? azure.items.filter((item) => item.workItemType === 'Task' && item.state.trim().toLowerCase() !== 'removed' && isMine(item, my.me) && timeWritingMonth(item.title) === month) : []
-  const existing: Row[] = mine.map((task) => { const feature = featureOf(task); return { key: `task:${task.id}`, title: feature?.title ?? task.title, stream: epicOf(task)?.title ?? 'No stream', kind: kindOf(task), task, link: feature ?? task } })
+  // ACT-21: every list on the page in order of Feature number.
+  const byFeature = byFeatureNumber<Row>(azure.items)
+  const existing: Row[] = mine.map((task): Row => { const feature = featureOf(task); return { key: `task:${task.id}`, title: feature?.title ?? task.title, stream: epicOf(task)?.title ?? 'No stream', kind: kindOf(task), task, link: feature ?? task } }).sort(byFeature)
   const work = my.known ? monthTaskCandidates(azure.items, my.me, label, absenceEpicId) : []
   const leave = my.known ? leaveTaskCandidates(azure.items, my.me, label, absenceEpicId) : []
-  const toAdd: Row[] = [...work, ...leave].filter((row) => row.status === 'needs-task' || row.status === 'needs-story').map((row) => ({
+  const toAdd: Row[] = [...work, ...leave].filter((row) => row.status === 'needs-task' || row.status === 'needs-story').map((row): Row => ({
     key: row.story ? `story:${row.story.id}` : row.kind ? `feature:${row.feature.id}:${row.kind}` : `feature:${row.feature.id}`,
     title: row.leave ? row.story?.title ?? row.storyTitle : row.feature.title,
     link: row.story ?? row.feature,
     stream: epicOf(row.feature)?.title ?? 'No stream',
     kind: !row.leave ? 'work' : row.kind === 'Training' ? 'training' : 'leave',
     candidate: row,
-  }))
+  })).sort(byFeature)
   const conflicts = work.filter((row) => row.status === 'conflict')
   // Nothing is chosen for the person (ACT-03): Features without a task are only suggested; Add puts one in the list.
   const isTicked = (row: Row) => ticked[row.key] ?? false

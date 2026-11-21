@@ -759,6 +759,9 @@ test('TC-ACT-02: Time Writing shows the person\'s KPI cards, month tasks, hours 
   await content.getByRole('heading', { name: /Your activities for/ }).waitFor()
   assert.ok(await content.locator('.act-table tbody tr').count() > 0, 'the month tasks are listed')
   assert.ok(await content.getByRole('textbox', { name: /^Actual hours for / }).count() > 0, 'actual hours can be entered')
+  const ids = (await content.locator('.act-table').first().locator('tbody a.act-id').allInnerTexts()).map((text) => Number(text.replace('#', '')))
+  assert.ok(ids.length > 1, 'several activities')
+  assert.deepEqual(ids, [...ids].sort((a, b) => a - b), 'ACT-21: in order of Feature number (TC-ACT-16)')
   // Columns: Epic, Activity, Planned, Actual.
   assert.deepEqual((await content.locator('.act-table').first().locator('thead th').allInnerTexts()).map((cell) => cell.trim().toLowerCase()).filter(Boolean), ['epic', 'activity', 'planned', 'actual'])
   // KPI cards on top in this order, Unsaved changes only while editing; the monthly update (ring and last day) beside them.
