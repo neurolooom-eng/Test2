@@ -2,6 +2,13 @@
 
 Version history of the I&D Quality Demand Planning app, newest first. Every merged change bumps the version in `package.json` and adds its entry here, in the same pull request (CI-09; [CONFIGURATION-MANAGEMENT.md](CONFIGURATION-MANAGEMENT.md) §4): **major** for a change that breaks existing data, shared setup files or the way users work; **minor** for a new or changed feature; **patch** for a fix, a dependency update or documentation only. `pnpm test` fails when the newest version here is not the version in `package.json`. CI tags each version `vX.Y.Z` on its merge commit and publishes its GitHub release with the installers and this entry (CI-10); the build number of a version is the CI build of that merge (shown in the app under Force Update, and in `latest.json`). Open bugs and accepted limitations of every version are in [KNOWN-ISSUES.md](KNOWN-ISSUES.md); the third-party components of every version are in [SWBOM.md](SWBOM.md).
 
+## v7.42.4 — 2026-11-21
+
+**Dependencies**
+- Daily package update: `source-map-js` 1.2.3 → 1.2.4 (build-time, through Vite). `pnpm audit`: no known vulnerabilities before and after. Majors not taken: Electron 45, TypeScript 7, @types/node 26; Playwright stays at 1.56.1.
+
+PR #324.
+
 ## v7.42.3 — 2026-11-20
 
 **Security**
